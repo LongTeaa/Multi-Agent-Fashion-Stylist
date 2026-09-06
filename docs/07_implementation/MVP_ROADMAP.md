@@ -13,7 +13,7 @@ Specification files:
 
 - [x] Initialize Next.js and FastAPI using the normative source tree.
 - [x] Add `.env.example`, `.gitignore`, and typed settings.
-- [ ] Implement SQLModel tables and migrations for all MVP entities.
+- [x] Implement SQLModel tables and migrations for all MVP entities.
 - [ ] Implement the `ObjectStorage` interface, local adapter, and MinIO adapter.
 - [ ] Provide Docker Compose for local MinIO when that adapter is enabled.
 - [ ] Add an idempotent seed command for one test user and the eight-item golden wardrobe.
