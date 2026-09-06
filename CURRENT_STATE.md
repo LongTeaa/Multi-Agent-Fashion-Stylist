@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 1 — Scaffold, Database, and Object Storage (in progress) |
-| Active task | Phase 1 Task 6: add an idempotent seed command for one test user and the eight-item golden wardrobe. |
-| Most recently modified files | `compose.yaml`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `docker compose --env-file .env.example config --quiet; backend\.venv\Scripts\python.exe -m pytest backend -q; backend\.venv\Scripts\python.exe -m compileall -q backend/app backend/migrations backend/tests; backend\.venv\Scripts\python.exe -m pip check; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build; powershell -ExecutionPolicy Bypass -File scripts/verify_documentation.ps1` |
-| Next step | Implement only Phase 1 Task 6: an idempotent seed command for one test user and the eight-item golden wardrobe, without starting the remaining Phase 1 invariant-test task. |
+| Active task | Phase 1 Task 7: add database invariant, storage contract, and seed tests. |
+| Most recently modified files | `backend/app/core/seed.py`, `backend/scripts/seed_data.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend -q; backend\.venv\Scripts\python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend\.venv\Scripts\python.exe -m pip check; docker compose config --quiet; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build; powershell -ExecutionPolicy Bypass -File scripts/verify_documentation.ps1` |
+| Next step | Implement only Phase 1 Task 7: complete database invariant, shared storage contract, and idempotent seed tests, then run the Phase 1 executable verification command. |
 
 ## Update Rules
 

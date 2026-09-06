@@ -16,7 +16,7 @@ Specification files:
 - [x] Implement SQLModel tables and migrations for all MVP entities.
 - [x] Implement the `ObjectStorage` interface, local adapter, and MinIO adapter.
 - [x] Provide Docker Compose for local MinIO when that adapter is enabled.
-- [ ] Add an idempotent seed command for one test user and the eight-item golden wardrobe.
+- [x] Add an idempotent seed command for one test user and the eight-item golden wardrobe.
 - [ ] Add database invariant, storage contract, and seed tests.
 
 Verification MUST assert schema creation, exactly eight golden items after repeated seeding, and common behavior across storage adapters.
