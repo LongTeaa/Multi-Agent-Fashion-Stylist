@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 1 — Scaffold, Database, and Object Storage (in progress) |
-| Active task | Phase 1 Task 2: add `.env.example`, `.gitignore`, and typed settings. |
-| Most recently modified files | `frontend/package.json`, `frontend/package-lock.json`, `frontend/tsconfig.json`, `frontend/eslint.config.mjs`, `frontend/postcss.config.mjs`, `frontend/src/app/*`, `backend/pyproject.toml`, `backend/app/*`, `backend/tests/unit/test_app.py`, normative source-tree placeholders, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build; Push-Location backend; python -m pytest tests -q; python -m compileall -q app tests; Pop-Location` |
-| Next step | Implement only Phase 1 Task 2: placeholder-only environment example, repository ignore rules, and typed settings matching the environment contracts. |
+| Active task | Phase 1 Task 3: implement SQLModel tables and migrations for all MVP entities. |
+| Most recently modified files | `.env.example`, `.gitignore`, `backend/pyproject.toml`, `backend/app/core/__init__.py`, `backend/app/core/config.py`, `backend/tests/unit/test_config.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend/tests -q; backend\.venv\Scripts\python.exe -m compileall -q backend/app backend/tests; backend\.venv\Scripts\python.exe -m pip check; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build` |
+| Next step | Implement only Phase 1 Task 3: SQLModel tables and migrations matching `DATA_SCHEMA.md`, without starting object-storage adapters. |
 
 ## Update Rules
 

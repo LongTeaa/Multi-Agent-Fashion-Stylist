@@ -12,7 +12,7 @@ Specification files:
 - `TEST_STRATEGY.md`, Phase 1
 
 - [x] Initialize Next.js and FastAPI using the normative source tree.
-- [ ] Add `.env.example`, `.gitignore`, and typed settings.
+- [x] Add `.env.example`, `.gitignore`, and typed settings.
 - [ ] Implement SQLModel tables and migrations for all MVP entities.
 - [ ] Implement the `ObjectStorage` interface, local adapter, and MinIO adapter.
 - [ ] Provide Docker Compose for local MinIO when that adapter is enabled.
