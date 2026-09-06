@@ -16,6 +16,7 @@ from app.repositories.object_storage import (
     MinioObjectStorage,
     ObjectNotFoundError,
     ObjectStorage,
+    ObjectStorageError,
     StorageBuckets,
     StorageConfigurationError,
 )
@@ -48,6 +49,11 @@ class FakeMinioClient:
         self.objects: dict[tuple[str, str], bytes] = {}
         self.content_types: dict[tuple[str, str], str] = {}
         self.last_response: FakeMinioResponse | None = None
+        self.failure: Exception | None = None
+
+    def _raise_failure(self) -> None:
+        if self.failure is not None:
+            raise self.failure
 
     @staticmethod
     def _not_found(bucket_name: str, object_name: str) -> S3Error:
@@ -70,12 +76,14 @@ class FakeMinioClient:
         length: int,
         content_type: str = "application/octet-stream",
     ) -> object:
+        self._raise_failure()
         payload = data.read(length)
         self.objects[(bucket_name, object_name)] = payload
         self.content_types[(bucket_name, object_name)] = content_type
         return object()
 
     def get_object(self, bucket_name: str, object_name: str) -> FakeMinioResponse:
+        self._raise_failure()
         try:
             data = self.objects[(bucket_name, object_name)]
         except KeyError as error:
@@ -84,11 +92,13 @@ class FakeMinioClient:
         return self.last_response
 
     def stat_object(self, bucket_name: str, object_name: str) -> object:
+        self._raise_failure()
         if (bucket_name, object_name) not in self.objects:
             raise self._not_found(bucket_name, object_name)
         return object()
 
     def remove_object(self, bucket_name: str, object_name: str) -> None:
+        self._raise_failure()
         try:
             del self.objects[(bucket_name, object_name)]
         except KeyError as error:
@@ -230,6 +240,25 @@ def test_minio_adapter_preserves_content_type() -> None:
     )
 
     assert client.content_types[(TEST_BUCKETS.thumbnails, object_key)] == "image/webp"
+
+
+def test_minio_retrieval_error_does_not_expose_internal_location() -> None:
+    client = FakeMinioClient()
+    storage = MinioObjectStorage(client, TEST_BUCKETS)
+    object_key = "users/user-1/items/item-1/crop/v1.png"
+    client.failure = RuntimeError(f"provider failure at {TEST_BUCKETS.wardrobe}/{object_key}")
+
+    with pytest.raises(ObjectStorageError) as captured_error:
+        storage.get_object(
+            user_id="user-1",
+            bucket=TEST_BUCKETS.wardrobe,
+            object_key=object_key,
+        )
+
+    public_message = str(captured_error.value)
+    assert public_message == "Private object storage operation failed."
+    assert TEST_BUCKETS.wardrobe not in public_message
+    assert object_key not in public_message
 
 
 def test_minio_adapter_requires_credentials() -> None:

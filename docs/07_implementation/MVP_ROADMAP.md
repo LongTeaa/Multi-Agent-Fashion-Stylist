@@ -17,7 +17,7 @@ Specification files:
 - [x] Implement the `ObjectStorage` interface, local adapter, and MinIO adapter.
 - [x] Provide Docker Compose for local MinIO when that adapter is enabled.
 - [x] Add an idempotent seed command for one test user and the eight-item golden wardrobe.
-- [ ] Add database invariant, storage contract, and seed tests.
+- [x] Add database invariant, storage contract, and seed tests.
 
 Verification MUST assert schema creation, exactly eight golden items after repeated seeding, and common behavior across storage adapters.
 

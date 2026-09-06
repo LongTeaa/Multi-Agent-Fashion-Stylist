@@ -1,5 +1,5 @@
-from collections.abc import Iterator
-from pathlib import Path
+from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from alembic import command
@@ -7,13 +7,32 @@ from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from sqlalchemy import Engine, create_engine, inspect
-from sqlmodel import SQLModel
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import SQLModel, Session
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import create_database_engine
+from app.models import (
+    DetectionStatus,
+    IngestionBatch,
+    IngestionDetection,
+    ItemMedia,
+    ItemMediaRole,
+    MediaAsset,
+    MediaKind,
+    OutfitItem,
+    OutfitRecommendation,
+    OutfitSlotRole,
+    Rating,
+    RatingSource,
+    TryOnRender,
+    User,
+    WardrobeCategory,
+    WardrobeItem,
+)
+from app.models.entities import utc_now
 
-BACKEND_ROOT = Path(__file__).resolve().parents[2]
 ENTITY_TABLES = {
     "users",
     "user_preferences",
@@ -53,27 +72,6 @@ OWNERSHIP_FOREIGN_KEYS = {
     "fk_wardrobe_items_detection_owner",
     "fk_wear_logs_outfit_owner",
 }
-
-
-@pytest.fixture
-def migrated_database(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[tuple[Config, Engine]]:
-    database_path = tmp_path / "schema.db"
-    database_url = f"sqlite:///{database_path.as_posix()}"
-    monkeypatch.setenv("DATABASE_URL", database_url)
-    get_settings.cache_clear()
-
-    alembic_config = Config(str(BACKEND_ROOT / "alembic.ini"))
-    command.upgrade(alembic_config, "head")
-    engine = create_database_engine(database_url)
-
-    try:
-        yield alembic_config, engine
-    finally:
-        engine.dispose()
-        get_settings.cache_clear()
 
 
 def test_migration_creates_all_mvp_tables_and_indexes(
@@ -160,3 +158,201 @@ def test_migration_can_downgrade_to_base(
         downgraded_engine.dispose()
 
     assert ENTITY_TABLES.isdisjoint(remaining_tables)
+
+
+def _new_user() -> User:
+    return User(id=str(uuid4()))
+
+
+def _new_wardrobe_item(user_id: str, *, item_id: str | None = None) -> WardrobeItem:
+    return WardrobeItem(
+        id=item_id or str(uuid4()),
+        user_id=user_id,
+        category=WardrobeCategory.TOP,
+        sub_category="shirt",
+        primary_color="white",
+        pattern="solid",
+        material="cotton",
+        style="casual",
+        fit="regular",
+        formality_level=2,
+        is_active=True,
+        is_user_confirmed=True,
+    )
+
+
+def _new_outfit(user_id: str) -> OutfitRecommendation:
+    return OutfitRecommendation(
+        id=str(uuid4()),
+        user_id=user_id,
+        request_id=str(uuid4()),
+        user_query="Test query",
+        context_snapshot={},
+        explanation_vi="Trang phục kiểm thử.",
+        fashion_score=0.8,
+        personalization_score=0.7,
+        composite_score=0.75,
+        rank=1,
+        rule_version="test-v1",
+    )
+
+
+def _new_media_asset(user_id: str) -> MediaAsset:
+    asset_id = str(uuid4())
+    return MediaAsset(
+        id=asset_id,
+        user_id=user_id,
+        kind=MediaKind.CROP,
+        bucket="wardrobe-private",
+        object_key=f"users/{user_id}/items/{asset_id}/crop/v1.png",
+        mime_type="image/png",
+        size_bytes=4,
+        width=1,
+        height=1,
+        sha256="0" * 64,
+    )
+
+
+def test_outfit_item_rejects_cross_user_wardrobe_reference(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    owner = _new_user()
+    other_user = _new_user()
+    item = _new_wardrobe_item(owner.id)
+    outfit = _new_outfit(other_user.id)
+
+    with Session(engine) as session:
+        session.add_all((owner, other_user))
+        session.flush()
+        session.add_all((item, outfit))
+        session.commit()
+        session.add(
+            OutfitItem(
+                outfit_id=outfit.id,
+                wardrobe_item_id=item.id,
+                user_id=other_user.id,
+                slot_role=OutfitSlotRole.TOP,
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_rating_rejects_cross_user_outfit_reference(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    owner = _new_user()
+    other_user = _new_user()
+    outfit = _new_outfit(owner.id)
+
+    with Session(engine) as session:
+        session.add_all((owner, other_user))
+        session.flush()
+        session.add(outfit)
+        session.commit()
+        session.add(
+            Rating(
+                user_id=other_user.id,
+                outfit_id=outfit.id,
+                stars=5,
+                source=RatingSource.MANUAL,
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_item_media_rejects_cross_user_item_reference(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    media_owner = _new_user()
+    item_owner = _new_user()
+    media = _new_media_asset(media_owner.id)
+    item = _new_wardrobe_item(item_owner.id)
+
+    with Session(engine) as session:
+        session.add_all((media_owner, item_owner))
+        session.flush()
+        session.add_all((media, item))
+        session.commit()
+        session.add(
+            ItemMedia(
+                wardrobe_item_id=item.id,
+                media_asset_id=media.id,
+                user_id=media_owner.id,
+                role=ItemMediaRole.PRIMARY,
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_tryon_render_rejects_cross_user_media_reference(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    outfit_owner = _new_user()
+    media_owner = _new_user()
+    outfit = _new_outfit(outfit_owner.id)
+    media = _new_media_asset(media_owner.id)
+
+    with Session(engine) as session:
+        session.add_all((outfit_owner, media_owner))
+        session.flush()
+        session.add_all((outfit, media))
+        session.commit()
+        session.add(
+            TryOnRender(
+                user_id=outfit_owner.id,
+                outfit_id=outfit.id,
+                media_asset_id=media.id,
+                duration_ms=10,
+                status="completed",
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_detection_cannot_create_more_than_one_wardrobe_item(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    user = _new_user()
+    batch = IngestionBatch(
+        id=str(uuid4()),
+        user_id=user.id,
+        expires_at=utc_now() + timedelta(hours=24),
+    )
+    detection = IngestionDetection(
+        id=str(uuid4()),
+        user_id=user.id,
+        ingestion_batch_id=batch.id,
+        bounding_box=(0.0, 0.0, 1.0, 1.0),
+        proposed_attributes={},
+        field_confidence={},
+        status=DetectionStatus.ACCEPTED,
+    )
+    first_item = _new_wardrobe_item(user.id)
+    first_item.ingestion_batch_id = batch.id
+    first_item.ingestion_detection_id = detection.id
+    second_item = _new_wardrobe_item(user.id)
+    second_item.ingestion_batch_id = batch.id
+    second_item.ingestion_detection_id = detection.id
+
+    with Session(engine) as session:
+        session.add(user)
+        session.flush()
+        session.add(batch)
+        session.flush()
+        session.add(detection)
+        session.flush()
+        session.add_all((first_item, second_item))
+        with pytest.raises(
+            IntegrityError,
+            match="UNIQUE constraint failed: wardrobe_items.ingestion_detection_id",
+        ):
+            session.commit()

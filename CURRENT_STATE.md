@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 1 — Scaffold, Database, and Object Storage (in progress) |
-| Active task | Phase 1 Task 7: add database invariant, storage contract, and seed tests. |
-| Most recently modified files | `backend/app/core/seed.py`, `backend/scripts/seed_data.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend -q; backend\.venv\Scripts\python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend\.venv\Scripts\python.exe -m pip check; docker compose config --quiet; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build; powershell -ExecutionPolicy Bypass -File scripts/verify_documentation.ps1` |
-| Next step | Implement only Phase 1 Task 7: complete database invariant, shared storage contract, and idempotent seed tests, then run the Phase 1 executable verification command. |
+| Current phase | Phase 2 — Ingestion and Wardrobe Digitization (in progress) |
+| Active task | Phase 2 Task 1: implement batch upload, MIME/size/pixel validation, and private object persistence. |
+| Most recently modified files | `backend/tests/conftest.py`, `backend/tests/contract/test_database_schema.py`, `backend/tests/contract/test_object_storage.py`, `backend/tests/integration/test_seed_data.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend/tests/contract/test_database_schema.py backend/tests/contract/test_object_storage.py backend/tests/integration/test_seed_data.py -q; backend\.venv\Scripts\python.exe -m pytest backend -q; backend\.venv\Scripts\python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend\.venv\Scripts\python.exe -m pip check; docker compose config --quiet; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build; powershell -ExecutionPolicy Bypass -File scripts/verify_documentation.ps1` |
+| Next step | Read only the Phase 2 context files, then implement only Phase 2 Task 1 without starting input classification, Vision extraction, or review UI work. |
 
 ## Update Rules
 
