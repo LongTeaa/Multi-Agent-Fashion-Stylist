@@ -1,0 +1,53 @@
+name: multi-agent-fashion-stylist
+
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set in .env}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set in .env}
+      MINIO_BUCKET_WARDROBE: ${MINIO_BUCKET_WARDROBE:-wardrobe-private}
+      MINIO_BUCKET_THUMBNAILS: ${MINIO_BUCKET_THUMBNAILS:-wardrobe-thumbnails}
+      MINIO_BUCKET_TRYON: ${MINIO_BUCKET_TRYON:-tryon-private}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing "local/$${MINIO_BUCKET_WARDROBE}"
+        mc mb --ignore-existing "local/$${MINIO_BUCKET_THUMBNAILS}"
+        mc mb --ignore-existing "local/$${MINIO_BUCKET_TRYON}"
+        mc anonymous set none "local/$${MINIO_BUCKET_WARDROBE}"
+        mc anonymous set none "local/$${MINIO_BUCKET_THUMBNAILS}"
+        mc anonymous set none "local/$${MINIO_BUCKET_TRYON}"
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  minio-data:

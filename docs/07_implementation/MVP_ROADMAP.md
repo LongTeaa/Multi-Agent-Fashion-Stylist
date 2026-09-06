@@ -15,7 +15,7 @@ Specification files:
 - [x] Add `.env.example`, `.gitignore`, and typed settings.
 - [x] Implement SQLModel tables and migrations for all MVP entities.
 - [x] Implement the `ObjectStorage` interface, local adapter, and MinIO adapter.
-- [ ] Provide Docker Compose for local MinIO when that adapter is enabled.
+- [x] Provide Docker Compose for local MinIO when that adapter is enabled.
 - [ ] Add an idempotent seed command for one test user and the eight-item golden wardrobe.
 - [ ] Add database invariant, storage contract, and seed tests.
 
