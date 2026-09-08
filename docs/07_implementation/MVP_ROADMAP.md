@@ -36,13 +36,13 @@ Specification files:
 - `../05_api/API_CONTRACT.md`, Ingestion API
 - `TEST_STRATEGY.md`, Phase 2
 
-- [ ] Implement batch upload, MIME/size/pixel validation, and private object persistence.
-- [ ] Classify `single_item`, `multi_item`, `worn_outfit`, and `cluttered` inputs.
-- [ ] Detect/crop items and extract structured Vision attributes.
-- [ ] Persist confidence and warnings; MUST NOT auto-confirm an item.
-- [ ] Build the review UI for editing or rejecting each detection.
-- [ ] Make confirmation idempotent and remove unconfirmed assets after 24 hours.
-- [ ] Test normal, low-quality, malformed, timeout, and provider-error behavior.
+- [x] Implement batch upload, MIME/size/pixel validation, and private object persistence.
+- [x] Classify `single_item`, `multi_item`, `worn_outfit`, and `cluttered` inputs.
+- [x] Detect/crop items and extract structured Vision attributes.
+- [x] Persist confidence and warnings; MUST NOT auto-confirm an item.
+- [x] Build the review UI for editing or rejecting each detection.
+- [x] Make confirmation idempotent and remove unconfirmed assets after 24 hours.
+- [x] Test normal, low-quality, malformed, timeout, and provider-error behavior.
 
 Verification MUST demonstrate that a multi-item image can produce two separately confirmed wardrobe items without exposing the original object publicly.
 

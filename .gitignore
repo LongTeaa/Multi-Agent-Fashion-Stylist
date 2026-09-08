@@ -26,6 +26,8 @@ data/*.db-*
 data/*.sqlite
 data/*.sqlite3
 data/object_storage/
+data/storage/
+backend/data
 
 # Logs and operating-system files
 *.log
