@@ -117,3 +117,31 @@ class TestConfirmationSchemaValidation:
         assert req.confirmations[0].accepted is True
         assert req.confirmations[0].custom_attributes.category == WardrobeCategory.TOP
         assert req.confirmations[1].accepted is False
+
+    def test_submitting_shoes_category_raises_validation_error(self) -> None:
+        payload = {
+            "confirmations": [
+                {
+                    "detection_id": "det-1",
+                    "accepted": True,
+                    "custom_attributes": {"category": "shoes"},
+                }
+            ]
+        }
+        with pytest.raises(ValidationError) as exc_info:
+            IngestionConfirmRequest.model_validate(payload)
+        errors = exc_info.value.errors()
+        assert any("category" in str(err["loc"]) for err in errors)
+
+    def test_submitting_footwear_category_succeeds(self) -> None:
+        payload = {
+            "confirmations": [
+                {
+                    "detection_id": "det-1",
+                    "accepted": True,
+                    "custom_attributes": {"category": "footwear"},
+                }
+            ]
+        }
+        req = IngestionConfirmRequest.model_validate(payload)
+        assert req.confirmations[0].custom_attributes.category == WardrobeCategory.FOOTWEAR

@@ -42,11 +42,11 @@ export function BoundingBoxOverlay({
 
         {/* Bounding Box Overlays */}
         {detections.map((det, idx) => {
-          const [ymin, xmin, ymax, xmax] = det.bounding_box;
-          const top = `${ymin * 100}%`;
-          const left = `${xmin * 100}%`;
-          const width = `${Math.max(0.02, xmax - xmin) * 100}%`;
-          const height = `${Math.max(0.02, ymax - ymin) * 100}%`;
+          const [xMin, yMin, xMax, yMax] = det.bounding_box;
+          const left = `${xMin * 100}%`;
+          const top = `${yMin * 100}%`;
+          const width = `${Math.max(0.02, xMax - xMin) * 100}%`;
+          const height = `${Math.max(0.02, yMax - yMin) * 100}%`;
 
           const isSelected = selectedDetectionId === det.detection_id;
           const categoryConf = det.field_confidence.category || 0.95;

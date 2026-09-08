@@ -18,7 +18,7 @@ interface DetectionItemCardProps {
 const CATEGORIES = [
   { value: 'top', label: 'Áo (Top)' },
   { value: 'bottom', label: 'Quần / Váy (Bottom)' },
-  { value: 'shoes', label: 'Giày dép (Shoes)' },
+  { value: 'footwear', label: 'Giày dép (Footwear)' },
   { value: 'outerwear', label: 'Áo khoác (Outerwear)' },
   { value: 'dress', label: 'Đầm liền (Dress)' },
   { value: 'accessory', label: 'Phụ kiện (Accessory)' },

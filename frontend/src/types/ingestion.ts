@@ -1,4 +1,4 @@
-export type BoundingBox = [number, number, number, number]; // [ymin, xmin, ymax, xmax]
+export type BoundingBox = [number, number, number, number]; // [x_min, y_min, x_max, y_max]
 
 export type InputKind = 'single_item' | 'multi_item' | 'worn_outfit' | 'cluttered' | 'unknown';
 

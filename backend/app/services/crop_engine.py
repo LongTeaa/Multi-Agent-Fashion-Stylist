@@ -33,26 +33,29 @@ def crop_item_and_generate_thumbnail(
     box: BoundingBox,
     thumbnail_size: tuple[int, int] = (256, 256),
 ) -> CroppedItem:
-    """Crop an image candidate using normalized bounding box coordinates [ymin, xmin, ymax, xmax]
+    """Crop an image candidate using canonical bounding box coordinates [x_min, y_min, x_max, y_max]
 
     and generate an optimized WebP thumbnail.
     """
+    xmin, ymin, xmax, ymax = box
+    if not (0.0 <= xmin < xmax <= 1.0) or not (0.0 <= ymin < ymax <= 1.0):
+        raise ValueError(
+            f"Invalid or degenerate bounding box coordinates: {box}. "
+            "Coordinates must satisfy 0 <= x_min < x_max <= 1 and 0 <= y_min < y_max <= 1."
+        )
+
     with Image.open(BytesIO(image_bytes)) as img:
         img_width, img_height = img.size
 
-        # Normalized coordinates [ymin, xmin, ymax, xmax]
-        ymin, xmin, ymax, xmax = box
-
-        top = max(0, min(img_height, int(ymin * img_height)))
         left = max(0, min(img_width, int(xmin * img_width)))
-        bottom = max(0, min(img_height, int(ymax * img_height)))
+        top = max(0, min(img_height, int(ymin * img_height)))
         right = max(0, min(img_width, int(xmax * img_width)))
+        bottom = max(0, min(img_height, int(ymax * img_height)))
 
-        # Ensure non-degenerate dimensions
-        if right <= left:
-            right = min(img_width, left + 1)
-        if bottom <= top:
-            bottom = min(img_height, top + 1)
+        if right <= left or bottom <= top:
+            raise ValueError(
+                f"Degenerate pixel crop dimensions: left={left}, top={top}, right={right}, bottom={bottom}."
+            )
 
         cropped_img = img.crop((left, top, right, bottom))
         crop_w, crop_h = cropped_img.size

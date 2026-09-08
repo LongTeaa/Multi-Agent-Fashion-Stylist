@@ -30,6 +30,7 @@ def utc_now() -> datetime:
 
 ConfidenceValue = Annotated[float, PydanticField(ge=0.0, le=1.0)]
 EnumType = TypeVar("EnumType", bound=StrEnum)
+# Canonical bounding box coordinates: (x_min, y_min, x_max, y_max) normalized to [0, 1]
 BoundingBox = tuple[
     ConfidenceValue,
     ConfidenceValue,
