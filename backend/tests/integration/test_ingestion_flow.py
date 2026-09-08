@@ -57,6 +57,54 @@ def test_storage(tmp_path: Path) -> LocalObjectStorage:
 
 
 class TestIngestionFlowIntegration:
+    def test_get_processing_batch_is_read_only(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Polling must not race the background worker or process a batch twice."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.PROCESSING,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            session.add(batch)
+            session.commit()
+            batch_id = batch.id
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="multi_item")
+        app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider()
+
+        try:
+            response = TestClient(app).get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert response.status_code == 200
+            assert response.json()["data"]["status"] == IngestionStatus.PROCESSING.value
+
+            with Session(engine) as session:
+                assert session.get(IngestionBatch, batch_id).status == IngestionStatus.PROCESSING
+                detections = session.exec(
+                    select(IngestionDetection).where(
+                        IngestionDetection.ingestion_batch_id == batch_id
+                    )
+                ).all()
+                assert detections == []
+        finally:
+            app.dependency_overrides.clear()
+
     def test_multi_item_produces_two_separately_confirmed_wardrobe_items(
         self,
         migrated_database: tuple[object, object],

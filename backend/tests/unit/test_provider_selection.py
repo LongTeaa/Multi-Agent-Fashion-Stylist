@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+from io import BytesIO
 from typing import Any
 from unittest.mock import patch
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
+from PIL import Image
 from pydantic import SecretStr
 
 from app.core.config import Settings
@@ -16,6 +19,13 @@ from app.services.classifier import classify_scene
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
 from app.services.gemini_provider import GeminiDetector, GeminiVisionProvider
 from app.services.providers import BoundingBoxDetection, DetectionResult
+from app.main import app
+
+
+def create_test_image_bytes(image_format: str = "JPEG") -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (64, 64), "white").save(buffer, format=image_format)
+    return buffer.getvalue()
 
 
 class TestProviderSelection:
@@ -77,6 +87,18 @@ class TestProviderSelection:
             with pytest.raises(ValueError) as exc_vision:
                 get_vision_provider()
             assert "VISION_MODEL is not configured" in str(exc_vision.value)
+
+    def test_gemini_misconfiguration_fails_application_startup(self) -> None:
+        invalid_settings = Settings(
+            vision_provider="gemini",
+            gemini_api_key=None,
+            vision_model="gemini-1.5-flash",
+        )
+
+        with patch("app.main.get_settings", return_value=invalid_settings):
+            with pytest.raises(ValueError, match="GEMINI_API_KEY is not configured"):
+                with TestClient(app):
+                    pass
 
 
 class TestClassifySceneResolution:
@@ -141,6 +163,100 @@ class TestClassifySceneResolution:
 class TestGeminiProviderAdapter:
     """Unit tests for GeminiDetector and GeminiVisionProvider with mocked HTTP."""
 
+    @pytest.mark.parametrize(
+        ("image_format", "expected_mime_type"),
+        [("JPEG", "image/jpeg"), ("PNG", "image/png"), ("WEBP", "image/webp")],
+    )
+    def test_gemini_detector_sends_actual_image_mime_type(
+        self,
+        image_format: str,
+        expected_mime_type: str,
+    ) -> None:
+        observed_mime_types: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            payload = json.loads(request.content)
+            observed_mime_types.append(
+                payload["contents"][0]["parts"][1]["inline_data"]["mime_type"]
+            )
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "input_kind": "single_item",
+                                                "boxes": [],
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        image_buffer = BytesIO()
+        Image.new("RGB", (64, 64), "white").save(image_buffer, format=image_format)
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-test",
+            client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        detector.detect(image_buffer.getvalue())
+
+        assert observed_mime_types == [expected_mime_type]
+
+    def test_gemini_vision_provider_sends_png_crop_mime_type(self) -> None:
+        observed_mime_types: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            payload = json.loads(request.content)
+            observed_mime_types.append(
+                payload["contents"][0]["parts"][1]["inline_data"]["mime_type"]
+            )
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "attributes": {"category": "top"},
+                                                "field_confidence": {"category": 0.9},
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        image_buffer = BytesIO()
+        Image.new("RGB", (64, 64), "white").save(image_buffer, format="PNG")
+        provider = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-test",
+            client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+
+        provider.extract_attributes(image_buffer.getvalue())
+
+        assert observed_mime_types == ["image/png"]
+
     def test_gemini_detector_success(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             gemini_body = {
@@ -177,7 +293,7 @@ class TestGeminiProviderAdapter:
             client=client,
         )
 
-        res = detector.detect(b"image-bytes")
+        res = detector.detect(create_test_image_bytes())
         assert res.input_kind == InputKind.SINGLE_ITEM
         assert len(res.boxes) == 1
         assert res.boxes[0].box == (0.1, 0.1, 0.9, 0.9)
@@ -209,7 +325,7 @@ class TestGeminiProviderAdapter:
             client=client,
         )
 
-        res = detector.detect(b"image-bytes")
+        res = detector.detect(create_test_image_bytes())
         assert res.input_kind == InputKind.MULTI_ITEM
         assert len(res.boxes) == 2
         assert "Trang phục hơi nhăn." in res.quality_warnings
@@ -229,7 +345,7 @@ class TestGeminiProviderAdapter:
         )
 
         with pytest.raises(ProviderError):
-            detector.detect(b"image-bytes")
+            detector.detect(create_test_image_bytes())
 
     def test_gemini_detector_timeout_raises_timeout_error(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -243,7 +359,7 @@ class TestGeminiProviderAdapter:
         )
 
         with pytest.raises(TimeoutError):
-            detector.detect(b"image-bytes")
+            detector.detect(create_test_image_bytes())
 
     def test_gemini_detector_http_500_raises_provider_error(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -257,7 +373,7 @@ class TestGeminiProviderAdapter:
         )
 
         with pytest.raises(ProviderError) as exc_info:
-            detector.detect(b"image-bytes")
+            detector.detect(create_test_image_bytes())
         assert "500" in str(exc_info.value.message)
 
     def test_gemini_vision_provider_success(self) -> None:
@@ -300,7 +416,7 @@ class TestGeminiProviderAdapter:
             client=client,
         )
 
-        res = vision.extract_attributes(b"crop-bytes")
+        res = vision.extract_attributes(create_test_image_bytes("PNG"))
         assert res.attributes["category"] == "top"
         assert res.attributes["primary_color"] == "black"
         assert res.field_confidence["category"] == 0.98
@@ -317,7 +433,7 @@ class TestGeminiProviderAdapter:
         )
 
         with pytest.raises(TimeoutError):
-            vision.extract_attributes(b"crop-bytes")
+            vision.extract_attributes(create_test_image_bytes("PNG"))
 
     def test_gemini_vision_provider_invalid_json_raises_provider_error(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -334,4 +450,4 @@ class TestGeminiProviderAdapter:
         )
 
         with pytest.raises(ProviderError):
-            vision.extract_attributes(b"crop-bytes")
+            vision.extract_attributes(create_test_image_bytes("PNG"))

@@ -20,6 +20,7 @@ from app.main import app
 from app.models.entities import (
     IngestionBatch,
     IngestionStatus,
+    ItemMedia,
     MediaAsset,
     MediaKind,
     User,
@@ -57,6 +58,82 @@ def test_storage(tmp_path: Path) -> LocalObjectStorage:
 
 
 class TestIngestionCleanupIntegration:
+    def test_cleanup_confirmed_batch_removes_only_unlinked_transient_assets(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Originals and rejected crops expire; confirmed item media remains private and available."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="multi_item")
+        app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider()
+
+        try:
+            client = TestClient(app)
+            upload = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[
+                    (
+                        "images[]",
+                        ("outfit.jpg", create_test_image_bytes(), "image/jpeg"),
+                    )
+                ],
+            )
+            assert upload.status_code == 202
+            batch_id = upload.json()["data"]["batch_id"]
+
+            review = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            detections = review.json()["data"]["detections"]
+            assert len(detections) == 2
+
+            confirmation = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": detections[0]["detection_id"], "accepted": True},
+                        {"detection_id": detections[1]["detection_id"], "accepted": False},
+                    ]
+                },
+            )
+            assert confirmation.status_code == 200
+
+            with Session(engine) as session:
+                linked_asset_ids = set(session.exec(select(ItemMedia.media_asset_id)).all())
+                assert len(linked_asset_ids) == 2
+
+                summary = cleanup_expired_batches(
+                    session=session,
+                    storage=test_storage,
+                    current_time=utc_now() + timedelta(hours=25),
+                )
+                assert summary.failures == []
+                assert summary.batches_expired == 0
+
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch is not None
+                assert batch.status == IngestionStatus.CONFIRMED
+
+                assets = session.exec(
+                    select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch_id)
+                ).all()
+                assert assets
+                for asset in assets:
+                    if asset.id in linked_asset_ids:
+                        assert asset.deleted_at is None
+                    else:
+                        assert asset.deleted_at is not None
+        finally:
+            app.dependency_overrides.clear()
+
     def test_manual_batch_cancellation(
         self,
         migrated_database: tuple[object, object],
@@ -310,7 +387,7 @@ class TestIngestionCleanupIntegration:
             )
             session.add(asset2)
 
-            # 3. Batch 3: Confirmed (expires at base_time + 24h, but status == CONFIRMED)
+            # 3. Batch 3: Confirmed, with an unlinked temporary original
             batch3 = IngestionBatch(
                 id=str(uuid4()),
                 user_id=user_id,
@@ -354,7 +431,7 @@ class TestIngestionCleanupIntegration:
             )
 
             assert summary.batches_expired == 1
-            assert summary.objects_deleted == 1
+            assert summary.objects_deleted == 2
             assert len(summary.failures) == 0
 
             # Verification:
@@ -376,10 +453,10 @@ class TestIngestionCleanupIntegration:
                 object_key=asset2_key,
             )
 
-            # Batch 3 is CONFIRMED and asset3 still exists
+            # Batch 3 remains CONFIRMED, but its unlinked original is removed
             session.refresh(batch3)
             assert batch3.status == IngestionStatus.CONFIRMED
-            assert test_storage.object_exists(
+            assert not test_storage.object_exists(
                 user_id=user_id,
                 bucket="wardrobe-private",
                 object_key=asset3_key,

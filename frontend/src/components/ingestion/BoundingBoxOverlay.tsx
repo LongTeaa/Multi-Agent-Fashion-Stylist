@@ -41,7 +41,7 @@ export function BoundingBoxOverlay({
         )}
 
         {/* Bounding Box Overlays */}
-        {detections.map((det, idx) => {
+        {imageUrl && detections.map((det, idx) => {
           const [xMin, yMin, xMax, yMax] = det.bounding_box;
           const left = `${xMin * 100}%`;
           const top = `${yMin * 100}%`;
@@ -81,7 +81,11 @@ export function BoundingBoxOverlay({
 
       <div className="mt-3 text-xs text-slate-400 flex items-center gap-2">
         <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span>Click vào các khung trên ảnh để xem và hiệu đính chi tiết từng món đồ.</span>
+        <span>
+          {imageUrl
+            ? 'Click vào các khung trên ảnh để xem và hiệu đính chi tiết từng món đồ.'
+            : 'Batch có nhiều ảnh. Vui lòng xem từng ảnh crop trong danh sách phát hiện.'}
+        </span>
       </div>
     </div>
   );

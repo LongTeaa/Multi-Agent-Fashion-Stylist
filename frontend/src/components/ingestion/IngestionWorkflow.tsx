@@ -46,6 +46,14 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (uploadedPreviewUrl) {
+        URL.revokeObjectURL(uploadedPreviewUrl);
+      }
+    };
+  }, [uploadedPreviewUrl]);
+
   // Poll for batch status until ready or failed
   const startPollingBatch = useCallback((id: string) => {
     let attempts = 0;
@@ -105,10 +113,11 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setIsUploading(true);
     setErrorMessage(null);
     try {
-      // Keep preview of first uploaded image for bounding box display
-      if (files.length > 0) {
-        setUploadedPreviewUrl(URL.createObjectURL(files[0]));
-      }
+      // Detections currently do not expose their source image. Only overlay
+      // boxes when the batch has exactly one unambiguous original.
+      setUploadedPreviewUrl(
+        files.length === 1 ? URL.createObjectURL(files[0]) : undefined
+      );
 
       const res = await uploadIngestionImages(files, declaredKind);
       setBatchId(res.batch_id);

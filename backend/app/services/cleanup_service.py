@@ -113,17 +113,21 @@ def cleanup_expired_batches(
     """
     now = current_time or utc_now()
 
-    # Find unconfirmed batches that have expired or unconfirmed batches with un-deleted assets
+    # Confirmed batches may still contain transient originals and rejected crops.
+    # Include any expired batch with undeleted assets so those unlinked objects can
+    # be removed, while preserving media linked to a wardrobe item.
+    unlinked_undeleted_asset_batch_ids = select(MediaAsset.ingestion_batch_id).where(
+        MediaAsset.deleted_at.is_(None),
+        MediaAsset.id.not_in(select(ItemMedia.media_asset_id)),
+    )
     expired_batches = session.exec(
         select(IngestionBatch).where(
-            IngestionBatch.status != IngestionStatus.CONFIRMED,
-            (IngestionBatch.status != IngestionStatus.EXPIRED)
-            | (
-                IngestionBatch.id.in_(
-                    select(MediaAsset.ingestion_batch_id).where(MediaAsset.deleted_at.is_(None))
-                )
-            ),
             IngestionBatch.expires_at <= now,
+            (
+                (IngestionBatch.status != IngestionStatus.CONFIRMED)
+                & (IngestionBatch.status != IngestionStatus.EXPIRED)
+            )
+            | IngestionBatch.id.in_(unlinked_undeleted_asset_batch_ids),
         ).order_by(IngestionBatch.created_at)
     ).all()
 
@@ -147,12 +151,14 @@ def cleanup_expired_batches(
                 select(ItemMedia).where(ItemMedia.media_asset_id == asset.id)
             ).first()
             if linked_item:
-                logger.error(
-                    "Safety check triggered: Asset %s in unconfirmed batch %s is linked to WardrobeItem %s. Skipping.",
-                    asset.id,
-                    batch.id,
-                    linked_item.wardrobe_item_id,
-                )
+                if batch.status != IngestionStatus.CONFIRMED:
+                    err_msg = (
+                        f"Safety check: asset {asset.id} in unconfirmed batch {batch.id} "
+                        f"is linked to wardrobe item {linked_item.wardrobe_item_id}."
+                    )
+                    logger.error(err_msg)
+                    failures.append(err_msg)
+                    batch_all_cleared = False
                 continue
 
             try:
@@ -175,7 +181,11 @@ def cleanup_expired_batches(
                 batch_all_cleared = False
                 # Do NOT set asset.deleted_at! Keep None so it can be retried!
 
-        if batch_all_cleared:
+        if batch.status == IngestionStatus.CONFIRMED:
+            # Confirmation is a durable domain state. Cleanup only removes its
+            # unlinked transient media and never rewrites it to EXPIRED.
+            pass
+        elif batch_all_cleared:
             if batch.status != IngestionStatus.EXPIRED:
                 batch.status = IngestionStatus.EXPIRED
                 batches_expired += 1

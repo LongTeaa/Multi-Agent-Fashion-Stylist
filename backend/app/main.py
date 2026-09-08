@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -5,9 +7,22 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.core.config import get_settings, validate_vision_provider_configuration
 from app.schemas.common import AppException
 
-app = FastAPI(title="Multi-Agent Fashion Stylist API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Validate provider configuration before the API reports ready."""
+    validate_vision_provider_configuration(get_settings())
+    yield
+
+
+app = FastAPI(
+    title="Multi-Agent Fashion Stylist API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -7,7 +7,12 @@ from typing import Annotated
 from fastapi import Header
 from sqlmodel import Session
 
-from app.core.config import REPOSITORY_ROOT, Settings, get_settings
+from app.core.config import (
+    REPOSITORY_ROOT,
+    Settings,
+    get_settings,
+    validate_vision_provider_configuration,
+)
 from app.core.database import get_engine
 from app.repositories.object_storage import (
     LocalObjectStorage,
@@ -60,10 +65,7 @@ def get_detector() -> DetectorProtocol:
         return FakeDetector(mode="multi_item")
 
     if settings.vision_provider == "gemini":
-        if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
-            raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
-        if not settings.vision_model or not settings.vision_model.strip():
-            raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")
+        validate_vision_provider_configuration(settings)
 
         from app.services.gemini_provider import GeminiDetector
 
@@ -86,10 +88,7 @@ def get_vision_provider() -> VisionProviderProtocol:
         return FakeVisionProvider(scenario="golden_polo")
 
     if settings.vision_provider == "gemini":
-        if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
-            raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
-        if not settings.vision_model or not settings.vision_model.strip():
-            raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")
+        validate_vision_provider_configuration(settings)
 
         from app.services.gemini_provider import GeminiVisionProvider
 

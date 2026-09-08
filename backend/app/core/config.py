@@ -45,3 +45,13 @@ def get_settings() -> Settings:
     """Return the process-wide immutable view of application settings."""
 
     return Settings()
+
+
+def validate_vision_provider_configuration(settings: Settings) -> None:
+    """Fail application startup when the selected Vision provider is unusable."""
+    if settings.vision_provider != "gemini":
+        return
+    if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
+        raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
+    if not settings.vision_model or not settings.vision_model.strip():
+        raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")

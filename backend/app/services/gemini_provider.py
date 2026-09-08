@@ -19,6 +19,21 @@ from app.services.providers import (
 logger = logging.getLogger(__name__)
 
 
+def _detect_image_mime_type(image_bytes: bytes) -> str:
+    """Return the MIME type encoded by supported image bytes."""
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if (
+        len(image_bytes) >= 12
+        and image_bytes.startswith(b"RIFF")
+        and image_bytes[8:12] == b"WEBP"
+    ):
+        return "image/webp"
+    raise ProviderError("Dữ liệu ảnh gửi đến dịch vụ AI không hợp lệ.")
+
+
 class GeminiBoxDetection(BaseModel):
     """Pydantic model for validating Gemini bounding box detection output."""
 
@@ -89,6 +104,7 @@ class GeminiDetector:
         url = f"{self.base_url}/models/{self.model}:generateContent"
         params = {"key": self.api_key.get_secret_value()}
         encoded_image = base64.b64encode(image_bytes).decode("ascii")
+        image_mime_type = _detect_image_mime_type(image_bytes)
 
         prompt = (
             "Analyze this fashion image. Detect clothing/garment items with bounding boxes in normalized "
@@ -104,7 +120,7 @@ class GeminiDetector:
                         {"text": prompt},
                         {
                             "inline_data": {
-                                "mime_type": "image/jpeg",
+                                "mime_type": image_mime_type,
                                 "data": encoded_image,
                             }
                         },
@@ -187,6 +203,7 @@ class GeminiVisionProvider:
         url = f"{self.base_url}/models/{self.model}:generateContent"
         params = {"key": self.api_key.get_secret_value()}
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
+        crop_mime_type = _detect_image_mime_type(crop_bytes)
 
         prompt = (
             "Analyze this cropped clothing item. Extract fashion attributes: "
@@ -204,7 +221,7 @@ class GeminiVisionProvider:
                         {"text": prompt},
                         {
                             "inline_data": {
-                                "mime_type": "image/jpeg",
+                                "mime_type": crop_mime_type,
                                 "data": encoded_crop,
                             }
                         },

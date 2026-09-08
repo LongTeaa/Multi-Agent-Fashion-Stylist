@@ -180,23 +180,8 @@ def get_ingestion_batch(
     batch_id: str,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
-    storage: ObjectStorage = Depends(get_object_storage),
-    detector: DetectorProtocol = Depends(get_detector),
-    vision_provider: VisionProviderProtocol = Depends(get_vision_provider),
 ) -> SuccessResponse[IngestionBatchReviewResponseData]:
     """Retrieve review details, detected bounding boxes, attributes, and quality warnings for a batch."""
-    batch = session.get(IngestionBatch, batch_id)
-    if batch and batch.status == IngestionStatus.PROCESSING and batch.user_id == current_user_id:
-        # Just-in-time processing if background task hasn't finished yet
-        process_ingestion_batch(
-            session=session,
-            storage=storage,
-            detector=detector,
-            vision_provider=vision_provider,
-            batch_id=batch_id,
-            user_id=current_user_id,
-        )
-
     data = get_batch_review(session=session, batch_id=batch_id, user_id=current_user_id)
     return SuccessResponse(data=data)
 
