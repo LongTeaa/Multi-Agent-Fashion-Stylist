@@ -27,6 +27,7 @@ from app.repositories.object_storage import ObjectStorage
 from app.schemas.common import (
     AppException,
     ForbiddenAssetError,
+    IngestionNotReadyError,
     ItemNotFoundError,
     ProviderError,
     ValidationError,
@@ -418,108 +419,152 @@ def confirm_ingestion_batch(
         ).all()
         return [item.id for item in existing_items]
 
-    conf_map = {c.detection_id: c for c in confirmations}
-    detections = session.exec(
-        select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
-    ).all()
+    if batch.status != IngestionStatus.NEEDS_REVIEW:
+        raise IngestionNotReadyError(
+            message=f"Lượt tải lên ở trạng thái {batch.status.value}, không thể xác nhận.",
+            status_code=409,
+        )
 
+    # Load all detections belonging to this batch and user
+    detections = session.exec(
+        select(IngestionDetection).where(
+            IngestionDetection.ingestion_batch_id == batch_id,
+            IngestionDetection.user_id == user_id,
+        )
+    ).all()
+    detection_map = {d.id: d for d in detections}
+
+    # Validate that every submitted detection ID belongs to this batch and user
+    for conf in confirmations:
+        if conf.detection_id not in detection_map:
+            other_detection = session.get(IngestionDetection, conf.detection_id)
+            if other_detection and other_detection.user_id != user_id:
+                raise ForbiddenAssetError()
+            raise ValidationError(
+                message="Mã phát hiện không tồn tại hoặc không thuộc lượt tải lên này.",
+                details={"detection_id": conf.detection_id},
+            )
+
+    conf_map = {c.detection_id: c for c in confirmations}
     created_item_ids: list[str] = []
 
-    for detection in detections:
-        conf = conf_map.get(detection.id)
-        # If user explicitly supplied confirmations, only accept those explicitly approved
-        if confirmations:
-            if conf is None or not conf.accepted:
+    try:
+        for detection in detections:
+            conf = conf_map.get(detection.id)
+            if conf is None:
+                # Omitted detection remains proposed until explicitly reviewed
+                continue
+
+            if not conf.accepted:
                 detection.status = DetectionStatus.REJECTED
                 session.add(detection)
                 continue
-        elif conf and not conf.accepted:
-            detection.status = DetectionStatus.REJECTED
+
+            detection.status = DetectionStatus.ACCEPTED
             session.add(detection)
-            continue
 
-        detection.status = DetectionStatus.ACCEPTED
-        session.add(detection)
+            # Merge user custom attributes if supplied
+            attrs = dict(detection.proposed_attributes)
+            if conf.custom_attributes:
+                custom_dict = conf.custom_attributes.model_dump(
+                    exclude_unset=True, exclude_none=True
+                )
+                attrs.update(custom_dict)
 
-        # Merge user custom attributes if supplied
-        attrs = dict(detection.proposed_attributes)
-        if conf and conf.custom_attributes:
-            attrs.update(conf.custom_attributes)
+            # Align item_id with the object key storage path users/{user_id}/items/{item_id}/...
+            item_id = new_uuid()
+            crop_asset = (
+                session.get(MediaAsset, detection.crop_media_asset_id)
+                if detection.crop_media_asset_id
+                else None
+            )
+            if crop_asset and crop_asset.object_key:
+                parts = crop_asset.object_key.split("/")
+                if len(parts) >= 4 and parts[2] == "items":
+                    item_id = parts[3]
 
-        # Align item_id with the object key storage path users/{user_id}/items/{item_id}/...
-        item_id = new_uuid()
-        crop_asset = (
-            session.get(MediaAsset, detection.crop_media_asset_id)
-            if detection.crop_media_asset_id
-            else None
-        )
-        if crop_asset and crop_asset.object_key:
-            parts = crop_asset.object_key.split("/")
-            if len(parts) >= 4 and parts[2] == "items":
-                item_id = parts[3]
+            category_raw = attrs.get("category", "top")
+            if isinstance(category_raw, WardrobeCategory):
+                category_enum = category_raw
+            else:
+                try:
+                    category_enum = WardrobeCategory(str(category_raw))
+                except (ValueError, TypeError):
+                    raise ValidationError(
+                        message=f"Danh mục {category_raw} không hợp lệ.",
+                        details={"category": category_raw},
+                    )
 
-        category_raw = attrs.get("category", "top")
-        try:
-            category_enum = WardrobeCategory(category_raw)
-        except ValueError:
-            category_enum = WardrobeCategory.TOP
+            formality_raw = attrs.get("formality_level", 3)
+            try:
+                formality_level = int(formality_raw)
+                if not (1 <= formality_level <= 5):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise ValidationError(
+                    message="Độ trang trọng (formality_level) phải từ 1 đến 5.",
+                    details={"formality_level": formality_raw},
+                )
 
-        wardrobe_item = WardrobeItem(
-            id=item_id,
-            user_id=user_id,
-            ingestion_batch_id=batch_id,
-            ingestion_detection_id=detection.id,
-            category=category_enum,
-            sub_category=str(attrs.get("sub_category", "clothing")),
-            primary_color=str(attrs.get("primary_color", "unknown")),
-            secondary_color=attrs.get("secondary_color"),
-            pattern=str(attrs.get("pattern", "unknown")),
-            material=str(attrs.get("material", "unknown")),
-            style=str(attrs.get("style", "casual")),
-            fit=str(attrs.get("fit", "regular")),
-            formality_level=int(attrs.get("formality_level", 3)),
-            season=list(attrs.get("season", [])),
-            weather_suitability=list(attrs.get("weather_suitability", [])),
-            functional_flags=list(attrs.get("functional_flags", [])),
-            free_text_tags=list(attrs.get("free_text_tags", [])),
-            field_confidence=detection.field_confidence,
-            is_active=True,
-            is_user_confirmed=True,
-            times_worn=0,
-        )
-        session.add(wardrobe_item)
-        session.flush()
-        created_item_ids.append(item_id)
-
-        # Link Primary ItemMedia (Crop)
-        if detection.crop_media_asset_id:
-            item_media_primary = ItemMedia(
-                wardrobe_item_id=item_id,
-                media_asset_id=detection.crop_media_asset_id,
+            wardrobe_item = WardrobeItem(
+                id=item_id,
                 user_id=user_id,
-                role=ItemMediaRole.PRIMARY,
+                ingestion_batch_id=batch_id,
+                ingestion_detection_id=detection.id,
+                category=category_enum,
+                sub_category=str(attrs.get("sub_category", "clothing")),
+                primary_color=str(attrs.get("primary_color", "unknown")),
+                secondary_color=attrs.get("secondary_color"),
+                pattern=str(attrs.get("pattern", "unknown")),
+                material=str(attrs.get("material", "unknown")),
+                style=str(attrs.get("style", "casual")),
+                fit=str(attrs.get("fit", "regular")),
+                formality_level=formality_level,
+                season=list(attrs.get("season", [])),
+                weather_suitability=list(attrs.get("weather_suitability", [])),
+                functional_flags=list(attrs.get("functional_flags", [])),
+                free_text_tags=list(attrs.get("free_text_tags", [])),
+                field_confidence=detection.field_confidence,
+                is_active=True,
+                is_user_confirmed=True,
+                times_worn=0,
             )
-            session.add(item_media_primary)
+            session.add(wardrobe_item)
+            session.flush()
+            created_item_ids.append(item_id)
 
-        # Link Thumbnail ItemMedia
-        thumb_asset = session.exec(
-            select(MediaAsset).where(
-                MediaAsset.ingestion_batch_id == batch_id,
-                MediaAsset.kind == MediaKind.THUMBNAIL,
-                MediaAsset.object_key.like(f"%items/{item_id}/thumbnail/%"),
-            )
-        ).first()
-        if thumb_asset:
-            item_media_thumb = ItemMedia(
-                wardrobe_item_id=item_id,
-                media_asset_id=thumb_asset.id,
-                user_id=user_id,
-                role=ItemMediaRole.THUMBNAIL,
-            )
-            session.add(item_media_thumb)
+            # Link Primary ItemMedia (Crop)
+            if detection.crop_media_asset_id:
+                item_media_primary = ItemMedia(
+                    wardrobe_item_id=item_id,
+                    media_asset_id=detection.crop_media_asset_id,
+                    user_id=user_id,
+                    role=ItemMediaRole.PRIMARY,
+                )
+                session.add(item_media_primary)
 
-    batch.status = IngestionStatus.CONFIRMED
-    session.add(batch)
-    session.commit()
+            # Link Thumbnail ItemMedia
+            thumb_asset = session.exec(
+                select(MediaAsset).where(
+                    MediaAsset.ingestion_batch_id == batch_id,
+                    MediaAsset.kind == MediaKind.THUMBNAIL,
+                    MediaAsset.object_key.like(f"%items/{item_id}/thumbnail/%"),
+                )
+            ).first()
+            if thumb_asset:
+                item_media_thumb = ItemMedia(
+                    wardrobe_item_id=item_id,
+                    media_asset_id=thumb_asset.id,
+                    user_id=user_id,
+                    role=ItemMediaRole.THUMBNAIL,
+                )
+                session.add(item_media_thumb)
+
+        batch.status = IngestionStatus.CONFIRMED
+        session.add(batch)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
 
     return created_item_ids

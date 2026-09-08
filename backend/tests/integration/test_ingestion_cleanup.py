@@ -154,11 +154,19 @@ class TestIngestionCleanupIntegration:
             )
             batch_id = upload_res.json()["data"]["batch_id"]
 
-            # Confirm batch
+            # Get review detection
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            det_id = review_res.json()["data"]["detections"][0]["detection_id"]
+
+            # Confirm batch with explicit accepted detection
             confirm_res = client.post(
                 f"/api/v1/ingestions/{batch_id}/confirm",
                 headers={"X-User-Id": user_id},
-                json={"confirmations": []},
+                json={"confirmations": [{"detection_id": det_id, "accepted": True}]},
             )
             assert confirm_res.status_code == 200
 

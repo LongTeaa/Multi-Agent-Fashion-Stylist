@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
@@ -27,6 +28,7 @@ from app.models.entities import (
     MediaKind,
     User,
     WardrobeItem,
+    utc_now,
 )
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
@@ -243,7 +245,7 @@ class TestIngestionFlowIntegration:
             confirm_b = client.post(
                 f"/api/v1/ingestions/{batch_id}/confirm",
                 headers={"X-User-Id": user_b},
-                json={"confirmations": []},
+                json={"confirmations": [{"detection_id": str(uuid4()), "accepted": True}]},
             )
             assert confirm_b.status_code == 403
             assert confirm_b.json()["error"]["code"] == "FORBIDDEN_ASSET"
@@ -490,5 +492,337 @@ class TestIngestionFlowIntegration:
                 ).all()
                 assert len(original_assets) == 1
 
+        finally:
+            app.dependency_overrides.clear()
+
+
+class TestConfirmationStateAndSecurityIntegrity:
+    """Integration tests verifying confirmation state guards, cross-batch security, and rollback atomicity."""
+
+    def test_confirm_processing_batch_returns_409(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        batch_id = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+            session.add(
+                IngestionBatch(
+                    id=batch_id,
+                    user_id=user_id,
+                    status=IngestionStatus.PROCESSING,
+                    created_at=now,
+                    expires_at=now + timedelta(hours=24),
+                )
+            )
+            session.commit()
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={"confirmations": [{"detection_id": str(uuid4()), "accepted": True}]},
+            )
+            assert res.status_code == 409
+            assert res.json()["error"]["code"] == "INGESTION_NOT_READY"
+
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch.status == IngestionStatus.PROCESSING
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_confirm_failed_or_expired_batch_returns_409(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+            failed_batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.FAILED,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            expired_batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.EXPIRED,
+                created_at=now - timedelta(hours=25),
+                expires_at=now - timedelta(hours=1),
+            )
+            session.add(failed_batch)
+            session.add(expired_batch)
+            session.commit()
+
+            failed_id = failed_batch.id
+            expired_id = expired_batch.id
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            res_failed = client.post(
+                f"/api/v1/ingestions/{failed_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={"confirmations": [{"detection_id": str(uuid4()), "accepted": True}]},
+            )
+            assert res_failed.status_code == 409
+            assert res_failed.json()["error"]["code"] == "INGESTION_NOT_READY"
+
+            res_expired = client.post(
+                f"/api/v1/ingestions/{expired_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={"confirmations": [{"detection_id": str(uuid4()), "accepted": True}]},
+            )
+            assert res_expired.status_code == 409
+            assert res_expired.json()["error"]["code"] == "INGESTION_NOT_READY"
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_confirm_detection_from_another_batch_returns_422(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+            batch_a = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            batch_b = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            session.add(batch_a)
+            session.add(batch_b)
+            session.flush()
+
+            det_b = IngestionDetection(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch_b.id,
+                bounding_box=[0.1, 0.1, 0.9, 0.9],
+                proposed_attributes={"category": "top"},
+                field_confidence={"category": 0.95},
+                status=DetectionStatus.PROPOSED,
+                created_at=now,
+            )
+            session.add(det_b)
+            session.commit()
+
+            batch_a_id = batch_a.id
+            det_b_id = det_b.id
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            # Attempt to confirm batch A with detection from batch B
+            res = client.post(
+                f"/api/v1/ingestions/{batch_a_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={"confirmations": [{"detection_id": det_b_id, "accepted": True}]},
+            )
+            assert res.status_code == 422
+            assert res.json()["error"]["code"] == "VALIDATION_ERROR"
+
+            # Neither batch should be confirmed
+            with Session(engine) as session:
+                assert session.get(IngestionBatch, batch_a_id).status == IngestionStatus.NEEDS_REVIEW
+                assert session.get(IngestionDetection, det_b_id).status == DetectionStatus.PROPOSED
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_confirm_cross_user_detection_returns_403(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        _, engine = migrated_database
+        user_a = str(uuid4())
+        user_b = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_a))
+            session.add(User(id=user_b))
+            session.flush()
+            batch_a = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_a,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            batch_b = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_b,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            session.add(batch_a)
+            session.add(batch_b)
+            session.flush()
+
+            det_a = IngestionDetection(
+                id=str(uuid4()),
+                user_id=user_a,
+                ingestion_batch_id=batch_a.id,
+                bounding_box=[0.1, 0.1, 0.9, 0.9],
+                proposed_attributes={"category": "top"},
+                field_confidence={"category": 0.95},
+                status=DetectionStatus.PROPOSED,
+                created_at=now,
+            )
+            session.add(det_a)
+            session.commit()
+
+            batch_b_id = batch_b.id
+            det_a_id = det_a.id
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            # User B attempts to confirm batch B using User A's detection
+            res = client.post(
+                f"/api/v1/ingestions/{batch_b_id}/confirm",
+                headers={"X-User-Id": user_b},
+                json={"confirmations": [{"detection_id": det_a_id, "accepted": True}]},
+            )
+            assert res.status_code == 403
+            assert res.json()["error"]["code"] == "FORBIDDEN_ASSET"
+
+            with Session(engine) as session:
+                items = session.exec(select(WardrobeItem)).all()
+                assert len(items) == 0
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_confirm_rollback_on_failure_leaves_batch_reviewable(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        now = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            session.add(batch)
+            session.flush()
+
+            det1 = IngestionDetection(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                bounding_box=[0.1, 0.1, 0.4, 0.4],
+                proposed_attributes={"category": "top"},
+                field_confidence={"category": 0.9},
+                status=DetectionStatus.PROPOSED,
+                created_at=now,
+            )
+            det2 = IngestionDetection(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                bounding_box=[0.5, 0.5, 0.9, 0.9],
+                proposed_attributes={"category": "bottom"},
+                field_confidence={"category": 0.9},
+                status=DetectionStatus.PROPOSED,
+                created_at=now,
+            )
+            session.add(det1)
+            session.add(det2)
+            session.commit()
+
+            batch_id = batch.id
+            det1_id = det1.id
+            det2_id = det2.id
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        # Simulate a crash during the loop when processing det2
+        original_add = Session.add
+        call_count = 0
+
+        def failing_add(sess_self, instance):
+            nonlocal call_count
+            if isinstance(instance, WardrobeItem):
+                call_count += 1
+                if call_count >= 2:
+                    raise RuntimeError("Simulated database crash on second wardrobe item insert")
+            return original_add(sess_self, instance)
+
+        monkeypatch.setattr(Session, "add", failing_add)
+
+        try:
+            client = TestClient(app, raise_server_exceptions=False)
+            res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": det1_id, "accepted": True},
+                        {"detection_id": det2_id, "accepted": True},
+                    ]
+                },
+            )
+            assert res.status_code == 500
+
+            # Verify atomicity: 0 items created, batch remains in NEEDS_REVIEW
+            with Session(engine) as session:
+                db_batch = session.get(IngestionBatch, batch_id)
+                assert db_batch.status == IngestionStatus.NEEDS_REVIEW
+                items = session.exec(select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)).all()
+                assert len(items) == 0
+                db_det1 = session.get(IngestionDetection, det1_id)
+                # Detections status changes rolled back
+                assert db_det1.status == DetectionStatus.PROPOSED
         finally:
             app.dependency_overrides.clear()
