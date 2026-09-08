@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Request, status
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, UploadFile, status
+from sqlalchemy import Engine
 from sqlmodel import Session
 
+from app.core.database import get_engine
 from app.core.dependencies import (
     get_current_user_id,
     get_db_session,
@@ -12,7 +16,7 @@ from app.core.dependencies import (
 )
 from app.models.entities import IngestionBatch, IngestionStatus, InputKind
 from app.repositories.object_storage import ObjectStorage
-from app.schemas.common import SuccessResponse, ValidationError
+from app.schemas.common import ErrorResponse, SuccessResponse, ValidationError
 from app.schemas.ingestion import (
     IngestionBatchReviewResponseData,
     IngestionConfirmRequest,
@@ -28,6 +32,7 @@ from app.services.ingestion_service import (
     process_ingestion_batch,
 )
 from app.services.providers import DetectorProtocol, VisionProviderProtocol
+from app.services.upload_validation import MAX_FILE_SIZE_BYTES
 
 router = APIRouter(prefix="/ingestions", tags=["ingestion"])
 
@@ -40,9 +45,6 @@ def _run_batch_processing_task(
     vision_provider: VisionProviderProtocol,
     engine: object | None = None,
 ) -> None:
-    import logging
-    from sqlalchemy import Engine
-    from app.core.database import get_engine
     task_logger = logging.getLogger(__name__)
 
     target_engine = engine if isinstance(engine, Engine) else get_engine()
@@ -73,10 +75,34 @@ def _run_batch_processing_task(
     "",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=SuccessResponse[IngestionUploadResponseData],
+    responses={
+        status.HTTP_202_ACCEPTED: {
+            "model": SuccessResponse[IngestionUploadResponseData],
+            "description": "Ingestion batch accepted and processing started asynchronously.",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": ErrorResponse,
+            "description": "Bad request.",
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": ErrorResponse,
+            "description": "Validation failed on uploaded files or parameters.",
+        },
+    },
+    summary="Upload images for clothing digitization",
+    description="Upload 1–10 images for clothing digitization. Stores original assets privately and creates an ingestion batch with status `processing`.",
 )
 async def upload_ingestion_images(
-    request: Request,
     background_tasks: BackgroundTasks,
+    images: list[UploadFile] = File(
+        ...,
+        alias="images[]",
+        description="1 to 10 image files to ingest (JPEG, PNG, WebP). Max 10MB per file.",
+    ),
+    declared_input_kind: InputKind | None = Form(
+        None,
+        description="Optional declared input category/scene kind.",
+    ),
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
     storage: ObjectStorage = Depends(get_object_storage),
@@ -87,46 +113,43 @@ async def upload_ingestion_images(
 
     Stores original assets privately and creates an ingestion batch with status `processing`.
     """
-    form = await request.form()
-    form_files = form.getlist("images[]") or form.getlist("images")
-
-    if not form_files:
+    if not images:
         raise ValidationError(
             message="Vui lòng tải lên từ 1 đến 10 ảnh.",
             details={"field": "images[]", "reason": "no_images_provided"},
         )
 
     # Early rejection if file count exceeds 10 before reading bytes into memory
-    if len(form_files) > 10:
+    if len(images) > 10:
         raise ValidationError(
             message="Số lượng ảnh tải lên phải từ 1 đến 10 ảnh.",
-            details={"count": len(form_files), "min": 1, "max": 10},
+            details={"count": len(images), "min": 1, "max": 10},
         )
 
     raw_files: list[tuple[str, bytes]] = []
-    for form_item in form_files:
-        if hasattr(form_item, "read"):
-            content = await form_item.read()
-            filename = getattr(form_item, "filename", "upload.jpg")
-            raw_files.append((filename, content))
+    chunk_size = 64 * 1024  # 64 KB chunks
 
-    declared_kind_raw = form.get("declared_input_kind")
-    declared_kind: InputKind | None = None
-    if declared_kind_raw:
-        try:
-            declared_kind = InputKind(str(declared_kind_raw))
-        except ValueError:
-            raise ValidationError(
-                message="Loại ảnh khai báo không hợp lệ.",
-                details={"declared_input_kind": declared_kind_raw},
-            )
+    for upload_file in images:
+        filename = upload_file.filename or "upload.jpg"
+        total = bytearray()
+        while True:
+            chunk = await upload_file.read(chunk_size)
+            if not chunk:
+                break
+            total.extend(chunk)
+            if len(total) > MAX_FILE_SIZE_BYTES:
+                raise ValidationError(
+                    message="Dung lượng ảnh vượt quá giới hạn 10MB.",
+                    details={"filename": filename, "max_bytes": MAX_FILE_SIZE_BYTES, "reason": "file_too_large"},
+                )
+        raw_files.append((filename, bytes(total)))
 
     batch = create_ingestion_batch(
         session=session,
         storage=storage,
         user_id=current_user_id,
         raw_files=raw_files,
-        declared_input_kind=declared_kind,
+        declared_input_kind=declared_input_kind,
     )
 
     # Trigger async processing background task with injected storage, detector, and engine

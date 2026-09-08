@@ -188,6 +188,182 @@ class TestIngestionApiAndFailureSemantics:
         finally:
             app.dependency_overrides.clear()
 
+    def test_upload_accepts_boundary_10_files(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Uploading exactly 10 images (boundary maximum) is accepted with HTTP 202."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            single_img = create_test_image_bytes("JPEG", (80, 80))
+            files = [("images[]", (f"img_{i}.jpg", single_img, "image/jpeg")) for i in range(10)]
+
+            response = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=files,
+            )
+            assert response.status_code == 202
+            body = response.json()
+            assert body["success"] is True
+            assert "batch_id" in body["data"]
+            assert body["data"]["status"] == "processing"
+
+            batch_id = body["data"]["batch_id"]
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch is not None
+                original_assets = session.exec(
+                    select(MediaAsset).where(
+                        MediaAsset.ingestion_batch_id == batch_id,
+                        MediaAsset.kind == MediaKind.ORIGINAL,
+                    )
+                ).all()
+                assert len(original_assets) == 10
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_upload_rejects_zero_files(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Submitting no images returns HTTP 422 VALIDATION_ERROR."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                data={},
+            )
+            assert response.status_code == 422
+            body = response.json()
+            assert body["success"] is False
+            assert body["error"]["code"] == "VALIDATION_ERROR"
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_upload_rejects_field_without_brackets(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Contract requires 'images[]' alias; submitting unbracketed 'images' returns 422."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            single_img = create_test_image_bytes("JPEG", (80, 80))
+            files = [("images", ("img.jpg", single_img, "image/jpeg"))]
+
+            response = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=files,
+            )
+            assert response.status_code == 422
+            body = response.json()
+            assert body["success"] is False
+            assert body["error"]["code"] == "VALIDATION_ERROR"
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_upload_rejects_disguised_or_corrupted_file(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Disguised non-image bytes (e.g. text/plain pretending to be JPEG) return 422."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            fake_bytes = b"Not an image at all, just plain ASCII text!"
+            files = [("images[]", ("fake.jpg", fake_bytes, "image/jpeg"))]
+
+            response = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=files,
+            )
+            assert response.status_code == 422
+            body = response.json()
+            assert body["success"] is False
+            assert body["error"]["code"] == "VALIDATION_ERROR"
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_upload_rejects_invalid_declared_input_kind(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Submitting an invalid declared_input_kind enum value returns 422."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+
+        try:
+            client = TestClient(app)
+            single_img = create_test_image_bytes("JPEG", (80, 80))
+            files = [("images[]", ("item.jpg", single_img, "image/jpeg"))]
+
+            response = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=files,
+                data={"declared_input_kind": "invalid_kind_name"},
+            )
+            assert response.status_code == 422
+            body = response.json()
+            assert body["success"] is False
+            assert body["error"]["code"] == "VALIDATION_ERROR"
+        finally:
+            app.dependency_overrides.clear()
+
     def test_media_streaming_and_cross_user_isolation(
         self,
         migrated_database: tuple[object, object],
