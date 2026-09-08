@@ -32,6 +32,7 @@ from app.models.entities import (
 )
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
+from app.services.providers import BoundingBoxDetection, DetectionResult
 
 
 def create_test_image_bytes(
@@ -432,12 +433,12 @@ class TestIngestionFlowIntegration:
         finally:
             app.dependency_overrides.clear()
 
-    def test_provider_500_error_scenario_fails_gracefully_and_cleans_up_transient_crops(
+    def test_attribute_provider_error_preserves_crop_and_allows_manual_review(
         self,
         migrated_database: tuple[object, object],
         test_storage: LocalObjectStorage,
     ) -> None:
-        """SCENARIO 5: Downstream provider 500 error fails batch cleanly and deletes transient crops from storage."""
+        """SCENARIO 5: Downstream provider error during attribute extraction preserves crop in needs_review and allows manual confirmation."""
         _, engine = migrated_database
         user_id = str(uuid4())
         detector = FakeDetector(mode="single_item")
@@ -467,12 +468,18 @@ class TestIngestionFlowIntegration:
             assert review_res.status_code == 200
             review_data = review_res.json()["data"]
 
-            # Batch status is failed
-            assert review_data["status"] == "failed"
+            # Batch status is preserved in needs_review rather than failed
+            assert review_data["status"] == "needs_review"
             warnings = review_data["quality_warnings"]
-            assert any("thất bại" in w or "không khả dụng" in w for w in warnings)
+            assert any("trích xuất thuộc tính tạm thời gián đoạn" in w for w in warnings)
 
-            # Assert transient crop and thumbnail files were cleaned up from storage!
+            # Crop and detection candidate are preserved
+            detections = review_data["detections"]
+            assert len(detections) == 1
+            detection = detections[0]
+            assert detection["attributes"]["category"] == "unknown"
+
+            # Assert crop and thumbnail files remain safely recorded in database
             with Session(engine) as session:
                 crop_assets = session.exec(
                     select(MediaAsset).where(
@@ -480,17 +487,93 @@ class TestIngestionFlowIntegration:
                         MediaAsset.kind.in_([MediaKind.CROP, MediaKind.THUMBNAIL]),
                     )
                 ).all()
-                # DB transaction rollback means zero crop/thumb records exist
-                assert len(crop_assets) == 0
+                assert len(crop_assets) == 2
 
-                # Original image is still recorded
-                original_assets = session.exec(
+            # User can manually provide attributes and confirm successfully
+            confirm_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {
+                            "detection_id": detection["detection_id"],
+                            "accepted": True,
+                            "custom_attributes": {
+                                "category": "top",
+                                "sub_category": "t_shirt",
+                                "primary_color": "white",
+                                "style": "casual",
+                            },
+                        }
+                    ]
+                },
+            )
+            assert confirm_res.status_code == 200
+            confirm_data = confirm_res.json()["data"]
+            assert confirm_data["status"] == "confirmed"
+            assert len(confirm_data["wardrobe_item_ids"]) == 1
+
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_catastrophic_error_fails_batch_and_cleans_up_transient_crops(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """Verify unrecoverable system error transitions batch to failed and cleans up transient crops."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        detector = FakeDetector(mode="single_item")
+
+        class BrokenStorage(LocalObjectStorage):
+            def put_object(self, *, user_id: str, bucket: str, object_key: str, data: bytes, content_type: str) -> None:
+                if "crop" in object_key:
+                    # Simulate fatal I/O failure when writing crop
+                    raise OSError("Disk write failed catastrophically.")
+                super().put_object(user_id=user_id, bucket=bucket, object_key=object_key, data=data, content_type=content_type)
+
+        broken_storage = BrokenStorage(root=test_storage._root, buckets=test_storage._buckets)
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: broken_storage
+        app.dependency_overrides[get_detector] = lambda: detector
+        app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider()
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (150, 150))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("photo.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            review_data = review_res.json()["data"]
+
+            # Fatal error sets batch status to failed
+            assert review_data["status"] == "failed"
+            warnings = review_data["quality_warnings"]
+            assert any("Xử lý ảnh thất bại" in w for w in warnings)
+
+            # Assert transient crop and thumbnail records were rolled back
+            with Session(engine) as session:
+                crop_assets = session.exec(
                     select(MediaAsset).where(
                         MediaAsset.ingestion_batch_id == batch_id,
-                        MediaAsset.kind == MediaKind.ORIGINAL,
+                        MediaAsset.kind.in_([MediaKind.CROP, MediaKind.THUMBNAIL]),
                     )
                 ).all()
-                assert len(original_assets) == 1
+                assert len(crop_assets) == 0
 
         finally:
             app.dependency_overrides.clear()

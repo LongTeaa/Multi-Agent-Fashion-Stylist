@@ -37,6 +37,7 @@ from app.schemas.ingestion import (
     DetectionReviewItem,
     IngestionBatchReviewResponseData,
 )
+from app.services.classifier import classify_scene
 from app.services.crop_engine import crop_item_and_generate_thumbnail
 from app.services.providers import (
     DetectorProtocol,
@@ -186,6 +187,9 @@ def process_ingestion_batch(
         if msg not in warnings_accumulator:
             warnings_accumulator.append(msg)
 
+    detected_kinds: list[InputKind] = []
+    total_boxes_count = 0
+
     try:
         for asset in original_assets:
             image_bytes = storage.get_object(
@@ -195,7 +199,11 @@ def process_ingestion_batch(
             )
 
             try:
-                detection_res = detector.detect(image_bytes)
+                detection_res = classify_scene(
+                    detector=detector,
+                    image_bytes=image_bytes,
+                    declared_input_kind=batch.input_kind,
+                )
             except TimeoutError:
                 logger.warning("Detector timed out for batch %s", batch_id)
                 add_warning("AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.")
@@ -205,10 +213,7 @@ def process_ingestion_batch(
                 session.add(batch)
                 session.commit()
                 return batch
-            except ProviderError as p_err:
-                logger.error("Detector provider error for batch %s: %s", batch_id, p_err)
-                raise
-            except Exception as det_err:
+            except (ProviderError, Exception) as det_err:
                 logger.warning("Detector error for batch %s: %s", batch_id, det_err)
                 add_warning("AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.")
                 batch.quality_warnings = list(warnings_accumulator)
@@ -218,7 +223,8 @@ def process_ingestion_batch(
                 session.commit()
                 return batch
 
-            batch.input_kind = detection_res.input_kind
+            detected_kinds.append(detection_res.input_kind)
+            total_boxes_count += len(detection_res.boxes)
             for warning in detection_res.quality_warnings:
                 add_warning(warning)
 
@@ -293,9 +299,13 @@ def process_ingestion_batch(
                         field_confidence={"category": 0.5, "style": 0.5},
                         quality_warnings=["AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."],
                     )
-                except ProviderError as p_err:
-                    logger.error("Vision provider error for batch %s crop: %s", batch_id, p_err)
-                    raise
+                except (ProviderError, Exception) as p_err:
+                    logger.warning("Vision provider error for batch %s crop: %s", batch_id, p_err)
+                    extraction = VisionExtractionResult(
+                        attributes={"category": "unknown", "style": "casual"},
+                        field_confidence={"category": 0.5, "style": 0.5},
+                        quality_warnings=["AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."],
+                    )
 
                 # Flag fields with confidence < 0.70
                 low_conf_fields = [
@@ -319,6 +329,19 @@ def process_ingestion_batch(
                     status=DetectionStatus.PROPOSED,
                 )
                 session.add(detection)
+
+        # Resolve aggregate input_kind
+        if batch.input_kind not in (None, InputKind.UNKNOWN):
+            pass
+        elif len(detected_kinds) == 1:
+            batch.input_kind = detected_kinds[0]
+        else:
+            if total_boxes_count == 1:
+                batch.input_kind = InputKind.SINGLE_ITEM
+            elif total_boxes_count > 1:
+                batch.input_kind = InputKind.MULTI_ITEM
+            else:
+                batch.input_kind = InputKind.CLUTTERED
 
         batch.quality_warnings = list(warnings_accumulator)
         flag_modified(batch, "quality_warnings")

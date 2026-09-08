@@ -8,7 +8,7 @@ from app.models.entities import BoundingBox, ConfidenceValue, InputKind
 
 @dataclass(frozen=True)
 class BoundingBoxDetection:
-    """A detected item region with normalized coordinates [ymin, xmin, ymax, xmax] in [0.0, 1.0]."""
+    """A detected item region with normalized coordinates [x_min, y_min, x_max, y_max] in [0.0, 1.0]."""
 
     box: BoundingBox
     label: str

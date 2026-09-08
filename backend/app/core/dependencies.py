@@ -51,14 +51,52 @@ def get_current_user_id(
 
 
 def get_detector() -> DetectorProtocol:
-    """Return the vision detector instance (defaults to FakeDetector for offline MVP)."""
-    from app.services.fakes.vision_fakes import FakeDetector
+    """Return the vision detector instance based on configured VISION_PROVIDER."""
+    settings = get_settings()
 
-    return FakeDetector(mode="multi_item")
+    if settings.vision_provider == "fake":
+        from app.services.fakes.vision_fakes import FakeDetector
+
+        return FakeDetector(mode="multi_item")
+
+    if settings.vision_provider == "gemini":
+        if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
+            raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
+        if not settings.vision_model or not settings.vision_model.strip():
+            raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")
+
+        from app.services.gemini_provider import GeminiDetector
+
+        return GeminiDetector(
+            api_key=settings.gemini_api_key,
+            model=settings.vision_model,
+            timeout_seconds=float(settings.vision_timeout_seconds),
+        )
+
+    raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
 
 
 def get_vision_provider() -> VisionProviderProtocol:
-    """Return the vision attribute extraction provider instance (defaults to FakeVisionProvider)."""
-    from app.services.fakes.vision_fakes import FakeVisionProvider
+    """Return the vision attribute extraction provider instance based on configured VISION_PROVIDER."""
+    settings = get_settings()
 
-    return FakeVisionProvider(scenario="golden_polo")
+    if settings.vision_provider == "fake":
+        from app.services.fakes.vision_fakes import FakeVisionProvider
+
+        return FakeVisionProvider(scenario="golden_polo")
+
+    if settings.vision_provider == "gemini":
+        if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
+            raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
+        if not settings.vision_model or not settings.vision_model.strip():
+            raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")
+
+        from app.services.gemini_provider import GeminiVisionProvider
+
+        return GeminiVisionProvider(
+            api_key=settings.gemini_api_key,
+            model=settings.vision_model,
+            timeout_seconds=float(settings.vision_timeout_seconds),
+        )
+
+    raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")

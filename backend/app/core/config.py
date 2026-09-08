@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/fashion_stylist.db"
     frontend_url: AnyHttpUrl = AnyHttpUrl("http://localhost:3000")
 
+    vision_provider: Literal["fake", "gemini"] = "fake"
+    vision_timeout_seconds: PositiveInt = 30
     llm_model: str | None = None
     vision_model: str | None = None
     image_model: str | None = None

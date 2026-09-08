@@ -204,6 +204,11 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
+                {!CATEGORIES.some((cat) => cat.value === attributes.category) && (
+                  <option value={attributes.category || ''} disabled>
+                    -- Chọn danh mục --
+                  </option>
+                )}
                 {CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
