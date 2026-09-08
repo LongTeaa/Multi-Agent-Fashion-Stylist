@@ -391,7 +391,7 @@ class TestIngestionCleanupIntegration:
         test_storage: LocalObjectStorage,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """FS-3: Transient storage errors are logged observably and the job remains retryable."""
+        """FS-3: Transient storage errors are logged observably and the job remains retryable across multiple invocations."""
         _, engine = migrated_database
         user_id = str(uuid4())
         base_time = utc_now()
@@ -446,12 +446,266 @@ class TestIngestionCleanupIntegration:
                 storage=test_storage,
                 current_time=check_time,
             )
-            # Job must not crash, but records observable failure
+            # Job must not crash, records observable failure
             assert len(summary1.failures) == 1
             assert "Transient network failure" in summary1.failures[0]
+            assert summary1.batches_expired == 0
+            assert summary1.objects_deleted == 0
 
-            # 2. Second run: storage is recovered, run retryable cleanup
+            # Assert Invariant: Asset deleted_at must remain None and file still exists!
+            session.refresh(asset)
+            assert asset.deleted_at is None
+            assert test_storage.object_exists(user_id=user_id, bucket="wardrobe-private", object_key=key)
+
+            # Assert Invariant: Batch must remain in NEEDS_REVIEW, NOT prematurely marked EXPIRED!
+            session.refresh(batch)
+            assert batch.status == IngestionStatus.NEEDS_REVIEW
+
+            # 2. Second run: storage is recovered, run cleanup again
             monkeypatch.undo()
-            # If batch is already expired but object was not deleted, retry deleting un-deleted objects
-            test_storage.delete_object(user_id=user_id, bucket="wardrobe-private", object_key=key)
+            summary2 = cleanup_expired_batches(
+                session=session,
+                storage=test_storage,
+                current_time=check_time,
+            )
+            # Second run successfully deleted object and expired batch
+            assert summary2.batches_expired == 1
+            assert summary2.objects_deleted == 1
+            assert len(summary2.failures) == 0
+
+            session.refresh(asset)
+            assert asset.deleted_at is not None
             assert not test_storage.object_exists(user_id=user_id, bucket="wardrobe-private", object_key=key)
+
+            session.refresh(batch)
+            assert batch.status == IngestionStatus.EXPIRED
+
+            # 3. Third run: idempotent no-op
+            summary3 = cleanup_expired_batches(
+                session=session,
+                storage=test_storage,
+                current_time=check_time,
+            )
+            assert summary3.batches_expired == 0
+            assert summary3.objects_deleted == 0
+            assert len(summary3.failures) == 0
+
+    def test_object_not_found_treated_as_successful_convergence(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """If storage file is already missing (ObjectNotFoundError), cleanup marks deleted_at without error."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        base_time = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=base_time,
+                expires_at=base_time + timedelta(hours=24),
+            )
+            session.add(batch)
+
+            key = f"users/{user_id}/ingestions/{batch.id}/original/already_deleted.jpg"
+            # Deliberately do NOT create file in test_storage
+            asset = MediaAsset(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                kind=MediaKind.ORIGINAL,
+                bucket="wardrobe-private",
+                object_key=key,
+                mime_type="image/jpeg",
+                size_bytes=100,
+                width=100,
+                height=100,
+                sha256="e" * 64,
+                created_at=base_time,
+            )
+            session.add(asset)
+            session.commit()
+
+            summary = cleanup_expired_batches(
+                session=session,
+                storage=test_storage,
+                current_time=base_time + timedelta(hours=25),
+            )
+            assert summary.batches_expired == 1
+            assert summary.objects_deleted == 0
+            assert len(summary.failures) == 0
+
+            session.refresh(asset)
+            assert asset.deleted_at is not None
+            session.refresh(batch)
+            assert batch.status == IngestionStatus.EXPIRED
+
+    def test_partial_failure_leaves_batch_retryable(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When 1 of 2 assets fails deletion, successful asset is marked deleted while batch remains unexpired."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        base_time = utc_now()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.flush()
+
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                created_at=base_time,
+                expires_at=base_time + timedelta(hours=24),
+            )
+            session.add(batch)
+
+            key1 = f"users/{user_id}/ingestions/{batch.id}/original/good.jpg"
+            key2 = f"users/{user_id}/ingestions/{batch.id}/original/fail.jpg"
+            test_storage.put_object(user_id=user_id, bucket="wardrobe-private", object_key=key1, data=b"1", content_type="image/jpeg")
+            test_storage.put_object(user_id=user_id, bucket="wardrobe-private", object_key=key2, data=b"2", content_type="image/jpeg")
+
+            asset1 = MediaAsset(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                kind=MediaKind.ORIGINAL,
+                bucket="wardrobe-private",
+                object_key=key1,
+                mime_type="image/jpeg",
+                size_bytes=1,
+                width=10,
+                height=10,
+                sha256="1" * 64,
+                created_at=base_time,
+            )
+            asset2 = MediaAsset(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                kind=MediaKind.ORIGINAL,
+                bucket="wardrobe-private",
+                object_key=key2,
+                mime_type="image/jpeg",
+                size_bytes=1,
+                width=10,
+                height=10,
+                sha256="2" * 64,
+                created_at=base_time,
+            )
+            session.add(asset1)
+            session.add(asset2)
+            session.commit()
+
+            orig_delete = test_storage.delete_object
+
+            def selective_delete(*, user_id: str, bucket: str, object_key: str) -> None:
+                if "fail.jpg" in object_key:
+                    raise ObjectStorageError("Selective delete failure on fail.jpg")
+                orig_delete(user_id=user_id, bucket=bucket, object_key=object_key)
+
+            monkeypatch.setattr(test_storage, "delete_object", selective_delete)
+
+            # Run 1: partial failure
+            summary1 = cleanup_expired_batches(
+                session=session,
+                storage=test_storage,
+                current_time=base_time + timedelta(hours=25),
+            )
+            assert summary1.batches_expired == 0
+            assert summary1.objects_deleted == 1
+            assert len(summary1.failures) == 1
+
+            session.refresh(asset1)
+            assert asset1.deleted_at is not None
+            session.refresh(asset2)
+            assert asset2.deleted_at is None
+            session.refresh(batch)
+            assert batch.status == IngestionStatus.NEEDS_REVIEW
+
+            # Run 2: recover and retry
+            monkeypatch.undo()
+            summary2 = cleanup_expired_batches(
+                session=session,
+                storage=test_storage,
+                current_time=base_time + timedelta(hours=25),
+            )
+            assert summary2.batches_expired == 1
+            assert summary2.objects_deleted == 1
+            assert len(summary2.failures) == 0
+
+            session.refresh(asset2)
+            assert asset2.deleted_at is not None
+            session.refresh(batch)
+            assert batch.status == IngestionStatus.EXPIRED
+
+    def test_cli_cleanup_entrypoint_exit_codes(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """CLI entrypoint returns 0 on success, 1 on failure, and 2 on invalid arguments."""
+        from scripts.cleanup_expired_ingestions import main as cli_cleanup_main
+
+        _, engine = migrated_database
+
+        with Session(engine) as session:
+            # 1. Successful run -> exit code 0
+            code_success = cli_cleanup_main([], session=session, storage=test_storage)
+            assert code_success == 0
+
+            # 2. Invalid argument -> exit code 2
+            code_invalid_args = cli_cleanup_main(["--current-time", "invalid-iso-date"], session=session, storage=test_storage)
+            assert code_invalid_args == 2
+
+            # 3. Transient error during run -> exit code 1
+            user_id = str(uuid4())
+            base_time = utc_now()
+            session.add(User(id=user_id))
+            session.flush()
+
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.PROCESSING,
+                created_at=base_time,
+                expires_at=base_time + timedelta(hours=24),
+            )
+            session.add(batch)
+            key = f"users/{user_id}/ingestions/{batch.id}/original/cli_fail.jpg"
+            test_storage.put_object(user_id=user_id, bucket="wardrobe-private", object_key=key, data=b"x", content_type="image/jpeg")
+            asset = MediaAsset(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                kind=MediaKind.ORIGINAL,
+                bucket="wardrobe-private",
+                object_key=key,
+                mime_type="image/jpeg",
+                size_bytes=1,
+                width=10,
+                height=10,
+                sha256="f" * 64,
+                created_at=base_time,
+            )
+            session.add(asset)
+            session.commit()
+
+            def failing_delete(*args, **kwargs):
+                raise ObjectStorageError("CLI storage error")
+
+            monkeypatch.setattr(test_storage, "delete_object", failing_delete)
+            future_iso = (base_time + timedelta(hours=26)).isoformat()
+            code_fail = cli_cleanup_main(["--current-time", future_iso], session=session, storage=test_storage)
+            assert code_fail == 1

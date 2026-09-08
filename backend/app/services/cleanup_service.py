@@ -62,6 +62,7 @@ def cancel_ingestion_batch(
         select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch_id)
     ).all()
 
+    all_cleared = True
     for asset in assets:
         if asset.deleted_at is None:
             try:
@@ -70,15 +71,25 @@ def cancel_ingestion_batch(
                     bucket=asset.bucket,
                     object_key=asset.object_key,
                 )
+                asset.deleted_at = now
+                session.add(asset)
             except ObjectNotFoundError:
-                pass
+                asset.deleted_at = now
+                session.add(asset)
             except Exception as del_err:
                 logger.warning("Failed to delete transient file %s: %s", asset.object_key, del_err)
+                all_cleared = False
 
-            asset.deleted_at = now
-            session.add(asset)
+    if all_cleared:
+        batch.status = IngestionStatus.EXPIRED
+    else:
+        # If some files failed to delete, ensure batch is eligible for retryable cleanup
+        batch.expires_at = min(batch.expires_at, now)
+        logger.warning(
+            "Batch %s cancelled with partial asset deletion. Retaining unexpired status for retry.",
+            batch_id,
+        )
 
-    batch.status = IngestionStatus.EXPIRED
     session.add(batch)
     session.commit()
     session.refresh(batch)
@@ -95,18 +106,25 @@ def cleanup_expired_batches(
 
     Enforces Failure Semantics FS-3:
     - Transient object deletion errors do not abort the cleanup job.
-    - Errors are logged observably and the job remains safely retryable.
+    - Sets deleted_at ONLY upon successful deletion or confirmed ObjectNotFoundError.
+    - Failed deletions leave deleted_at=None and batch remains eligible for next run.
+    - Marks batch EXPIRED only when all unprotected transient assets are deleted or absent.
     - Confirmed batches and assets linked to WardrobeItem are strictly protected.
     """
     now = current_time or utc_now()
 
-    # Find unconfirmed batches that have expired
+    # Find unconfirmed batches that have expired or unconfirmed batches with un-deleted assets
     expired_batches = session.exec(
         select(IngestionBatch).where(
             IngestionBatch.status != IngestionStatus.CONFIRMED,
-            IngestionBatch.status != IngestionStatus.EXPIRED,
+            (IngestionBatch.status != IngestionStatus.EXPIRED)
+            | (
+                IngestionBatch.id.in_(
+                    select(MediaAsset.ingestion_batch_id).where(MediaAsset.deleted_at.is_(None))
+                )
+            ),
             IngestionBatch.expires_at <= now,
-        )
+        ).order_by(IngestionBatch.created_at)
     ).all()
 
     batches_expired = 0
@@ -117,6 +135,8 @@ def cleanup_expired_batches(
         assets = session.exec(
             select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch.id)
         ).all()
+
+        batch_all_cleared = True
 
         for asset in assets:
             if asset.deleted_at is not None:
@@ -142,20 +162,32 @@ def cleanup_expired_batches(
                     object_key=asset.object_key,
                 )
                 objects_deleted += 1
+                asset.deleted_at = now
+                session.add(asset)
             except ObjectNotFoundError:
-                pass
+                # Object is already absent in storage -> treat as successful convergence!
+                asset.deleted_at = now
+                session.add(asset)
             except Exception as exc:
                 err_msg = f"FS-3 Object deletion failed for {asset.object_key}: {exc}"
                 logger.error(err_msg)
                 failures.append(err_msg)
+                batch_all_cleared = False
+                # Do NOT set asset.deleted_at! Keep None so it can be retried!
 
-            asset.deleted_at = now
-            session.add(asset)
+        if batch_all_cleared:
+            if batch.status != IngestionStatus.EXPIRED:
+                batch.status = IngestionStatus.EXPIRED
+                batches_expired += 1
+            session.add(batch)
+        else:
+            logger.warning(
+                "Batch %s has transient assets that failed deletion. Batch remains in %s for subsequent retry.",
+                batch.id,
+                batch.status,
+            )
 
-        batch.status = IngestionStatus.EXPIRED
-        session.add(batch)
         session.commit()
-        batches_expired += 1
 
     return CleanupSummary(
         batches_expired=batches_expired,
