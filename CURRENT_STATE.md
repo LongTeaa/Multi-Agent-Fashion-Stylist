@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 3 — Wardrobe, Profile, and Retrieval (in progress) |
-| Active task | Phase 3 task 3 complete: option-based profile onboarding/editing API and UI with deterministic versioned weights. |
-| Most recently modified files | Profile endpoint/schema/service and tests, `backend/app/main.py`, `frontend/src/app/profile/page.tsx`, `frontend/src/components/profile/ProfilePreferencesForm.tsx`, `frontend/src/types/profile.ts`, `frontend/src/lib/api.ts`, home navigation, `docs/05_api/API_CONTRACT.md`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build` (144 backend tests passed; frontend lint, type-check, and production build passed). |
-| Next step | Commit Phase 3 task 3, then implement metadata retrieval and optional full-text ranking. |
+| Active task | Phase 3 task 4 complete: ownership-scoped metadata retrieval with controlled relaxation and optional deterministic full-text ranking. |
+| Most recently modified files | `backend/app/schemas/retrieval.py`, `backend/app/services/retrieval_service.py`, `backend/tests/unit/test_retrieval.py`, `docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check` (153 backend tests passed; no broken requirements). |
+| Next step | Commit Phase 3 task 4, then evaluate 30 labeled queries and add semantic indexing only if the benchmark justifies it. |
 
 ## Update Rules
 

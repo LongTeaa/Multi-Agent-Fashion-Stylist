@@ -64,7 +64,7 @@ Specification files:
 - [x] Implement wardrobe CRUD, filters, retrieval, and authenticated media URLs.
 - [x] Refresh retrieval documents after confirmation, update, and delete.
 - [x] Implement option-based profile onboarding and editing.
-- [ ] Implement metadata retrieval and optional full-text ranking.
+- [x] Implement metadata retrieval and optional full-text ranking.
 - [ ] Evaluate 30 labeled queries; add semantic indexing only if the benchmark justifies it.
 - [ ] Verify cross-user isolation for database and media access.
 
