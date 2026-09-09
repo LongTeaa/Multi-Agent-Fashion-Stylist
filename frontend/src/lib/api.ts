@@ -5,6 +5,11 @@ import type {
   IngestionBatchReviewResponse,
   UploadBatchResponse,
 } from '@/types/ingestion';
+import type {
+  PreferenceOptions,
+  PreferenceSelections,
+  UserProfile,
+} from '@/types/profile';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const USER_STORAGE_KEY = 'fashion_stylist_user_id';
@@ -153,4 +158,32 @@ export function getMediaUrl(relativeOrAssetUrl: string): string {
   const userId = getStoredUserId();
   const sep = cleanPath.includes('?') ? '&' : '?';
   return `${API_BASE_URL}${cleanPath}${sep}user_id=${encodeURIComponent(userId)}`;
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile`, {
+    headers: { 'X-User-Id': getStoredUserId() },
+  });
+  return handleResponse<UserProfile>(response);
+}
+
+export async function getPreferenceOptions(): Promise<PreferenceOptions> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile/preference-options`, {
+    headers: { 'X-User-Id': getStoredUserId() },
+  });
+  return handleResponse<PreferenceOptions>(response);
+}
+
+export async function replaceUserPreferences(
+  preferences: PreferenceSelections
+): Promise<UserProfile> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile/preferences`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+    },
+    body: JSON.stringify(preferences),
+  });
+  return handleResponse<UserProfile>(response);
 }

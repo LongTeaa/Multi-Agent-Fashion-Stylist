@@ -17,6 +17,12 @@ class TestOpenAPIContract:
         post_op = paths["/api/v1/ingestions"].get("post")
         assert post_op is not None, "POST operation must be defined on /api/v1/ingestions."
 
+    def test_profile_operations_exist(self, openapi_schema: dict) -> None:
+        paths = openapi_schema.get("paths", {})
+        assert "get" in paths["/api/v1/user/profile"]
+        assert "put" in paths["/api/v1/user/profile/preferences"]
+        assert "get" in paths["/api/v1/user/profile/preference-options"]
+
     def test_ingestion_upload_multipart_request_body(self, openapi_schema: dict) -> None:
         post_op = openapi_schema["paths"]["/api/v1/ingestions"]["post"]
         request_body = post_op.get("requestBody")

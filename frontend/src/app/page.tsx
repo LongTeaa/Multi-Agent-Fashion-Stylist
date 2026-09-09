@@ -23,6 +23,12 @@ export default function Home() {
 
         <nav className="flex items-center gap-3 sm:gap-4">
           <Link
+            href="/profile"
+            className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white transition"
+          >
+            Sở thích
+          </Link>
+          <Link
             href="/wardrobe"
             className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 transition shadow-lg shadow-indigo-600/30"
           >

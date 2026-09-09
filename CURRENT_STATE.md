@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 3 — Wardrobe, Profile, and Retrieval (in progress) |
-| Active task | Phase 3 task 2 complete: deterministic ownership-scoped retrieval documents refresh transactionally after confirmation, create, update, and delete. |
-| Most recently modified files | `backend/app/models/entities.py`, `backend/app/models/__init__.py`, `backend/app/services/retrieval_document_service.py`, ingestion/wardrobe/seed services, migration `0002_wardrobe_retrieval_documents.py`, retrieval/schema/integration tests, `docs/04_data/DATA_SCHEMA.md`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check` (141 backend tests passed; no broken requirements). |
-| Next step | Commit Phase 3 task 2, then implement option-based profile onboarding and editing. |
+| Active task | Phase 3 task 3 complete: option-based profile onboarding/editing API and UI with deterministic versioned weights. |
+| Most recently modified files | Profile endpoint/schema/service and tests, `backend/app/main.py`, `frontend/src/app/profile/page.tsx`, `frontend/src/components/profile/ProfilePreferencesForm.tsx`, `frontend/src/types/profile.ts`, `frontend/src/lib/api.ts`, home navigation, `docs/05_api/API_CONTRACT.md`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build` (144 backend tests passed; frontend lint, type-check, and production build passed). |
+| Next step | Commit Phase 3 task 3, then implement metadata retrieval and optional full-text ranking. |
 
 ## Update Rules
 
