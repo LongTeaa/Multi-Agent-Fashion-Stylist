@@ -66,7 +66,7 @@ Specification files:
 - [x] Implement option-based profile onboarding and editing.
 - [x] Implement metadata retrieval and optional full-text ranking.
 - [x] Evaluate 30 labeled queries; add semantic indexing only if the benchmark justifies it.
-- [ ] Verify cross-user isolation for database and media access.
+- [x] Verify cross-user isolation for database and media access.
 
 Verification MUST meet Recall@10 and Precision@5 targets and MUST prove that unconfirmed, deleted, or cross-user items are excluded.
 

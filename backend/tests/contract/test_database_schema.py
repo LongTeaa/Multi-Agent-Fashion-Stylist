@@ -133,6 +133,30 @@ def test_retrieval_document_migration_backfills_existing_active_items(
         assert primary_color in document.searchable_text
 
 
+def test_retrieval_document_rejects_cross_user_item_reference(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    _, engine = migrated_database
+    owner = _new_user()
+    other_user = _new_user()
+    item = _new_wardrobe_item(owner.id)
+    with Session(engine) as session:
+        session.add_all((owner, other_user))
+        session.flush()
+        session.add(item)
+        session.commit()
+        session.add(
+            WardrobeRetrievalDocument(
+                wardrobe_item_id=item.id,
+                user_id=other_user.id,
+                searchable_text="forged cross-user document",
+                metadata_snapshot={},
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
 def test_migration_contains_database_constraints_for_normative_bounds(
     migrated_database: tuple[Config, Engine],
 ) -> None:
