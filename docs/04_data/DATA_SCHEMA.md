@@ -15,6 +15,7 @@ users
   |-- user_preferences
   |-- ingestion_batches -- ingestion_detections -- media_assets
   |-- wardrobe_items ---- item_media
+  |                    -- wardrobe_retrieval_documents
   |-- outfit_recommendations -- outfit_items
   |                         |-- ratings
   |                         |-- wear_logs
@@ -98,6 +99,10 @@ users
 
 This table links `wardrobe_item_id`, `media_asset_id`, ownership key `user_id`, and `role` (`primary`, `alternate`, `thumbnail`). The `(wardrobe_item_id, media_asset_id)` pair MUST be unique. Composite foreign keys MUST enforce that the item and media asset have the same `user_id`.
 
+### 3.7.1 `wardrobe_retrieval_documents`
+
+This derived table stores one deterministic retrieval document per active, user-confirmed wardrobe item. `wardrobe_item_id` is the primary key, `user_id` is indexed, `searchable_text` contains normalized item attributes, `metadata_snapshot` contains the bounded retrieval metadata, and `updated_at` records the latest refresh. A composite foreign key MUST enforce that the document and item have the same owner. Confirmation and item updates MUST upsert the document in the same transaction; soft deletion MUST remove it.
+
 ### 3.8 `outfit_recommendations`
 
 | Field | Type/constraint |
@@ -179,3 +184,4 @@ Fixture images SHOULD reside in `data/fixtures/sample_clothes/`. The seed comman
 - `ratings(user_id, created_at)`
 - `wear_logs(user_id, worn_at)`
 - A unique `(bucket, object_key)` index on `media_assets`
+- `wardrobe_retrieval_documents(user_id, updated_at)`

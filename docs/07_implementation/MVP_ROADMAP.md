@@ -62,7 +62,7 @@ Specification files:
 - `TEST_STRATEGY.md`, Phase 3
 
 - [x] Implement wardrobe CRUD, filters, retrieval, and authenticated media URLs.
-- [ ] Refresh retrieval documents after confirmation, update, and delete.
+- [x] Refresh retrieval documents after confirmation, update, and delete.
 - [ ] Implement option-based profile onboarding and editing.
 - [ ] Implement metadata retrieval and optional full-text ranking.
 - [ ] Evaluate 30 labeled queries; add semantic indexing only if the benchmark justifies it.

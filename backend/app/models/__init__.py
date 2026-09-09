@@ -21,6 +21,7 @@ from app.models.entities import (
     UserPreference,
     WardrobeCategory,
     WardrobeItem,
+    WardrobeRetrievalDocument,
     WearLog,
 )
 
@@ -45,5 +46,6 @@ __all__ = [
     "UserPreference",
     "WardrobeCategory",
     "WardrobeItem",
+    "WardrobeRetrievalDocument",
     "WearLog",
 ]

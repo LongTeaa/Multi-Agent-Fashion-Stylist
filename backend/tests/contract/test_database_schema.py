@@ -30,6 +30,7 @@ from app.models import (
     User,
     WardrobeCategory,
     WardrobeItem,
+    WardrobeRetrievalDocument,
 )
 from app.models.entities import utc_now
 
@@ -40,6 +41,7 @@ ENTITY_TABLES = {
     "ingestion_detections",
     "media_assets",
     "wardrobe_items",
+    "wardrobe_retrieval_documents",
     "item_media",
     "outfit_recommendations",
     "outfit_items",
@@ -56,6 +58,9 @@ REQUIRED_INDEXES = {
     "outfit_recommendations": {"ix_outfit_recommendations_user_created"},
     "ratings": {"ix_ratings_user_created"},
     "wear_logs": {"ix_wear_logs_user_worn"},
+    "wardrobe_retrieval_documents": {
+        "ix_wardrobe_retrieval_documents_user_updated"
+    },
 }
 OWNERSHIP_FOREIGN_KEYS = {
     "fk_ingestion_detections_batch_owner",
@@ -70,6 +75,7 @@ OWNERSHIP_FOREIGN_KEYS = {
     "fk_tryon_renders_outfit_owner",
     "fk_wardrobe_items_batch_owner",
     "fk_wardrobe_items_detection_owner",
+    "fk_wardrobe_retrieval_documents_item_owner",
     "fk_wear_logs_outfit_owner",
 }
 
@@ -99,6 +105,32 @@ def test_migration_creates_all_mvp_tables_and_indexes(
         for constraint in inspector.get_unique_constraints("wardrobe_items")
     }
     assert ("ingestion_detection_id",) in wardrobe_unique_constraints
+
+
+def test_retrieval_document_migration_backfills_existing_active_items(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    alembic_config, engine = migrated_database
+    command.downgrade(alembic_config, "0001")
+    user = User(id=str(uuid4()))
+    item = _new_wardrobe_item(user.id)
+    item.is_user_confirmed = True
+    user_id = user.id
+    item_id = item.id
+    primary_color = item.primary_color
+    with Session(engine) as session:
+        session.add(user)
+        session.flush()
+        session.add(item)
+        session.commit()
+
+    command.upgrade(alembic_config, "head")
+
+    with Session(engine) as session:
+        document = session.get(WardrobeRetrievalDocument, item_id)
+        assert document is not None
+        assert document.user_id == user_id
+        assert primary_color in document.searchable_text
 
 
 def test_migration_contains_database_constraints_for_normative_bounds(

@@ -20,6 +20,7 @@ from app.schemas.wardrobe import (
     WardrobeItemResponseData,
     WardrobeItemUpdate,
 )
+from app.services.retrieval_document_service import refresh_retrieval_document
 
 
 def _owned_active_item(session: Session, item_id: str, user_id: str) -> WardrobeItem:
@@ -141,6 +142,7 @@ def create_wardrobe_item(
     )
     session.add(item)
     session.flush()
+    refresh_retrieval_document(session, item)
     session.add(
         ItemMedia(
             wardrobe_item_id=item.id,
@@ -171,6 +173,7 @@ def update_wardrobe_item(
         setattr(item, field, value)
     item.updated_at = datetime.now(timezone.utc)
     session.add(item)
+    refresh_retrieval_document(session, item)
     session.commit()
     session.refresh(item)
     return serialize_item(session, item)
@@ -183,4 +186,5 @@ def delete_wardrobe_item(*, session: Session, user_id: str, item_id: str) -> Non
     item.deleted_at = now
     item.updated_at = now
     session.add(item)
+    refresh_retrieval_document(session, item)
     session.commit()

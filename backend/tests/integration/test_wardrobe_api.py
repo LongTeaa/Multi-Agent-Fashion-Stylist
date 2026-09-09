@@ -10,7 +10,14 @@ from sqlmodel import Session, select
 
 from app.core.dependencies import get_db_session, get_object_storage
 from app.main import app
-from app.models.entities import MediaAsset, MediaKind, User, WardrobeCategory, WardrobeItem
+from app.models.entities import (
+    MediaAsset,
+    MediaKind,
+    User,
+    WardrobeCategory,
+    WardrobeItem,
+    WardrobeRetrievalDocument,
+)
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 
 
@@ -134,6 +141,12 @@ def test_wardrobe_crud_filters_media_and_cross_user_isolation(
         assert item["times_worn"] == 0
         assert item["last_worn_at"] is None
         assert item["media_url"] == f"/api/v1/media/{asset_id}"
+        with Session(engine) as session:
+            document = session.get(WardrobeRetrievalDocument, item_id)
+            assert document is not None
+            assert document.user_id == user_a
+            assert "white" in document.searchable_text
+            assert document.metadata_snapshot["free_text_tags"] == ["cafe"]
 
         listing = client.get(
             "/api/v1/wardrobe/items?category=top&style=smart_casual&color=white&text=cafe",
@@ -169,6 +182,12 @@ def test_wardrobe_crud_filters_media_and_cross_user_isolation(
         )
         assert updated.status_code == 200
         assert updated.json()["data"]["primary_color"] == "navy"
+        with Session(engine) as session:
+            document = session.get(WardrobeRetrievalDocument, item_id)
+            assert document is not None
+            assert "navy" in document.searchable_text
+            assert "office" in document.searchable_text
+            assert "white" not in document.searchable_text
 
         deleted = client.delete(
             f"/api/v1/wardrobe/items/{item_id}", headers={"X-User-Id": user_a}
@@ -188,6 +207,7 @@ def test_wardrobe_crud_filters_media_and_cross_user_isolation(
             ).one()
             assert persisted.is_active is False
             assert persisted.deleted_at is not None
+            assert session.get(WardrobeRetrievalDocument, item_id) is None
     finally:
         app.dependency_overrides.clear()
 

@@ -345,6 +345,32 @@ class WardrobeItem(SQLModel, table=True):
     )
 
 
+class WardrobeRetrievalDocument(SQLModel, table=True):
+    __tablename__ = "wardrobe_retrieval_documents"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["wardrobe_item_id", "user_id"],
+            ["wardrobe_items.id", "wardrobe_items.user_id"],
+            name="fk_wardrobe_retrieval_documents_item_owner",
+            ondelete="CASCADE",
+        ),
+        Index(
+            "ix_wardrobe_retrieval_documents_user_updated",
+            "user_id",
+            "updated_at",
+        ),
+    )
+
+    wardrobe_item_id: str = Field(primary_key=True, max_length=36)
+    user_id: str = Field(foreign_key="users.id", index=True, max_length=36)
+    searchable_text: str = Field(sa_column=Column(Text, nullable=False))
+    metadata_snapshot: dict[str, object] = Field(sa_column=Column(JSON, nullable=False))
+    updated_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
 class ItemMedia(SQLModel, table=True):
     __tablename__ = "item_media"
     __table_args__ = (

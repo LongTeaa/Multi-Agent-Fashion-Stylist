@@ -44,6 +44,7 @@ from app.services.providers import (
     VisionExtractionResult,
     VisionProviderProtocol,
 )
+from app.services.retrieval_document_service import refresh_retrieval_document
 from app.services.upload_validation import ValidatedImage, validate_image_bytes
 
 logger = logging.getLogger(__name__)
@@ -554,6 +555,7 @@ def confirm_ingestion_batch(
             )
             session.add(wardrobe_item)
             session.flush()
+            refresh_retrieval_document(session, wardrobe_item)
             created_item_ids.append(item_id)
 
             # Link Primary ItemMedia (Crop)

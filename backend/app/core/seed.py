@@ -10,6 +10,7 @@ from sqlmodel import Session
 from app.core.config import get_settings
 from app.core.database import create_database_engine
 from app.models import User, WardrobeCategory, WardrobeItem
+from app.services.retrieval_document_service import refresh_retrieval_document
 
 GOLDEN_USER_ID = str(
     uuid5(NAMESPACE_URL, "https://multi-agent-fashion-stylist.local/fixtures/golden-user")
@@ -189,7 +190,10 @@ def seed_golden_wardrobe(engine: Engine) -> SeedResult:
         for spec in GOLDEN_WARDROBE:
             item = session.get(WardrobeItem, spec.id)
             if item is None:
-                session.add(_new_item(spec))
+                item = _new_item(spec)
+                session.add(item)
+                session.flush()
+                refresh_retrieval_document(session, item)
                 items_created += 1
                 continue
             if item.user_id != GOLDEN_USER_ID:
@@ -197,6 +201,7 @@ def seed_golden_wardrobe(engine: Engine) -> SeedResult:
                     f"Golden wardrobe item {spec.id!r} is owned by another user."
                 )
             _apply_spec(item, spec)
+            refresh_retrieval_document(session, item)
             items_updated += 1
 
         session.commit()

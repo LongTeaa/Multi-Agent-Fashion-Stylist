@@ -28,6 +28,7 @@ from app.models.entities import (
     MediaKind,
     User,
     WardrobeItem,
+    WardrobeRetrievalDocument,
     utc_now,
 )
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
@@ -210,6 +211,12 @@ class TestIngestionFlowIntegration:
                 for item in persisted_items:
                     assert item.is_user_confirmed is True
                     assert item.ingestion_batch_id == batch_id
+                    retrieval_document = session.get(
+                        WardrobeRetrievalDocument, item.id
+                    )
+                    assert retrieval_document is not None
+                    assert retrieval_document.user_id == user_id
+                    assert item.primary_color in retrieval_document.searchable_text
 
                     # Check ItemMedia junction has both PRIMARY (crop) and THUMBNAIL roles
                     item_media_links = session.exec(
