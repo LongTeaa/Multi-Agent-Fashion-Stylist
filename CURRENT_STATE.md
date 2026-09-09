@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 2 — Ingestion and Wardrobe Digitization (completed) |
-| Active task | Phase 2 blocker remediation complete; ready for pull-request re-review. |
-| Most recently modified files | `.env.example`, `backend/app/api/v1/endpoints/ingestion.py`, `backend/app/core/config.py`, `backend/app/core/dependencies.py`, `backend/app/main.py`, `backend/app/services/cleanup_service.py`, `backend/app/services/gemini_provider.py`, Phase 2 regression tests, ingestion review UI components, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `python -m pytest backend/tests -q; python -m compileall -q backend/app backend/migrations backend/scripts backend/tests; python -m pip check; npm --prefix frontend run lint; npm --prefix frontend run type-check; npm --prefix frontend run build` |
-| Next step | Re-review the blocker-remediation diff, then push it to the Phase 2 pull-request branch before beginning Phase 3. |
+| Current phase | Phase 3 — Wardrobe, Profile, and Retrieval (in progress) |
+| Active task | Phase 3 task 1 complete: wardrobe CRUD, paginated filters/retrieval, and authenticated media references with cross-user isolation. |
+| Most recently modified files | `backend/app/api/v1/endpoints/wardrobe.py`, `backend/app/api/v1/router.py`, `backend/app/schemas/wardrobe.py`, `backend/app/services/wardrobe_service.py`, `backend/tests/integration/test_wardrobe_api.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check` (139 backend tests passed; no broken requirements). |
+| Next step | Implement Phase 3 task 2: refresh retrieval documents after ingestion confirmation, wardrobe update, and soft delete. |
 
 ## Update Rules
 

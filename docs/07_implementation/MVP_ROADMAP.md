@@ -61,7 +61,7 @@ Specification files:
 - `../05_api/API_CONTRACT.md`, Wardrobe and Profile APIs
 - `TEST_STRATEGY.md`, Phase 3
 
-- [ ] Implement wardrobe CRUD, filters, retrieval, and authenticated media URLs.
+- [x] Implement wardrobe CRUD, filters, retrieval, and authenticated media URLs.
 - [ ] Refresh retrieval documents after confirmation, update, and delete.
 - [ ] Implement option-based profile onboarding and editing.
 - [ ] Implement metadata retrieval and optional full-text ranking.
