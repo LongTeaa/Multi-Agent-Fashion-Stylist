@@ -1,0 +1,19 @@
+{
+  "dataset_version": "retrieval-v1",
+  "rule_version": "metadata-v1",
+  "provider_model_version": null,
+  "executed_at": "2026-09-10T00:02:25+07:00",
+  "query_count": 30,
+  "wardrobe_count": 5,
+  "metadata_only": {
+    "recall_at_10": 1.0,
+    "precision_at_5": 0.845
+  },
+  "metadata_plus_full_text": {
+    "recall_at_10": 1.0,
+    "precision_at_5": 0.8783
+  },
+  "search_p95_ms_500_items": 61.908,
+  "semantic_index_recommended": false,
+  "decision": "Keep metadata retrieval with optional full-text ranking; semantic indexing is not justified by the current benchmark."
+}
