@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import quantiles
@@ -17,6 +18,13 @@ from app.services.retrieval_service import RetrievalMatch, retrieve_wardrobe_ite
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DATASET_PATH = REPOSITORY_ROOT / "data" / "fixtures" / "retrieval_evaluation_v1.json"
 REPORT_PATH = REPOSITORY_ROOT / "data" / "fixtures" / "retrieval_evaluation_v1_report.json"
+
+
+@dataclass(frozen=True)
+class RetrievalMetrics:
+    recall_at_10: float
+    precision_at_5: float
+    fixed_denominator_precision_at_5: float
 
 
 def _load_dataset() -> dict[str, object]:
@@ -63,11 +71,12 @@ def _ranked_ids(results: dict[WardrobeCategory, list[RetrievalMatch]]) -> list[s
 
 def _evaluate(
     session: Session, dataset: dict[str, object], *, enable_full_text: bool
-) -> tuple[float, float]:
+) -> RetrievalMetrics:
     cases = dataset["queries"]
     assert isinstance(cases, list)
     recalls: list[float] = []
     precisions: list[float] = []
+    fixed_denominator_precisions: list[float] = []
     for case in cases:
         assert isinstance(case, dict) and isinstance(case["intent"], dict)
         wardrobe_id = str(case["wardrobe"])
@@ -85,13 +94,19 @@ def _evaluate(
             precisions.append(1.0 if not ranked else 0.0)
             continue
         recalls.append(len(relevant & set(ranked[:10])) / len(relevant))
+        relevant_hits = len(relevant & set(ranked[:5]))
         available_at_five = min(5, len(ranked))
         precisions.append(
-            len(relevant & set(ranked[:5])) / available_at_five
-            if available_at_five
-            else 0.0
+            relevant_hits / available_at_five if available_at_five else 0.0
         )
-    return sum(recalls) / len(recalls), sum(precisions) / len(precisions)
+        fixed_denominator_precisions.append(relevant_hits / 5)
+    return RetrievalMetrics(
+        recall_at_10=sum(recalls) / len(recalls),
+        precision_at_5=sum(precisions) / len(precisions),
+        fixed_denominator_precision_at_5=(
+            sum(fixed_denominator_precisions) / len(fixed_denominator_precisions)
+        ),
+    )
 
 
 def test_fixed_dataset_contains_thirty_vietnamese_queries_and_five_wardrobes() -> None:
@@ -120,35 +135,49 @@ def test_retrieval_meets_quality_targets_without_semantic_index(
     dataset = _load_dataset()
     with Session(engine) as session:
         _seed_wardrobes(session, dataset)
-        metadata_recall, metadata_precision = _evaluate(
+        metadata_metrics = _evaluate(
             session, dataset, enable_full_text=False
         )
-        full_text_recall, full_text_precision = _evaluate(
+        full_text_metrics = _evaluate(
             session, dataset, enable_full_text=True
         )
 
-    assert metadata_recall >= 0.90
-    assert metadata_precision >= 0.75
-    assert full_text_recall >= 0.90
-    assert full_text_precision >= 0.75
-    semantic_index_recommended = full_text_recall < 0.90 or full_text_precision < 0.75
+    assert metadata_metrics.recall_at_10 >= 0.90
+    assert metadata_metrics.precision_at_5 >= 0.75
+    assert full_text_metrics.recall_at_10 >= 0.90
+    assert full_text_metrics.precision_at_5 >= 0.75
+    semantic_index_recommended = (
+        full_text_metrics.recall_at_10 < 0.90
+        or full_text_metrics.precision_at_5 < 0.75
+    )
     report = {
         "dataset_version": dataset["dataset_version"],
         "rule_version": dataset["rule_version"],
+        "metric_definition_version": "sparse-wardrobe-v1",
         "provider_model_version": None,
         "executed_at": datetime.now(timezone.utc).isoformat(),
         "metadata_only": {
-            "recall_at_10": round(metadata_recall, 4),
-            "precision_at_5": round(metadata_precision, 4),
+            "recall_at_10": round(metadata_metrics.recall_at_10, 4),
+            "precision_at_5": round(metadata_metrics.precision_at_5, 4),
+            "fixed_denominator_precision_at_5": round(
+                metadata_metrics.fixed_denominator_precision_at_5, 4
+            ),
         },
         "metadata_plus_full_text": {
-            "recall_at_10": round(full_text_recall, 4),
-            "precision_at_5": round(full_text_precision, 4),
+            "recall_at_10": round(full_text_metrics.recall_at_10, 4),
+            "precision_at_5": round(full_text_metrics.precision_at_5, 4),
+            "fixed_denominator_precision_at_5": round(
+                full_text_metrics.fixed_denominator_precision_at_5, 4
+            ),
         },
         "semantic_index_recommended": semantic_index_recommended,
     }
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     saved_report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
+    assert (
+        saved_report["metric_definition_version"]
+        == report["metric_definition_version"]
+    )
     assert saved_report["metadata_only"] == report["metadata_only"]
     assert saved_report["metadata_plus_full_text"] == report["metadata_plus_full_text"]
     assert saved_report["semantic_index_recommended"] is semantic_index_recommended

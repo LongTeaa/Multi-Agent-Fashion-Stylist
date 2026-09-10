@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 3 — Wardrobe, Profile, and Retrieval (completed) |
-| Active task | Phase 3 task 6 complete: database ownership constraints and authenticated media isolation are verified. |
-| Most recently modified files | `backend/tests/contract/test_media_access.py`, `backend/tests/contract/test_database_schema.py`, `docs/07_implementation/MVP_ROADMAP.md`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend/.venv/Scripts/python.exe -m pytest backend/tests -q; backend/.venv/Scripts/python.exe -m compileall -q backend/app backend/migrations backend/scripts backend/tests; backend/.venv/Scripts/python.exe -m pip check` (159 backend tests passed; no broken requirements). Ownership verification subset also passed with 29 tests. |
-| Next step | Commit Phase 3 task 6, then begin Phase 4 with typed shared state and the fixed LangGraph workflow. |
+| Active task | Phase 3 review improvements complete: sparse-wardrobe Precision@5 is explicitly defined, fixed-denominator Precision@5 is reported diagnostically, and documentation verification supports CRLF. |
+| Most recently modified files | `backend/tests/evaluation/test_retrieval_metrics.py`, `data/fixtures/retrieval_evaluation_v1_report.json`, `docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md`, `docs/07_implementation/MVP_ROADMAP.md`, `docs/07_implementation/TEST_STRATEGY.md`, `scripts/verify_documentation.ps1`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | Phase 3 verification (16 tests), full backend suite (159 tests), Python compileall, pip check, documentation verification, frontend lint, frontend type-check, and frontend production build all passed on 2026-09-10. |
+| Next step | Review and commit the Phase 3 benchmark/documentation improvements, push the seven Phase 3 commits, then begin Phase 4 with typed shared state and the fixed LangGraph workflow. |
 
 ## Update Rules
 

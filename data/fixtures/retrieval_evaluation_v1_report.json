@@ -1,19 +1,22 @@
 {
   "dataset_version": "retrieval-v1",
   "rule_version": "metadata-v1",
+  "metric_definition_version": "sparse-wardrobe-v1",
   "provider_model_version": null,
-  "executed_at": "2026-09-10T00:02:25+07:00",
+  "executed_at": "2026-09-10T01:37:01.980006+00:00",
   "query_count": 30,
   "wardrobe_count": 5,
   "metadata_only": {
     "recall_at_10": 1.0,
-    "precision_at_5": 0.845
+    "precision_at_5": 0.845,
+    "fixed_denominator_precision_at_5": 0.6
   },
   "metadata_plus_full_text": {
     "recall_at_10": 1.0,
-    "precision_at_5": 0.8783
+    "precision_at_5": 0.8783,
+    "fixed_denominator_precision_at_5": 0.6345
   },
-  "search_p95_ms_500_items": 61.908,
+  "search_p95_ms_500_items": 100.838,
   "semantic_index_recommended": false,
   "decision": "Keep metadata retrieval with optional full-text ranking; semantic indexing is not justified by the current benchmark."
 }
