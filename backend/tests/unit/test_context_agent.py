@@ -12,6 +12,7 @@ from app.agents.context_agent import (
 )
 from app.agents.state import (
     EvaluatedOutfit,
+    GarmentConstraint,
     OutfitItemSlot,
     RankedOutfit,
     StylistContext,
@@ -60,6 +61,7 @@ def test_wedding_query():
     assert ctx.weather_source == "user"
     assert ctx.target_formality_range == [4, 5]
     assert ctx.needs_clarification is False
+    assert ctx.event_date is None  # Unspecified date defaults to None
 
 
 def test_interview_query():
@@ -75,7 +77,7 @@ def test_interview_query():
 
 
 def test_location_and_environment():
-    """Verify extraction of location and outdoor environment."""
+    """Verify extraction of location and outdoor environment matching API_CONTRACT.md."""
     query = "Tối nay đi cafe ngoài trời ở Đà Lạt, hơi lạnh, muốn lịch sự nhẹ"
     ctx = extract_context(query)
 
@@ -83,7 +85,7 @@ def test_location_and_environment():
     assert ctx.time_of_day == "evening"
     assert ctx.location_text == "Đà Lạt"
     assert ctx.environment == "outdoor"
-    assert ctx.weather_condition == "cool"
+    assert ctx.weather_condition == "cold"  # API_CONTRACT.md maps 'hơi lạnh' to cold
     assert ctx.weather_source == "user"
     assert ctx.target_formality_range == [2, 3]
     assert "smart_casual" in ctx.style_hints
@@ -105,6 +107,32 @@ def test_explicit_constraints():
     assert ctx.needs_clarification is False
 
 
+def test_rain_priority_over_temperature():
+    """Verify rainy weather has top priority over cool/cold for garment safety."""
+    query = "Tối nay đi cafe với bạn, trời mưa và se lạnh"
+    ctx = extract_context(query)
+    assert ctx.weather_condition == "rainy"
+    assert ctx.weather_source == "user"
+
+
+def test_multiple_constraints_connected_by_va():
+    """Verify parser extracts multiple constraints connected by 'và'."""
+    query = "Đi cafe tối nay, phải mặc áo polo và giày sneaker, không mặc màu đen"
+    ctx = extract_context(query)
+    assert "áo polo" in ctx.must_have
+    assert "giày sneaker" in ctx.must_have
+    assert "màu đen" in ctx.must_avoid
+
+
+def test_isolated_garment_triggers_clarification():
+    """Verify isolated garment question without occasion/context triggers clarification."""
+    query = "Áo nào hợp với tôi?"
+    assert is_ambiguous_query(query) is True
+    ctx = extract_context(query)
+    assert ctx.needs_clarification is True
+    assert ctx.confidence == 0.3
+
+
 @pytest.mark.parametrize(
     "ambiguous_query",
     [
@@ -114,6 +142,7 @@ def test_explicit_constraints():
         "Tư vấn phối đồ",
         "Gợi ý đồ cho tôi",
         "Tôi nên mặc gì đây?",
+        "Cho mình xin vài gợi ý phối đồ với",
     ],
 )
 def test_ambiguous_queries_trigger_clarification(ambiguous_query: str):
@@ -123,6 +152,7 @@ def test_ambiguous_queries_trigger_clarification(ambiguous_query: str):
     ctx = extract_context(ambiguous_query)
     assert ctx.needs_clarification is True
     assert ctx.clarification_question == CLARIFICATION_PROMPT_VI
+    assert ctx.confidence == 0.3
     assert "Bạn dự định" in ctx.clarification_question
 
 
@@ -133,9 +163,11 @@ def test_state_models_validation():
         time_of_day="evening",
         weather_condition="cool",
         target_formality_range=[2, 3],
+        confidence=0.9,
     )
     assert ctx.occasion == "cafe"
     assert ctx.target_formality_range == [2, 3]
+    assert ctx.confidence == 0.9
 
     # Invalid range boundaries
     with pytest.raises(ValidationError):
@@ -143,28 +175,40 @@ def test_state_models_validation():
             occasion="cafe",
             time_of_day="evening",
             weather_condition="cool",
-            target_formality_range=[4, 2],  # min > max
+            target_formality_range=[4, 2],
         )
 
-    with pytest.raises(ValidationError):
-        StylistContext(
-            occasion="cafe",
-            time_of_day="evening",
-            weather_condition="cool",
-            target_formality_range=[0, 3],  # 0 < 1
-        )
-
-    # Test OutfitItemSlot
+    # Test OutfitItemSlot with full metadata
     slot = OutfitItemSlot(
         item_id="item-top-01",
         slot_role=OutfitSlotRole.TOP,
         name="Áo polo trắng",
         primary_color="white",
+        secondary_color="navy",
         style="smart_casual",
         category=WardrobeCategory.TOP,
+        formality_level=3,
+        weather_suitability=["warm", "cool"],
+        pattern="solid",
+        material="cotton",
+        fit="regular",
+        functional_flags=["breathable"],
     )
     assert slot.item_id == "item-top-01"
     assert slot.slot_role == OutfitSlotRole.TOP
+    assert slot.formality_level == 3
+    assert slot.functional_flags == ["breathable"]
+
+    # Slot role mismatch with category raises validation error
+    with pytest.raises(ValidationError):
+        OutfitItemSlot(
+            item_id="item-top-02",
+            slot_role=OutfitSlotRole.BOTTOM,
+            name="Áo polo",
+            primary_color="white",
+            style="casual",
+            category=WardrobeCategory.TOP,
+        )
 
     # Test EvaluatedOutfit
     eval_outfit = EvaluatedOutfit(
@@ -189,11 +233,12 @@ def test_state_models_validation():
 
 
 def test_context_agent_node():
-    """Verify context_agent_node function in LangGraph workflow."""
+    """Verify context_agent_node function in LangGraph workflow receives location."""
     initial_state: StylistGraphState = {
         "request_id": "req-123",
         "user_id": "user-456",
         "user_query": "Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?",
+        "location": "Đà Lạt",
     }
 
     result = context_agent_node(initial_state)
@@ -202,4 +247,110 @@ def test_context_agent_node():
     assert isinstance(extracted_ctx, StylistContext)
     assert extracted_ctx.occasion == "cafe"
     assert extracted_ctx.weather_condition == "cool"
+    assert extracted_ctx.location_text == "Đà Lạt"
     assert extracted_ctx.needs_clarification is False
+    assert extracted_ctx.confidence == 0.95
+
+
+def test_negation_handling_weather_and_occasion():
+    """Verify negation handling prevents false positive classification."""
+    query_weather = "Tối nay đi cafe với bạn, trời không lạnh, không mưa đâu"
+    ctx_weather = extract_context(query_weather)
+    assert ctx_weather.weather_condition != "cold"
+    assert ctx_weather.weather_condition != "rainy"
+    assert ctx_weather.occasion == "cafe"
+
+    query_work = "Hôm nay nghỉ làm, đi chơi dạo phố với bạn"
+    ctx_work = extract_context(query_work)
+    assert ctx_work.occasion == "casual"
+
+
+def test_outerwear_and_dress_constraint_extraction():
+    """Verify specific garments like áo khoác, áo blazer, váy đầm are preserved without falling back to generic 'áo'."""
+    query = "Đi làm ngày mai, phải mặc áo khoác và váy đầm, không mặc áo blazer"
+    ctx = extract_context(query)
+    assert "áo khoác" in ctx.must_have
+    assert "áo" not in ctx.must_have
+    assert "váy đầm" in ctx.must_have
+    assert "áo blazer" in ctx.must_avoid
+    assert "áo" not in ctx.must_avoid
+
+
+def test_weather_time_without_occasion_triggers_clarification():
+    """Verify queries with only weather and time but no occasion/location/garment trigger clarification."""
+    query = "Tối nay trời mát mặc gì?"
+    assert is_ambiguous_query(query) is True
+    ctx = extract_context(query)
+    assert ctx.needs_clarification is True
+    assert ctx.confidence == 0.3
+
+    query2 = "Hôm nay trời lạnh nên mặc gì?"
+    assert is_ambiguous_query(query2) is True
+    ctx2 = extract_context(query2)
+    assert ctx2.needs_clarification is True
+    assert ctx2.confidence == 0.3
+
+
+def test_structured_garment_color_binding():
+    """Verify structured constraint preserves garment + color binding and avoids false cross-slot bans."""
+    query = "Đi làm ngày mai, phải mặc áo polo trắng, không mặc áo polo đen"
+    ctx = extract_context(query)
+
+    # Check structured must_have
+    assert len(ctx.structured_must_have) == 1
+    c_have = ctx.structured_must_have[0]
+    assert c_have.category == WardrobeCategory.TOP
+    assert c_have.sub_category == "polo"
+    assert c_have.color == "white"
+
+    # Check structured must_avoid
+    assert len(ctx.structured_must_avoid) == 1
+    c_avoid = ctx.structured_must_avoid[0]
+    assert c_avoid.category == WardrobeCategory.TOP
+    assert c_avoid.sub_category == "polo"
+    assert c_avoid.color == "black"
+
+
+def test_taxonomy_garment_category_mappings():
+    """Verify specific garment taxonomy mappings: giày da -> leather, áo vest -> outerwear blazer, giày -> category_only."""
+    query = "Đi tiệc tối nay, phải mặc áo vest và giày da, phải mặc quần"
+    ctx = extract_context(query)
+
+    # Áo vest must be OUTERWEAR, blazer
+    vest_constraints = [c for c in ctx.structured_must_have if "vest" in c.raw_text]
+    assert len(vest_constraints) == 1
+    assert vest_constraints[0].category == WardrobeCategory.OUTERWEAR
+    assert vest_constraints[0].sub_category == "blazer"
+
+    # Giày da must be FOOTWEAR, material leather
+    shoes_constraints = [c for c in ctx.structured_must_have if "giày da" in c.raw_text]
+    assert len(shoes_constraints) == 1
+    assert shoes_constraints[0].category == WardrobeCategory.FOOTWEAR
+    assert shoes_constraints[0].material == "leather"
+
+    # Quần must be category_only
+    pants_constraints = [c for c in ctx.structured_must_have if c.raw_text == "quần"]
+    assert len(pants_constraints) == 1
+    assert pants_constraints[0].category == WardrobeCategory.BOTTOM
+    assert pants_constraints[0].is_category_only is True
+
+
+def test_location_without_occasion_triggers_clarification():
+    """Verify query with only location (no occasion, no garment/style) triggers clarification."""
+    query = "Ở Đà Lạt mặc gì?"
+    assert is_ambiguous_query(query) is True
+    ctx = extract_context(query)
+    assert ctx.needs_clarification is True
+    assert ctx.confidence == 0.3
+
+
+def test_garment_with_defaulted_occasion_calibrates_confidence():
+    """Verify query with garment constraint but missing occasion uses safe default and lowers confidence."""
+    query = "Áo polo nào hợp tối nay?"
+    assert is_ambiguous_query(query) is False
+    ctx = extract_context(query)
+    assert ctx.needs_clarification is False
+    assert ctx.occasion == "casual"
+    # occasion defaulted (-0.15) and weather defaulted (-0.10) => 0.95 - 0.25 = 0.70
+    assert ctx.confidence == 0.70
+

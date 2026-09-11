@@ -1,9 +1,38 @@
 from __future__ import annotations
 
 from typing import Literal, TypedDict
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.entities import OutfitSlotRole, WardrobeCategory
+
+
+class GarmentConstraint(BaseModel):
+    """Structured garment constraint capturing the binding between item, category, color, and material."""
+
+    category: WardrobeCategory | None = Field(
+        default=None,
+        description="Target wardrobe category if known (e.g. top, bottom, outerwear)",
+    )
+    sub_category: str | None = Field(
+        default=None,
+        description="Canonical sub-category (e.g. polo, blazer, jacket, dress, chinos, sneakers)",
+    )
+    color: str | None = Field(
+        default=None,
+        description="Canonical English color (e.g. white, black, navy)",
+    )
+    material: str | None = Field(
+        default=None,
+        description="Canonical English material if specified (e.g. leather, denim, cotton)",
+    )
+    raw_text: str = Field(
+        default="",
+        description="Original phrase from user query",
+    )
+    is_category_only: bool = Field(
+        default=False,
+        description="True if the constraint only mentions a generic category term like 'áo', 'quần', 'giày'",
+    )
 
 
 class StylistContext(BaseModel):
@@ -57,6 +86,14 @@ class StylistContext(BaseModel):
         default_factory=list,
         description="Excluded colors, items, or attributes",
     )
+    structured_must_have: list[GarmentConstraint] = Field(
+        default_factory=list,
+        description="Structured inclusion constraints linking garment, color, and material",
+    )
+    structured_must_avoid: list[GarmentConstraint] = Field(
+        default_factory=list,
+        description="Structured exclusion constraints linking garment, color, and material",
+    )
     weather_source: Literal["user", "api", "default"] = Field(
         default="default",
         description="Source of weather data",
@@ -68,6 +105,12 @@ class StylistContext(BaseModel):
     clarification_question: str | None = Field(
         default=None,
         description="Concise Vietnamese clarification question when ambiguous",
+    )
+    confidence: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Extraction confidence score",
     )
 
     @field_validator("target_formality_range")
@@ -83,21 +126,34 @@ class StylistContext(BaseModel):
 
 
 class OutfitItemSlot(BaseModel):
-    """Garment item allocated into an outfit slot."""
+    """Garment item allocated into an outfit slot with full metadata for scoring."""
 
     item_id: str
     slot_role: OutfitSlotRole
     name: str
     primary_color: str
+    secondary_color: str | None = None
     style: str
     category: WardrobeCategory
+    formality_level: int = Field(default=3, ge=1, le=5)
+    weather_suitability: list[str] = Field(default_factory=list)
+    pattern: str = Field(default="solid")
+    material: str = Field(default="cotton")
+    fit: str = Field(default="regular")
+    functional_flags: list[str] = Field(default_factory=list)
     image_url: str | None = None
+
+    @model_validator(mode="after")
+    def validate_slot_role_matches_category(self) -> OutfitItemSlot:
+        if self.slot_role.value != self.category.value:
+            raise ValueError(f"slot_role '{self.slot_role}' must match category '{self.category}'")
+        return self
 
 
 class EvaluatedOutfit(BaseModel):
     """Outfit combination with deterministic fashion scoring."""
 
-    items: list[OutfitItemSlot]
+    items: list[OutfitItemSlot] = Field(min_length=1)
     fashion_score: float = Field(ge=0.0, le=1.0)
     component_scores: dict[str, float] = Field(default_factory=dict)
     combination_id: str
@@ -109,7 +165,7 @@ class RankedOutfit(BaseModel):
     outfit_id: str | None = None
     rank: int = Field(ge=1, le=3)
     composite_score: float = Field(ge=0.0, le=1.0)
-    items: list[OutfitItemSlot]
+    items: list[OutfitItemSlot] = Field(min_length=1)
     explanation_vi: str
     applied_preferences: list[str] = Field(default_factory=list)
 
@@ -118,7 +174,7 @@ class StylistGraphState(TypedDict, total=False):
     """Shared state flowing through the LangGraph recommendation workflow.
 
     Owners:
-    - request_id, user_id, user_query: API entry
+    - request_id, user_id, user_query, location: API entry
     - context: Context Agent
     - candidate_pool: Wardrobe Agent
     - evaluated_outfits: Fashion Agent
@@ -130,6 +186,7 @@ class StylistGraphState(TypedDict, total=False):
     request_id: str
     user_id: str
     user_query: str
+    location: str | None
     context: StylistContext | None
     candidate_pool: dict[str, list[OutfitItemSlot]]
     evaluated_outfits: list[EvaluatedOutfit]
