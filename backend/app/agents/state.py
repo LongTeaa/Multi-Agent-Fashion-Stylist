@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal, TypedDict
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -142,6 +143,8 @@ class OutfitItemSlot(BaseModel):
     fit: str = Field(default="regular")
     functional_flags: list[str] = Field(default_factory=list)
     image_url: str | None = None
+    times_worn: int = Field(default=0, ge=0)
+    last_worn_at: str | None = None
 
     @model_validator(mode="after")
     def validate_slot_role_matches_category(self) -> OutfitItemSlot:
@@ -187,6 +190,7 @@ class StylistGraphState(TypedDict, total=False):
     user_id: str
     user_query: str
     location: str | None
+    reference_time: datetime | None
     context: StylistContext | None
     candidate_pool: dict[str, list[OutfitItemSlot]]
     evaluated_outfits: list[EvaluatedOutfit]

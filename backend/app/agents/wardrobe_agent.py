@@ -470,6 +470,8 @@ def retrieve_candidate_pool(
                 fit=item.fit,
                 functional_flags=list(item.functional_flags),
                 image_url=image_url,
+                times_worn=item.times_worn or 0,
+                last_worn_at=item.last_worn_at.isoformat() if item.last_worn_at else None,
             )
             slots.append(slot)
         candidate_pool[slot_name] = slots
