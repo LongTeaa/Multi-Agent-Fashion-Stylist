@@ -168,8 +168,10 @@ class RankedOutfit(BaseModel):
     outfit_id: str | None = None
     rank: int = Field(ge=1, le=3)
     composite_score: float = Field(ge=0.0, le=1.0)
+    fashion_score: float | None = None
+    personalization_score: float | None = None
     items: list[OutfitItemSlot] = Field(min_length=1)
-    explanation_vi: str
+    explanation_vi: str = ""
     applied_preferences: list[str] = Field(default_factory=list)
 
 
