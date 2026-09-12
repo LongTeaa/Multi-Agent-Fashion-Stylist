@@ -85,21 +85,21 @@ Specification files:
 - `../05_api/API_CONTRACT.md`, Stylist Chat API
 - `TEST_STRATEGY.md`, Phase 4
 
-- [ ] Implement typed shared state and the fixed LangGraph workflow.
-- [ ] Implement Context Agent fields for occasion, date/time, location, environment, weather source, formality, and explicit constraints.
-- [ ] Implement Wardrobe Agent retrieval, including the `dress` branch.
-- [ ] Implement deterministic Fashion Agent scoring and bounded top-k generation.
-- [ ] Implement Personalization Agent cold-start and reranking behavior.
-- [ ] Implement Coordinator grounding, per-outfit Vietnamese explanation, and transactional persistence.
-- [ ] Implement API mapping and clarification behavior.
-- [ ] Add node unit tests, scoring tests, graph tests, and the golden scenario.
+- [x] Implement typed shared state and the fixed LangGraph workflow.
+- [x] Implement Context Agent fields for occasion, date/time, location, environment, weather source, formality, and explicit constraints.
+- [x] Implement Wardrobe Agent retrieval, including the `dress` branch.
+- [x] Implement deterministic Fashion Agent scoring and bounded top-k generation.
+- [x] Implement Personalization Agent cold-start and reranking behavior.
+- [x] Implement Coordinator grounding, per-outfit Vietnamese explanation, and transactional persistence.
+- [x] Implement API mapping and clarification behavior.
+- [x] Add node unit tests, scoring tests, graph tests, and the golden scenario.
 
 Verification MUST place White Polo + Navy Chinos + White Sneakers in the top three for `Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?`, with 100% grounding and persisted outfit IDs.
 
 **Executable Command:**
 
 ```powershell
-pytest backend/tests/unit/test_context_agent.py backend/tests/unit/test_fashion_scoring.py backend/tests/unit/test_personalization.py backend/tests/unit/test_grounding.py backend/tests/integration/test_stylist_graph.py backend/tests/integration/test_golden_scenario.py -q
+pytest backend/tests/unit/test_context_agent.py backend/tests/unit/test_fashion_scoring.py backend/tests/unit/test_personalization.py backend/tests/unit/test_grounding.py backend/tests/integration/test_stylist_graph.py backend/tests/integration/test_stylist_chat_api.py backend/tests/integration/test_golden_scenario.py -q
 ```
 
 ## Phase 5 — Chat UI, Saved Outfits, Rating, and Wear History

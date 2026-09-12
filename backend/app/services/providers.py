@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from datetime import date
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from app.models.entities import BoundingBox, ConfidenceValue, InputKind
 
@@ -45,3 +46,36 @@ class VisionProviderProtocol(Protocol):
     """Protocol for extracting fashion attributes and confidence scores from an item crop."""
 
     def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult: ...
+
+
+@dataclass(frozen=True)
+class WeatherContextResult:
+    """Normalized weather enrichment returned by a weather provider."""
+
+    condition: Literal["hot", "warm", "cool", "cold", "rainy"]
+    temperature_celsius: float | None = None
+
+
+@runtime_checkable
+class ContextLLMProviderProtocol(Protocol):
+    """Protocol for extracting a structured context payload from a Vietnamese query."""
+
+    def extract_context(
+        self,
+        *,
+        query: str,
+        location: str | None,
+        current_date: date,
+    ) -> dict[str, Any]: ...
+
+
+@runtime_checkable
+class WeatherProviderProtocol(Protocol):
+    """Protocol for enriching context with normalized weather data."""
+
+    def get_weather(
+        self,
+        *,
+        location: str,
+        event_date: date,
+    ) -> WeatherContextResult: ...

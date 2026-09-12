@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Header
 from sqlmodel import Session
@@ -11,7 +12,9 @@ from app.core.config import (
     REPOSITORY_ROOT,
     Settings,
     get_settings,
+    validate_context_provider_configuration,
     validate_vision_provider_configuration,
+    validate_weather_provider_configuration,
 )
 from app.core.database import get_engine
 from app.repositories.object_storage import (
@@ -22,6 +25,7 @@ from app.repositories.object_storage import (
 )
 from app.schemas.common import ValidationError
 from app.services.providers import DetectorProtocol, VisionProviderProtocol
+from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
 
 def get_db_session() -> Iterator[Session]:
@@ -99,3 +103,55 @@ def get_vision_provider() -> VisionProviderProtocol:
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
+
+
+def get_utc_clock() -> Callable[[], datetime]:
+    """Return a callable that produces the current timezone-aware UTC datetime."""
+    return lambda: datetime.now(timezone.utc)
+
+
+def get_context_llm_provider() -> ContextLLMProviderProtocol | None:
+    """Return the configured context provider; offline MVP uses parser fallback."""
+    settings = get_settings()
+    if settings.context_provider == "fallback":
+        return None
+    if settings.context_provider == "fake":
+        from app.services.fakes.context_fakes import FakeLLMProvider
+
+        return FakeLLMProvider()
+    validate_context_provider_configuration(settings)
+    from app.services.context_providers import GeminiContextProvider
+
+    return GeminiContextProvider(
+        api_key=settings.gemini_api_key,
+        model=settings.llm_model,
+        timeout_seconds=float(settings.context_timeout_seconds),
+    )
+
+
+def get_weather_provider() -> WeatherProviderProtocol | None:
+    """Return the configured weather provider; offline MVP keeps deterministic defaults."""
+    settings = get_settings()
+    if settings.weather_provider == "disabled":
+        return None
+    if settings.weather_provider == "fake":
+        from app.services.fakes.context_fakes import FakeWeatherProvider
+
+        return FakeWeatherProvider()
+    validate_weather_provider_configuration(settings)
+    from app.services.context_providers import OpenWeatherProvider
+
+    return OpenWeatherProvider(
+        api_key=settings.weather_api_key,
+        timeout_seconds=float(settings.weather_timeout_seconds),
+    )
+
+
+StylistRunner = Callable[..., Any]
+
+
+def get_stylist_runner() -> StylistRunner:
+    """Return the runner callable for stylist recommendations."""
+    from app.agents.stylist_graph import execute_stylist_recommendation
+
+    return execute_stylist_recommendation

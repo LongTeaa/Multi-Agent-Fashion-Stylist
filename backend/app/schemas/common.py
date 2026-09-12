@@ -74,3 +74,15 @@ class ProviderError(AppException):
     status_code: int = 502
     code: str = "PROVIDER_ERROR"
     message: str = "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+
+
+class WardrobeEmptyError(AppException):
+    status_code: int = 404
+    code: str = "WARDROBE_EMPTY"
+    message: str = "Tủ đồ của bạn chưa có trang phục. Hãy thêm quần áo trước nhé."
+
+
+class NoCompleteOutfitError(AppException):
+    status_code: int = 422
+    code: str = "NO_COMPLETE_OUTFIT"
+    message: str = "Tủ đồ hiện chưa đủ món để tạo một bộ trang phục hoàn chỉnh."

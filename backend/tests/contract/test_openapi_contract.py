@@ -88,3 +88,70 @@ class TestOpenAPIContract:
             assert err_status in responses, f"HTTP {err_status} response must be documented."
             err_content = responses[err_status].get("content", {}).get("application/json", {}).get("schema", {})
             assert "ErrorResponse" in err_content.get("$ref", "")
+
+    def test_stylist_chat_operation_contract(self, openapi_schema: dict) -> None:
+        paths = openapi_schema.get("paths", {})
+        assert "/api/v1/stylist/chat" in paths, "Route /api/v1/stylist/chat must be present in OpenAPI paths."
+        post_op = paths["/api/v1/stylist/chat"].get("post")
+        assert post_op is not None, "POST operation must be defined on /api/v1/stylist/chat."
+
+        # Verify X-User-Id header parameter
+        parameters = post_op.get("parameters", [])
+        user_id_param = next(
+            (p for p in parameters if p.get("name") == "X-User-Id" and p.get("in") == "header"),
+            None,
+        )
+        assert user_id_param is not None, "X-User-Id header parameter must be documented."
+
+        # Verify requestBody
+        request_body = post_op.get("requestBody")
+        assert request_body is not None, "POST /api/v1/stylist/chat must contain requestBody."
+        content = request_body.get("content", {})
+        assert "application/json" in content
+
+        # Verify responses: 200, 404, 422, 502
+        responses = post_op.get("responses", {})
+        assert "200" in responses, "HTTP 200 response must be documented."
+        for err_code in ("404", "422", "502"):
+            assert err_code in responses, f"HTTP {err_code} error response must be documented."
+            err_content = responses[err_code].get("content", {}).get("application/json", {}).get("schema", {})
+            assert "ErrorResponse" in err_content.get("$ref", "")
+
+        # Verify schemas: check StylistChatResponseData and StylistRecommendationResponse
+        schemas = openapi_schema.get("components", {}).get("schemas", {})
+        assert "StylistChatResponseData" in schemas
+        chat_data_schema = schemas["StylistChatResponseData"]
+        props = chat_data_schema.get("properties", {})
+        for expected_prop in [
+            "request_id",
+            "needs_clarification",
+            "clarification_question",
+            "context",
+            "recommendations",
+            "feedback_prompt_eligible",
+            "feedback_target_outfit_id",
+            "warnings",
+        ]:
+            assert expected_prop in props, f"StylistChatResponseData must include {expected_prop}."
+
+        assert "StylistRecommendationItemResponse" in schemas
+        item_schema = schemas["StylistRecommendationItemResponse"]
+        item_props = item_schema.get("properties", {})
+        assert "slot" in item_props
+        assert "item_id" in item_props
+        assert "name" in item_props
+        assert "image_url" in item_props
+        # Ensure raw storage keys are NOT exposed
+        assert "object_key" not in item_props
+        assert "bucket" not in item_props
+
+        # Verify StylistRecommendationResponse constraints
+        assert "StylistRecommendationResponse" in schemas
+        rec_schema = schemas["StylistRecommendationResponse"]
+        rec_props = rec_schema.get("properties", {})
+        assert "rank" in rec_props
+        assert rec_props["rank"].get("minimum") == 1
+        assert rec_props["rank"].get("maximum") == 3
+        assert "composite_score" in rec_props
+        assert rec_props["composite_score"].get("minimum") == 0.0
+        assert rec_props["composite_score"].get("maximum") == 1.0

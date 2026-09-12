@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 3 — Wardrobe, Profile, and Retrieval (completed) |
-| Active task | Phase 3 review improvements complete: sparse-wardrobe Precision@5 is explicitly defined, fixed-denominator Precision@5 is reported diagnostically, and documentation verification supports CRLF. |
-| Most recently modified files | `backend/tests/evaluation/test_retrieval_metrics.py`, `data/fixtures/retrieval_evaluation_v1_report.json`, `docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md`, `docs/07_implementation/MVP_ROADMAP.md`, `docs/07_implementation/TEST_STRATEGY.md`, `scripts/verify_documentation.ps1`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | Phase 3 verification (16 tests), full backend suite (159 tests), Python compileall, pip check, documentation verification, frontend lint, frontend type-check, and frontend production build all passed on 2026-09-10. |
-| Next step | Review and commit the Phase 3 benchmark/documentation improvements, push the seven Phase 3 commits, then begin Phase 4 with typed shared state and the fixed LangGraph workflow. |
+| Current phase | Phase 4 — Multi-Agent Recommendation (completed) |
+| Active task | Phase 4 review improvements completed: enforce explicit outfit constraints, preserve clean personalization candidates, and add injectable LLM/weather providers with deterministic fallbacks. |
+| Most recently modified files | `backend/app/agents/context_agent.py`, `backend/app/agents/fashion_agent.py`, `backend/app/agents/personalization_agent.py`, `backend/app/agents/coordinator.py`, provider configuration/adapters/fakes, regression tests, `.env.example`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | Phase 4 verification (143 tests) and full backend suite (321 tests) passed on 2026-09-12; Python compileall, pip check, and diff whitespace verification also passed. |
+| Next step | Phase 5 — Chat UI, Saved Outfits, Rating, and Wear History (`MVP_ROADMAP.md` Phase 5). |
 
 ## Update Rules
 
