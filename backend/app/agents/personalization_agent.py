@@ -69,7 +69,7 @@ def calculate_style_preference(
     preferred_styles: list[str],
 ) -> tuple[float, list[str]]:
     """Calculate style match score against user preferred styles.
-    
+
     Returns 0.50 (neutral) if user has not selected preferred styles.
     """
     if not preferred_styles:
@@ -99,7 +99,7 @@ def calculate_palette_preference(
     preferred_palettes: list[str],
 ) -> tuple[float, list[str]]:
     """Calculate color palette match score against user preferred palettes.
-    
+
     Returns 0.50 (neutral) if user has not selected preferred palettes.
     """
     if not preferred_palettes:
@@ -148,7 +148,7 @@ def calculate_priority_preference(
     priorities: list[str],
 ) -> tuple[float, list[str]]:
     """Calculate priority match score (comfort, polished, expressive, mobility, low_maintenance).
-    
+
     Returns 0.50 (neutral) if user has not selected priorities.
     """
     if not priorities:
@@ -209,7 +209,7 @@ def calculate_learned_affinity(
     ratings_count: int = 0,
 ) -> float:
     """Calculate learned rating affinity score.
-    
+
     Invariant:
     - Before five ratings exist, returns neutral baseline 0.50.
     - With >= 5 ratings, computes feature alignment normalized to [0.0, 1.0].
@@ -281,7 +281,7 @@ def calculate_recent_wear_penalty(
     reference_time: datetime | None = None,
 ) -> tuple[float, list[str]]:
     """Apply anti-repetition penalties according to Section 5:
-    
+
     - Exact outfit confirmed worn within 3 days (72h): strong penalty (-0.40).
     - Major item confirmed worn within 48h: smaller penalty (-0.15 per item, max -0.30).
     """
@@ -332,7 +332,7 @@ def get_user_personalization_data(
     reference_time: datetime | None = None,
 ) -> tuple[UserPreference | None, dict[str, Any]]:
     """Load user preferences and recent wear data with strict user isolation.
-    
+
     Guarantees that User B's preferences and wear history never leak into User A.
     """
     preferences = session.get(UserPreference, user_id)
@@ -391,7 +391,7 @@ def rerank_evaluated_outfits(
     max_output: int = 3,
 ) -> tuple[list[RankedOutfit], list[str]]:
     """Rerank up to 5 evaluated candidates into 1 to 3 final RankedOutfit results.
-    
+
     Formula:
       preference_score = (
           0.35 * style_match
@@ -401,7 +401,7 @@ def rerank_evaluated_outfits(
           - explicit_avoid_penalty
           - recent_wear_penalty
       ) clamped to [0.0, 1.0].
-      
+
       composite_score = round(0.60 * fashion_score + 0.40 * preference_score, 4).
 
     Invariants:
@@ -415,8 +415,6 @@ def rerank_evaluated_outfits(
     if not candidates:
         return [], []
 
-    # Bound candidate inputs at 5
-    bounded_candidates = candidates[:5]
     warnings: list[str] = []
     recent_data = recent_wear_data or {}
 
@@ -429,28 +427,31 @@ def rerank_evaluated_outfits(
     ratings_count = preferences.ratings_count if preferences else 0
 
     # Check explicit avoid violations across all candidates
-    candidate_violations = [
-        check_outfit_avoid_violations(c.items, avoid_colors, avoid_styles)
-        for c in bounded_candidates
+    candidate_pairs = [
+        (candidate, check_outfit_avoid_violations(candidate.items, avoid_colors, avoid_styles))
+        for candidate in candidates
     ]
 
     has_avoid_rules = bool(avoid_colors or avoid_styles)
     clean_pairs = [
-        (c, v) for c, v in zip(bounded_candidates, candidate_violations) if len(v) == 0
+        (candidate, violations)
+        for candidate, violations in candidate_pairs
+        if not violations
     ]
 
     if has_avoid_rules and clean_pairs:
-        # Invariant: Explicit exclusions win. Only clean candidates are eligible for ranking/output.
-        active_pairs = clean_pairs
+        # Inspect the full bounded Fashion pool before selecting at most five
+        # clean candidates for actual reranking.
+        active_pairs = clean_pairs[:5]
         is_relaxed = False
     elif has_avoid_rules and not clean_pairs:
         # Controlled relaxation: every valid candidate violates avoid rules.
         # Relax constraints with warning to avoid empty recommendation.
         warnings.append(AVOID_RELAXATION_WARNING)
-        active_pairs = list(zip(bounded_candidates, candidate_violations))
+        active_pairs = candidate_pairs[:5]
         is_relaxed = True
     else:
-        active_pairs = list(zip(bounded_candidates, candidate_violations))
+        active_pairs = candidate_pairs[:5]
         is_relaxed = False
 
     scored_candidates: list[tuple[float, float, float, EvaluatedOutfit, list[str]]] = []
@@ -529,7 +530,7 @@ def personalization_agent_node(
     session: Session | None = None,
 ) -> dict[str, Any]:
     """LangGraph node execution function for the Personalization Agent.
-    
+
     Consumes evaluated_outfits, loads requesting user's profile and wear logs,
     and produces ranked_outfits.
     """

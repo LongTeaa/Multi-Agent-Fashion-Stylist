@@ -8,6 +8,7 @@ from app.agents.context_agent import (
     CLARIFICATION_PROMPT_VI,
     context_agent_node,
     extract_context,
+    extract_context_with_providers,
     is_ambiguous_query,
 )
 from app.agents.state import (
@@ -19,6 +20,7 @@ from app.agents.state import (
     StylistGraphState,
 )
 from app.models.entities import OutfitSlotRole, WardrobeCategory
+from app.services.fakes.context_fakes import FakeLLMProvider, FakeWeatherProvider
 
 
 def test_golden_scenario_query():
@@ -33,6 +35,77 @@ def test_golden_scenario_query():
     assert ctx.target_formality_range == [2, 3]
     assert ctx.needs_clarification is False
     assert ctx.clarification_question is None
+
+
+def test_context_provider_and_weather_enrichment_are_injectable():
+    ctx, warnings = extract_context_with_providers(
+        "Ngày mai đi cafe ở Đà Lạt",
+        current_date=date(2026, 9, 12),
+        llm_provider=FakeLLMProvider("valid"),
+        weather_provider=FakeWeatherProvider("success"),
+    )
+
+    assert warnings == []
+    assert ctx.location_text == "Đà Lạt"
+    assert ctx.event_date == "2026-09-13"
+    assert ctx.weather_condition == "cold"
+    assert ctx.temperature_celsius == 18.0
+    assert ctx.weather_source == "api"
+
+
+def test_fake_context_provider_maps_underspecified_query_to_clarification():
+    ctx, warnings = extract_context_with_providers(
+        "Mặc gì?",
+        current_date=date(2026, 9, 12),
+        llm_provider=FakeLLMProvider("valid"),
+    )
+
+    assert warnings == []
+    assert ctx.needs_clarification is True
+    assert ctx.confidence < 0.5
+    assert ctx.clarification_question
+
+
+def test_user_weather_takes_precedence_over_weather_provider():
+    ctx, warnings = extract_context_with_providers(
+        "Ngày mai đi cafe ở Đà Lạt, trời nóng",
+        current_date=date(2026, 9, 12),
+        llm_provider=FakeLLMProvider("valid"),
+        weather_provider=FakeWeatherProvider("success"),
+    )
+
+    assert warnings == []
+    assert ctx.weather_condition == "hot"
+    assert ctx.weather_source == "user"
+    assert ctx.temperature_celsius is None
+
+
+@pytest.mark.parametrize("scenario", ["malformed", "timeout", "provider_error"])
+def test_context_provider_failure_uses_rule_based_fallback(scenario: str):
+    ctx, warnings = extract_context_with_providers(
+        "Tối nay đi cafe, trời mát",
+        current_date=date(2026, 9, 12),
+        llm_provider=FakeLLMProvider(scenario),
+    )
+
+    assert ctx.occasion == "cafe"
+    assert ctx.weather_condition == "cool"
+    assert ctx.weather_source == "user"
+    assert warnings
+
+
+@pytest.mark.parametrize("scenario", ["timeout", "unknown_location", "provider_error"])
+def test_weather_provider_failure_preserves_default_and_warns(scenario: str):
+    ctx, warnings = extract_context_with_providers(
+        "Ngày mai đi cafe ở Đà Lạt",
+        current_date=date(2026, 9, 12),
+        llm_provider=FakeLLMProvider("valid"),
+        weather_provider=FakeWeatherProvider(scenario),
+    )
+
+    assert ctx.weather_source == "default"
+    assert ctx.weather_condition == "cool"
+    assert warnings
 
 
 def test_work_office_query():
@@ -353,4 +426,3 @@ def test_garment_with_defaulted_occasion_calibrates_confidence():
     assert ctx.occasion == "casual"
     # occasion defaulted (-0.15) and weather defaulted (-0.10) => 0.95 - 0.25 = 0.70
     assert ctx.confidence == 0.70
-

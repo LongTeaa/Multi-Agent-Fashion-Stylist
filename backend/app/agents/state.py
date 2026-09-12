@@ -132,6 +132,7 @@ class OutfitItemSlot(BaseModel):
     item_id: str
     slot_role: OutfitSlotRole
     name: str
+    sub_category: str = ""
     primary_color: str
     secondary_color: str | None = None
     style: str

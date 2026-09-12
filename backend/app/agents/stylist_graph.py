@@ -15,6 +15,7 @@ from app.agents.fashion_agent import fashion_agent_node
 from app.agents.personalization_agent import personalization_agent_node
 from app.agents.state import StylistGraphState
 from app.agents.wardrobe_agent import wardrobe_agent_node
+from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def _make_empty_candidate_pool() -> dict[str, list[Any]]:
 
 def route_after_context(state: StylistGraphState) -> str:
     """Routes after Context Agent.
-    
+
     Continues to 'wardrobe' only when context exists, needs_clarification is False,
     and no errors exist. Otherwise routes directly to END.
     """
@@ -49,7 +50,7 @@ def route_after_context(state: StylistGraphState) -> str:
 
 def route_after_wardrobe(state: StylistGraphState) -> str:
     """Routes after Wardrobe Agent.
-    
+
     Continues to 'fashion' only when no errors exist (e.g. WARDROBE_EMPTY).
     Otherwise routes directly to END.
     """
@@ -60,7 +61,7 @@ def route_after_wardrobe(state: StylistGraphState) -> str:
 
 def route_after_fashion(state: StylistGraphState) -> str:
     """Routes after Fashion Agent.
-    
+
     Continues to 'personalization' only when no errors exist and at least one
     evaluated outfit exists. Otherwise routes directly to END.
     """
@@ -71,7 +72,7 @@ def route_after_fashion(state: StylistGraphState) -> str:
 
 def route_after_personalization(state: StylistGraphState) -> str:
     """Routes after Personalization Agent.
-    
+
     Continues to 'coordinator' only when no errors exist and at least one
     ranked outfit exists. Otherwise routes directly to END.
     """
@@ -88,12 +89,14 @@ def create_stylist_graph(
     *,
     session: Session | None = None,
     clock: Clock | None = None,
+    llm_provider: ContextLLMProviderProtocol | None = None,
+    weather_provider: WeatherProviderProtocol | None = None,
 ) -> CompiledStateGraph:
     """Creates and compiles the fixed recommendation LangGraph workflow.
-    
+
     Fixed Sequence:
         context -> wardrobe -> fashion -> personalization -> coordinator
-        
+
     Dependencies (database session, clock) are injected into node closures so
     tests and callers do not require live services or SDK patching.
     """
@@ -110,7 +113,12 @@ def create_stylist_graph(
             ref_time = ref_time.astimezone(timezone.utc)
 
         curr_date = ref_time.astimezone(VIETNAM_TZ).date()
-        result = context_agent_node(state, current_date=curr_date)
+        result = context_agent_node(
+            state,
+            current_date=curr_date,
+            llm_provider=llm_provider,
+            weather_provider=weather_provider,
+        )
         result["reference_time"] = ref_time
         return result
 
@@ -153,9 +161,11 @@ def execute_stylist_recommendation(
     *,
     session: Session | None = None,
     clock: Clock | None = None,
+    llm_provider: ContextLLMProviderProtocol | None = None,
+    weather_provider: WeatherProviderProtocol | None = None,
 ) -> StylistGraphState:
     """Executes the stylist recommendation workflow with fresh-state normalization.
-    
+
     Contract:
     - Retains request-owned input: request_id, user_id, user_query, location, reference_time.
     - Normalizes reference_time to a timezone-aware UTC datetime.
@@ -191,7 +201,12 @@ def execute_stylist_recommendation(
         "warnings": [],
     }
 
-    graph = create_stylist_graph(session=session, clock=clock)
+    graph = create_stylist_graph(
+        session=session,
+        clock=clock,
+        llm_provider=llm_provider,
+        weather_provider=weather_provider,
+    )
     result = graph.invoke(fresh_state)
 
     # 3. Defensive state normalization on return

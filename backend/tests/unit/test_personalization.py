@@ -137,6 +137,30 @@ def test_personalization_bounds_input_and_output():
     assert len(ranked_clamped_min) == 1
 
 
+def test_explicit_avoid_scans_full_fashion_pool_before_relaxing():
+    violating = [
+        _make_evaluated_outfit(
+            f"black_{i}",
+            [_make_slot(f"black-item-{i}", OutfitSlotRole.TOP, color="black")],
+            fashion_score=1.0 - i * 0.01,
+        )
+        for i in range(5)
+    ]
+    clean = _make_evaluated_outfit(
+        "clean_sixth",
+        [_make_slot("white-item", OutfitSlotRole.TOP, color="white")],
+        fashion_score=0.90,
+    )
+    preferences = UserPreference(user_id="user-avoid", avoid_colors=["black"])
+
+    ranked, warnings = rerank_evaluated_outfits(
+        [*violating, clean],
+        preferences=preferences,
+    )
+
+    assert [[item.primary_color for item in outfit.items] for outfit in ranked] == [["white"]]
+    assert AVOID_RELAXATION_WARNING not in warnings
+
 def test_personalization_handles_empty_candidates():
     """Empty candidate input returns empty ranked list."""
     ranked, warnings = rerank_evaluated_outfits([], preferences=None)
@@ -253,7 +277,7 @@ def test_priority_preference_comfort_and_polished():
 
 def test_explicit_avoid_strict_filtering_when_clean_exists():
     """When at least one clean candidate exists, ALL violating candidates are filtered out.
-    
+
     Even if 4 violating candidates have fashion_score 1.00 and 1 clean candidate has 0.70,
     the output MUST contain only the 1 clean candidate, and ZERO violating candidates in top 3!
     """
@@ -535,4 +559,3 @@ def test_personalization_agent_node_db_error_reports_error():
     assert result["ranked_outfits"] == []
     assert result["errors"] == ["PERSONALIZATION_DB_ERROR"]
     assert "DB connection dropped" not in str(result["errors"])
-

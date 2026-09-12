@@ -459,6 +459,7 @@ def retrieve_candidate_pool(
                 item_id=item.id,
                 slot_role=OutfitSlotRole(cat.value),
                 name=name,
+                sub_category=item.sub_category,
                 primary_color=item.primary_color,
                 secondary_color=item.secondary_color,
                 style=item.style,

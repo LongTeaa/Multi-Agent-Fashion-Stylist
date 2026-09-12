@@ -7,6 +7,7 @@ import unicodedata
 
 from app.agents.state import GarmentConstraint, StylistContext, StylistGraphState
 from app.models.entities import WardrobeCategory
+from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
 # Vietnam local timezone UTC+7
 VIETNAM_TZ = timezone(timedelta(hours=7))
@@ -203,7 +204,7 @@ def extract_weather(text: str) -> tuple[str, str]:
             return "cold", "user"
 
     # 5. Hot condition
-    hot_kws = ["nắng nóng", "nóng nực", "trời nắng", "nắng", "oi bức", "nực", "mùa hè"]
+    hot_kws = ["nắng nóng", "nóng nực", "trời nóng", "trời nắng", "nóng", "nắng", "oi bức", "nực", "mùa hè"]
     for kw in hot_kws:
         if kw in t and not _is_negated(t, kw) and not _is_negated(t, "nóng") and not _is_negated(t, "nắng"):
             return "hot", "user"
@@ -572,15 +573,102 @@ def extract_context(
     )
 
 
+CONTEXT_FALLBACK_WARNING = "Không thể phân tích đầy đủ yêu cầu bằng dịch vụ AI; đã dùng quy tắc dự phòng."
+WEATHER_FALLBACK_WARNING = "Không thể lấy dữ liệu thời tiết; đã dùng thông tin trong yêu cầu hoặc giá trị mặc định."
+
+
+def extract_context_with_providers(
+    query: str,
+    *,
+    location: str | None = None,
+    current_date: date | None = None,
+    llm_provider: ContextLLMProviderProtocol | None = None,
+    weather_provider: WeatherProviderProtocol | None = None,
+) -> tuple[StylistContext, list[str]]:
+    """Extract context through an optional provider, with deterministic fallbacks.
+
+    Explicit weather and garment constraints parsed from the user's query always
+    override provider output. Weather enrichment runs only when both location and
+    event date are known and the user did not state the weather.
+    """
+    today = current_date or datetime.now(VIETNAM_TZ).date()
+    fallback = extract_context(query, location=location, current_date=today)
+    warnings: list[str] = []
+    context = fallback
+
+    if llm_provider is not None:
+        try:
+            provider_payload = llm_provider.extract_context(
+                query=query,
+                location=location,
+                current_date=today,
+            )
+            context = StylistContext.model_validate(provider_payload)
+        except Exception:
+            context = fallback
+            warnings.append(CONTEXT_FALLBACK_WARNING)
+
+    updates: dict[str, Any] = {}
+    if fallback.location_text is not None:
+        updates["location_text"] = fallback.location_text
+    if fallback.event_date is not None:
+        updates["event_date"] = fallback.event_date
+    if fallback.must_have:
+        updates["must_have"] = fallback.must_have
+        updates["structured_must_have"] = fallback.structured_must_have
+    if fallback.must_avoid:
+        updates["must_avoid"] = fallback.must_avoid
+        updates["structured_must_avoid"] = fallback.structured_must_avoid
+    if fallback.weather_source == "user":
+        updates["weather_condition"] = fallback.weather_condition
+        updates["weather_source"] = "user"
+        updates["temperature_celsius"] = fallback.temperature_celsius
+    if updates:
+        context = context.model_copy(update=updates)
+
+    if (
+        weather_provider is not None
+        and not context.needs_clarification
+        and context.weather_source == "default"
+        and context.location_text
+        and context.event_date
+    ):
+        try:
+            weather = weather_provider.get_weather(
+                location=context.location_text,
+                event_date=date.fromisoformat(context.event_date),
+            )
+            context = context.model_copy(
+                update={
+                    "weather_condition": weather.condition,
+                    "temperature_celsius": weather.temperature_celsius,
+                    "weather_source": "api",
+                }
+            )
+        except Exception:
+            warnings.append(WEATHER_FALLBACK_WARNING)
+
+    return context, warnings
+
+
 def context_agent_node(
     state: StylistGraphState,
     *,
     current_date: date | None = None,
+    llm_provider: ContextLLMProviderProtocol | None = None,
+    weather_provider: WeatherProviderProtocol | None = None,
 ) -> dict[str, Any]:
     """LangGraph node execution function for the Context Agent."""
     query = state.get("user_query", "")
     location = state.get("location")
-    context = extract_context(query, location=location, current_date=current_date)
+    context, warnings = extract_context_with_providers(
+        query,
+        location=location,
+        current_date=current_date,
+        llm_provider=llm_provider,
+        weather_provider=weather_provider,
+    )
     return {
         "context": context,
+        "warnings": list(state.get("warnings", [])) + warnings,
     }

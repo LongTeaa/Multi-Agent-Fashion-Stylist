@@ -11,6 +11,7 @@ from app.agents.state import (
     StylistContext,
     StylistGraphState,
 )
+from app.agents.fashion_agent import outfit_satisfies_explicit_constraints
 from app.core.database import get_engine
 from app.models.entities import (
     OutfitItem,
@@ -56,7 +57,7 @@ CANONICAL_PREFERENCE_TAGS: frozenset[str] = frozenset(
 
 def validate_coordinator_input_state(state: StylistGraphState) -> tuple[bool, str | None]:
     """Validates that all mandatory fields for the Coordinator exist and are non-empty.
-    
+
     Prevents database constraint violations by verifying non-null database fields:
     request_id, user_id, user_query, context snapshot, candidate_pool, ranked_outfits,
     and non-null scores on each ranked outfit.
@@ -120,7 +121,7 @@ def canonicalize_and_validate_pool(
     candidate_pool: dict[str, list[OutfitItemSlot]],
 ) -> tuple[bool, list[RankedOutfit], str | None]:
     """Validates that every item slot exists in the candidate pool and canonicalizes item slots.
-    
+
     Replaces each outfit item with the genuine OutfitItemSlot from the pool by (item_id, slot_role).
     Guarantees upstream nodes cannot mutate item properties (name, color, material) to tamper with
     explanations or database persistence.
@@ -213,7 +214,7 @@ def validate_outfit_completeness(
     items: list[OutfitItemSlot],
 ) -> tuple[bool, str | None]:
     """Enforces strict outfit completeness and slot cardinality invariants.
-    
+
     Invariants:
     - Footwear count MUST BE exactly 1.
     - Outerwear count <= 1.
@@ -260,7 +261,7 @@ def generate_grounded_explanation_vi(
     context: StylistContext,
 ) -> str:
     """Generates a 100% deterministic, grounded Vietnamese explanation for a selected outfit.
-    
+
     Strict Invariants:
     - References ONLY canonical items present in this specific outfit.
     - Never hallucinates external garments, colors, or materials.
@@ -362,7 +363,7 @@ def persist_recommendations_atomically(
     ranked_outfits: list[RankedOutfit],
 ) -> tuple[bool, list[str]]:
     """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction.
-    
+
     Guarantees:
     - All outfits and their items commit together.
     - If any error occurs, session.rollback() is executed and zero new records remain.
@@ -437,7 +438,7 @@ def coordinator_node(
     session: Session | None = None,
 ) -> dict[str, Any]:
     """LangGraph node execution function for the Coordinator Agent.
-    
+
     Workflow:
     1. Pre-flight input state validation (all mandatory fields and scores must exist).
     2. Candidate pool canonicalization (lookup and replace with genuine OutfitItemSlots).
@@ -499,6 +500,10 @@ def coordinator_node(
         complete_valid, complete_error = validate_outfit_completeness(outfit.items)
         if not complete_valid:
             logger.error("Outfit completeness check failed for rank %s: %s", outfit.rank, complete_error)
+            base_response["errors"] = existing_errors + [GROUNDING_VALIDATION_FAILED]
+            return base_response
+        if not outfit_satisfies_explicit_constraints(outfit.items, context):
+            logger.error("Outfit rank %s violates explicit query constraints", outfit.rank)
             base_response["errors"] = existing_errors + [GROUNDING_VALIDATION_FAILED]
             return base_response
 

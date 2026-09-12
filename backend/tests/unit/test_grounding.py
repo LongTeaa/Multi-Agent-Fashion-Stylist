@@ -533,7 +533,7 @@ def test_atomic_persistence_happy_path(db_session: Session):
 
 def test_atomic_persistence_deep_rollback_on_partial_failure(db_session: Session):
     """Reviewer hardening point 6: simulate failure after partial flush of 1st outfit/item.
-    
+
     Verifies:
     - 0 OutfitRecommendation records remain.
     - 0 OutfitItem records remain.
@@ -905,5 +905,3 @@ def test_coordinator_real_pipeline_preferences_integrated_into_explanation(db_se
     # Verify that the explanation retains the real preferences produced by Personalization Agent
     assert "Phù hợp phong cách smart_casual đã chọn" in saved_outfit.explanation_vi
     assert "Bảng màu trung tính theo sở thích" in saved_outfit.explanation_vi
-
-

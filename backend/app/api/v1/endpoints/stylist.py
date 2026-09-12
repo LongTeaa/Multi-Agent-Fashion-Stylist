@@ -15,9 +15,11 @@ from app.agents.wardrobe_agent import EMPTY_WARDROBE_ERROR
 from app.core.dependencies import (
     StylistRunner,
     get_current_user_id,
+    get_context_llm_provider,
     get_db_session,
     get_stylist_runner,
     get_utc_clock,
+    get_weather_provider,
 )
 from app.models.entities import (
     OutfitItem,
@@ -39,6 +41,7 @@ from app.schemas.stylist import (
     StylistRecommendationItemResponse,
     StylistRecommendationResponse,
 )
+from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
 router = APIRouter(prefix="/stylist", tags=["stylist"])
 logger = logging.getLogger(__name__)
@@ -79,6 +82,8 @@ def stylist_chat(
     session: Session = Depends(get_db_session),
     clock: Callable[[], datetime] = Depends(get_utc_clock),
     runner: StylistRunner = Depends(get_stylist_runner),
+    llm_provider: ContextLLMProviderProtocol | None = Depends(get_context_llm_provider),
+    weather_provider: WeatherProviderProtocol | None = Depends(get_weather_provider),
 ) -> SuccessResponse[StylistChatResponseData]:
     """Execute the AI stylist recommendation pipeline for the authenticated user."""
     request_id = new_uuid()
@@ -94,6 +99,8 @@ def stylist_chat(
             initial_state,
             session=session,
             clock=clock,
+            llm_provider=llm_provider,
+            weather_provider=weather_provider,
         )
     except Exception as exc:
         logger.exception(

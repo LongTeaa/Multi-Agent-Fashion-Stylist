@@ -657,4 +657,3 @@ def test_wardrobe_agent_must_have_color_warning_when_missing(
 
     # Must emit a warning informing the user that white items are missing
     assert any("trắng" in w and "không có" in w for w in warnings)
-

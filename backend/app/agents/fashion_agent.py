@@ -9,6 +9,7 @@ from app.agents.fashion_scoring import (
 )
 from app.agents.state import (
     EvaluatedOutfit,
+    GarmentConstraint,
     OutfitItemSlot,
     StylistContext,
     StylistGraphState,
@@ -18,6 +19,7 @@ from app.models.entities import OutfitSlotRole
 MAX_CATEGORY_POOL = 15
 MAX_GENERATED_COMBINATIONS = 500
 TOP_K_OUTFITS = 5
+MAX_EVALUATED_OUTFITS = 50
 NO_COMPLETE_OUTFIT_ERROR = "NO_COMPLETE_OUTFIT"
 NO_COMPLETE_OUTFIT_WARNING = "Không thể ghép được bộ trang phục hoàn chỉnh từ các món đồ trong tủ đồ."
 
@@ -29,6 +31,58 @@ ROLE_ORDER: dict[OutfitSlotRole, int] = {
     OutfitSlotRole.OUTERWEAR: 3,
     OutfitSlotRole.ACCESSORY: 4,
 }
+
+
+_SUBCATEGORY_ALIASES = {
+    "jean": "jeans",
+    "sneaker": "sneakers",
+    "sandal": "sandals",
+}
+
+
+def _normalized_value(value: str) -> str:
+    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+    return _SUBCATEGORY_ALIASES.get(normalized, normalized)
+
+
+def constraint_matches_item(
+    constraint: GarmentConstraint,
+    item: OutfitItemSlot,
+) -> bool:
+    """Return whether one item satisfies every populated constraint field."""
+    if constraint.category is not None and item.category != constraint.category:
+        return False
+    if constraint.sub_category is not None:
+        if _normalized_value(item.sub_category) != _normalized_value(constraint.sub_category):
+            return False
+    if constraint.color is not None:
+        colors = {_normalized_value(item.primary_color)}
+        if item.secondary_color:
+            colors.add(_normalized_value(item.secondary_color))
+        if _normalized_value(constraint.color) not in colors:
+            return False
+    if constraint.material is not None:
+        if _normalized_value(item.material) != _normalized_value(constraint.material):
+            return False
+    return True
+
+
+def outfit_satisfies_explicit_constraints(
+    items: list[OutfitItemSlot],
+    context: StylistContext,
+) -> bool:
+    """Enforce query-level must-have and must-avoid bindings on a complete outfit."""
+    if any(
+        not any(constraint_matches_item(constraint, item) for item in items)
+        for constraint in context.structured_must_have
+    ):
+        return False
+    if any(
+        any(constraint_matches_item(constraint, item) for item in items)
+        for constraint in context.structured_must_avoid
+    ):
+        return False
+    return True
 
 
 def _generate_top_bottom_combos(
@@ -101,7 +155,7 @@ def generate_outfit_combinations(
     candidate_pool: dict[str, list[OutfitItemSlot]],
 ) -> list[list[OutfitItemSlot]]:
     """Generate valid outfit candidate combinations from candidate pools.
-    
+
     Enforces Phase Invariants:
     - Valid outfit is either:
       1. top + bottom + footwear (optional outerwear, optional accessory)
@@ -179,6 +233,8 @@ def evaluate_and_rank_combinations(
     all_warnings: list[str] = []
 
     for combo in combinations:
+        if context is not None and not outfit_satisfies_explicit_constraints(combo, context):
+            continue
         combo_id = "+".join(item.item_id for item in combo)
         score, component_scores, warnings = calculate_composite_fashion_score(combo, context)
         all_warnings.extend(warnings)
@@ -211,7 +267,7 @@ def evaluate_and_rank_combinations(
 
 def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
     """LangGraph node execution function for the Fashion Agent.
-    
+
     Consumes candidate_pool, generates combinations, scores them,
     and populates evaluated_outfits.
     """
@@ -236,8 +292,18 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
 
     ref_time = state.get("reference_time")
     top_evaluated, warnings = evaluate_and_rank_combinations(
-        combinations, context, reference_time=ref_time
+        combinations,
+        context,
+        top_k=MAX_EVALUATED_OUTFITS,
+        reference_time=ref_time,
     )
+
+    if not top_evaluated:
+        return {
+            "evaluated_outfits": [],
+            "errors": existing_errors + [NO_COMPLETE_OUTFIT_ERROR],
+            "warnings": existing_warnings + [NO_COMPLETE_OUTFIT_WARNING],
+        }
 
     return {
         "evaluated_outfits": top_evaluated,

@@ -73,9 +73,9 @@ def _get_color_families(color: str) -> set[str]:
 
 def calculate_color_score(items: list[OutfitItemSlot]) -> float:
     """Calculate deterministic color harmony score according to Section 3.
-    
+
     Uses primary colors of major items only. Accessories must not count.
-    
+
     Invariant:
     - 'navy' behaves as a practical neutral for neutral combinations
       and as a blue-family shade for monochromatic evaluation.
@@ -168,7 +168,7 @@ def calculate_color_score(items: list[OutfitItemSlot]) -> float:
 
 def calculate_style_score(items: list[OutfitItemSlot]) -> float:
     """Calculate deterministic style compatibility score according to Section 4.
-    
+
     Outfit style score is the mean of every major-item pair (symmetric).
     """
     major_items = _get_major_items(items)
@@ -201,7 +201,7 @@ def calculate_formality_score(
     target_range: list[int] | None = None,
 ) -> float:
     """Calculate formality score according to Section 5.
-    
+
     If average formality of major items is inside target_range [min, max], score is 1.0.
     Otherwise max(0, 1 - distance / 4).
     """
@@ -230,7 +230,7 @@ def calculate_weather_score(
     environment: str | None = None,
 ) -> float:
     """Calculate weather and environment score according to Section 6.
-    
+
     Base score is proportion of major items whose weather_suitability contains target weather.
     Adjustments are applied additively and clamped to [0, 1].
     Material capabilities rely STRICTLY on explicit functional_flags; never inferred from material names.
@@ -297,7 +297,7 @@ def calculate_pattern_proportion_score(
     target_style: str | None = None,
 ) -> tuple[float, list[str]]:
     """Calculate pattern and proportion score according to Section 7.
-    
+
     Starts at 1.0, subtracts penalties, and emits 'fit_unknown' if fit metadata is missing.
     Oversized exception applies ONLY when target_style is 'streetwear'.
     """
@@ -351,7 +351,7 @@ def calculate_composite_fashion_score(
     context: StylistContext | None = None,
 ) -> tuple[float, dict[str, float], list[str]]:
     """Calculate the exact composite fashion score according to Section 8.
-    
+
     Weights:
       0.30 * color_score
       + 0.20 * style_score
@@ -401,7 +401,7 @@ def count_recently_worn_items(
     recent_window_hours: int = 48,
 ) -> int:
     """Count items in an outfit that were worn within recent_window_hours.
-    
+
     Uses item.last_worn_at (ISO 8601 string). If last_worn_at is missing,
     unparseable, or outside the window, the item is not counted as recently worn.
     """
@@ -433,7 +433,7 @@ def outfit_tie_breaker_key(
     recent_wear_count: int = 0,
 ) -> tuple[float, float, int, str]:
     """Deterministic tie-breaker key according to Section 8.
-    
+
     Order:
       1. Descending fashion_score (-fashion_score)
       2. Descending weather score (-weather_score)

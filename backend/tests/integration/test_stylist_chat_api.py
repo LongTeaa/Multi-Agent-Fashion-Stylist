@@ -770,4 +770,3 @@ def test_stylist_chat_output_composite_score_safety(
 
     finally:
         app.dependency_overrides.clear()
-

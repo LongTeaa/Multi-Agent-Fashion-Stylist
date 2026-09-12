@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import pytest
 from app.agents.fashion_agent import (
+    MAX_EVALUATED_OUTFITS,
     NO_COMPLETE_OUTFIT_ERROR,
     NO_COMPLETE_OUTFIT_WARNING,
     TOP_K_OUTFITS,
@@ -398,7 +399,7 @@ def test_composite_weights():
 
 def test_tie_breaking_with_real_wear_data():
     """Ties resolve by weather score, then fewer recently worn items, then combination_id.
-    
+
     Proves invariant: An item worn 20 times a year ago is preferred over an item worn 2 hours ago.
     """
     ref_time = datetime(2026, 9, 12, 12, 0, 0, tzinfo=timezone.utc)
@@ -571,7 +572,7 @@ def test_fashion_agent_incomplete_wardrobe():
 
 def test_golden_scenario_full_wardrobe_top_three():
     """Full 8-item Golden Wardrobe fixture generates 18 combinations.
-    
+
     Verifies that 'White Polo + Navy Chinos + White Sneakers' strictly ranks in the TOP 3
     for the Phase 4 Golden Query: 'Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?'
     """
@@ -613,8 +614,10 @@ def test_golden_scenario_full_wardrobe_top_three():
     result = fashion_agent_node(state)
     evaluated = result["evaluated_outfits"]
 
-    # Exactly 5 top candidates returned
-    assert len(evaluated) == TOP_K_OUTFITS
+    # Preserve the full bounded set so Personalization can enforce exclusions
+    # before selecting at most five candidates to rerank.
+    assert len(evaluated) == 18
+    assert len(evaluated) <= MAX_EVALUATED_OUTFITS
 
     # Extract top 3 outfit combinations
     top_3_combinations = [

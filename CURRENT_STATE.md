@@ -2,15 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 4 — Multi-Agent Recommendation (Completed) |
-| Active task | Phase 4 completed; ready for Phase 5 — Chat UI, Saved Outfits, Rating, and Wear History |
-| Most recently modified files | `backend/app/agents/stylist_graph.py`, `backend/tests/integration/test_golden_scenario.py`, `docs/07_implementation/MVP_ROADMAP.md`, `docs/07_implementation/PHASE_4_TASKS.md`, `docs/07_implementation/TEST_STRATEGY.md`, `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend/tests/unit/test_context_agent.py backend/tests/unit/test_fashion_scoring.py backend/tests/unit/test_personalization.py backend/tests/unit/test_grounding.py backend/tests/integration/test_stylist_graph.py backend/tests/integration/test_stylist_chat_api.py backend/tests/integration/test_golden_scenario.py -q; backend\.venv\Scripts\python.exe -m pytest backend/tests -q` (132 passed Phase 4 gate, 308 passed total on 2026-09-12). |
+| Current phase | Phase 4 — Multi-Agent Recommendation (completed) |
+| Active task | Phase 4 review improvements completed: enforce explicit outfit constraints, preserve clean personalization candidates, and add injectable LLM/weather providers with deterministic fallbacks. |
+| Most recently modified files | `backend/app/agents/context_agent.py`, `backend/app/agents/fashion_agent.py`, `backend/app/agents/personalization_agent.py`, `backend/app/agents/coordinator.py`, provider configuration/adapters/fakes, regression tests, `.env.example`, and `CURRENT_STATE.md`. |
+| Latest passing verification command | Phase 4 verification (143 tests) and full backend suite (321 tests) passed on 2026-09-12; Python compileall, pip check, and diff whitespace verification also passed. |
 | Next step | Phase 5 — Chat UI, Saved Outfits, Rating, and Wear History (`MVP_ROADMAP.md` Phase 5). |
-
-## Planning Note
-
-- Phase 4 (Multi-Agent Recommendation) is 100% complete with all acceptance criteria, grounding, persistence, and golden scenario tests verified. All roadmap documents (`MVP_ROADMAP.md`, `PHASE_4_TASKS.md`, `TEST_STRATEGY.md`) have been synchronized. Phase 5 is the active next step.
 
 ## Update Rules
 

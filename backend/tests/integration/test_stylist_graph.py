@@ -79,7 +79,7 @@ def test_stylist_graph_happy_path_fixed_sequence(
     migrated_database: tuple[object, object],
 ) -> None:
     """Verify happy path executes Context -> Wardrobe -> Fashion -> Personalization -> Coordinator.
-    
+
     Checks:
     - Normalized context.
     - Candidate pool, evaluated outfits, and ranked outfits are non-empty.
@@ -188,7 +188,7 @@ def test_stylist_graph_clarification_early_termination(
     migrated_database: tuple[object, object],
 ) -> None:
     """Ambiguous query ('Mặc gì?') terminates immediately after Context Agent.
-    
+
     Checks:
     - needs_clarification is True with clarification_question.
     - Candidate pool has empty lists.
@@ -466,7 +466,7 @@ def test_stylist_graph_vietnam_timezone_date_boundary(
     migrated_database: tuple[object, object],
 ) -> None:
     """Verify Context Agent calculates today/tomorrow relative to Vietnam local time (UTC+7).
-    
+
     Case:
     - 2026-09-12 18:30:00 UTC corresponds to 2026-09-13 01:30:00 in Vietnam (UTC+7).
     - Query: "Sáng mai đi làm, mặc gì?" (Going to work tomorrow morning).
@@ -544,3 +544,49 @@ def test_stylist_graph_direct_invoke_clock_determinism(
         assert result["grounding_validated"] is True
         assert len(result["recommendation_ids"]) >= 1
         assert len(result["ranked_outfits"]) == len(result["recommendation_ids"])
+
+
+def test_stylist_graph_rejects_alternate_branch_that_violates_must_have(
+    migrated_database: tuple[object, object],
+) -> None:
+    """A required polo cannot be bypassed by returning a dress outfit."""
+    _, engine = migrated_database
+    user_id = f"user_required_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(
+            session,
+            item_id="dress-required-01",
+            user_id=user_id,
+            category=WardrobeCategory.DRESS,
+            sub_category="dress",
+            color="black",
+        )
+        _add_wardrobe_item(
+            session,
+            item_id="shoe-required-01",
+            user_id=user_id,
+            category=WardrobeCategory.FOOTWEAR,
+            sub_category="sneakers",
+            color="black",
+        )
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-required-polo",
+                "user_id": user_id,
+                "user_query": "Đi cafe tối nay, phải mặc áo polo",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == ["NO_COMPLETE_OUTFIT"]
+        assert result["recommendation_ids"] == []
+        assert result["grounding_validated"] is False
+        assert session.exec(
+            select(OutfitRecommendation).where(OutfitRecommendation.user_id == user_id)
+        ).all() == []
