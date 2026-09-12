@@ -572,11 +572,15 @@ def extract_context(
     )
 
 
-def context_agent_node(state: StylistGraphState) -> dict[str, Any]:
+def context_agent_node(
+    state: StylistGraphState,
+    *,
+    current_date: date | None = None,
+) -> dict[str, Any]:
     """LangGraph node execution function for the Context Agent."""
     query = state.get("user_query", "")
     location = state.get("location")
-    context = extract_context(query, location=location)
+    context = extract_context(query, location=location, current_date=current_date)
     return {
         "context": context,
     }

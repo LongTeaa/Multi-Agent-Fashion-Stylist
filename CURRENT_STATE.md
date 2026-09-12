@@ -3,14 +3,14 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 4 — Multi-Agent Recommendation |
-| Active task | Part 4.5 — Coordinator Grounding and Atomic Persistence (Completed with 100% test coverage) |
-| Most recently modified files | `backend/app/agents/coordinator.py`, `backend/app/agents/coordinator_agent.py`, `backend/tests/unit/test_grounding.py`, `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend/tests/unit/test_grounding.py -q; backend\.venv\Scripts\python.exe -m pytest backend/tests -q` (279 passed, 0 failed on 2026-09-12). |
-| Next step | Part 4.6 — Fixed LangGraph workflow and service boundary (`backend/app/agents/stylist_graph.py`, `backend/tests/integration/test_stylist_graph.py`). |
+| Active task | Part 4.6 — Fixed LangGraph Workflow and Service Boundary (Completed with 100% test coverage) |
+| Most recently modified files | `backend/app/agents/context_agent.py`, `backend/app/agents/stylist_graph.py`, `backend/tests/integration/test_stylist_graph.py`, `CURRENT_STATE.md`. |
+| Latest passing verification command | `backend\.venv\Scripts\python.exe -m pytest backend/tests/integration/test_stylist_graph.py -q; backend\.venv\Scripts\python.exe -m pytest backend/tests -q` (287 passed, 0 failed on 2026-09-12). |
+| Next step | Part 4.7 — Stylist Chat HTTP Endpoint Mapping (`POST /api/v1/stylist/chat`, request/response DTOs, dependency injection). |
 
 ## Planning Note
 
-- `docs/07_implementation/PHASE_4_TASKS.md` records the reconstructed, commit-sized Phase 4 task sequence. Part 4.5 is completed with 100% test coverage; Part 4.6 (Fixed recommendation graph) is the active next step.
+- `docs/07_implementation/PHASE_4_TASKS.md` records the reconstructed, commit-sized Phase 4 task sequence. Part 4.6 is completed with 100% test coverage; Part 4.7 (Stylist chat HTTP endpoint mapping) is the active next step.
 
 ## Update Rules
 
