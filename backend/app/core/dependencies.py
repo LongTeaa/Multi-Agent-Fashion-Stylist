@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Header
 from sqlmodel import Session
@@ -99,3 +100,18 @@ def get_vision_provider() -> VisionProviderProtocol:
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
+
+
+def get_utc_clock() -> Callable[[], datetime]:
+    """Return a callable that produces the current timezone-aware UTC datetime."""
+    return lambda: datetime.now(timezone.utc)
+
+
+StylistRunner = Callable[..., Any]
+
+
+def get_stylist_runner() -> StylistRunner:
+    """Return the runner callable for stylist recommendations."""
+    from app.agents.stylist_graph import execute_stylist_recommendation
+
+    return execute_stylist_recommendation
