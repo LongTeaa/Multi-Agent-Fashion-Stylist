@@ -195,14 +195,15 @@ class TestOutfitActionsEndpointStubs:
         assert resp.json()["success"] is False
         assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
-        # 4. POST /api/v1/outfits/{id}/worn (stub: returns 501 until Task 5.3)
+        # 4. POST /api/v1/outfits/{id}/worn (implemented in 5.3: returns 404 for unknown outfit)
         resp = client.post(
             f"/api/v1/outfits/{outfit_id}/worn",
             headers=headers,
             json={"idempotency_key": str(uuid.uuid4())},
         )
-        assert resp.status_code == 501
-        assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 404
+        assert resp.json()["success"] is False
+        assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
         # 5. PUT /api/v1/outfits/{id}/rating (stub: returns 501 until Task 5.4)
         resp = client.put(

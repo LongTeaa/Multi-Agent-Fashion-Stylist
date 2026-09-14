@@ -472,3 +472,462 @@ def test_set_bookmark_updated_at_stability_on_idempotent_retry(api_client):
     t2 = r2.json()["data"]["updated_at"]
     assert t1 == t2, "Idempotent retry with unchanged state must return stable updated_at timestamp"
 
+
+# ============================================================================
+# 4. WORN TRACKING TESTS (TASK 5.3)
+# ============================================================================
+
+def test_mark_outfit_worn_first_time(api_client):
+    """INVARIANT: First wear event persists WearLog, increments times_worn on items, and sets last_worn_at."""
+    client, engine = api_client
+    target_time = datetime.now(timezone.utc) - timedelta(hours=1)
+    idempotency_key = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "t-shirt")
+        bottom = _create_wardrobe_item(session, user.id, WardrobeCategory.BOTTOM, "jeans")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        bottom_id = bottom.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=bottom_id, user_id=user_id, slot_role=OutfitSlotRole.BOTTOM))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {
+        "idempotency_key": idempotency_key,
+        "worn_at": target_time.isoformat(),
+    }
+
+    resp = client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json=payload)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["outfit_id"] == outfit_id
+    assert data["times_worn"] == 1
+    assert data["already_processed"] is False
+    assert datetime.fromisoformat(data["worn_at"]) == target_time
+
+    # Verify DB projection
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 1
+        assert logs[0].idempotency_key == idempotency_key
+
+        db_top = session.get(WardrobeItem, top_id)
+        assert db_top.times_worn == 1
+        assert db_top.last_worn_at is not None
+
+        db_bottom = session.get(WardrobeItem, bottom_id)
+        assert db_bottom.times_worn == 1
+        assert db_bottom.last_worn_at is not None
+
+
+def test_mark_outfit_worn_idempotent_retry(api_client):
+    """INVARIANT: Idempotent retry with identical idempotency_key returns already_processed=True and does not duplicate."""
+    client, engine = api_client
+    idempotency_key = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "polo")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {"idempotency_key": idempotency_key}
+
+    # 1. Initial wear call
+    r1 = client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json=payload)
+    assert r1.status_code == 200
+    d1 = r1.json()["data"]
+    assert d1["already_processed"] is False
+    assert d1["times_worn"] == 1
+
+    # 2. Idempotent retry with same key
+    r2 = client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json=payload)
+    assert r2.status_code == 200
+    d2 = r2.json()["data"]
+    assert d2["already_processed"] is True
+    assert d2["times_worn"] == 1
+    assert d2["wear_log_id"] == d1["wear_log_id"]
+
+    # Verify DB has exactly one wear log and times_worn is still 1
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 1
+        db_top = session.get(WardrobeItem, top_id)
+        assert db_top.times_worn == 1
+
+
+def test_mark_outfit_worn_different_key_increments(api_client):
+    """INVARIANT: Different idempotency keys represent distinct wear events and increment times_worn."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "shirt")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Wear 1
+    r1 = client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json={"idempotency_key": str(uuid4())})
+    assert r1.status_code == 200
+    assert r1.json()["data"]["times_worn"] == 1
+
+    # Wear 2 (distinct key)
+    r2 = client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json={"idempotency_key": str(uuid4())})
+    assert r2.status_code == 200
+    assert r2.json()["data"]["times_worn"] == 2
+
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 2
+        db_top = session.get(WardrobeItem, top_id)
+        assert db_top.times_worn == 2
+
+
+def test_mark_outfit_worn_idempotency_conflict_409(api_client):
+    """INVARIANT: Reusing the same idempotency key for a different outfit must return 409 IDEMPOTENCY_CONFLICT."""
+    client, engine = api_client
+    shared_key = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "polo")
+        outfit_1 = _create_outfit(session, user.id)
+        outfit_2 = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_1_id = outfit_1.id
+        outfit_2_id = outfit_2.id
+
+        session.add(OutfitItem(outfit_id=outfit_1_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.add(OutfitItem(outfit_id=outfit_2_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Wear outfit 1 with shared_key
+    r1 = client.post(f"/api/v1/outfits/{outfit_1_id}/worn", headers=headers, json={"idempotency_key": shared_key})
+    assert r1.status_code == 200
+
+    # Attempt to wear outfit 2 with the same key -> 409 Conflict
+    r2 = client.post(f"/api/v1/outfits/{outfit_2_id}/worn", headers=headers, json={"idempotency_key": shared_key})
+    assert r2.status_code == 409
+    err = r2.json()
+    assert err["success"] is False
+    assert err["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+
+
+def test_mark_outfit_worn_past_timestamp_preserves_latest_last_worn(api_client):
+    """INVARIANT: Marking wear at a past timestamp increments times_worn but does NOT rewind last_worn_at."""
+    client, engine = api_client
+    now = datetime.now(timezone.utc)
+    recent_worn_at = now - timedelta(days=1)
+    past_worn_at = now - timedelta(days=5)
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "jacket")
+        # Pre-set top's wear history
+        top.times_worn = 1
+        top.last_worn_at = recent_worn_at
+        session.add(top)
+
+        outfit = _create_outfit(session, user.id)
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Mark as worn 5 days ago (older than existing last_worn_at of 1 day ago)
+    resp = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers=headers,
+        json={"idempotency_key": str(uuid4()), "worn_at": past_worn_at.isoformat()},
+    )
+    assert resp.status_code == 200
+
+    with Session(engine) as session:
+        db_top = session.get(WardrobeItem, top_id)
+        # times_worn incremented to 2
+        assert db_top.times_worn == 2
+        # last_worn_at was NOT rewound to 5 days ago; it remains 1 day ago
+        item_last = db_top.last_worn_at
+        if item_last.tzinfo is None:
+            item_last = item_last.replace(tzinfo=timezone.utc)
+        assert item_last == recent_worn_at
+
+
+def test_mark_outfit_worn_cross_user_isolation_404(api_client):
+    """INVARIANT: User B cannot mark User A's outfit as worn (returns 404 OUTFIT_NOT_FOUND)."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user_a = _create_user(session)
+        user_b = _create_user(session)
+        top_a = _create_wardrobe_item(session, user_a.id, WardrobeCategory.TOP, "polo")
+        outfit_a = _create_outfit(session, user_a.id)
+
+        session.add(OutfitItem(outfit_id=outfit_a.id, wardrobe_item_id=top_a.id, user_id=user_a.id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+        outfit_id = outfit_a.id
+        user_b_id = user_b.id
+
+    resp = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers={"X-User-Id": user_b_id},
+        json={"idempotency_key": str(uuid4())},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
+
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 0
+
+
+def test_mark_outfit_worn_integrates_with_personalization_anti_repetition(api_client):
+    """INVARIANT: Worn outfit immediately feeds into get_user_personalization_data for 72h/48h penalties."""
+    from app.agents.personalization_agent import get_user_personalization_data
+
+    client, engine = api_client
+    now = datetime.now(timezone.utc)
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "linen shirt")
+        bottom = _create_wardrobe_item(session, user.id, WardrobeCategory.BOTTOM, "chinos")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        bottom_id = bottom.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=bottom_id, user_id=user_id, slot_role=OutfitSlotRole.BOTTOM))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Mark as worn 2 hours ago
+    worn_time = now - timedelta(hours=2)
+    resp = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers=headers,
+        json={"idempotency_key": str(uuid4()), "worn_at": worn_time.isoformat()},
+    )
+    assert resp.status_code == 200
+
+    # Query personalization data at reference time `now`
+    with Session(engine) as session:
+        _, recent_wear_data = get_user_personalization_data(session, user_id, reference_time=now)
+        # Exact outfit must be in 72h list
+        assert {top_id, bottom_id} in recent_wear_data["exact_outfits_72h"]
+        # Constituent items must be in 48h set
+        assert top_id in recent_wear_data["items_worn_48h"]
+        assert bottom_id in recent_wear_data["items_worn_48h"]
+
+
+def test_mark_outfit_worn_conflicting_payload_same_outfit_different_worn_at_409(api_client):
+    """INVARIANT: Reusing the same idempotency key with conflicting worn_at on same outfit returns 409 IDEMPOTENCY_CONFLICT."""
+    client, engine = api_client
+    shared_key = str(uuid4())
+    now = datetime.now(timezone.utc)
+    t1 = now - timedelta(hours=3)
+    t2 = now - timedelta(hours=1)
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "t-shirt")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Request 1: Initial wear with t1 -> 200
+    r1 = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers=headers,
+        json={"idempotency_key": shared_key, "worn_at": t1.isoformat()},
+    )
+    assert r1.status_code == 200
+
+    # Request 2: Same key, same outfit, but DIFFERENT worn_at (t2 != t1) -> 409
+    r2 = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers=headers,
+        json={"idempotency_key": shared_key, "worn_at": t2.isoformat()},
+    )
+    assert r2.status_code == 409
+    assert r2.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+
+    # Request 3: Same key, same outfit, but worn_at is None -> 409
+    r3 = client.post(
+        f"/api/v1/outfits/{outfit_id}/worn",
+        headers=headers,
+        json={"idempotency_key": shared_key},
+    )
+    assert r3.status_code == 409
+    assert r3.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+
+
+def test_mark_outfit_worn_concurrent_same_key_race_resolves_idempotently(api_client):
+    """INVARIANT: Concurrent requests with same idempotency_key must not crash with 500 and must resolve idempotently."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, engine = api_client
+    shared_key = str(uuid4())
+    worn_time = datetime.now(timezone.utc) - timedelta(hours=1)
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "polo")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {"idempotency_key": shared_key, "worn_at": worn_time.isoformat()}
+
+    def send_request():
+        return client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json=payload)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(send_request) for _ in range(5)]
+        responses = [f.result() for f in futures]
+
+    # All responses must succeed with 200 (no 500s)
+    status_codes = [r.status_code for r in responses]
+    assert all(code == 200 for code in status_codes), f"Unexpected status codes: {status_codes}"
+
+    already_processed_flags = [r.json()["data"]["already_processed"] for r in responses]
+    # Exactly one request was the initial creator, the remaining 4 were idempotent recoveries
+    assert already_processed_flags.count(False) == 1
+    assert already_processed_flags.count(True) == 4
+
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 1
+        db_top = session.get(WardrobeItem, top_id)
+        assert db_top.times_worn == 1
+
+
+def test_mark_outfit_worn_concurrent_distinct_keys_no_lost_updates(api_client):
+    """INVARIANT: Concurrent requests with distinct keys atomically increment times_worn without lost updates."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, engine = api_client
+    worn_time = datetime.now(timezone.utc) - timedelta(hours=1)
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "henley")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    def send_distinct_wear():
+        payload = {"idempotency_key": str(uuid4()), "worn_at": worn_time.isoformat()}
+        return client.post(f"/api/v1/outfits/{outfit_id}/worn", headers=headers, json=payload)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(send_distinct_wear) for _ in range(5)]
+        responses = [f.result() for f in futures]
+
+    assert all(r.status_code == 200 for r in responses)
+
+    with Session(engine) as session:
+        logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 5
+        db_top = session.get(WardrobeItem, top_id)
+        # Atomic SQL update must ensure times_worn equals 5 with no lost updates
+        assert db_top.times_worn == 5
+
+
+def test_record_outfit_worn_transaction_rollback_on_failure(api_client):
+    """INVARIANT: If an error occurs during record_outfit_worn, transaction rolls back cleanly."""
+    from unittest.mock import patch
+    from app.services import outfit_service
+    from app.schemas.outfits import WornOutfitRequest
+
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "knit")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    payload = WornOutfitRequest(
+        idempotency_key=str(uuid4()),
+        worn_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+
+    # Force an unrecoverable RuntimeError during session.commit
+    with Session(engine) as test_session:
+        with patch.object(test_session, "commit", side_effect=RuntimeError("Simulated DB Disk Failure")):
+            with pytest.raises(RuntimeError, match="Simulated DB Disk Failure"):
+                outfit_service.record_outfit_worn(
+                    session=test_session,
+                    outfit_id=outfit_id,
+                    user_id=user_id,
+                    payload=payload,
+                )
+
+    # Verify that in a new session, no wear log exists and times_worn was not incremented
+    with Session(engine) as verify_session:
+        logs = verify_session.exec(select(WearLog).where(WearLog.outfit_id == outfit_id)).all()
+        assert len(logs) == 0
+        db_top = verify_session.get(WardrobeItem, top_id)
+        assert db_top.times_worn == 0
+
+
+

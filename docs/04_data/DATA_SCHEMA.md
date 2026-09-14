@@ -165,7 +165,8 @@ Tracks distinct outfit recommendations delivered to the user to guarantee that r
 
 ### 3.14 `wear_logs`
 
-One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`, `worn_at`, and `idempotency_key`.
+One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`, `worn_at`, `requested_worn_at`, and `idempotency_key`.
+- `requested_worn_at`: Optional UTC datetime storing the client-requested timestamp for conflict detection.
 - `idempotency_key`: Optional/nullable UUID string (36), unique per user via `uq_wear_logs_user_idempotency` (`user_id`, `idempotency_key`).
 - Item usage MUST be derived through `outfit_items`; the implementation SHOULD NOT create a separate wear record for every item in the outfit.
 

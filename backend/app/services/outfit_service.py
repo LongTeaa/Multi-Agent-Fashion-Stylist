@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from sqlalchemy import func
+from datetime import timezone
+from sqlalchemy import case, func, update
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.agents.wardrobe_agent import format_localized_item_name
@@ -18,12 +20,14 @@ from app.models.entities import (
     WearLog,
     utc_now,
 )
-from app.schemas.common import OutfitNotFoundError
+from app.schemas.common import IdempotencyConflictError, OutfitNotFoundError
 from app.schemas.outfits import (
     BookmarkOutfitResponseData,
     OutfitDetailResponseData,
     OutfitItemDetailResponse,
     SavedOutfitsResponseData,
+    WornOutfitRequest,
+    WornOutfitResponseData,
 )
 
 SLOT_ORDER: dict[OutfitSlotRole, int] = {
@@ -40,6 +44,15 @@ MEDIA_ROLE_PRIORITY: dict[ItemMediaRole, int] = {
     ItemMediaRole.THUMBNAIL: 1,
     ItemMediaRole.ALTERNATE: 2,
 }
+
+
+def _normalize_utc(dt: datetime | None) -> datetime | None:
+    """Normalize datetime to timezone-aware UTC, or None."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _primary_media_id(session: Session, item_id: str, user_id: str) -> str | None:
@@ -143,7 +156,7 @@ def _build_outfit_detail_response(
         )
     ).first()
     times_worn = wear_stats[0] if wear_stats else 0
-    last_worn_at = wear_stats[1] if wear_stats else None
+    last_worn_at = _normalize_utc(wear_stats[1]) if wear_stats else None
 
     # 4. Fetch user rating
     rating = session.exec(
@@ -306,6 +319,7 @@ def get_saved_outfits(
         ]
 
         tw, lw = wear_map.get(outfit.id, (0, None))
+        lw = _normalize_utc(lw)
         ur = rating_map.get(outfit.id, None)
 
         items.append(
@@ -366,4 +380,178 @@ def set_outfit_bookmark(
         outfit_id=outfit.id,
         is_bookmarked=outfit.is_bookmarked,
         updated_at=outfit.updated_at,
+    )
+
+
+def _check_wear_log_idempotency_or_conflict(
+    session: Session,
+    existing_log: WearLog,
+    outfit_id: str,
+    user_id: str,
+    payload: WornOutfitRequest,
+) -> WornOutfitResponseData:
+    """Validate idempotency retry or detect conflicting payload.
+
+    Raises IdempotencyConflictError (409) if:
+    - existing_log.outfit_id != outfit_id
+    - payload.worn_at != existing_log.requested_worn_at
+    """
+    if existing_log.outfit_id != outfit_id:
+        raise IdempotencyConflictError()
+
+    req_worn = _normalize_utc(payload.worn_at)
+    exist_req_worn = _normalize_utc(existing_log.requested_worn_at)
+
+    if (req_worn is None and exist_req_worn is not None) or (
+        req_worn is not None and exist_req_worn is None
+    ):
+        raise IdempotencyConflictError()
+
+    if req_worn is not None and exist_req_worn is not None:
+        if req_worn != exist_req_worn:
+            raise IdempotencyConflictError()
+
+    times_worn = session.exec(
+        select(func.count(WearLog.id)).where(
+            WearLog.outfit_id == outfit_id,
+            WearLog.user_id == user_id,
+        )
+    ).one()
+
+    ret_worn_at = _normalize_utc(existing_log.worn_at)
+
+    return WornOutfitResponseData(
+        wear_log_id=existing_log.id,
+        outfit_id=outfit_id,
+        worn_at=ret_worn_at,
+        times_worn=times_worn,
+        already_processed=True,
+    )
+
+
+def record_outfit_worn(
+    session: Session,
+    outfit_id: str,
+    user_id: str,
+    payload: WornOutfitRequest,
+) -> WornOutfitResponseData:
+    """Idempotently record that an owned outfit was worn, projecting wear history to wardrobe cache.
+
+    - Validates outfit is owned and persisted.
+    - Idempotency key scoped per user: repeated requests with identical key for the same outfit and payload
+      return the existing wear record with already_processed=True.
+    - Conflicting reuse of the key for a different outfit or different worn_at raises IdempotencyConflictError (409).
+    - In an atomic transaction, persists WearLog and atomically increments times_worn on WardrobeItems via SQL UPDATE.
+    - Preserves last_worn_at so historical/past timestamps do not rewind more recent wear events.
+    - Concurrency-safe: catches IntegrityError on commit race and recovers gracefully.
+    """
+    # 1. Ownership & existence check
+    outfit = session.exec(
+        select(OutfitRecommendation).where(
+            OutfitRecommendation.id == outfit_id,
+            OutfitRecommendation.user_id == user_id,
+        )
+    ).first()
+    if outfit is None:
+        raise OutfitNotFoundError()
+
+    # 2. Check for existing wear log with this idempotency key for this user
+    existing_log = session.exec(
+        select(WearLog).where(
+            WearLog.user_id == user_id,
+            WearLog.idempotency_key == payload.idempotency_key,
+        )
+    ).first()
+
+    if existing_log is not None:
+        return _check_wear_log_idempotency_or_conflict(
+            session=session,
+            existing_log=existing_log,
+            outfit_id=outfit_id,
+            user_id=user_id,
+            payload=payload,
+        )
+
+    # 3. Fresh wear event: determine timestamp
+    target_worn_at = _normalize_utc(payload.worn_at) or utc_now()
+    req_worn_at = _normalize_utc(payload.worn_at)
+
+    # 4. Fetch constituent outfit items BEFORE adding new_log to avoid autoflush race
+    outfit_items = session.exec(
+        select(OutfitItem).where(
+            OutfitItem.outfit_id == outfit_id,
+            OutfitItem.user_id == user_id,
+        )
+    ).all()
+    wardrobe_item_ids = list({oi.wardrobe_item_id for oi in outfit_items})
+
+    # Create new wear log with both applied worn_at and client-requested timestamp
+    new_log = WearLog(
+        user_id=user_id,
+        outfit_id=outfit_id,
+        worn_at=target_worn_at,
+        requested_worn_at=req_worn_at,
+        idempotency_key=payload.idempotency_key,
+    )
+
+    # 5. Persist log and perform atomic SQL UPDATE inside protected block
+    try:
+        session.add(new_log)
+
+        if wardrobe_item_ids:
+            update_stmt = (
+                update(WardrobeItem)
+                .where(
+                    WardrobeItem.id.in_(wardrobe_item_ids),
+                    WardrobeItem.user_id == user_id,
+                )
+                .values(
+                    times_worn=WardrobeItem.times_worn + 1,
+                    last_worn_at=case(
+                        (WardrobeItem.last_worn_at.is_(None), target_worn_at),
+                        (target_worn_at > WardrobeItem.last_worn_at, target_worn_at),
+                        else_=WardrobeItem.last_worn_at,
+                    ),
+                    updated_at=utc_now(),
+                )
+            )
+            session.exec(update_stmt)
+
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # Concurrent race: another worker committed the same (user_id, idempotency_key)
+        recovered_log = session.exec(
+            select(WearLog).where(
+                WearLog.user_id == user_id,
+                WearLog.idempotency_key == payload.idempotency_key,
+            )
+        ).first()
+        if recovered_log is not None:
+            return _check_wear_log_idempotency_or_conflict(
+                session=session,
+                existing_log=recovered_log,
+                outfit_id=outfit_id,
+                user_id=user_id,
+                payload=payload,
+            )
+        raise
+
+    session.refresh(new_log)
+
+    times_worn = session.exec(
+        select(func.count(WearLog.id)).where(
+            WearLog.outfit_id == outfit_id,
+            WearLog.user_id == user_id,
+        )
+    ).one()
+
+    ret_worn_at = _normalize_utc(new_log.worn_at)
+
+    return WornOutfitResponseData(
+        wear_log_id=new_log.id,
+        outfit_id=outfit_id,
+        worn_at=ret_worn_at,
+        times_worn=times_worn,
+        already_processed=False,
     )

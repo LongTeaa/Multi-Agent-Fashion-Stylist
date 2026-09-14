@@ -115,7 +115,13 @@ def mark_outfit_worn(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WornOutfitResponseData]:
     """Confirm that the authenticated user has worn the outfit, with idempotency key."""
-    raise NotImplementedAppError()
+    data = outfit_service.record_outfit_worn(
+        session=session,
+        outfit_id=outfit_id,
+        user_id=user_id,
+        payload=payload,
+    )
+    return SuccessResponse(data=data)
 
 
 @router.put(

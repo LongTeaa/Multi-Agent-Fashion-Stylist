@@ -536,6 +536,10 @@ class WearLog(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", max_length=36)
     outfit_id: str = Field(max_length=36)
     worn_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
+    requested_worn_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     idempotency_key: str | None = Field(default=None, max_length=36)
 
 
