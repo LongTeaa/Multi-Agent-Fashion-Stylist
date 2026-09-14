@@ -21,11 +21,14 @@ users
   |                         |-- wear_logs
   |                         |-- tryon_renders
   |-- feedback_prompt_state
+  |-- feedback_suppressed_sessions
+  |-- feedback_delivered_outfits
 ```
 
 ## 3. Tables
 
 ### 3.1 `users`
+
 
 | Field | Type/constraint |
 | :--- | :--- |
@@ -142,11 +145,31 @@ MVP MUST NOT define a Like/Dislike `feedback_type`.
 | `cooldown_remaining` | Integer >= 0 |
 | `last_prompted_at`, `last_rated_at` | Nullable UTC datetime |
 
-### 3.12 `wear_logs`
+### 3.12 `feedback_suppressed_sessions`
 
-One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`, and `worn_at`. Item usage MUST be derived through `outfit_items`; the implementation SHOULD NOT create a separate wear record for every item in the outfit.
+Stores sessions for which proactive feedback prompts have been suppressed following a rating event:
+- `user_id`: Foreign key to `users.id` (part of composite primary key).
+- `client_session_id`: UUID string (part of composite primary key).
+- `created_at`: UTC datetime.
+Supports independent session suppression across multiple tabs/devices without overwriting.
 
-### 3.13 `tryon_renders`
+### 3.13 `feedback_delivered_outfits`
+
+Tracks distinct outfit recommendations delivered to the user to guarantee that regenerating or retrying the same outfit ID does not increment the feedback cadence counter:
+- `id`: Primary-key UUID.
+- `user_id`: Foreign key to `users.id`.
+- `outfit_id`: Foreign key to `outfit_recommendations.id`.
+- `request_id`: Request identifier.
+- `delivered_at`: UTC datetime.
+- Unique constraint: `(user_id, outfit_id)`.
+
+### 3.14 `wear_logs`
+
+One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`, `worn_at`, and `idempotency_key`.
+- `idempotency_key`: Optional/nullable UUID string (36), unique per user via `uq_wear_logs_user_idempotency` (`user_id`, `idempotency_key`).
+- Item usage MUST be derived through `outfit_items`; the implementation SHOULD NOT create a separate wear record for every item in the outfit.
+
+### 3.15 `tryon_renders`
 
 Fields: `id`, `user_id`, `outfit_id`, `media_asset_id`, `provider`, `model`, `fallback_used`, `duration_ms`, `status`, and `created_at`.
 
@@ -185,3 +208,8 @@ Fixture images SHOULD reside in `data/fixtures/sample_clothes/`. The seed comman
 - `wear_logs(user_id, worn_at)`
 - A unique `(bucket, object_key)` index on `media_assets`
 - `wardrobe_retrieval_documents(user_id, updated_at)`
+- `feedback_suppressed_sessions(user_id)`
+- `feedback_delivered_outfits(user_id)`
+- A unique `(user_id, idempotency_key)` constraint on `wear_logs`
+- A unique `(user_id, outfit_id)` constraint on `feedback_delivered_outfits`
+

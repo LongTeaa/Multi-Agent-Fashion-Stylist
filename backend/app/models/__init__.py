@@ -2,7 +2,9 @@
 
 from app.models.entities import (
     DetectionStatus,
+    FeedbackDeliveredOutfit,
     FeedbackPromptState,
+    FeedbackSuppressedSession,
     IngestionBatch,
     IngestionDetection,
     IngestionStatus,
@@ -27,7 +29,9 @@ from app.models.entities import (
 
 __all__ = [
     "DetectionStatus",
+    "FeedbackDeliveredOutfit",
     "FeedbackPromptState",
+    "FeedbackSuppressedSession",
     "IngestionBatch",
     "IngestionDetection",
     "IngestionStatus",

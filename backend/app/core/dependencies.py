@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable, Iterator
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -57,6 +58,53 @@ def get_current_user_id(
             details={"field": "X-User-Id", "reason": "missing_or_empty"},
         )
     return x_user_id.strip()
+
+
+def validate_client_session_id_header(
+    x_client_session_id: Annotated[str | None, Header(alias="X-Client-Session-Id")] = None,
+) -> str | None:
+    """Extract and validate optional X-Client-Session-Id header as UUID v4."""
+    if x_client_session_id is None:
+        return None
+    trimmed = x_client_session_id.strip()
+    if not trimmed:
+        return None
+    try:
+        parsed = uuid.UUID(trimmed)
+        if parsed.version != 4:
+            raise ValueError
+    except Exception:
+        raise ValidationError(
+            message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",
+            details={"field": "X-Client-Session-Id", "reason": "must_be_valid_uuid_v4"},
+        )
+    return str(parsed)
+
+
+def reconcile_client_session_id(
+    header_session_id: str | None,
+    body_session_id: str | None,
+) -> str | None:
+    """Reconcile session identifier between X-Client-Session-Id header and request body.
+
+    Enforces contract invariant:
+    - If both header and body session IDs are present, they MUST match.
+    - Discrepancy raises HTTP 422 ValidationError.
+    """
+    if header_session_id and body_session_id:
+        if header_session_id != body_session_id:
+            raise ValidationError(
+                message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",
+                details={
+                    "field": "client_session_id",
+                    "reason": "header_and_body_mismatch",
+                    "header": header_session_id,
+                    "body": body_session_id,
+                },
+            )
+        return header_session_id
+    return header_session_id or body_session_id
+
 
 
 def get_detector() -> DetectorProtocol:
