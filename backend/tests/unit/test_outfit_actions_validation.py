@@ -153,34 +153,49 @@ class TestOutfitActionsEndpointStubs:
     """Verify endpoint stubs return standard 501 NOT_IMPLEMENTED envelope, not unhandled 500."""
 
     @pytest.fixture
-    def client(self) -> Any:
+    def client(self, migrated_database: tuple[object, object]) -> Any:
         from starlette.testclient import TestClient
+        from sqlmodel import Session
+        from app.core.dependencies import get_db_session
         from app.main import app
 
-        return TestClient(app)
+        _, engine = migrated_database
 
-    def test_outfit_stubs_return_501_not_implemented(self, client: Any) -> None:
+        def override_db():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_db_session] = override_db
+        test_client = TestClient(app)
+        try:
+            yield test_client
+        finally:
+            app.dependency_overrides.pop(get_db_session, None)
+
+    def test_outfit_endpoints_and_remaining_stubs(self, client: Any) -> None:
         headers = {"X-User-Id": "test-user-id"}
         outfit_id = str(uuid.uuid4())
 
-        # 1. GET /api/v1/outfits/saved
+        # 1. GET /api/v1/outfits/saved (implemented in 5.2: returns 200 with empty list for new user)
         resp = client.get("/api/v1/outfits/saved", headers=headers)
-        assert resp.status_code == 501
-        assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        assert resp.json()["data"]["total"] == 0
+        assert resp.json()["data"]["items"] == []
 
-        # 2. GET /api/v1/outfits/{id}
+        # 2. GET /api/v1/outfits/{id} (implemented in 5.2: returns 404 for unknown outfit)
         resp = client.get(f"/api/v1/outfits/{outfit_id}", headers=headers)
-        assert resp.status_code == 501
-        data = resp.json()
-        assert data["success"] is False
-        assert data["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 404
+        assert resp.json()["success"] is False
+        assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
-        # 3. PUT /api/v1/outfits/{id}/bookmark
+        # 3. PUT /api/v1/outfits/{id}/bookmark (implemented in 5.2: returns 404 for unknown outfit)
         resp = client.put(f"/api/v1/outfits/{outfit_id}/bookmark", headers=headers, json={"is_bookmarked": True})
-        assert resp.status_code == 501
-        assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 404
+        assert resp.json()["success"] is False
+        assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
-        # 4. POST /api/v1/outfits/{id}/worn
+        # 4. POST /api/v1/outfits/{id}/worn (stub: returns 501 until Task 5.3)
         resp = client.post(
             f"/api/v1/outfits/{outfit_id}/worn",
             headers=headers,
@@ -189,7 +204,7 @@ class TestOutfitActionsEndpointStubs:
         assert resp.status_code == 501
         assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
 
-        # 5. PUT /api/v1/outfits/{id}/rating
+        # 5. PUT /api/v1/outfits/{id}/rating (stub: returns 501 until Task 5.4)
         resp = client.put(
             f"/api/v1/outfits/{outfit_id}/rating",
             headers=headers,
@@ -198,7 +213,7 @@ class TestOutfitActionsEndpointStubs:
         assert resp.status_code == 501
         assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
 
-        # 6. POST /api/v1/feedback/prompts/dismiss
+        # 6. POST /api/v1/feedback/prompts/dismiss (stub: returns 501 until Task 5.5)
         resp = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})
         assert resp.status_code == 501
         assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"

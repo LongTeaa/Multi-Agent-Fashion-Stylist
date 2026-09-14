@@ -20,6 +20,7 @@ from app.schemas.outfits import (
     WornOutfitRequest,
     WornOutfitResponseData,
 )
+from app.services import outfit_service
 
 router = APIRouter(prefix="/outfits", tags=["outfits"])
 
@@ -40,7 +41,13 @@ def get_saved_outfits(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[SavedOutfitsResponseData]:
     """Retrieve paginated bookmarked outfits for the authenticated user."""
-    raise NotImplementedAppError()
+    data = outfit_service.get_saved_outfits(
+        session=session,
+        user_id=user_id,
+        page=page,
+        page_size=page_size,
+    )
+    return SuccessResponse(data=data)
 
 
 @router.get(
@@ -58,7 +65,12 @@ def get_outfit_detail(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[OutfitDetailResponseData]:
     """Retrieve a single persisted outfit by ID for the authenticated user."""
-    raise NotImplementedAppError()
+    data = outfit_service.get_outfit_detail(
+        session=session,
+        outfit_id=outfit_id,
+        user_id=user_id,
+    )
+    return SuccessResponse(data=data)
 
 
 @router.put(
@@ -77,7 +89,13 @@ def bookmark_outfit(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[BookmarkOutfitResponseData]:
     """Bookmark or unbookmark an outfit for the authenticated user."""
-    raise NotImplementedAppError()
+    data = outfit_service.set_outfit_bookmark(
+        session=session,
+        outfit_id=outfit_id,
+        user_id=user_id,
+        is_bookmarked=payload.is_bookmarked,
+    )
+    return SuccessResponse(data=data)
 
 
 @router.post(

@@ -118,7 +118,7 @@ This derived table stores one deterministic retrieval document per active, user-
 | `rank` | Integer 1–3 |
 | `is_bookmarked` | Boolean |
 | `rule_version` | Version string |
-| `created_at` | UTC datetime |
+| `created_at`, `updated_at` | UTC datetime |
 
 ### 3.9 `outfit_items`
 
