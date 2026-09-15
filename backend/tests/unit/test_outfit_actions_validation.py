@@ -96,10 +96,13 @@ class TestOutfitActionsRequestValidation:
         )
         assert req.client_session_id == session_v4
 
-        # Prompted without session ID -> REJECT
-        with pytest.raises(ValidationError) as exc_info:
-            OutfitRatingRequest(stars=5, source=RatingSource.PROMPTED, client_session_id=None)
-        assert "client_session_id is required when source is 'prompted'" in str(exc_info.value)
+        # Prompted without body session ID is allowed in schema (can come from X-Client-Session-Id header)
+        req_no_body_session = OutfitRatingRequest(
+            stars=5,
+            source=RatingSource.PROMPTED,
+            client_session_id=None,
+        )
+        assert req_no_body_session.client_session_id is None
 
         # Manual rating without session ID -> OK
         manual_req = OutfitRatingRequest(stars=5, source=RatingSource.MANUAL)
@@ -205,14 +208,15 @@ class TestOutfitActionsEndpointStubs:
         assert resp.json()["success"] is False
         assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
-        # 5. PUT /api/v1/outfits/{id}/rating (stub: returns 501 until Task 5.4)
+        # 5. PUT /api/v1/outfits/{id}/rating (implemented in 5.4: returns 404 for unknown outfit)
         resp = client.put(
             f"/api/v1/outfits/{outfit_id}/rating",
             headers=headers,
             json={"stars": 5, "source": "prompted", "client_session_id": str(uuid.uuid4())},
         )
-        assert resp.status_code == 501
-        assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 404
+        assert resp.json()["success"] is False
+        assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
         # 6. POST /api/v1/feedback/prompts/dismiss (stub: returns 501 until Task 5.5)
         resp = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})

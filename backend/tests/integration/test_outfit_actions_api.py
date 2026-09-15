@@ -10,6 +10,8 @@ from sqlmodel import Session, select
 from app.core.dependencies import get_db_session
 from app.main import app
 from app.models.entities import (
+    FeedbackPromptState,
+    FeedbackSuppressedSession,
     ItemMedia,
     ItemMediaRole,
     MediaAsset,
@@ -20,6 +22,7 @@ from app.models.entities import (
     Rating,
     RatingSource,
     User,
+    UserPreference,
     WardrobeCategory,
     WardrobeItem,
     WearLog,
@@ -928,6 +931,576 @@ def test_record_outfit_worn_transaction_rollback_on_failure(api_client):
         assert len(logs) == 0
         db_top = verify_session.get(WardrobeItem, top_id)
         assert db_top.times_worn == 0
+
+
+# ============================================================================
+# RATING ENDPOINT & DETERMINISTIC PREFERENCE LEARNING TESTS (Task 5.4)
+# ============================================================================
+
+def test_rate_outfit_manual_creates_rating(api_client):
+    """INVARIANT: Manual rating creates Rating record, increments ratings_count, and learns weights."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "cotton polo", primary_color="navy")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {"stars": 4, "source": "manual"}
+
+    resp = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["outfit_id"] == outfit_id
+    assert data["stars"] == 4
+    assert data["source"] == "manual"
+    assert data["ratings_count"] == 1
+    assert "rating_id" in data
+
+    with Session(engine) as session:
+        db_rating = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).first()
+        assert db_rating is not None
+        assert db_rating.stars == 4
+        assert db_rating.source == RatingSource.MANUAL
+
+        pref = session.get(UserPreference, user_id)
+        assert pref is not None
+        assert pref.ratings_count == 1
+        assert "weights" in pref.learned_feature_weights
+        weights = pref.learned_feature_weights["weights"]
+        # 4 stars maps to 0.5
+        assert "color:navy" in weights
+        assert weights["color:navy"] == 0.5
+
+
+def test_rate_outfit_prompted_requires_session_id(api_client):
+    """INVARIANT: Prompted rating strictly requires client_session_id (returns 422 if missing)."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        outfit = _create_outfit(session, user.id)
+        user_id = user.id
+        outfit_id = outfit.id
+
+    headers = {"X-User-Id": user_id}
+    # Prompted without client_session_id
+    resp = client.put(
+        f"/api/v1/outfits/{outfit_id}/rating",
+        headers=headers,
+        json={"stars": 5, "source": "prompted"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["success"] is False
+
+
+def test_rate_outfit_prompted_suppresses_session_and_updates_prompt_state(api_client):
+    """INVARIANT: Prompted rating records session suppression and updates prompt state cadence."""
+    client, engine = api_client
+    session_id = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "linen shirt")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {"stars": 5, "source": "prompted", "client_session_id": session_id}
+
+    resp = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp.status_code == 200
+
+    with Session(engine) as session:
+        # Check session suppression
+        suppressed = session.exec(
+            select(FeedbackSuppressedSession).where(
+                FeedbackSuppressedSession.user_id == user_id,
+                FeedbackSuppressedSession.client_session_id == session_id,
+            )
+        ).first()
+        assert suppressed is not None
+
+        # Check prompt state
+        p_state = session.get(FeedbackPromptState, user_id)
+        assert p_state is not None
+        assert p_state.eligible_count_since_prompt == 0
+        assert p_state.last_rated_at is not None
+
+
+def test_rate_outfit_upsert_idempotent_does_not_increment_ratings_count(api_client):
+    """INVARIANT: Updating an existing rating updates stars/source without incrementing ratings_count."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "t-shirt")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # 1. Initial rating: 4 stars
+    r1 = client.put(
+        f"/api/v1/outfits/{outfit_id}/rating",
+        headers=headers,
+        json={"stars": 4, "source": "manual"},
+    )
+    assert r1.status_code == 200
+    assert r1.json()["data"]["ratings_count"] == 1
+    assert r1.json()["data"]["stars"] == 4
+
+    # 2. Update rating: 2 stars
+    r2 = client.put(
+        f"/api/v1/outfits/{outfit_id}/rating",
+        headers=headers,
+        json={"stars": 2, "source": "manual"},
+    )
+    assert r2.status_code == 200
+    d2 = r2.json()["data"]
+    assert d2["stars"] == 2
+    # ratings_count must still be 1!
+    assert d2["ratings_count"] == 1
+    assert d2["rating_id"] == r1.json()["data"]["rating_id"]
+
+    with Session(engine) as session:
+        ratings = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).all()
+        assert len(ratings) == 1
+        assert ratings[0].stars == 2
+
+
+def test_rate_outfit_cross_user_isolation_404(api_client):
+    """INVARIANT: User B cannot rate User A's outfit (returns 404 OUTFIT_NOT_FOUND)."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user_a = _create_user(session)
+        user_b = _create_user(session)
+        outfit_a = _create_outfit(session, user_a.id)
+
+        user_b_id = user_b.id
+        outfit_a_id = outfit_a.id
+
+    resp = client.put(
+        f"/api/v1/outfits/{outfit_a_id}/rating",
+        headers={"X-User-Id": user_b_id},
+        json={"stars": 5, "source": "manual"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
+
+    with Session(engine) as session:
+        ratings = session.exec(select(Rating).where(Rating.outfit_id == outfit_a_id)).all()
+        assert len(ratings) == 0
+
+
+def test_rate_outfit_updates_learned_feature_weights_and_clamps(api_client):
+    """INVARIANT: Rating history calculates clamped feature weights in [-1.0, 1.0]."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top_casual = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "casual polo", style="casual")
+        outfit_1 = _create_outfit(session, user.id)
+        outfit_2 = _create_outfit(session, user.id)
+
+        user_id = user.id
+        outfit_1_id = outfit_1.id
+        outfit_2_id = outfit_2.id
+
+        session.add(OutfitItem(outfit_id=outfit_1_id, wardrobe_item_id=top_casual.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.add(OutfitItem(outfit_id=outfit_2_id, wardrobe_item_id=top_casual.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Outfit 1 rated 5 stars -> signal +1.0 for style:casual
+    r1 = client.put(f"/api/v1/outfits/{outfit_1_id}/rating", headers=headers, json={"stars": 5, "source": "manual"})
+    assert r1.status_code == 200
+
+    with Session(engine) as session:
+        pref = session.get(UserPreference, user_id)
+        assert pref.learned_feature_weights["weights"]["style:casual"] == 1.0
+
+    # Outfit 2 rated 1 star -> signal -1.0 for style:casual -> average of (1.0 + -1.0) / 2 = 0.0
+    r2 = client.put(f"/api/v1/outfits/{outfit_2_id}/rating", headers=headers, json={"stars": 1, "source": "manual"})
+    assert r2.status_code == 200
+
+    with Session(engine) as session:
+        pref = session.get(UserPreference, user_id)
+        assert pref.learned_feature_weights["weights"]["style:casual"] == 0.0
+        assert pref.learned_feature_weights["version"] == 3  # Initial(1) -> r1(2) -> r2(3)
+
+
+def test_rate_outfit_cold_start_under_5_ratings_neutral_affinity(api_client):
+    """INVARIANT: When ratings_count < 5, learned affinity remains neutral 0.50 (cold start)."""
+    from app.agents.personalization_agent import calculate_learned_affinity, OutfitItemSlot
+
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+        # Create 4 distinct outfits with casual polo
+        outfit_ids = []
+        for i in range(4):
+            top = _create_wardrobe_item(session, user_id, WardrobeCategory.TOP, f"polo_{i}", style="casual")
+            outfit = _create_outfit(session, user_id)
+            session.add(OutfitItem(outfit_id=outfit.id, wardrobe_item_id=top.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+            outfit_ids.append(outfit.id)
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    # Rate 4 outfits with 5 stars
+    for oid in outfit_ids:
+        res = client.put(f"/api/v1/outfits/{oid}/rating", headers=headers, json={"stars": 5, "source": "manual"})
+        assert res.status_code == 200
+
+    with Session(engine) as session:
+        pref = session.get(UserPreference, user_id)
+        assert pref.ratings_count == 4
+        # Even though weights are learned:
+        weights = pref.learned_feature_weights
+
+        # calculate_learned_affinity strictly returns 0.50 below threshold
+        cand_slot = OutfitItemSlot(
+            item_id="test-slot",
+            slot_role=OutfitSlotRole.TOP,
+            category=WardrobeCategory.TOP,
+            name="polo",
+            primary_color="white",
+            style="casual",
+        )
+        score = calculate_learned_affinity([cand_slot], weights, ratings_count=pref.ratings_count)
+        assert score == 0.50
+
+
+def test_rate_outfit_reaches_5_ratings_activates_learned_affinity(api_client):
+    """INVARIANT: When ratings_count reaches 5, learned rating affinity activates and boosts score."""
+    from app.agents.personalization_agent import calculate_learned_affinity, OutfitItemSlot
+
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+        outfit_ids = []
+        for i in range(5):
+            top = _create_wardrobe_item(session, user_id, WardrobeCategory.TOP, f"polo_{i}", style="casual")
+            outfit = _create_outfit(session, user_id)
+            session.add(OutfitItem(outfit_id=outfit.id, wardrobe_item_id=top.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+            outfit_ids.append(outfit.id)
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    for oid in outfit_ids:
+        res = client.put(f"/api/v1/outfits/{oid}/rating", headers=headers, json={"stars": 5, "source": "manual"})
+        assert res.status_code == 200
+
+    with Session(engine) as session:
+        pref = session.get(UserPreference, user_id)
+        assert pref.ratings_count == 5
+        weights = pref.learned_feature_weights
+
+        cand_slot = OutfitItemSlot(
+            item_id="test-slot",
+            slot_role=OutfitSlotRole.TOP,
+            category=WardrobeCategory.TOP,
+            name="polo",
+            primary_color="white",
+            style="casual",
+        )
+        score = calculate_learned_affinity([cand_slot], weights, ratings_count=pref.ratings_count)
+        # Activated: style:casual has weight 1.0 -> affinity score = 1.0 (boosted from neutral 0.50)
+        assert score == 1.0
+
+
+def test_rate_outfit_header_and_body_session_conflict_422(api_client):
+    """INVARIANT: When X-Client-Session-Id header and body client_session_id differ, return 422."""
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        outfit = _create_outfit(session, user.id)
+        user_id = user.id
+        outfit_id = outfit.id
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-Client-Session-Id": str(uuid4()),
+    }
+    payload = {
+        "stars": 4,
+        "source": "prompted",
+        "client_session_id": str(uuid4()),  # Differs from header!
+    }
+
+    resp = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp.status_code == 422
+    assert resp.json()["success"] is False
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_rate_outfit_concurrent_upsert_on_same_outfit(api_client):
+    """INVARIANT: Concurrent ratings on same outfit resolve cleanly without 500 crashes."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "polo")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    def send_rating(star_val):
+        return client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json={"stars": star_val, "source": "manual"})
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(send_rating, star) for star in [1, 2, 3, 4, 5]]
+        responses = [f.result() for f in futures]
+
+    assert all(r.status_code == 200 for r in responses)
+
+    with Session(engine) as session:
+        ratings = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).all()
+        assert len(ratings) == 1
+        pref = session.get(UserPreference, user_id)
+        assert pref.ratings_count == 1
+
+
+def test_rate_outfit_header_only_session_success(api_client):
+    """INVARIANT: Prompted rating with X-Client-Session-Id header (no body session) succeeds and records suppression."""
+    client, engine = api_client
+    session_id = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "polo")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-Client-Session-Id": session_id,
+    }
+    payload = {
+        "stars": 4,
+        "source": "prompted",
+        # client_session_id omitted from body!
+    }
+
+    resp = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["stars"] == 4
+    assert data["source"] == "prompted"
+
+    with Session(engine) as session:
+        suppression = session.exec(
+            select(FeedbackSuppressedSession).where(
+                FeedbackSuppressedSession.user_id == user_id,
+                FeedbackSuppressedSession.client_session_id == session_id,
+            )
+        ).first()
+        assert suppression is not None
+        rating = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).first()
+        assert rating is not None
+        assert rating.stars == 4
+        assert rating.source == RatingSource.PROMPTED
+
+
+def test_rate_outfit_prompted_without_session_returns_422(api_client):
+    """INVARIANT: Prompted rating without header and without body session returns 422 VALIDATION_ERROR."""
+    client, engine = api_client
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        outfit = _create_outfit(session, user.id)
+        user_id = user.id
+        outfit_id = outfit.id
+
+    headers = {"X-User-Id": user_id}
+    payload = {"stars": 4, "source": "prompted"}
+
+    resp = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp.status_code == 422
+    err = resp.json()["error"]
+    assert err["code"] == "VALIDATION_ERROR"
+    assert err["details"]["reason"] == "required_when_prompted"
+
+
+def test_rate_outfit_exact_duplicate_put_is_noop(api_client):
+    """INVARIANT: Exact duplicate PUT preserves updated_at, feature_weights version, and last_rated_at."""
+    client, engine = api_client
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        top = _create_wardrobe_item(session, user.id, WardrobeCategory.TOP, "sweater", primary_color="navy")
+        outfit = _create_outfit(session, user.id)
+
+        user_id = user.id
+        top_id = top.id
+        outfit_id = outfit.id
+
+        session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+    payload = {"stars": 5, "source": "manual"}
+
+    # Initial rating
+    resp1 = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp1.status_code == 200
+    data1 = resp1.json()["data"]
+
+    with Session(engine) as session:
+        rating1 = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).first()
+        pref1 = session.get(UserPreference, user_id)
+        prompt_state1 = session.get(FeedbackPromptState, user_id)
+
+        initial_rating_updated_at = rating1.updated_at
+        initial_version = pref1.learned_feature_weights["version"]
+        initial_last_rated = prompt_state1.last_rated_at
+
+    # Retry identical rating
+    resp2 = client.put(f"/api/v1/outfits/{outfit_id}/rating", headers=headers, json=payload)
+    assert resp2.status_code == 200
+    data2 = resp2.json()["data"]
+
+    # Response updated_at must be identical
+    assert data2["updated_at"] == data1["updated_at"]
+
+    with Session(engine) as session:
+        rating2 = session.exec(select(Rating).where(Rating.outfit_id == outfit_id)).first()
+        pref2 = session.get(UserPreference, user_id)
+        prompt_state2 = session.get(FeedbackPromptState, user_id)
+
+        # Database timestamps and version must be completely unchanged
+        assert rating2.updated_at == initial_rating_updated_at
+        assert pref2.learned_feature_weights["version"] == initial_version
+        assert prompt_state2.last_rated_at == initial_last_rated
+
+
+def test_rate_outfit_concurrent_different_outfits_same_new_user(api_client):
+    """INVARIANT: Concurrent ratings on multiple distinct outfits of a new user resolve cleanly without 500 crashes."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, engine = api_client
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+        outfit_ids = []
+        for i in range(3):
+            top = _create_wardrobe_item(session, user_id, WardrobeCategory.TOP, f"shirt_{i}")
+            outfit = _create_outfit(session, user_id)
+            session.add(OutfitItem(outfit_id=outfit.id, wardrobe_item_id=top.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+            outfit_ids.append(outfit.id)
+
+        session.commit()
+
+    headers = {"X-User-Id": user_id}
+
+    def rate_distinct(outfit_id: str, stars: int):
+        return client.put(
+            f"/api/v1/outfits/{outfit_id}/rating",
+            headers=headers,
+            json={"stars": stars, "source": "manual"},
+        )
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [
+            executor.submit(rate_distinct, outfit_ids[idx], idx + 3)
+            for idx in range(3)
+        ]
+        responses = [f.result() for f in futures]
+
+    status_codes = [r.status_code for r in responses]
+    assert all(code == 200 for code in status_codes), f"Unexpected status codes: {status_codes}"
+
+    with Session(engine) as session:
+        ratings = session.exec(select(Rating).where(Rating.user_id == user_id)).all()
+        assert len(ratings) == 3
+        pref = session.get(UserPreference, user_id)
+        assert pref is not None
+        assert pref.ratings_count == 3
+        prompt_state = session.get(FeedbackPromptState, user_id)
+        assert prompt_state is not None
+        assert prompt_state.cooldown_remaining == 0
+
+
+def test_rate_outfit_after_dismiss_resets_cooldown_and_cadence(api_client):
+    """INVARIANT: Rating after previous dismiss clears cooldown_remaining and reseeds next_threshold."""
+    client, engine = api_client
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+        top = _create_wardrobe_item(session, user_id, WardrobeCategory.TOP, "blouse")
+        outfit = _create_outfit(session, user_id)
+        session.add(OutfitItem(outfit_id=outfit.id, wardrobe_item_id=top.id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+
+        # Seed prompt state simulating a past prompt dismiss
+        past_state = FeedbackPromptState(
+            user_id=user_id,
+            eligible_count_since_prompt=4,
+            next_threshold=7,
+            cooldown_remaining=3,
+            last_prompted_at=datetime.now(timezone.utc) - timedelta(days=1),
+            last_rated_at=None,
+        )
+        session.add(past_state)
+        session.commit()
+
+        outfit_id = outfit.id
+
+    headers = {"X-User-Id": user_id}
+    resp = client.put(
+        f"/api/v1/outfits/{outfit_id}/rating",
+        headers=headers,
+        json={"stars": 5, "source": "manual"},
+    )
+    assert resp.status_code == 200
+
+    with Session(engine) as session:
+        prompt_state = session.get(FeedbackPromptState, user_id)
+        assert prompt_state is not None
+        # Cooldown must be cleared
+        assert prompt_state.cooldown_remaining == 0
+        assert prompt_state.eligible_count_since_prompt == 0
+        assert 5 <= prompt_state.next_threshold <= 10
+        assert prompt_state.last_rated_at is not None
+
 
 
 

@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import random
+import time
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import timezone
-from sqlalchemy import case, func, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import case, distinct, func, update
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlmodel import Session, select
 
 from app.agents.wardrobe_agent import format_localized_item_name
 from app.models.entities import (
+    FeedbackPromptState,
+    FeedbackSuppressedSession,
     ItemMedia,
     ItemMediaRole,
     MediaAsset,
@@ -15,16 +20,20 @@ from app.models.entities import (
     OutfitRecommendation,
     OutfitSlotRole,
     Rating,
+    RatingSource,
+    UserPreference,
     WardrobeCategory,
     WardrobeItem,
     WearLog,
     utc_now,
 )
-from app.schemas.common import IdempotencyConflictError, OutfitNotFoundError
+from app.schemas.common import IdempotencyConflictError, OutfitNotFoundError, ValidationError
 from app.schemas.outfits import (
     BookmarkOutfitResponseData,
     OutfitDetailResponseData,
     OutfitItemDetailResponse,
+    OutfitRatingRequest,
+    OutfitRatingResponseData,
     SavedOutfitsResponseData,
     WornOutfitRequest,
     WornOutfitResponseData,
@@ -555,3 +564,259 @@ def record_outfit_worn(
         times_worn=times_worn,
         already_processed=False,
     )
+
+
+RATING_WEIGHT_SIGNALS: dict[int, float] = {
+    1: -1.0,
+    2: -0.5,
+    3: 0.0,
+    4: 0.5,
+    5: 1.0,
+}
+
+
+def _update_learned_feature_weights(
+    session: Session,
+    user_id: str,
+    preferences: UserPreference,
+) -> None:
+    """Deterministically update versioned learned_feature_weights from user rating history.
+
+    - Features extracted per outfit:
+      - style:{item.style}
+      - color:{item.primary_color}
+      - pattern:{item.pattern}
+      - formality:low (level <= 2), formality:medium (level == 3), formality:high (level >= 4)
+    - Signals mapped: 1=-1.0, 2=-0.5, 3=0.0, 4=0.5, 5=1.0.
+    - Computes average signal per feature across all rated outfits, clamped to [-1.0, 1.0].
+    - Increments version number in {"version": v, "weights": weights}.
+    """
+    user_ratings = session.exec(
+        select(Rating).where(Rating.user_id == user_id)
+    ).all()
+
+    if not user_ratings:
+        return
+
+    feature_signals: defaultdict[str, list[float]] = defaultdict(list)
+
+    for r in user_ratings:
+        signal = RATING_WEIGHT_SIGNALS.get(r.stars, 0.0)
+
+        outfit_items = session.exec(
+            select(OutfitItem, WardrobeItem)
+            .join(WardrobeItem, OutfitItem.wardrobe_item_id == WardrobeItem.id)
+            .where(
+                OutfitItem.outfit_id == r.outfit_id,
+                OutfitItem.user_id == user_id,
+            )
+        ).all()
+
+        outfit_features: set[str] = set()
+        for _, item in outfit_items:
+            if item.style:
+                outfit_features.add(f"style:{item.style.lower().strip()}")
+            if item.primary_color:
+                outfit_features.add(f"color:{item.primary_color.lower().strip()}")
+            if item.pattern:
+                outfit_features.add(f"pattern:{item.pattern.lower().strip()}")
+            if item.formality_level <= 2:
+                outfit_features.add("formality:low")
+            elif item.formality_level == 3:
+                outfit_features.add("formality:medium")
+            else:
+                outfit_features.add("formality:high")
+
+        for feat in outfit_features:
+            feature_signals[feat].append(signal)
+
+    weights: dict[str, float] = {}
+    for feat, signals in sorted(feature_signals.items()):
+        avg_signal = sum(signals) / len(signals)
+        clamped = max(-1.0, min(1.0, avg_signal))
+        weights[feat] = round(clamped, 4)
+
+    curr_version = 1
+    if isinstance(preferences.learned_feature_weights, dict):
+        raw_version = preferences.learned_feature_weights.get("version", 1)
+        if isinstance(raw_version, int):
+            curr_version = raw_version
+
+    preferences.learned_feature_weights = {
+        "version": curr_version + 1,
+        "weights": weights,
+    }
+    preferences.updated_at = utc_now()
+    session.add(preferences)
+
+
+def record_outfit_rating(
+    session: Session,
+    outfit_id: str,
+    user_id: str,
+    payload: OutfitRatingRequest,
+    client_session_id: str | None = None,
+    threshold_chooser: Callable[[], int] | None = None,
+) -> OutfitRatingResponseData:
+    """Idempotently create or update a 1–5 rating for an outfit and learn preferences."""
+    # 1. Ownership & existence check
+    outfit = session.exec(
+        select(OutfitRecommendation).where(
+            OutfitRecommendation.id == outfit_id,
+            OutfitRecommendation.user_id == user_id,
+        )
+    ).first()
+    if outfit is None:
+        raise OutfitNotFoundError()
+
+    effective_session_id = payload.client_session_id or client_session_id
+    if payload.source == RatingSource.PROMPTED and not effective_session_id:
+        raise ValidationError(
+            message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",
+            details={"field": "client_session_id", "reason": "required_when_prompted"},
+        )
+
+    now = utc_now()
+    max_attempts = 5
+
+    for attempt in range(max_attempts):
+        try:
+            # 2. Check existing rating
+            rating = session.exec(
+                select(Rating).where(
+                    Rating.outfit_id == outfit_id,
+                    Rating.user_id == user_id,
+                )
+            ).first()
+
+            # 3. Exact duplicate PUT check (true idempotency: strict no-op)
+            if (
+                rating is not None
+                and rating.stars == payload.stars
+                and rating.source == payload.source
+            ):
+                if effective_session_id:
+                    existing_suppression = session.exec(
+                        select(FeedbackSuppressedSession).where(
+                            FeedbackSuppressedSession.user_id == user_id,
+                            FeedbackSuppressedSession.client_session_id == effective_session_id,
+                        )
+                    ).first()
+                    if existing_suppression is None:
+                        suppression = FeedbackSuppressedSession(
+                            user_id=user_id,
+                            client_session_id=effective_session_id,
+                            created_at=now,
+                        )
+                        session.add(suppression)
+                        session.commit()
+                        session.refresh(rating)
+
+                preferences = session.get(UserPreference, user_id)
+                if preferences and preferences.ratings_count is not None:
+                    ratings_count = preferences.ratings_count
+                else:
+                    ratings_count = session.exec(
+                        select(func.count(distinct(Rating.outfit_id))).where(
+                            Rating.user_id == user_id
+                        )
+                    ).one()
+
+                return OutfitRatingResponseData(
+                    rating_id=rating.id,
+                    outfit_id=outfit_id,
+                    stars=rating.stars,
+                    source=rating.source,
+                    ratings_count=ratings_count,
+                    created_at=_normalize_utc(rating.created_at),
+                    updated_at=_normalize_utc(rating.updated_at),
+                )
+
+            # 4. Upsert rating record
+            if rating is None:
+                rating = Rating(
+                    user_id=user_id,
+                    outfit_id=outfit_id,
+                    stars=payload.stars,
+                    source=payload.source,
+                    created_at=now,
+                    updated_at=now,
+                )
+                session.add(rating)
+            else:
+                rating.stars = payload.stars
+                rating.source = payload.source
+                rating.updated_at = now
+                session.add(rating)
+
+            session.flush()
+
+            # 5. Calculate distinct ratings count for this user
+            ratings_count = session.exec(
+                select(func.count(distinct(Rating.outfit_id))).where(
+                    Rating.user_id == user_id
+                )
+            ).one()
+
+            # 6. Ensure UserPreference and update learned weights
+            preferences = session.get(UserPreference, user_id)
+            if preferences is None:
+                preferences = UserPreference(user_id=user_id)
+                session.add(preferences)
+                session.flush()
+
+            preferences.ratings_count = ratings_count
+            _update_learned_feature_weights(session, user_id, preferences)
+
+            # 7. Multi-session suppression: if client_session_id is provided, record it
+            if effective_session_id:
+                existing_suppression = session.exec(
+                    select(FeedbackSuppressedSession).where(
+                        FeedbackSuppressedSession.user_id == user_id,
+                        FeedbackSuppressedSession.client_session_id == effective_session_id,
+                    )
+                ).first()
+                if existing_suppression is None:
+                    suppression = FeedbackSuppressedSession(
+                        user_id=user_id,
+                        client_session_id=effective_session_id,
+                        created_at=now,
+                    )
+                    session.add(suppression)
+
+            # 8. Reset/Update FeedbackPromptState (cadence state)
+            prompt_state = session.get(FeedbackPromptState, user_id)
+            chosen_threshold = threshold_chooser() if threshold_chooser else random.randint(5, 10)
+            if prompt_state is None:
+                prompt_state = FeedbackPromptState(
+                    user_id=user_id,
+                    eligible_count_since_prompt=0,
+                    next_threshold=chosen_threshold,
+                    cooldown_remaining=0,
+                    last_rated_at=now,
+                )
+                session.add(prompt_state)
+            else:
+                prompt_state.eligible_count_since_prompt = 0
+                prompt_state.cooldown_remaining = 0
+                prompt_state.last_rated_at = now
+                prompt_state.next_threshold = chosen_threshold
+                session.add(prompt_state)
+
+            session.commit()
+            session.refresh(rating)
+
+            return OutfitRatingResponseData(
+                rating_id=rating.id,
+                outfit_id=outfit_id,
+                stars=rating.stars,
+                source=rating.source,
+                ratings_count=ratings_count,
+                created_at=_normalize_utc(rating.created_at),
+                updated_at=_normalize_utc(rating.updated_at),
+            )
+        except (IntegrityError, OperationalError):
+            session.rollback()
+            if attempt == max_attempts - 1:
+                raise
+            time.sleep(0.01 * (attempt + 1))

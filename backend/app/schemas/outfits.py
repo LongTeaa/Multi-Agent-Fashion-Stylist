@@ -132,12 +132,6 @@ class OutfitRatingRequest(BaseModel):
             return None
         return _validate_uuid_v4(trimmed, "client_session_id")
 
-    @model_validator(mode="after")
-    def validate_prompted_requires_session(self) -> OutfitRatingRequest:
-        if self.source == RatingSource.PROMPTED and not self.client_session_id:
-            raise ValueError("client_session_id is required when source is 'prompted'.")
-        return self
-
 
 class OutfitRatingResponseData(BaseModel):
     rating_id: str = Field(min_length=36, max_length=36)

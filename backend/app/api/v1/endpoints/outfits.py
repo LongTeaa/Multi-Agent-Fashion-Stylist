@@ -141,5 +141,12 @@ def rate_outfit(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[OutfitRatingResponseData]:
     """Idempotently create or update a 1–5 rating for an outfit."""
-    reconcile_client_session_id(x_client_session_id, payload.client_session_id)
-    raise NotImplementedAppError()
+    client_session_id = reconcile_client_session_id(x_client_session_id, payload.client_session_id)
+    data = outfit_service.record_outfit_rating(
+        session=session,
+        outfit_id=outfit_id,
+        user_id=user_id,
+        payload=payload,
+        client_session_id=client_session_id,
+    )
+    return SuccessResponse(data=data)
