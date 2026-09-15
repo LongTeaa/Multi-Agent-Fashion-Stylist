@@ -23,6 +23,12 @@ export default function Home() {
 
         <nav className="flex items-center gap-3 sm:gap-4">
           <Link
+            href="/chat"
+            className="px-3 py-2 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition"
+          >
+            Tư Vấn Stylist
+          </Link>
+          <Link
             href="/profile"
             className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white transition"
           >
@@ -78,17 +84,26 @@ export default function Home() {
           </Link>
 
           {/* Card 2 */}
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 opacity-80 block shadow-xl">
-            <div className="w-12 h-12 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center mb-4">
+          <Link
+            href="/chat"
+            className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-white/[0.08] transition duration-200 block shadow-xl"
+          >
+            <div className="w-12 h-12 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-white">2. Phối Đồ Cá Nhân Hóa</h3>
+            <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition">
+              2. Phối Đồ Cá Nhân Hóa
+            </h3>
             <p className="mt-2 text-sm text-slate-400">
               Tác nhân điều phối kết hợp quy luật thẩm mỹ, thời tiết và hoàn cảnh để tạo ra các set đồ độc bản từ chính quần áo bạn có.
             </p>
-          </div>
+            <div className="mt-4 text-xs font-semibold text-purple-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Bắt đầu phối đồ</span>
+              <span>→</span>
+            </div>
+          </Link>
 
           {/* Card 3 */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10 opacity-80 block shadow-xl">
