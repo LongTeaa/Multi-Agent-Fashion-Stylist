@@ -35,6 +35,12 @@ export default function WardrobePage() {
               Số Hóa Trang Phục
             </Link>
             <Link
+              href="/saved"
+              className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            >
+              Đã Lưu
+            </Link>
+            <Link
               href="/chat"
               className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             >

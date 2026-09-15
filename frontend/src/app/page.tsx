@@ -29,6 +29,12 @@ export default function Home() {
             Tư Vấn Stylist
           </Link>
           <Link
+            href="/saved"
+            className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white transition"
+          >
+            Đã Lưu
+          </Link>
+          <Link
             href="/profile"
             className="px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white transition"
           >
