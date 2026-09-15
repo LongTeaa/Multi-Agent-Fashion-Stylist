@@ -17,12 +17,14 @@ from app.core.dependencies import (
     get_current_user_id,
     get_context_llm_provider,
     get_db_session,
+    get_feedback_cadence_service,
     get_stylist_runner,
     get_utc_clock,
     get_weather_provider,
     reconcile_client_session_id,
     validate_client_session_id_header,
 )
+from app.services.feedback_cadence_service import FeedbackCadenceService
 from app.models.entities import (
     OutfitItem,
     OutfitRecommendation,
@@ -87,6 +89,7 @@ def stylist_chat(
     runner: StylistRunner = Depends(get_stylist_runner),
     llm_provider: ContextLLMProviderProtocol | None = Depends(get_context_llm_provider),
     weather_provider: WeatherProviderProtocol | None = Depends(get_weather_provider),
+    feedback_service: FeedbackCadenceService = Depends(get_feedback_cadence_service),
 ) -> SuccessResponse[StylistChatResponseData]:
     """Execute the AI stylist recommendation pipeline for the authenticated user."""
     request_id = new_uuid()
@@ -299,6 +302,14 @@ def stylist_chat(
             )
         )
 
+    prompt_eligible, prompt_target_id = feedback_service.process_chat_recommendations(
+        session=session,
+        user_id=user_id,
+        new_outfit_ids=[r.outfit_id for r in recommendations],
+        client_session_id=client_session_id,
+        request_id=request_id,
+    )
+
     return SuccessResponse(
         data=StylistChatResponseData(
             request_id=request_id,
@@ -306,8 +317,8 @@ def stylist_chat(
             clarification_question=None,
             context=mapped_ctx,
             recommendations=recommendations,
-            feedback_prompt_eligible=False,
-            feedback_target_outfit_id=None,
+            feedback_prompt_eligible=prompt_eligible,
+            feedback_target_outfit_id=prompt_target_id,
             warnings=list(final_state.get("warnings", [])),
         )
     )

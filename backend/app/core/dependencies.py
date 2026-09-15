@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Annotated, Any
 
-from fastapi import Header
+from fastapi import Depends, Header
 from sqlmodel import Session
 
 from app.core.config import (
@@ -203,3 +203,12 @@ def get_stylist_runner() -> StylistRunner:
     from app.agents.stylist_graph import execute_stylist_recommendation
 
     return execute_stylist_recommendation
+
+
+def get_feedback_cadence_service(
+    clock: Callable[[], datetime] = Depends(get_utc_clock),
+) -> Any:
+    """Return configured FeedbackCadenceService with injected UTC clock."""
+    from app.services.feedback_cadence_service import FeedbackCadenceService
+
+    return FeedbackCadenceService(clock=clock)

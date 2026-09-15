@@ -163,6 +163,11 @@ class TestOutfitActionsEndpointStubs:
         from app.main import app
 
         _, engine = migrated_database
+        from app.models.entities import User
+
+        with Session(engine) as session:
+            session.add(User(id="test-user-id", email="test@example.com", name="Test User"))
+            session.commit()
 
         def override_db():
             with Session(engine) as session:
@@ -218,10 +223,12 @@ class TestOutfitActionsEndpointStubs:
         assert resp.json()["success"] is False
         assert resp.json()["error"]["code"] == "OUTFIT_NOT_FOUND"
 
-        # 6. POST /api/v1/feedback/prompts/dismiss (stub: returns 501 until Task 5.5)
+        # 6. POST /api/v1/feedback/prompts/dismiss (implemented in Task 5.5: returns 200)
         resp = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})
-        assert resp.status_code == 501
-        assert resp.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        assert resp.json()["data"]["dismissed"] is True
+        assert resp.json()["data"]["cooldown_remaining"] >= 3
 
 
 class TestMultiSessionAndCadencePersistence:

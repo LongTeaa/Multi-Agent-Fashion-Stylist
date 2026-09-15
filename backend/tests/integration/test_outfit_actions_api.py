@@ -1502,5 +1502,78 @@ def test_rate_outfit_after_dismiss_resets_cooldown_and_cadence(api_client):
         assert prompt_state.last_rated_at is not None
 
 
+def test_dismiss_feedback_prompt_success_sets_cooldown_and_suppresses_session(api_client):
+    """INVARIANT: Dismissing feedback prompt sets cooldown to at least 3 and suppresses session."""
+    client, engine = api_client
+    session_id = str(uuid4())
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-Client-Session-Id": session_id,
+    }
+
+    resp = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["dismissed"] is True
+    assert data["cooldown_remaining"] >= 3
+
+    with Session(engine) as session:
+        state = session.get(FeedbackPromptState, user_id)
+        assert state is not None
+        assert state.cooldown_remaining >= 3
+        assert state.eligible_count_since_prompt == 0
+
+        suppression = session.exec(
+            select(FeedbackSuppressedSession).where(
+                FeedbackSuppressedSession.user_id == user_id,
+                FeedbackSuppressedSession.client_session_id == session_id,
+            )
+        ).first()
+        assert suppression is not None
+
+
+def test_dismiss_feedback_prompt_repeated_maintains_cooldown(api_client):
+    """INVARIANT: Repeated dismiss maintains minimum cooldown without crash."""
+    client, engine = api_client
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+    headers = {"X-User-Id": user_id}
+    resp1 = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})
+    assert resp1.status_code == 200
+    assert resp1.json()["data"]["cooldown_remaining"] >= 3
+
+    resp2 = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json={})
+    assert resp2.status_code == 200
+    assert resp2.json()["data"]["cooldown_remaining"] >= 3
+
+
+def test_dismiss_feedback_prompt_session_mismatch_returns_422(api_client):
+    """INVARIANT: Conflicting session in header vs body returns 422 VALIDATION_ERROR."""
+    client, engine = api_client
+
+    with Session(engine) as session:
+        user = _create_user(session)
+        user_id = user.id
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-Client-Session-Id": str(uuid4()),
+    }
+    payload = {"client_session_id": str(uuid4())}
+
+    resp = client.post("/api/v1/feedback/prompts/dismiss", headers=headers, json=payload)
+    assert resp.status_code == 422
+    assert resp.json()["success"] is False
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
 
 

@@ -784,9 +784,9 @@ def record_outfit_rating(
                     )
                     session.add(suppression)
 
-            # 8. Reset/Update FeedbackPromptState (cadence state)
             prompt_state = session.get(FeedbackPromptState, user_id)
-            chosen_threshold = threshold_chooser() if threshold_chooser else random.randint(5, 10)
+            chosen_val = threshold_chooser() if threshold_chooser else random.randint(5, 10)
+            chosen_threshold = max(5, min(10, int(chosen_val)))
             if prompt_state is None:
                 prompt_state = FeedbackPromptState(
                     user_id=user_id,
