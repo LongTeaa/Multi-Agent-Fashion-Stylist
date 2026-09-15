@@ -10,32 +10,101 @@ import type {
   PreferenceSelections,
   UserProfile,
 } from '@/types/profile';
+import type {
+  StylistChatRequest,
+  StylistChatResponseData,
+} from '@/types/chat';
+import type {
+  BookmarkRequest,
+  BookmarkResponseData,
+  OutfitDetailResponseData,
+  OutfitRatingRequest,
+  OutfitRatingResponseData,
+  OutfitWornRequest,
+  OutfitWornResponseData,
+  SavedOutfitsResponseData,
+} from '@/types/outfits';
+import type {
+  DismissPromptRequest,
+  DismissPromptResponseData,
+} from '@/types/feedback';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const USER_STORAGE_KEY = 'fashion_stylist_user_id';
+const SESSION_STORAGE_KEY = 'fashion_stylist_session_id';
+
+let memoryUserId: string | null = null;
+let memorySessionId: string | null = null;
 
 /**
  * Get or generate a persistent demo user ID for cross-request session tracking.
+ * Gracefully falls back to an in-memory UUID if localStorage is disabled or throws (e.g. Private Browsing).
  */
 export function getStoredUserId(): string {
   if (typeof window === 'undefined') {
     return '00000000-0000-0000-0000-000000000001';
   }
-  let userId = localStorage.getItem(USER_STORAGE_KEY);
-  if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem(USER_STORAGE_KEY, userId);
+  try {
+    let userId = localStorage.getItem(USER_STORAGE_KEY);
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem(USER_STORAGE_KEY, userId);
+    }
+    return userId;
+  } catch {
+    if (!memoryUserId) {
+      memoryUserId = crypto.randomUUID();
+    }
+    return memoryUserId;
   }
-  return userId;
 }
 
 export function setStoredUserId(id: string): void {
+  memoryUserId = id;
   if (typeof window !== 'undefined') {
-    localStorage.setItem(USER_STORAGE_KEY, id);
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, id);
+    } catch {
+      // Storage unavailable or blocked
+    }
   }
 }
 
-class ApiError extends Error {
+/**
+ * Get or generate an opaque client session ID stored in sessionStorage (per-tab/session lifecycle).
+ * Gracefully falls back to an in-memory UUID if sessionStorage is disabled or throws (e.g. Private Browsing).
+ */
+export function getStoredSessionId(): string {
+  if (typeof window === 'undefined') {
+    return '00000000-0000-0000-0000-000000000000';
+  }
+  try {
+    let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    }
+    return sessionId;
+  } catch {
+    if (!memorySessionId) {
+      memorySessionId = crypto.randomUUID();
+    }
+    return memorySessionId;
+  }
+}
+
+export function setStoredSessionId(id: string): void {
+  memorySessionId = id;
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+    } catch {
+      // Storage unavailable or blocked
+    }
+  }
+}
+
+export class ApiError extends Error {
   code: string;
   details?: unknown;
   status: number;
@@ -68,6 +137,27 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 /**
+ * Robust fetch wrapper ensuring all network dropouts and errors surface as typed ApiError.
+ */
+async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(input, init);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError(
+      'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.',
+      'NETWORK_ERROR',
+      0,
+      err
+    );
+  }
+  return handleResponse<T>(response);
+}
+
+/**
  * Upload 1–10 images for garment digitization (POST /api/v1/ingestions)
  */
 export async function uploadIngestionImages(
@@ -83,15 +173,13 @@ export async function uploadIngestionImages(
   }
 
   const userId = getStoredUserId();
-  const response = await fetch(`${API_BASE_URL}/api/v1/ingestions`, {
+  return apiFetch<UploadBatchResponse>(`${API_BASE_URL}/api/v1/ingestions`, {
     method: 'POST',
     headers: {
       'X-User-Id': userId,
     },
     body: formData,
   });
-
-  return handleResponse<UploadBatchResponse>(response);
 }
 
 /**
@@ -99,15 +187,13 @@ export async function uploadIngestionImages(
  */
 export async function getIngestionBatch(batchId: string): Promise<IngestionBatchReviewResponse> {
   const userId = getStoredUserId();
-  const response = await fetch(`${API_BASE_URL}/api/v1/ingestions/${batchId}`, {
+  return apiFetch<IngestionBatchReviewResponse>(`${API_BASE_URL}/api/v1/ingestions/${batchId}`, {
     method: 'GET',
     headers: {
       'X-User-Id': userId,
       'Content-Type': 'application/json',
     },
   });
-
-  return handleResponse<IngestionBatchReviewResponse>(response);
 }
 
 /**
@@ -118,7 +204,7 @@ export async function confirmIngestionBatch(
   payload: ConfirmBatchPayload
 ): Promise<ConfirmBatchResponse> {
   const userId = getStoredUserId();
-  const response = await fetch(`${API_BASE_URL}/api/v1/ingestions/${batchId}/confirm`, {
+  return apiFetch<ConfirmBatchResponse>(`${API_BASE_URL}/api/v1/ingestions/${batchId}/confirm`, {
     method: 'POST',
     headers: {
       'X-User-Id': userId,
@@ -126,8 +212,6 @@ export async function confirmIngestionBatch(
     },
     body: JSON.stringify(payload),
   });
-
-  return handleResponse<ConfirmBatchResponse>(response);
 }
 
 /**
@@ -135,15 +219,13 @@ export async function confirmIngestionBatch(
  */
 export async function deleteIngestionBatch(batchId: string): Promise<{ batch_id: string; status: string }> {
   const userId = getStoredUserId();
-  const response = await fetch(`${API_BASE_URL}/api/v1/ingestions/${batchId}`, {
+  return apiFetch<{ batch_id: string; status: string }>(`${API_BASE_URL}/api/v1/ingestions/${batchId}`, {
     method: 'DELETE',
     headers: {
       'X-User-Id': userId,
       'Content-Type': 'application/json',
     },
   });
-
-  return handleResponse<{ batch_id: string; status: string }>(response);
 }
 
 /**
@@ -161,23 +243,21 @@ export function getMediaUrl(relativeOrAssetUrl: string): string {
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile`, {
+  return apiFetch<UserProfile>(`${API_BASE_URL}/api/v1/user/profile`, {
     headers: { 'X-User-Id': getStoredUserId() },
   });
-  return handleResponse<UserProfile>(response);
 }
 
 export async function getPreferenceOptions(): Promise<PreferenceOptions> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile/preference-options`, {
+  return apiFetch<PreferenceOptions>(`${API_BASE_URL}/api/v1/user/profile/preference-options`, {
     headers: { 'X-User-Id': getStoredUserId() },
   });
-  return handleResponse<PreferenceOptions>(response);
 }
 
 export async function replaceUserPreferences(
   preferences: PreferenceSelections
 ): Promise<UserProfile> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile/preferences`, {
+  return apiFetch<UserProfile>(`${API_BASE_URL}/api/v1/user/profile/preferences`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -185,5 +265,152 @@ export async function replaceUserPreferences(
     },
     body: JSON.stringify(preferences),
   });
-  return handleResponse<UserProfile>(response);
+}
+
+/**
+ * Execute AI stylist chat recommendation pipeline (POST /api/v1/stylist/chat)
+ */
+export async function sendStylistChat(
+  payload: StylistChatRequest
+): Promise<StylistChatResponseData> {
+  const sessionId = payload.client_session_id || getStoredSessionId();
+  const bodyPayload: StylistChatRequest = {
+    ...payload,
+    client_session_id: sessionId,
+  };
+
+  return apiFetch<StylistChatResponseData>(`${API_BASE_URL}/api/v1/stylist/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+      'X-Client-Session-Id': sessionId,
+    },
+    body: JSON.stringify(bodyPayload),
+  });
+}
+
+/**
+ * Retrieve detailed outfit recommendation with items and wear/rating history (GET /api/v1/outfits/{outfit_id})
+ */
+export async function getOutfitDetail(
+  outfitId: string
+): Promise<OutfitDetailResponseData> {
+  return apiFetch<OutfitDetailResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}`, {
+    method: 'GET',
+    headers: {
+      'X-User-Id': getStoredUserId(),
+    },
+  });
+}
+
+/**
+ * Retrieve paginated saved / bookmarked outfits (GET /api/v1/outfits/saved)
+ * Strictly matches API Contract parameters: page (ge=1) and page_size (1..50).
+ */
+export async function getSavedOutfits(
+  params?: { page?: number; page_size?: number }
+): Promise<SavedOutfitsResponseData> {
+  const searchParams = new URLSearchParams();
+  if (params?.page !== undefined) {
+    searchParams.set('page', String(params.page));
+  }
+  if (params?.page_size !== undefined) {
+    searchParams.set('page_size', String(params.page_size));
+  }
+  const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
+  return apiFetch<SavedOutfitsResponseData>(`${API_BASE_URL}/api/v1/outfits/saved${query}`, {
+    method: 'GET',
+    headers: {
+      'X-User-Id': getStoredUserId(),
+    },
+  });
+}
+
+/**
+ * Toggle bookmark flag on an outfit (PUT /api/v1/outfits/{outfit_id}/bookmark)
+ * Strictly matches API Contract HTTP method: PUT.
+ */
+export async function setOutfitBookmark(
+  outfitId: string,
+  isBookmarked: boolean
+): Promise<BookmarkResponseData> {
+  const payload: BookmarkRequest = { is_bookmarked: isBookmarked };
+  return apiFetch<BookmarkResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}/bookmark`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Record user-confirmed wear action with idempotency key (POST /api/v1/outfits/{outfit_id}/worn)
+ */
+export async function recordOutfitWorn(
+  outfitId: string,
+  payload: OutfitWornRequest
+): Promise<OutfitWornResponseData> {
+  return apiFetch<OutfitWornResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}/worn`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Submit outfit star rating (PUT /api/v1/outfits/{outfit_id}/rating)
+ * Strictly avoids session suppression leak for manual ratings when client_session_id is not specified.
+ */
+export async function rateOutfit(
+  outfitId: string,
+  payload: OutfitRatingRequest
+): Promise<OutfitRatingResponseData> {
+  const sessionId = payload.client_session_id ?? (payload.source === 'prompted' ? getStoredSessionId() : undefined);
+  const bodyPayload: OutfitRatingRequest = {
+    ...payload,
+    ...(sessionId ? { client_session_id: sessionId } : {}),
+  };
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-User-Id': getStoredUserId(),
+  };
+  if (sessionId) {
+    headers['X-Client-Session-Id'] = sessionId;
+  }
+
+  return apiFetch<OutfitRatingResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}/rating`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(bodyPayload),
+  });
+}
+
+/**
+ * Dismiss proactive feedback rating prompt and activate cooldown (POST /api/v1/feedback/prompts/dismiss)
+ */
+export async function dismissFeedbackPrompt(
+  payload?: DismissPromptRequest
+): Promise<DismissPromptResponseData> {
+  const sessionId = payload?.client_session_id || getStoredSessionId();
+  const bodyPayload: DismissPromptRequest = {
+    client_session_id: sessionId,
+  };
+
+  return apiFetch<DismissPromptResponseData>(`${API_BASE_URL}/api/v1/feedback/prompts/dismiss`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+      'X-Client-Session-Id': sessionId,
+    },
+    body: JSON.stringify(bodyPayload),
+  });
 }
