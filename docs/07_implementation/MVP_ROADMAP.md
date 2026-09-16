@@ -111,13 +111,13 @@ Specification files:
 - `../05_api/API_CONTRACT.md`, Outfit Actions API
 - `TEST_STRATEGY.md`, Phase 5
 
-- [ ] Build chat UI with loading, clarification, empty, and error states.
-- [ ] Build outfit cards with items, scores, and Vietnamese explanations.
-- [ ] Implement saved-outfit list and bookmark action.
-- [ ] Implement the `Đã mặc` action and wear-history update.
-- [ ] Implement 1–5 rating; MUST NOT implement Like/Dislike.
-- [ ] Implement 5–10 outfit cadence, dismissal cooldown, and non-blocking Vietnamese prompt.
-- [ ] Inject deterministic time and threshold selection into tests.
+- [x] Build chat UI with loading, clarification, empty, and error states.
+- [x] Build outfit cards with items, scores, and Vietnamese explanations.
+- [x] Implement saved-outfit list and bookmark action.
+- [x] Implement the `Đã mặc` action and wear-history update.
+- [x] Implement 1–5 rating; MUST NOT implement Like/Dislike.
+- [x] Implement 5–10 outfit cadence, dismissal cooldown, and non-blocking Vietnamese prompt.
+- [x] Inject deterministic time and threshold selection into tests.
 
 Verification MUST prove that rating is not requested after every response, duplicates/errors do not increment cadence, and an accepted rating affects reranking within configured bounds.
 

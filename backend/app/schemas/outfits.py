@@ -23,7 +23,7 @@ class OutfitItemDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     slot_role: OutfitSlotRole
-    wardrobe_item_id: str = Field(min_length=36, max_length=36)
+    wardrobe_item_id: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=150)
     category: WardrobeCategory
     sub_category: str = Field(min_length=1, max_length=100)

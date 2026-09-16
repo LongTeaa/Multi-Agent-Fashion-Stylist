@@ -184,6 +184,13 @@ class TestOpenAPIContract:
                 )
                 assert user_id_param is not None, f"X-User-Id header parameter must be documented on {method.upper()} {endpoint}."
 
+                # Verify 404 response is documented for single outfit operations
+                if "{outfit_id}" in endpoint:
+                    responses = op.get("responses", {})
+                    assert "404" in responses, f"HTTP 404 response must be documented on {method.upper()} {endpoint}."
+                    err_content = responses["404"].get("content", {}).get("application/json", {}).get("schema", {})
+                    assert "ErrorResponse" in err_content.get("$ref", "")
+
     def test_outfit_actions_request_and_response_schemas(self, openapi_schema: dict) -> None:
         schemas = openapi_schema.get("components", {}).get("schemas", {})
 

@@ -15,12 +15,17 @@ from app.core.seed import (
 )
 from app.main import app
 from app.models.entities import (
+    FeedbackSuppressedSession,
     OutfitItem,
     OutfitRecommendation,
     OutfitSlotRole,
+    Rating,
+    RatingSource,
     User,
+    UserPreference,
     WardrobeCategory,
     WardrobeItem,
+    WearLog,
 )
 from app.services.retrieval_document_service import refresh_retrieval_document
 
@@ -395,3 +400,264 @@ def test_golden_recommendation_scenario(
 
     finally:
         app.dependency_overrides.clear()
+
+
+def test_golden_phase5_actions_and_learning_lifecycle(
+    migrated_database: tuple[object, object],
+) -> None:
+    """End-to-end golden flow test for Phase 5 actions and learning lifecycle.
+
+    Validates that:
+    1. Golden User chats through POST /api/v1/stylist/chat and recommendations are persisted.
+    2. Golden User bookmarks outfit #1 via PUT /api/v1/outfits/{id}/bookmark and it persists in DB.
+    3. GET /api/v1/outfits/saved returns the bookmarked outfit with complete items and scores.
+    4. POST /api/v1/outfits/{id}/worn logs wear count idempotently (second call does not double count).
+    5. Non-trivial cross-user isolation: User B receives 404 for detail, bookmark, worn, and rating on Golden User's outfit.
+       User B's saved list is completely isolated and returns total=0.
+    6. PUT /api/v1/outfits/{id}/rating creates rating, updates stars idempotently without double-counting ratings_count.
+    7. Learned feature weights in DB are bounded strictly in [-1.0, 1.0].
+    8. Feedback prompt dismissal via POST /api/v1/feedback/prompts/dismiss sets minimum 3-outfit cooldown
+       and records session suppression in DB.
+    9. Prompted rating via PUT /api/v1/outfits/{id}/rating with source='prompted' records session suppression.
+    """
+    _, engine = migrated_database
+
+    # Seed the canonical Phase 1 8-item golden wardrobe
+    seed_golden_wardrobe(engine)
+
+    # Seed control User B
+    user_b_id = f"user_b_p5_{uuid4().hex[:8]}"
+    with Session(engine) as session:
+        session.add(User(id=user_b_id))
+        session.commit()
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    app.dependency_overrides[get_utc_clock] = lambda: _golden_fixed_clock
+
+    try:
+        client = TestClient(app)
+
+        # --------------------------------------------------------------------
+        # 1. Chat and Recommendation Persistence
+        # --------------------------------------------------------------------
+        chat_res = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={
+                "query": "Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?",
+                "location": None,
+            },
+        )
+        assert chat_res.status_code == 200
+        recs = chat_res.json()["data"]["recommendations"]
+        assert len(recs) >= 2
+        outfit_1_id = recs[0]["outfit_id"]
+        outfit_2_id = recs[1]["outfit_id"]
+
+        with Session(engine) as session:
+            db_outfit_1 = session.get(OutfitRecommendation, outfit_1_id)
+            assert db_outfit_1 is not None
+            assert db_outfit_1.user_id == GOLDEN_USER_ID
+            assert db_outfit_1.is_bookmarked is False
+
+        # --------------------------------------------------------------------
+        # 2. Bookmark Action
+        # --------------------------------------------------------------------
+        bm_res = client.put(
+            f"/api/v1/outfits/{outfit_1_id}/bookmark",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={"is_bookmarked": True},
+        )
+        assert bm_res.status_code == 200
+        assert bm_res.json()["data"]["is_bookmarked"] is True
+
+        with Session(engine) as session:
+            db_outfit_1 = session.get(OutfitRecommendation, outfit_1_id)
+            assert db_outfit_1.is_bookmarked is True
+
+        # --------------------------------------------------------------------
+        # 3. Saved Outfits List Retrieval
+        # --------------------------------------------------------------------
+        saved_res = client.get(
+            "/api/v1/outfits/saved",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+        )
+        assert saved_res.status_code == 200
+        saved_data = saved_res.json()["data"]
+        assert saved_data["total"] == 1
+        assert saved_data["items"][0]["id"] == outfit_1_id
+        assert saved_data["items"][0]["is_bookmarked"] is True
+        assert len(saved_data["items"][0]["items"]) == 3
+
+        # --------------------------------------------------------------------
+        # 4. Worn Action & Idempotency
+        # --------------------------------------------------------------------
+        idemp_key = str(uuid4())
+        wear_res_1 = client.post(
+            f"/api/v1/outfits/{outfit_1_id}/worn",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={"idempotency_key": idemp_key},
+        )
+        assert wear_res_1.status_code == 200
+        wear_data_1 = wear_res_1.json()["data"]
+        assert wear_data_1["times_worn"] == 1
+        assert wear_data_1["already_processed"] is False
+
+        # Call again with the exact same idempotency key
+        wear_res_2 = client.post(
+            f"/api/v1/outfits/{outfit_1_id}/worn",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={"idempotency_key": idemp_key},
+        )
+        assert wear_res_2.status_code == 200
+        wear_data_2 = wear_res_2.json()["data"]
+        assert wear_data_2["times_worn"] == 1
+        assert wear_data_2["already_processed"] is True
+
+        # Verify DB wear log and constituent WardrobeItem times_worn increment
+        with Session(engine) as session:
+            logs = session.exec(select(WearLog).where(WearLog.outfit_id == outfit_1_id)).all()
+            assert len(logs) == 1
+            assert logs[0].idempotency_key == idemp_key
+
+            outfit_items = session.exec(select(OutfitItem).where(OutfitItem.outfit_id == outfit_1_id)).all()
+            assert len(outfit_items) == 3
+            for oi in outfit_items:
+                wi = session.get(WardrobeItem, oi.wardrobe_item_id)
+                assert wi is not None
+                assert wi.times_worn == 1
+
+        # --------------------------------------------------------------------
+        # 5. Non-Trivial Cross-User Isolation (Negative Paths)
+        # --------------------------------------------------------------------
+        # User B cannot access Golden User's outfit
+        assert client.get(f"/api/v1/outfits/{outfit_1_id}", headers={"X-User-Id": user_b_id}).status_code == 404
+        assert client.put(
+            f"/api/v1/outfits/{outfit_1_id}/bookmark",
+            headers={"X-User-Id": user_b_id},
+            json={"is_bookmarked": True},
+        ).status_code == 404
+        assert client.post(
+            f"/api/v1/outfits/{outfit_1_id}/worn",
+            headers={"X-User-Id": user_b_id},
+            json={"idempotency_key": str(uuid4())},
+        ).status_code == 404
+        assert client.put(
+            f"/api/v1/outfits/{outfit_1_id}/rating",
+            headers={"X-User-Id": user_b_id},
+            json={"stars": 5, "source": "manual"},
+        ).status_code == 404
+
+        # User B's saved outfits list is completely isolated (empty)
+        user_b_saved = client.get("/api/v1/outfits/saved", headers={"X-User-Id": user_b_id})
+        assert user_b_saved.status_code == 200
+        assert user_b_saved.json()["data"]["total"] == 0
+        assert len(user_b_saved.json()["data"]["items"]) == 0
+
+        # --------------------------------------------------------------------
+        # 6. Manual Rating & Idempotent Upsert
+        # --------------------------------------------------------------------
+        rate_res_1 = client.put(
+            f"/api/v1/outfits/{outfit_1_id}/rating",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={"stars": 5, "source": "manual"},
+        )
+        assert rate_res_1.status_code == 200
+        rate_data_1 = rate_res_1.json()["data"]
+        assert rate_data_1["stars"] == 5
+        assert rate_data_1["ratings_count"] == 1
+        assert rate_data_1["source"] == "manual"
+
+        # Update rating to 4 stars: must update rating record without double-counting ratings_count
+        rate_res_2 = client.put(
+            f"/api/v1/outfits/{outfit_1_id}/rating",
+            headers={"X-User-Id": GOLDEN_USER_ID},
+            json={"stars": 4, "source": "manual"},
+        )
+        assert rate_res_2.status_code == 200
+        rate_data_2 = rate_res_2.json()["data"]
+        assert rate_data_2["stars"] == 4
+        assert rate_data_2["ratings_count"] == 1
+
+        with Session(engine) as session:
+            ratings = session.exec(select(Rating).where(Rating.outfit_id == outfit_1_id)).all()
+            assert len(ratings) == 1
+            assert ratings[0].stars == 4
+
+        # --------------------------------------------------------------------
+        # 7. Bounded Preference Learning
+        # --------------------------------------------------------------------
+        with Session(engine) as session:
+            pref = session.get(UserPreference, GOLDEN_USER_ID)
+            assert pref is not None
+            assert pref.ratings_count == 1
+            assert isinstance(pref.learned_feature_weights, dict)
+            weights_map = pref.learned_feature_weights.get("weights", {})
+            assert isinstance(weights_map, dict)
+            for feat_key, weight in weights_map.items():
+                assert -1.0 <= weight <= 1.0, f"Feature weight {feat_key}={weight} not bounded in [-1.0, 1.0]"
+
+        # --------------------------------------------------------------------
+        # 8. Cadence Dismissal & Session Suppression
+        # --------------------------------------------------------------------
+        session_to_dismiss = str(uuid4())
+        dismiss_res = client.post(
+            "/api/v1/feedback/prompts/dismiss",
+            headers={
+                "X-User-Id": GOLDEN_USER_ID,
+                "X-Client-Session-Id": session_to_dismiss,
+            },
+            json={"client_session_id": session_to_dismiss},
+        )
+        assert dismiss_res.status_code == 200
+        dismiss_data = dismiss_res.json()["data"]
+        assert dismiss_data["dismissed"] is True
+        assert dismiss_data["cooldown_remaining"] >= 3
+
+        with Session(engine) as session:
+            suppressed = session.exec(
+                select(FeedbackSuppressedSession).where(
+                    FeedbackSuppressedSession.user_id == GOLDEN_USER_ID,
+                    FeedbackSuppressedSession.client_session_id == session_to_dismiss,
+                )
+            ).first()
+            assert suppressed is not None
+
+        # --------------------------------------------------------------------
+        # 9. Prompted Rating Flow & Session Suppression
+        # --------------------------------------------------------------------
+        session_prompted = str(uuid4())
+        rate_prompted_res = client.put(
+            f"/api/v1/outfits/{outfit_2_id}/rating",
+            headers={
+                "X-User-Id": GOLDEN_USER_ID,
+                "X-Client-Session-Id": session_prompted,
+            },
+            json={
+                "stars": 5,
+                "source": "prompted",
+                "client_session_id": session_prompted,
+            },
+        )
+        assert rate_prompted_res.status_code == 200
+        p_data = rate_prompted_res.json()["data"]
+        assert p_data["source"] == "prompted"
+        assert p_data["stars"] == 5
+        assert p_data["ratings_count"] == 2
+
+        with Session(engine) as session:
+            p_suppressed = session.exec(
+                select(FeedbackSuppressedSession).where(
+                    FeedbackSuppressedSession.user_id == GOLDEN_USER_ID,
+                    FeedbackSuppressedSession.client_session_id == session_prompted,
+                )
+            ).first()
+            assert p_suppressed is not None
+
+    finally:
+        app.dependency_overrides.clear()
+
