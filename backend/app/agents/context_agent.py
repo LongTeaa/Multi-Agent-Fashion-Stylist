@@ -661,6 +661,7 @@ def context_agent_node(
     """LangGraph node execution function for the Context Agent."""
     query = state.get("user_query", "")
     location = state.get("location")
+    client_session_id = state.get("client_session_id")
     context, warnings = extract_context_with_providers(
         query,
         location=location,
@@ -668,6 +669,8 @@ def context_agent_node(
         llm_provider=llm_provider,
         weather_provider=weather_provider,
     )
+    if client_session_id:
+        context = context.model_copy(update={"client_session_id": client_session_id})
     return {
         "context": context,
         "warnings": list(state.get("warnings", [])) + warnings,

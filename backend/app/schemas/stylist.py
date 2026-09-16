@@ -1,4 +1,4 @@
-from __future__ import annotations
+import uuid
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -10,6 +10,11 @@ class StylistChatRequest(BaseModel):
 
     query: str = Field(..., description="Vietnamese styling query from the user.")
     location: str | None = Field(default=None, max_length=100, description="Optional user location.")
+    client_session_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Optional client session UUID v4 for session-scoped feedback cadence suppression.",
+    )
 
     @field_validator("query")
     @classmethod
@@ -26,6 +31,22 @@ class StylistChatRequest(BaseModel):
             return None
         trimmed = v.strip()
         return trimmed if trimmed else None
+
+    @field_validator("client_session_id")
+    @classmethod
+    def validate_client_session_id(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        if not trimmed:
+            return None
+        try:
+            parsed = uuid.UUID(trimmed)
+            if parsed.version != 4:
+                raise ValueError("client_session_id must be a valid UUID v4.")
+        except Exception:
+            raise ValueError("client_session_id must be a valid UUID v4.")
+        return str(parsed)
 
 
 class StylistContextResponse(BaseModel):

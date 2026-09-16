@@ -86,3 +86,21 @@ class NoCompleteOutfitError(AppException):
     status_code: int = 422
     code: str = "NO_COMPLETE_OUTFIT"
     message: str = "Tủ đồ hiện chưa đủ món để tạo một bộ trang phục hoàn chỉnh."
+
+
+class OutfitNotFoundError(AppException):
+    status_code: int = 404
+    code: str = "OUTFIT_NOT_FOUND"
+    message: str = "Không tìm thấy bộ trang phục này."
+
+
+class IdempotencyConflictError(AppException):
+    status_code: int = 409
+    code: str = "IDEMPOTENCY_CONFLICT"
+    message: str = "Idempotency key đã được sử dụng cho một yêu cầu khác."
+
+
+class NotImplementedAppError(AppException):
+    status_code: int = 501
+    code: str = "NOT_IMPLEMENTED"
+    message: str = "Chức năng đang được phát triển trong task tiếp theo."

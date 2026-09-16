@@ -430,6 +430,10 @@ class OutfitRecommendation(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+    updated_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
 
 class OutfitItem(SQLModel, table=True):
@@ -519,6 +523,7 @@ class FeedbackPromptState(SQLModel, table=True):
 class WearLog(SQLModel, table=True):
     __tablename__ = "wear_logs"
     __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_wear_logs_user_idempotency"),
         ForeignKeyConstraint(
             ["outfit_id", "user_id"],
             ["outfit_recommendations.id", "outfit_recommendations.user_id"],
@@ -531,6 +536,54 @@ class WearLog(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", max_length=36)
     outfit_id: str = Field(max_length=36)
     worn_at: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
+    requested_worn_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    idempotency_key: str | None = Field(default=None, max_length=36)
+
+
+class FeedbackSuppressedSession(SQLModel, table=True):
+    __tablename__ = "feedback_suppressed_sessions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name="fk_feedback_suppressed_sessions_user",
+        ),
+        Index("ix_feedback_suppressed_sessions_user", "user_id"),
+    )
+
+    user_id: str = Field(primary_key=True, foreign_key="users.id", max_length=36)
+    client_session_id: str = Field(primary_key=True, max_length=36)
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
+class FeedbackDeliveredOutfit(SQLModel, table=True):
+    __tablename__ = "feedback_delivered_outfits"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "outfit_id", name="uq_feedback_delivered_outfits_user_outfit"
+        ),
+        ForeignKeyConstraint(
+            ["outfit_id", "user_id"],
+            ["outfit_recommendations.id", "outfit_recommendations.user_id"],
+            name="fk_feedback_delivered_outfits_outfit_owner",
+        ),
+        Index("ix_feedback_delivered_outfits_user", "user_id"),
+    )
+
+    id: str = Field(default_factory=new_uuid, primary_key=True, max_length=36)
+    user_id: str = Field(foreign_key="users.id", max_length=36)
+    outfit_id: str = Field(max_length=36)
+    request_id: str = Field(max_length=36)
+    delivered_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
 
 class TryOnRender(SQLModel, table=True):

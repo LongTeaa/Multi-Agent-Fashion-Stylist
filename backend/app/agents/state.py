@@ -99,6 +99,10 @@ class StylistContext(BaseModel):
         default="default",
         description="Source of weather data",
     )
+    client_session_id: str | None = Field(
+        default=None,
+        description="Client session identifier for feedback cadence suppression",
+    )
     needs_clarification: bool = Field(
         default=False,
         description="Flag indicating if the query requires clarification",
@@ -193,6 +197,7 @@ class StylistGraphState(TypedDict, total=False):
     user_id: str
     user_query: str
     location: str | None
+    client_session_id: str | None
     reference_time: datetime | None
     context: StylistContext | None
     candidate_pool: dict[str, list[OutfitItemSlot]]

@@ -8,9 +8,16 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.agents.state import OutfitItemSlot, RankedOutfit, StylistContext
-from app.core.dependencies import get_db_session, get_stylist_runner, get_utc_clock
+from app.core.dependencies import (
+    get_db_session,
+    get_feedback_cadence_service,
+    get_stylist_runner,
+    get_utc_clock,
+)
+from app.services.feedback_cadence_service import FeedbackCadenceService
 from app.main import app
 from app.models.entities import (
+    FeedbackPromptState,
     ItemMedia,
     ItemMediaRole,
     MediaAsset,
@@ -767,6 +774,70 @@ def test_stylist_chat_output_composite_score_safety(
         assert body["success"] is False
         assert body["error"]["code"] == "PROVIDER_ERROR"
         assert body["error"]["message"] == "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_stylist_chat_cadence_triggers_feedback_prompt_on_threshold(
+    migrated_database: tuple[object, object],
+) -> None:
+    """INVARIANT: Stylist chat evaluates FeedbackCadenceService and populates feedback_prompt_eligible and target_outfit_id."""
+    _, engine = migrated_database
+    user_id = f"user_cadence_{uuid4().hex[:8]}"
+    top_media_id = f"media_top_{uuid4().hex[:8]}"
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    app.dependency_overrides[get_utc_clock] = lambda: _fixed_clock
+    app.dependency_overrides[get_feedback_cadence_service] = lambda: FeedbackCadenceService(
+        clock=_fixed_clock,
+        threshold_chooser=lambda: 5,
+    )
+
+    try:
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.commit()
+
+        with Session(engine) as session:
+            session.add(
+                FeedbackPromptState(
+                    user_id=user_id,
+                    eligible_count_since_prompt=4,
+                    next_threshold=5,
+                    cooldown_remaining=0,
+                )
+            )
+
+            # Seed complete active wardrobe
+            _add_wardrobe_item(session, item_id="top-cad-1", user_id=user_id, category=WardrobeCategory.TOP, sub_category="polo", color="white", media_id=top_media_id)
+            _add_wardrobe_item(session, item_id="bot-cad-1", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="navy")
+            _add_wardrobe_item(session, item_id="shoe-cad-1", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="sneakers", color="white")
+            session.commit()
+
+        client = TestClient(app)
+        res = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": user_id},
+            json={
+                "query": "Hôm nay đi làm mặc gì?",
+                "location": "Hà Nội",
+            },
+        )
+
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        data = body["data"]
+
+        # Invariant: with threshold=1, prompt is eligible and points to the top recommendation
+        assert data["feedback_prompt_eligible"] is True
+        assert data["feedback_target_outfit_id"] is not None
+        assert data["feedback_target_outfit_id"] == data["recommendations"][0]["outfit_id"]
 
     finally:
         app.dependency_overrides.clear()

@@ -155,3 +155,135 @@ class TestOpenAPIContract:
         assert "composite_score" in rec_props
         assert rec_props["composite_score"].get("minimum") == 0.0
         assert rec_props["composite_score"].get("maximum") == 1.0
+
+        # Verify StylistChatRequest schema includes client_session_id
+        assert "StylistChatRequest" in schemas
+        chat_req_props = schemas["StylistChatRequest"].get("properties", {})
+        assert "client_session_id" in chat_req_props, "StylistChatRequest must include 'client_session_id'."
+
+    def test_outfit_actions_operations_exist(self, openapi_schema: dict) -> None:
+        paths = openapi_schema.get("paths", {})
+        expected_endpoints = {
+            "/api/v1/outfits/saved": ["get"],
+            "/api/v1/outfits/{outfit_id}": ["get"],
+            "/api/v1/outfits/{outfit_id}/bookmark": ["put"],
+            "/api/v1/outfits/{outfit_id}/worn": ["post"],
+            "/api/v1/outfits/{outfit_id}/rating": ["put"],
+            "/api/v1/feedback/prompts/dismiss": ["post"],
+        }
+        for endpoint, methods in expected_endpoints.items():
+            assert endpoint in paths, f"Route {endpoint} must be present in OpenAPI paths."
+            for method in methods:
+                op = paths[endpoint].get(method)
+                assert op is not None, f"{method.upper()} operation must be defined on {endpoint}."
+
+                parameters = op.get("parameters", [])
+                user_id_param = next(
+                    (p for p in parameters if p.get("name") == "X-User-Id" and p.get("in") == "header"),
+                    None,
+                )
+                assert user_id_param is not None, f"X-User-Id header parameter must be documented on {method.upper()} {endpoint}."
+
+                # Verify 404 response is documented for single outfit operations
+                if "{outfit_id}" in endpoint:
+                    responses = op.get("responses", {})
+                    assert "404" in responses, f"HTTP 404 response must be documented on {method.upper()} {endpoint}."
+                    err_content = responses["404"].get("content", {}).get("application/json", {}).get("schema", {})
+                    assert "ErrorResponse" in err_content.get("$ref", "")
+
+    def test_outfit_actions_request_and_response_schemas(self, openapi_schema: dict) -> None:
+        schemas = openapi_schema.get("components", {}).get("schemas", {})
+
+        # 1. Bookmark request
+        assert "BookmarkOutfitRequest" in schemas
+        bookmark_props = schemas["BookmarkOutfitRequest"].get("properties", {})
+        assert "is_bookmarked" in bookmark_props
+        assert "is_bookmarked" in schemas["BookmarkOutfitRequest"].get("required", [])
+
+        # 2. Worn request
+        assert "WornOutfitRequest" in schemas
+        worn_props = schemas["WornOutfitRequest"].get("properties", {})
+        assert "idempotency_key" in worn_props
+        assert "idempotency_key" in schemas["WornOutfitRequest"].get("required", [])
+        assert "worn_at" in worn_props
+
+        # 3. Rating request
+        assert "OutfitRatingRequest" in schemas
+        rating_props = schemas["OutfitRatingRequest"].get("properties", {})
+        assert "stars" in rating_props
+        assert rating_props["stars"].get("minimum") == 1
+        assert rating_props["stars"].get("maximum") == 5
+        assert "source" in rating_props
+        assert "client_session_id" in rating_props
+
+        # 4. Dismiss prompt request
+        assert "DismissPromptRequest" in schemas
+        dismiss_props = schemas["DismissPromptRequest"].get("properties", {})
+        assert "client_session_id" in dismiss_props
+
+        # 5. Outfit detail response data
+        assert "OutfitDetailResponseData" in schemas
+        detail_props = schemas["OutfitDetailResponseData"].get("properties", {})
+        for field in [
+            "id",
+            "request_id",
+            "user_query",
+            "explanation_vi",
+            "fashion_score",
+            "personalization_score",
+            "composite_score",
+            "rank",
+            "is_bookmarked",
+            "times_worn",
+            "last_worn_at",
+            "user_rating",
+            "items",
+            "created_at",
+        ]:
+            assert field in detail_props, f"OutfitDetailResponseData must include '{field}'."
+
+        # 6. Outfit item detail response
+        assert "OutfitItemDetailResponse" in schemas
+        item_props = schemas["OutfitItemDetailResponse"].get("properties", {})
+        for field in [
+            "slot_role",
+            "wardrobe_item_id",
+            "name",
+            "category",
+            "sub_category",
+            "primary_color",
+            "secondary_color",
+            "pattern",
+            "material",
+            "style",
+            "image_url",
+            "is_active",
+        ]:
+            assert field in item_props, f"OutfitItemDetailResponse must include '{field}'."
+        assert "object_key" not in item_props, "Raw object_key must not be exposed."
+        assert "bucket" not in item_props, "Raw bucket must not be exposed."
+
+        # 7. Saved outfits response data
+        assert "SavedOutfitsResponseData" in schemas
+        saved_props = schemas["SavedOutfitsResponseData"].get("properties", {})
+        assert "items" in saved_props
+        assert "page" in saved_props
+        assert "page_size" in saved_props
+        assert "total" in saved_props
+
+    def test_strictly_no_like_dislike_endpoints_or_fields(self, openapi_schema: dict) -> None:
+        """INVARIANT: The MVP MUST NOT expose Like/Dislike endpoints or fields."""
+        paths = openapi_schema.get("paths", {})
+        for path in paths:
+            assert "like" not in path.lower(), f"Endpoint path '{path}' contains forbidden word 'like'."
+            assert "dislike" not in path.lower(), f"Endpoint path '{path}' contains forbidden word 'dislike'."
+
+        schemas = openapi_schema.get("components", {}).get("schemas", {})
+        for schema_name, schema_body in schemas.items():
+            assert "like" not in schema_name.lower(), f"Schema '{schema_name}' contains forbidden word 'like'."
+            assert "dislike" not in schema_name.lower(), f"Schema '{schema_name}' contains forbidden word 'dislike'."
+            properties = schema_body.get("properties", {})
+            for prop in properties:
+                assert prop.lower() not in {"like", "dislike", "is_liked", "is_disliked", "thumbs_up", "thumbs_down"}, (
+                    f"Property '{prop}' in schema '{schema_name}' violates no-like/dislike invariant."
+                )

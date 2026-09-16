@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 4 — Multi-Agent Recommendation (completed) |
-| Active task | Phase 4 review improvements completed: enforce explicit outfit constraints, preserve clean personalization candidates, and add injectable LLM/weather providers with deterministic fallbacks. |
-| Most recently modified files | `backend/app/agents/context_agent.py`, `backend/app/agents/fashion_agent.py`, `backend/app/agents/personalization_agent.py`, `backend/app/agents/coordinator.py`, provider configuration/adapters/fakes, regression tests, `.env.example`, and `CURRENT_STATE.md`. |
-| Latest passing verification command | Phase 4 verification (143 tests) and full backend suite (321 tests) passed on 2026-09-12; Python compileall, pip check, and diff whitespace verification also passed. |
-| Next step | Phase 5 — Chat UI, Saved Outfits, Rating, and Wear History (`MVP_ROADMAP.md` Phase 5). |
+| Current phase | Phase 5 completed — Chat UI, Saved Outfits, Rating, and Wear History (Ready for Phase 6 — Illustrative Lookbook) |
+| Active task | Hoàn tất các cải tiến sau review PR #3: feedback cadence đúng đặc tả, học sở thích bằng EMA, và test chứng minh rating ảnh hưởng reranking. |
+| Most recently modified files | `backend/app/services/feedback_cadence_service.py`, `backend/app/services/outfit_service.py`, `frontend/src/lib/api.ts`, `frontend/src/app/chat/page.tsx`, `docs/05_api/API_CONTRACT.md`, và các test Phase 5 liên quan. |
+| Latest passing verification command | `pytest -q` (393 passed), `npm run test -- --run` (71 passed), `npm run type-check` (passed), `npm run lint` (passed), và `npm run build` (passed) on 2026-09-16. |
+| Next step | Push các cải tiến lên PR #3, xác nhận CI xanh, rồi merge vào `main`. |
 
 ## Update Rules
 

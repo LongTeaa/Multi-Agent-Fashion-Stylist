@@ -47,6 +47,8 @@ ENTITY_TABLES = {
     "outfit_items",
     "ratings",
     "feedback_prompt_state",
+    "feedback_suppressed_sessions",
+    "feedback_delivered_outfits",
     "wear_logs",
     "tryon_renders",
 }
@@ -61,6 +63,8 @@ REQUIRED_INDEXES = {
     "wardrobe_retrieval_documents": {
         "ix_wardrobe_retrieval_documents_user_updated"
     },
+    "feedback_suppressed_sessions": {"ix_feedback_suppressed_sessions_user"},
+    "feedback_delivered_outfits": {"ix_feedback_delivered_outfits_user"},
 }
 OWNERSHIP_FOREIGN_KEYS = {
     "fk_ingestion_detections_batch_owner",
@@ -77,6 +81,8 @@ OWNERSHIP_FOREIGN_KEYS = {
     "fk_wardrobe_items_detection_owner",
     "fk_wardrobe_retrieval_documents_item_owner",
     "fk_wear_logs_outfit_owner",
+    "fk_feedback_suppressed_sessions_user",
+    "fk_feedback_delivered_outfits_outfit_owner",
 }
 
 
@@ -105,6 +111,18 @@ def test_migration_creates_all_mvp_tables_and_indexes(
         for constraint in inspector.get_unique_constraints("wardrobe_items")
     }
     assert ("ingestion_detection_id",) in wardrobe_unique_constraints
+
+    wear_logs_unique_constraints = {
+        tuple(constraint["column_names"])
+        for constraint in inspector.get_unique_constraints("wear_logs")
+    }
+    assert ("user_id", "idempotency_key") in wear_logs_unique_constraints
+
+    delivered_unique_constraints = {
+        tuple(constraint["column_names"])
+        for constraint in inspector.get_unique_constraints("feedback_delivered_outfits")
+    }
+    assert ("user_id", "outfit_id") in delivered_unique_constraints
 
 
 def test_retrieval_document_migration_backfills_existing_active_items(
