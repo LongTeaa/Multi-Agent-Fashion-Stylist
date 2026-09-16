@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import ChatPage from '@/app/chat/page';
 import * as apiModule from '@/lib/api';
 import { ApiError } from '@/lib/api';
@@ -62,6 +62,7 @@ describe('Chat Page & Components Integration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    sessionStorage.clear();
   });
 
   it('renders chat page header, title, and initial composer', () => {
@@ -218,6 +219,132 @@ describe('Chat Page & Components Integration', () => {
     fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
 
     expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it('renders RatingPrompt when feedback_prompt_eligible is true and target outfit exists', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
+      ...mockSuccessData,
+      feedback_prompt_eligible: true,
+      feedback_target_outfit_id: 'outfit-persisted-1',
+    });
+
+    render(<ChatPage />);
+
+    const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i);
+    fireEvent.change(textarea, { target: { value: 'Đi cafe sáng cuối tuần' } });
+
+    const submitBtn = screen.getByRole('button', { name: /Phối Đồ/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeDefined();
+    });
+
+    expect(screen.getByText('Bạn chấm gợi ý vừa rồi mấy sao?')).toBeDefined();
+    expect(screen.getByText('Set #1')).toBeDefined();
+  });
+
+  it('dismisses RatingPrompt and calls dismissFeedbackPrompt when "Để sau" is clicked', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
+      ...mockSuccessData,
+      feedback_prompt_eligible: true,
+      feedback_target_outfit_id: 'outfit-persisted-1',
+    });
+    const dismissSpy = vi.spyOn(apiModule, 'dismissFeedbackPrompt').mockResolvedValueOnce({
+      cooldown_remaining: 3,
+      dismissed: true,
+    });
+
+    render(<ChatPage />);
+
+    const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i);
+    fireEvent.change(textarea, { target: { value: 'Đi cafe sáng' } });
+    fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeDefined();
+    });
+
+    const dismissBtn = screen.getByRole('button', { name: /Để sau/i });
+    fireEvent.click(dismissBtn);
+
+    await waitFor(() => {
+      expect(dismissSpy).toHaveBeenCalled();
+      expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
+    });
+  });
+
+  it('submits rating via RatingPrompt, updates OutfitCard stars, and hides prompt', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
+      ...mockSuccessData,
+      feedback_prompt_eligible: true,
+      feedback_target_outfit_id: 'outfit-persisted-1',
+    });
+    const rateSpy = vi.spyOn(apiModule, 'rateOutfit').mockResolvedValueOnce({
+      rating_id: 'rating-prompted-1',
+      outfit_id: 'outfit-persisted-1',
+      stars: 5,
+      source: 'prompted',
+      ratings_count: 1,
+      created_at: '2026-09-15T08:00:00Z',
+      updated_at: '2026-09-15T08:00:00Z',
+    });
+
+    render(<ChatPage />);
+
+    const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i);
+    fireEvent.change(textarea, { target: { value: 'Đi cafe sáng' } });
+    fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeDefined();
+    });
+
+    const prompt = screen.getByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i });
+    // Rate 5 stars via prompt
+    const promptStar5Btn = within(prompt).getByRole('button', { name: 'Đánh giá 5 sao' });
+    fireEvent.click(promptStar5Btn);
+
+    await waitFor(() => {
+      expect(rateSpy).toHaveBeenCalledWith('outfit-persisted-1', expect.objectContaining({
+        stars: 5,
+        source: 'prompted',
+      }));
+    });
+
+    // Prompt shows thank you message before closing
+    await waitFor(() => {
+      expect(within(prompt).getByText('Cảm ơn bạn đã phản hồi!')).toBeDefined();
+    });
+
+    // After auto-dismiss timer (1500ms), prompt closes and OutfitCard reflects 5/5★
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
+        expect(screen.getByText('5/5★')).toBeDefined();
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  it('does NOT render RatingPrompt if feedback_prompt_eligible is false or target outfit is not found', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
+      ...mockSuccessData,
+      feedback_prompt_eligible: true,
+      feedback_target_outfit_id: 'non-existent-outfit-id',
+    });
+
+    render(<ChatPage />);
+
+    const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i);
+    fireEvent.change(textarea, { target: { value: 'Đi dạo phố' } });
+    fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Gợi Ý Phối Đồ Số 1/i)).toBeDefined();
+    });
+
+    expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
   });
 });
 

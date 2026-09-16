@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useStylistChat } from '@/hooks/useStylistChat';
 import { ChatComposer, type ChatComposerRef } from '@/components/chat/ChatComposer';
 import { ClarificationBanner } from '@/components/chat/ClarificationBanner';
 import { ChatErrorBanner } from '@/components/chat/ChatErrorBanner';
 import { RecommendationView } from '@/components/chat/RecommendationView';
+import { RatingPrompt } from '@/components/feedback/RatingPrompt';
+import { isSessionFeedbackSuppressed, setSessionFeedbackSuppressed } from '@/lib/api';
 
 const SUGGESTED_PROMPTS = [
   'Đi cafe ngoài trời ở Đà Lạt, se lạnh, muốn set đồ lịch sự nhẹ nhàng',
@@ -24,6 +26,29 @@ export default function ChatPage() {
     sendMessage,
     retry,
   } = useStylistChat();
+
+  const [ratingsMap, setRatingsMap] = useState<Record<string, number>>({});
+  const [isPromptDismissed, setIsPromptDismissed] = useState<boolean>(false);
+
+  const handleRatingChange = (outfitId: string, rating: number) => {
+    setRatingsMap((prev) => ({ ...prev, [outfitId]: rating }));
+  };
+
+  const targetOutfit =
+    response?.feedback_prompt_eligible && response.feedback_target_outfit_id
+      ? response.recommendations.find((r) => r.outfit_id === response.feedback_target_outfit_id)
+      : undefined;
+
+  const isSuppressed =
+    isPromptDismissed ||
+    (typeof window !== 'undefined' && isSessionFeedbackSuppressed());
+
+  const shouldShowRatingPrompt =
+    status === 'success' &&
+    Boolean(response?.feedback_prompt_eligible) &&
+    Boolean(targetOutfit) &&
+    !isSuppressed &&
+    ratingsMap[targetOutfit!.outfit_id] === undefined;
 
   const composerRef = useRef<ChatComposerRef>(null);
 
@@ -163,9 +188,28 @@ export default function ChatPage() {
 
         {/* Success Recommendations State */}
         {status === 'success' && response && (
-          <RecommendationView data={response} />
+          <RecommendationView
+            data={response}
+            ratingsMap={ratingsMap}
+            onRatingChange={handleRatingChange}
+          />
         )}
       </main>
+
+      {/* Cadence Proactive Rating Prompt (Non-blocking docked card) */}
+      {shouldShowRatingPrompt && targetOutfit && (
+        <RatingPrompt
+          targetOutfitId={targetOutfit.outfit_id}
+          targetRank={targetOutfit.rank}
+          onRated={(outfitId, stars) => {
+            handleRatingChange(outfitId, stars);
+          }}
+          onDismiss={() => {
+            setIsPromptDismissed(true);
+            setSessionFeedbackSuppressed();
+          }}
+        />
+      )}
     </div>
   );
 }

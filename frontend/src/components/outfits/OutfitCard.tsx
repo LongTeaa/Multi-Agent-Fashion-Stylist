@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { setOutfitBookmark, recordOutfitWorn, getMediaUrl, ApiError } from '@/lib/api';
+import { setOutfitBookmark, recordOutfitWorn, rateOutfit, getMediaUrl, ApiError } from '@/lib/api';
 import type { StylistRecommendationItem } from '@/types/chat';
 import type { OutfitItemDetailResponse } from '@/types/outfits';
 
@@ -71,9 +71,11 @@ export interface OutfitCardProps {
   items: NormalizedOutfitItem[];
   initialIsBookmarked?: boolean;
   initialTimesWorn?: number;
+  initialRating?: number | null;
   lastWornAt?: string | null;
   onBookmarkChange?: (outfitId: string, isBookmarked: boolean) => void;
   onWearSuccess?: (outfitId: string, timesWorn: number) => void;
+  onRatingChange?: (outfitId: string, rating: number) => void;
   className?: string;
   testId?: string;
 }
@@ -87,9 +89,11 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   items = [],
   initialIsBookmarked = false,
   initialTimesWorn = 0,
+  initialRating = null,
   lastWornAt,
   onBookmarkChange,
   onWearSuccess,
+  onRatingChange,
   className = '',
   testId = 'outfit-card',
 }) => {
@@ -114,15 +118,31 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   const [wearSuccessMsg, setWearSuccessMsg] = useState<string | null>(null);
   const [wearError, setWearError] = useState<string | null>(null);
 
+  // Manual rating state (1-5 stars with prop sync during render)
+  const [prevInitialRating, setPrevInitialRating] = useState<number | null>(initialRating ?? null);
+  const [userRating, setUserRating] = useState<number | null>(initialRating ?? null);
+  if (initialRating !== undefined && initialRating !== prevInitialRating) {
+    setPrevInitialRating(initialRating);
+    setUserRating(initialRating);
+  }
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [isRatingPending, setIsRatingPending] = useState<boolean>(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [ratingSuccessMsg, setRatingSuccessMsg] = useState<string | null>(null);
+
   // Idempotency key generated once per user intent session, preserved on retry
   const idempotencyKeyRef = useRef<string>('');
   const wearTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const ratingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (wearTimerRef.current) {
         clearTimeout(wearTimerRef.current);
+      }
+      if (ratingTimerRef.current) {
+        clearTimeout(ratingTimerRef.current);
       }
     };
   }, []);
@@ -203,6 +223,36 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       setWearError(msg);
     } finally {
       setIsWearPending(false);
+    }
+  };
+
+  const handleRateOutfit = async (stars: number) => {
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5 || isRatingPending) return;
+
+    setIsRatingPending(true);
+    setRatingError(null);
+    setRatingSuccessMsg(null);
+
+    try {
+      const res = await rateOutfit(outfitId, { stars, source: 'manual' });
+      setUserRating(res.stars);
+      setRatingSuccessMsg(`Đã đánh giá ${res.stars}★`);
+      onRatingChange?.(outfitId, res.stars);
+
+      if (ratingTimerRef.current) {
+        clearTimeout(ratingTimerRef.current);
+      }
+      ratingTimerRef.current = setTimeout(() => {
+        setRatingSuccessMsg(null);
+      }, 3500);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : 'Không thể lưu đánh giá. Vui lòng thử lại.';
+      setRatingError(msg);
+    } finally {
+      setIsRatingPending(false);
     }
   };
 
@@ -377,7 +427,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           </div>
         )}
 
-        {/* Card Footer: Wear Log Action Button */}
+        {/* Card Footer: Wear Log Action Button & Rating Controls */}
         <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <button
@@ -409,26 +459,88 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             <span className="sm:hidden text-[11px] text-slate-400">
               Đã mặc {timesWorn} lần
             </span>
+
+            {wearSuccessMsg && (
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn flex items-center gap-1">
+                ✓ {wearSuccessMsg}
+              </span>
+            )}
+
+            {wearError && (
+              <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-fadeIn flex items-center gap-1">
+                ✕ {wearError}
+              </span>
+            )}
           </div>
 
-          {/* Feedback Badges */}
-          {wearSuccessMsg && (
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn flex items-center gap-1">
-              ✓ {wearSuccessMsg}
-            </span>
-          )}
+          {/* Manual Star Rating Control (1-5 stars) */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] text-slate-400 font-medium">Đánh giá:</span>
+            <div
+              className="flex items-center"
+              role="group"
+              aria-label="Đánh giá bộ trang phục từ 1 đến 5 sao"
+            >
+              {[1, 2, 3, 4, 5].map((star) => {
+                const isFilled = (hoverRating ?? userRating ?? 0) >= star;
+                return (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => handleRateOutfit(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(null)}
+                    onFocus={() => setHoverRating(star)}
+                    onBlur={() => setHoverRating(null)}
+                    disabled={isRatingPending}
+                    aria-label={`Đánh giá ${star} sao`}
+                    className="p-1 text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden"
+                  >
+                    <svg
+                      className={`w-4 h-4 transition-transform ${
+                        isFilled
+                          ? 'text-amber-400 fill-amber-400 scale-105'
+                          : 'text-slate-300 dark:text-slate-600 fill-none'
+                      }`}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                      />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
 
-          {wearError && (
-            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-fadeIn flex items-center gap-1">
-              ✕ {wearError}
-            </span>
-          )}
+            {userRating && (
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-0.5">
+                {userRating}/5★
+              </span>
+            )}
 
-          {lastWornAt && !wearSuccessMsg && (
-            <span className="text-[11px] text-slate-400">
-              Lần gần nhất: {new Date(lastWornAt).toLocaleDateString('vi-VN')}
-            </span>
-          )}
+            {ratingSuccessMsg && (
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn ml-1">
+                ✓ {ratingSuccessMsg}
+              </span>
+            )}
+
+            {ratingError && (
+              <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-fadeIn ml-1">
+                ✕ {ratingError}
+              </span>
+            )}
+
+            {lastWornAt && !wearSuccessMsg && (
+              <span className="text-[11px] text-slate-400 ml-2 hidden sm:inline">
+                Mặc gần nhất: {new Date(lastWornAt).toLocaleDateString('vi-VN')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </article>

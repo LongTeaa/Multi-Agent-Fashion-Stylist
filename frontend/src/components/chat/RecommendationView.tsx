@@ -4,8 +4,10 @@ import React from 'react';
 import type { StylistChatResponseData, StylistContext } from '@/types/chat';
 import { OutfitCard, normalizeStylistItems } from '@/components/outfits/OutfitCard';
 
-interface RecommendationViewProps {
+export interface RecommendationViewProps {
   data: StylistChatResponseData;
+  ratingsMap?: Record<string, number>;
+  onRatingChange?: (outfitId: string, rating: number) => void;
 }
 
 const ContextSummary: React.FC<{ context: StylistContext }> = ({ context }) => {
@@ -76,7 +78,11 @@ const ContextSummary: React.FC<{ context: StylistContext }> = ({ context }) => {
   );
 };
 
-export const RecommendationView: React.FC<RecommendationViewProps> = ({ data }) => {
+export const RecommendationView: React.FC<RecommendationViewProps> = ({
+  data,
+  ratingsMap,
+  onRatingChange,
+}) => {
   return (
     <div className="w-full space-y-6 animate-fadeIn">
       {/* Extracted context snapshot */}
@@ -108,6 +114,8 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data }) 
               items={normalizeStylistItems(rec.items)}
               initialIsBookmarked={false}
               initialTimesWorn={0}
+              initialRating={ratingsMap?.[rec.outfit_id] ?? null}
+              onRatingChange={onRatingChange}
             />
           ))}
         </div>

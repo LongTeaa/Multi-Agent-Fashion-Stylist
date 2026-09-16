@@ -104,6 +104,38 @@ export function setStoredSessionId(id: string): void {
   }
 }
 
+const FEEDBACK_SUPPRESSED_PREFIX = 'fashion_stylist_feedback_suppressed_';
+const memorySuppressedSessions = new Set<string>();
+
+export function isSessionFeedbackSuppressed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const sessionId = getStoredSessionId();
+    if (memorySuppressedSessions.has(sessionId)) {
+      return true;
+    }
+    return sessionStorage.getItem(`${FEEDBACK_SUPPRESSED_PREFIX}${sessionId}`) === 'true';
+  } catch {
+    const sessionId = getStoredSessionId();
+    return memorySuppressedSessions.has(sessionId);
+  }
+}
+
+export function setSessionFeedbackSuppressed(): void {
+  if (typeof window === 'undefined') return;
+  const sessionId = getStoredSessionId();
+  memorySuppressedSessions.add(sessionId);
+  try {
+    sessionStorage.setItem(`${FEEDBACK_SUPPRESSED_PREFIX}${sessionId}`, 'true');
+  } catch {
+    // Storage restricted or unavailable - in-memory fallback preserved
+  }
+}
+
+export function clearMemorySuppressedSessionsForTesting(): void {
+  memorySuppressedSessions.clear();
+}
+
 export class ApiError extends Error {
   code: string;
   details?: unknown;
@@ -386,11 +418,17 @@ export async function rateOutfit(
     headers['X-Client-Session-Id'] = sessionId;
   }
 
-  return apiFetch<OutfitRatingResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}/rating`, {
+  const res = await apiFetch<OutfitRatingResponseData>(`${API_BASE_URL}/api/v1/outfits/${encodeURIComponent(outfitId)}/rating`, {
     method: 'PUT',
     headers,
     body: JSON.stringify(bodyPayload),
   });
+
+  if (payload.source === 'prompted') {
+    setSessionFeedbackSuppressed();
+  }
+
+  return res;
 }
 
 /**
@@ -404,13 +442,20 @@ export async function dismissFeedbackPrompt(
     client_session_id: sessionId,
   };
 
-  return apiFetch<DismissPromptResponseData>(`${API_BASE_URL}/api/v1/feedback/prompts/dismiss`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': getStoredUserId(),
-      'X-Client-Session-Id': sessionId,
-    },
-    body: JSON.stringify(bodyPayload),
-  });
+  try {
+    const res = await apiFetch<DismissPromptResponseData>(`${API_BASE_URL}/api/v1/feedback/prompts/dismiss`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': getStoredUserId(),
+        'X-Client-Session-Id': sessionId,
+      },
+      body: JSON.stringify(bodyPayload),
+    });
+    setSessionFeedbackSuppressed();
+    return res;
+  } catch (err) {
+    setSessionFeedbackSuppressed();
+    throw err;
+  }
 }

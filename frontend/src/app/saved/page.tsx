@@ -101,6 +101,18 @@ export default function SavedOutfitsPage() {
     });
   };
 
+  const handleRatingChange = (outfitId: string, rating: number) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === outfitId ? { ...item, user_rating: rating } : item
+        ),
+      };
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40 text-slate-800 dark:text-slate-100 transition-colors">
       {/* Header */}
@@ -268,9 +280,11 @@ export default function SavedOutfitsPage() {
                 items={normalizeDetailItems(outfit.items)}
                 initialIsBookmarked={outfit.is_bookmarked}
                 initialTimesWorn={outfit.times_worn}
+                initialRating={outfit.user_rating}
                 lastWornAt={outfit.last_worn_at}
                 onBookmarkChange={handleBookmarkChange}
                 onWearSuccess={handleWearSuccess}
+                onRatingChange={handleRatingChange}
               />
             ))}
 

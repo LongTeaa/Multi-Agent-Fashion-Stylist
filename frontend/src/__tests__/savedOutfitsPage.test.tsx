@@ -12,6 +12,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     getSavedOutfits: vi.fn(),
     setOutfitBookmark: vi.fn(),
     recordOutfitWorn: vi.fn(),
+    rateOutfit: vi.fn(),
   };
 });
 
@@ -30,6 +31,7 @@ describe('SavedOutfitsPage Integration', () => {
         is_bookmarked: true,
         times_worn: 3,
         last_worn_at: '2026-09-14T09:00:00Z',
+        user_rating: 4,
         created_at: '2026-09-10T10:00:00Z',
         items: [
           {
@@ -268,6 +270,48 @@ describe('SavedOutfitsPage Integration', () => {
       expect(screen.queryByTestId('saved-outfits-empty')).toBeNull();
       // Verifies it auto-requested page 1
       expect(api.getSavedOutfits).toHaveBeenLastCalledWith({ page: 1, page_size: 10 });
+    });
+  });
+
+  it('renders initial ratings on saved cards and allows rating an outfit with source: "manual"', async () => {
+    vi.mocked(api.getSavedOutfits).mockResolvedValueOnce(mockSavedData);
+    vi.mocked(api.rateOutfit).mockResolvedValueOnce({
+      rating_id: 'rating-saved-1',
+      outfit_id: 'outfit-2',
+      stars: 5,
+      source: 'manual',
+      ratings_count: 2,
+      created_at: '2026-09-15T08:00:00Z',
+      updated_at: '2026-09-15T08:00:00Z',
+    });
+
+    render(<SavedOutfitsPage />);
+
+    await waitFor(() => {
+      // outfit-1 has user_rating: 4
+      expect(screen.getByText('4/5★')).toBeDefined();
+    });
+
+    // Find outfit-2 card
+    const outfitCards = screen.getAllByTestId('outfit-card');
+    const outfit2Card = outfitCards.find((c) => c.getAttribute('data-outfit-id') === 'outfit-2');
+    expect(outfit2Card).toBeDefined();
+
+    // Click star 5 on outfit-2
+    const star5Btn = outfit2Card!.querySelector('button[aria-label="Đánh giá 5 sao"]');
+    expect(star5Btn).not.toBeNull();
+    fireEvent.click(star5Btn!);
+
+    await waitFor(() => {
+      expect(api.rateOutfit).toHaveBeenCalledWith('outfit-2', {
+        stars: 5,
+        source: 'manual',
+      });
+    });
+
+    // outfit-2 should now display 5/5★
+    await waitFor(() => {
+      expect(screen.getByText('5/5★')).toBeDefined();
     });
   });
 });

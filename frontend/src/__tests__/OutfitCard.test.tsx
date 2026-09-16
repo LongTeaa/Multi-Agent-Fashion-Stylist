@@ -11,6 +11,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     ...actual,
     setOutfitBookmark: vi.fn(),
     recordOutfitWorn: vi.fn(),
+    rateOutfit: vi.fn(),
   };
 });
 
@@ -151,7 +152,7 @@ describe('OutfitCard Component', () => {
     expect(screen.getAllByText(/Đã mặc 2 lần/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('CONTRACT INVARIANT: strictly does NOT contain Like/Dislike or rating controls', () => {
+  it('CONTRACT INVARIANT: strictly does NOT contain Like/Dislike buttons', () => {
     render(
       <OutfitCard
         outfitId="outfit-101"
@@ -160,10 +161,11 @@ describe('OutfitCard Component', () => {
       />
     );
 
-    // No like / dislike / rating controls in Task 5.8
+    // Strictly no like / dislike controls
     expect(screen.queryByRole('button', { name: /thích/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /không thích/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /đánh giá/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /like/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /dislike/i })).toBeNull();
     expect(screen.queryByRole('radio')).toBeNull();
   });
 
@@ -422,5 +424,117 @@ describe('OutfitCard Component', () => {
 
     expect(bookmarkBtn.getAttribute('aria-pressed')).toBe('true');
     expect(screen.getAllByText(/Đã mặc 5 lần/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders 5-star rating controls and displays initial rating', () => {
+    render(
+      <OutfitCard
+        outfitId="outfit-rate-init"
+        explanationVi="Set đồ có sẵn rating"
+        items={mockItems}
+        initialRating={3}
+      />
+    );
+
+    expect(screen.getByRole('group', { name: /Đánh giá bộ trang phục từ 1 đến 5 sao/i })).toBeDefined();
+    for (let s = 1; s <= 5; s++) {
+      expect(screen.getByRole('button', { name: `Đánh giá ${s} sao` })).toBeDefined();
+    }
+    expect(screen.getByText('3/5★')).toBeDefined();
+
+    // INVARIANT: Strictly no Like or Dislike buttons
+    expect(screen.queryByRole('button', { name: /thích/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /không thích/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /like/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /dislike/i })).toBeNull();
+  });
+
+  it('submits manual star rating with source: "manual", updates UI, and triggers onRatingChange callback', async () => {
+    vi.mocked(api.rateOutfit).mockResolvedValueOnce({
+      rating_id: 'rating-manual-1',
+      outfit_id: 'outfit-rate-action',
+      stars: 4,
+      source: 'manual',
+      ratings_count: 1,
+      created_at: '2026-09-15T08:00:00Z',
+      updated_at: '2026-09-15T08:00:00Z',
+    });
+
+    const onRatingChange = vi.fn();
+
+    render(
+      <OutfitCard
+        outfitId="outfit-rate-action"
+        explanationVi="Set đồ thử rating"
+        items={mockItems}
+        onRatingChange={onRatingChange}
+      />
+    );
+
+    const star4Btn = screen.getByRole('button', { name: 'Đánh giá 4 sao' });
+    fireEvent.click(star4Btn);
+
+    await waitFor(() => {
+      expect(api.rateOutfit).toHaveBeenCalledWith('outfit-rate-action', {
+        stars: 4,
+        source: 'manual',
+      });
+    });
+
+    expect(screen.getByText('4/5★')).toBeDefined();
+    expect(screen.getByText('✓ Đã đánh giá 4★')).toBeDefined();
+    expect(onRatingChange).toHaveBeenCalledWith('outfit-rate-action', 4);
+  });
+
+  it('displays error message when manual rating submission fails', async () => {
+    vi.mocked(api.rateOutfit).mockRejectedValueOnce(
+      new api.ApiError('Không thể lưu đánh giá.', 'SERVER_ERROR', 500)
+    );
+
+    const onRatingChange = vi.fn();
+
+    render(
+      <OutfitCard
+        outfitId="outfit-rate-fail"
+        explanationVi="Set đồ thử rating fail"
+        items={mockItems}
+        onRatingChange={onRatingChange}
+      />
+    );
+
+    const star2Btn = screen.getByRole('button', { name: 'Đánh giá 2 sao' });
+    fireEvent.click(star2Btn);
+
+    await waitFor(() => {
+      expect(screen.getByText('✕ Không thể lưu đánh giá.')).toBeDefined();
+    });
+
+    expect(onRatingChange).not.toHaveBeenCalled();
+    expect(screen.queryByText('2/5★')).toBeNull();
+  });
+
+  it('synchronizes internal rating state when initialRating prop changes', () => {
+    const { rerender } = render(
+      <OutfitCard
+        outfitId="outfit-rate-sync"
+        explanationVi="Set đồ"
+        items={mockItems}
+        initialRating={null}
+      />
+    );
+
+    expect(screen.queryByText(/\/5★/)).toBeNull();
+
+    // Rerender with initialRating = 5
+    rerender(
+      <OutfitCard
+        outfitId="outfit-rate-sync"
+        explanationVi="Set đồ"
+        items={mockItems}
+        initialRating={5}
+      />
+    );
+
+    expect(screen.getByText('5/5★')).toBeDefined();
   });
 });
