@@ -417,7 +417,7 @@ def test_golden_phase5_actions_and_learning_lifecycle(
     6. PUT /api/v1/outfits/{id}/rating creates rating, updates stars idempotently without double-counting ratings_count.
     7. Learned feature weights in DB are bounded strictly in [-1.0, 1.0].
     8. Feedback prompt dismissal via POST /api/v1/feedback/prompts/dismiss sets minimum 3-outfit cooldown
-       and records session suppression in DB.
+       without suppressing the entire session.
     9. Prompted rating via PUT /api/v1/outfits/{id}/rating with source='prompted' records session suppression.
     """
     _, engine = migrated_database
@@ -602,7 +602,7 @@ def test_golden_phase5_actions_and_learning_lifecycle(
                 assert -1.0 <= weight <= 1.0, f"Feature weight {feat_key}={weight} not bounded in [-1.0, 1.0]"
 
         # --------------------------------------------------------------------
-        # 8. Cadence Dismissal & Session Suppression
+        # 8. Cadence Dismissal Without Session Suppression
         # --------------------------------------------------------------------
         session_to_dismiss = str(uuid4())
         dismiss_res = client.post(
@@ -625,7 +625,7 @@ def test_golden_phase5_actions_and_learning_lifecycle(
                     FeedbackSuppressedSession.client_session_id == session_to_dismiss,
                 )
             ).first()
-            assert suppressed is not None
+            assert suppressed is None
 
         # --------------------------------------------------------------------
         # 9. Prompted Rating Flow & Session Suppression

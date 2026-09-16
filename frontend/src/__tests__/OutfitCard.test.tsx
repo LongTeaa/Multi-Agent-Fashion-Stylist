@@ -39,10 +39,10 @@ describe('OutfitCard Component', () => {
     },
     {
       id: 'item-3',
-      slot: 'shoes',
+      slot: 'footwear',
       name: 'Giày Penny Loafer da nâu',
       imageUrl: '/media/items/shoes1.jpg',
-      category: 'shoes',
+      category: 'footwear',
       subCategory: 'loafer',
       primaryColor: 'Nâu cognac',
       isActive: false, // Inactive / deleted item test
@@ -132,11 +132,13 @@ describe('OutfitCard Component', () => {
     expect(screen.getByText('Áo sơ mi Oxford xanh pastel')).toBeDefined();
     expect(screen.getByText('Quần tây xếp ly ghi sáng')).toBeDefined();
     expect(screen.getByText('Giày Penny Loafer da nâu')).toBeDefined();
+    expect(screen.getAllByText('Giày / Dép').length).toBeGreaterThan(0);
 
     // Verify Alt Text for items with images
     const topImg = screen.getByAltText('Ảnh của Áo sơ mi Oxford xanh pastel (Áo)');
     expect(topImg).toBeDefined();
     expect(topImg.getAttribute('src')).toContain('/media/items/top1.jpg');
+    expect(screen.getByAltText('Ảnh của Giày Penny Loafer da nâu (Giày / Dép)')).toBeDefined();
 
     // Verify fallback when no image
     expect(screen.getByText('Không có ảnh')).toBeDefined();

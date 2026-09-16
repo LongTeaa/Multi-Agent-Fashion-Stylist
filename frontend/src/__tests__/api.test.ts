@@ -13,6 +13,8 @@ import {
   rateOutfit,
   dismissFeedbackPrompt,
   getMediaUrl,
+  isSessionFeedbackSuppressed,
+  clearMemorySuppressedSessionsForTesting,
 } from '@/lib/api';
 import type {
   OutfitDetailResponseData,
@@ -31,6 +33,7 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    clearMemorySuppressedSessionsForTesting();
     setStoredUserId('test-user-uuid-1234');
     setStoredSessionId('test-session-uuid-5678');
   });
@@ -375,7 +378,7 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
       );
     });
 
-    it('rateOutfit with source=manual does NOT attach client_session_id to prevent session suppression leak', async () => {
+    it('rateOutfit with source=manual attaches the current session and suppresses later prompts', async () => {
       const mockRating: OutfitRatingResponseData = {
         rating_id: 'rate-2',
         outfit_id: 'outfit-1',
@@ -399,16 +402,16 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
       const result = await rateOutfit('outfit-1', payload);
       expect(result).toEqual(mockRating);
 
-      // Verify that X-Client-Session-Id header is NOT present
+      // Every successful rating belongs to the active browser session.
       const callArgs = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const headers = callArgs[1].headers;
-      expect(headers['X-Client-Session-Id']).toBeUndefined();
+      expect(headers['X-Client-Session-Id']).toBe('test-session-uuid-5678');
 
-      // Verify body does NOT contain client_session_id
       const body = JSON.parse(callArgs[1].body);
-      expect(body.client_session_id).toBeUndefined();
+      expect(body.client_session_id).toBe('test-session-uuid-5678');
       expect(body.source).toBe('manual');
       expect(body.stars).toBe(4);
+      expect(isSessionFeedbackSuppressed()).toBe(true);
     });
 
     it('dismissFeedbackPrompt calls POST /api/v1/feedback/prompts/dismiss with session ID', async () => {
@@ -425,6 +428,7 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
 
       const result = await dismissFeedbackPrompt();
       expect(result).toEqual(mockDismiss);
+      expect(isSessionFeedbackSuppressed()).toBe(false);
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/v1/feedback/prompts/dismiss'),

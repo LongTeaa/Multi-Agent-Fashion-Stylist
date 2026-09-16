@@ -215,7 +215,14 @@ class FeedbackCadenceService:
         user_id: str,
         client_session_id: str | None = None,
     ) -> DismissPromptResponseData:
-        """Dismisses the proactive feedback rating prompt and applies a cooldown of at least 3 eligible outfits."""
+        """Dismiss the current prompt and apply a cooldown of at least three outfits.
+
+        A dismissal is intentionally different from a rating. It must not add the
+        client session to ``feedback_suppressed_sessions`` because prompts may
+        resume in the same session after the cooldown and normal cadence elapse.
+        ``client_session_id`` remains accepted for API compatibility and request
+        reconciliation at the endpoint boundary.
+        """
         now = self.clock()
         max_attempts = 5
 
@@ -235,21 +242,6 @@ class FeedbackCadenceService:
                     prompt_state.cooldown_remaining = max(prompt_state.cooldown_remaining, 3)
                     prompt_state.eligible_count_since_prompt = 0
                     session.add(prompt_state)
-
-                if client_session_id:
-                    existing_suppression = session.exec(
-                        select(FeedbackSuppressedSession).where(
-                            FeedbackSuppressedSession.user_id == user_id,
-                            FeedbackSuppressedSession.client_session_id == client_session_id,
-                        )
-                    ).first()
-                    if existing_suppression is None:
-                        suppression = FeedbackSuppressedSession(
-                            user_id=user_id,
-                            client_session_id=client_session_id,
-                            created_at=now,
-                        )
-                        session.add(suppression)
 
                 session.commit()
                 return DismissPromptResponseData(

@@ -327,8 +327,8 @@ def test_cadence_same_session_suppression(db_session: Session) -> None:
     assert target2 is not None
 
 
-def test_dismiss_with_client_session_id_records_suppression(db_session: Session) -> None:
-    """INVARIANT: Dismissing with client_session_id records the session in feedback_suppressed_sessions."""
+def test_dismiss_with_client_session_id_allows_prompt_after_cooldown(db_session: Session) -> None:
+    """INVARIANT: Dismissal cools down but does not suppress the whole session."""
     service = FeedbackCadenceService(threshold_chooser=lambda: 5)
     user = _create_user(db_session)
     session_id = str(uuid.uuid4())
@@ -342,7 +342,36 @@ def test_dismiss_with_client_session_id_records_suppression(db_session: Session)
             FeedbackSuppressedSession.client_session_id == session_id,
         )
     ).first()
-    assert suppression is not None
+    assert suppression is None
+
+    cooldown_outfits = [_create_outfit(db_session, user.id) for _ in range(3)]
+    eligible, target = service.process_chat_recommendations(
+        db_session,
+        user.id,
+        [outfit.id for outfit in cooldown_outfits],
+        client_session_id=session_id,
+    )
+    assert eligible is False
+    assert target is None
+
+    cadence_outfits = [_create_outfit(db_session, user.id) for _ in range(5)]
+    eligible, target = service.process_chat_recommendations(
+        db_session,
+        user.id,
+        [outfit.id for outfit in cadence_outfits[:4]],
+        client_session_id=session_id,
+    )
+    assert eligible is False
+    assert target is None
+
+    eligible, target = service.process_chat_recommendations(
+        db_session,
+        user.id,
+        [cadence_outfits[4].id],
+        client_session_id=session_id,
+    )
+    assert eligible is True
+    assert target == cadence_outfits[4].id
 
 
 def test_cadence_delivered_outfits_deduplication_across_calls(db_session: Session) -> None:

@@ -8,7 +8,7 @@ import { ClarificationBanner } from '@/components/chat/ClarificationBanner';
 import { ChatErrorBanner } from '@/components/chat/ChatErrorBanner';
 import { RecommendationView } from '@/components/chat/RecommendationView';
 import { RatingPrompt } from '@/components/feedback/RatingPrompt';
-import { isSessionFeedbackSuppressed, setSessionFeedbackSuppressed } from '@/lib/api';
+import { isSessionFeedbackSuppressed } from '@/lib/api';
 
 const SUGGESTED_PROMPTS = [
   'Đi cafe ngoài trời ở Đà Lạt, se lạnh, muốn set đồ lịch sự nhẹ nhàng',
@@ -32,7 +32,7 @@ export default function ChatPage() {
   } = useStylistChat();
 
   const [ratingsMap, setRatingsMap] = useState<Record<string, number>>({});
-  const [isPromptDismissed, setIsPromptDismissed] = useState<boolean>(false);
+  const [dismissedPromptRequestId, setDismissedPromptRequestId] = useState<string | null>(null);
   const isSessionSuppressed = useSyncExternalStore(
     emptySubscribe,
     getSessionSuppressedSnapshot,
@@ -48,7 +48,9 @@ export default function ChatPage() {
       ? response.recommendations.find((r) => r.outfit_id === response.feedback_target_outfit_id)
       : undefined;
 
-  const isSuppressed = isPromptDismissed || isSessionSuppressed;
+  const isCurrentPromptDismissed =
+    Boolean(response?.request_id) && dismissedPromptRequestId === response?.request_id;
+  const isSuppressed = isCurrentPromptDismissed || isSessionSuppressed;
 
   const shouldShowRatingPrompt =
     status === 'success' &&
@@ -220,8 +222,7 @@ export default function ChatPage() {
             handleRatingChange(outfitId, stars);
           }}
           onDismiss={() => {
-            setIsPromptDismissed(true);
-            setSessionFeedbackSuppressed();
+            setDismissedPromptRequestId(response?.request_id ?? null);
           }}
         />
       )}

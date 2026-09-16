@@ -319,6 +319,7 @@ Response `data`:
 Dismisses the proactive feedback rating prompt.
 - Increments or sets `cooldown_remaining` (minimum 3 eligible outfits) so the prompt is not shown again immediately.
 - `client_session_id`: optional client session UUID stored in `sessionStorage`.
+- Dismissal MUST NOT add the session to `feedback_suppressed_sessions`; after cooldown and the normal cadence threshold, a prompt MAY appear again in the same session. Session-wide suppression is created only by a successful rating.
 
 Request:
 ```json

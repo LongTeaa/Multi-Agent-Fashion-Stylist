@@ -573,6 +573,9 @@ RATING_WEIGHT_SIGNALS: dict[int, float] = {
     4: 0.5,
     5: 1.0,
 }
+LEARNED_AFFINITY_EMA_ALPHA = 0.30
+LEARNED_AFFINITY_MIN_WEIGHT = -1.0
+LEARNED_AFFINITY_MAX_WEIGHT = 1.0
 
 
 def _update_learned_feature_weights(
@@ -580,7 +583,7 @@ def _update_learned_feature_weights(
     user_id: str,
     preferences: UserPreference,
 ) -> None:
-    """Deterministically update versioned learned_feature_weights from user rating history.
+    """Rebuild versioned learned weights using a deterministic per-feature EMA.
 
     - Features extracted per outfit:
       - style:{item.style}
@@ -588,17 +591,22 @@ def _update_learned_feature_weights(
       - pattern:{item.pattern}
       - formality:low (level <= 2), formality:medium (level == 3), formality:high (level >= 4)
     - Signals mapped: 1=-1.0, 2=-0.5, 3=0.0, 4=0.5, 5=1.0.
-    - Computes average signal per feature across all rated outfits, clamped to [-1.0, 1.0].
+    - Replays ratings by ``updated_at`` then ``id`` so an edited rating becomes
+      the newest observation and repeated rebuilds produce the same result.
+    - Applies alpha=0.30 independently per observed feature and clamps weights
+      to [-1.0, 1.0].
     - Increments version number in {"version": v, "weights": weights}.
     """
     user_ratings = session.exec(
-        select(Rating).where(Rating.user_id == user_id)
+        select(Rating)
+        .where(Rating.user_id == user_id)
+        .order_by(Rating.updated_at.asc(), Rating.id.asc())
     ).all()
 
     if not user_ratings:
         return
 
-    feature_signals: defaultdict[str, list[float]] = defaultdict(list)
+    weights: dict[str, float] = {}
 
     for r in user_ratings:
         signal = RATING_WEIGHT_SIGNALS.get(r.stars, 0.0)
@@ -627,14 +635,23 @@ def _update_learned_feature_weights(
             else:
                 outfit_features.add("formality:high")
 
-        for feat in outfit_features:
-            feature_signals[feat].append(signal)
-
-    weights: dict[str, float] = {}
-    for feat, signals in sorted(feature_signals.items()):
-        avg_signal = sum(signals) / len(signals)
-        clamped = max(-1.0, min(1.0, avg_signal))
-        weights[feat] = round(clamped, 4)
+        for feat in sorted(outfit_features):
+            previous = weights.get(feat)
+            next_weight = (
+                signal
+                if previous is None
+                else (
+                    LEARNED_AFFINITY_EMA_ALPHA * signal
+                    + (1.0 - LEARNED_AFFINITY_EMA_ALPHA) * previous
+                )
+            )
+            weights[feat] = round(
+                max(
+                    LEARNED_AFFINITY_MIN_WEIGHT,
+                    min(LEARNED_AFFINITY_MAX_WEIGHT, next_weight),
+                ),
+                4,
+            )
 
     curr_version = 1
     if isinstance(preferences.learned_feature_weights, dict):
@@ -644,6 +661,9 @@ def _update_learned_feature_weights(
 
     preferences.learned_feature_weights = {
         "version": curr_version + 1,
+        "ema_alpha": LEARNED_AFFINITY_EMA_ALPHA,
+        "min_weight": LEARNED_AFFINITY_MIN_WEIGHT,
+        "max_weight": LEARNED_AFFINITY_MAX_WEIGHT,
         "weights": weights,
     }
     preferences.updated_at = utc_now()

@@ -398,13 +398,14 @@ export async function recordOutfitWorn(
 
 /**
  * Submit outfit star rating (PUT /api/v1/outfits/{outfit_id}/rating)
- * Strictly avoids session suppression leak for manual ratings when client_session_id is not specified.
+ * Every successful rating suppresses proactive prompts for the remainder of the
+ * current browser session, including ratings submitted manually from a card.
  */
 export async function rateOutfit(
   outfitId: string,
   payload: OutfitRatingRequest
 ): Promise<OutfitRatingResponseData> {
-  const sessionId = payload.client_session_id ?? (payload.source === 'prompted' ? getStoredSessionId() : undefined);
+  const sessionId = payload.client_session_id ?? getStoredSessionId();
   const bodyPayload: OutfitRatingRequest = {
     ...payload,
     ...(sessionId ? { client_session_id: sessionId } : {}),
@@ -424,9 +425,7 @@ export async function rateOutfit(
     body: JSON.stringify(bodyPayload),
   });
 
-  if (payload.source === 'prompted') {
-    setSessionFeedbackSuppressed();
-  }
+  setSessionFeedbackSuppressed();
 
   return res;
 }
@@ -442,20 +441,13 @@ export async function dismissFeedbackPrompt(
     client_session_id: sessionId,
   };
 
-  try {
-    const res = await apiFetch<DismissPromptResponseData>(`${API_BASE_URL}/api/v1/feedback/prompts/dismiss`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': getStoredUserId(),
-        'X-Client-Session-Id': sessionId,
-      },
-      body: JSON.stringify(bodyPayload),
-    });
-    setSessionFeedbackSuppressed();
-    return res;
-  } catch (err) {
-    setSessionFeedbackSuppressed();
-    throw err;
-  }
+  return apiFetch<DismissPromptResponseData>(`${API_BASE_URL}/api/v1/feedback/prompts/dismiss`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+      'X-Client-Session-Id': sessionId,
+    },
+    body: JSON.stringify(bodyPayload),
+  });
 }

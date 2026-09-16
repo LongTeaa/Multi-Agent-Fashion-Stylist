@@ -244,12 +244,20 @@ describe('Chat Page & Components Integration', () => {
     expect(screen.getByText('Set #1')).toBeDefined();
   });
 
-  it('dismisses RatingPrompt and calls dismissFeedbackPrompt when "Để sau" is clicked', async () => {
-    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
-      ...mockSuccessData,
-      feedback_prompt_eligible: true,
-      feedback_target_outfit_id: 'outfit-persisted-1',
-    });
+  it('dismisses only the current prompt and allows a later eligible response to prompt again', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat')
+      .mockResolvedValueOnce({
+        ...mockSuccessData,
+        request_id: 'request-before-dismiss',
+        feedback_prompt_eligible: true,
+        feedback_target_outfit_id: 'outfit-persisted-1',
+      })
+      .mockResolvedValueOnce({
+        ...mockSuccessData,
+        request_id: 'request-after-cooldown',
+        feedback_prompt_eligible: true,
+        feedback_target_outfit_id: 'outfit-persisted-1',
+      });
     const dismissSpy = vi.spyOn(apiModule, 'dismissFeedbackPrompt').mockResolvedValueOnce({
       cooldown_remaining: 3,
       dismissed: true,
@@ -271,6 +279,13 @@ describe('Chat Page & Components Integration', () => {
     await waitFor(() => {
       expect(dismissSpy).toHaveBeenCalled();
       expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
+    });
+
+    fireEvent.change(textarea, { target: { value: 'Đi dạo cuối tuần' } });
+    fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeDefined();
     });
   });
 

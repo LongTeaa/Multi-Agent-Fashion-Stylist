@@ -1111,7 +1111,7 @@ def test_rate_outfit_cross_user_isolation_404(api_client):
 
 
 def test_rate_outfit_updates_learned_feature_weights_and_clamps(api_client):
-    """INVARIANT: Rating history calculates clamped feature weights in [-1.0, 1.0]."""
+    """INVARIANT: Rating history uses a bounded, recency-sensitive EMA."""
     client, engine = api_client
     with Session(engine) as session:
         user = _create_user(session)
@@ -1137,13 +1137,16 @@ def test_rate_outfit_updates_learned_feature_weights_and_clamps(api_client):
         pref = session.get(UserPreference, user_id)
         assert pref.learned_feature_weights["weights"]["style:casual"] == 1.0
 
-    # Outfit 2 rated 1 star -> signal -1.0 for style:casual -> average of (1.0 + -1.0) / 2 = 0.0
+    # Outfit 2 rated 1 star -> EMA(1.0, -1.0, alpha=0.30) = 0.4.
     r2 = client.put(f"/api/v1/outfits/{outfit_2_id}/rating", headers=headers, json={"stars": 1, "source": "manual"})
     assert r2.status_code == 200
 
     with Session(engine) as session:
         pref = session.get(UserPreference, user_id)
-        assert pref.learned_feature_weights["weights"]["style:casual"] == 0.0
+        assert pref.learned_feature_weights["weights"]["style:casual"] == 0.4
+        assert pref.learned_feature_weights["ema_alpha"] == 0.3
+        assert pref.learned_feature_weights["min_weight"] == -1.0
+        assert pref.learned_feature_weights["max_weight"] == 1.0
         assert pref.learned_feature_weights["version"] == 3  # Initial(1) -> r1(2) -> r2(3)
 
 
@@ -1192,8 +1195,9 @@ def test_rate_outfit_cold_start_under_5_ratings_neutral_affinity(api_client):
 
 
 def test_rate_outfit_reaches_5_ratings_activates_learned_affinity(api_client):
-    """INVARIANT: When ratings_count reaches 5, learned rating affinity activates and boosts score."""
-    from app.agents.personalization_agent import calculate_learned_affinity, OutfitItemSlot
+    """INVARIANT: The fifth accepted rating changes bounded candidate reranking."""
+    from app.agents.personalization_agent import rerank_evaluated_outfits
+    from app.agents.state import EvaluatedOutfit, OutfitItemSlot
 
     client, engine = api_client
     with Session(engine) as session:
@@ -1210,26 +1214,63 @@ def test_rate_outfit_reaches_5_ratings_activates_learned_affinity(api_client):
 
     headers = {"X-User-Id": user_id}
 
-    for oid in outfit_ids:
+    for oid in outfit_ids[:4]:
         res = client.put(f"/api/v1/outfits/{oid}/rating", headers=headers, json={"stars": 5, "source": "manual"})
         assert res.status_code == 200
 
     with Session(engine) as session:
-        pref = session.get(UserPreference, user_id)
-        assert pref.ratings_count == 5
-        weights = pref.learned_feature_weights
+        pref_before = session.get(UserPreference, user_id)
+        assert pref_before is not None
+        assert pref_before.ratings_count == 4
 
-        cand_slot = OutfitItemSlot(
-            item_id="test-slot",
+        formal_slot = OutfitItemSlot(
+            item_id="formal-slot",
             slot_role=OutfitSlotRole.TOP,
             category=WardrobeCategory.TOP,
-            name="polo",
+            name="formal shirt",
+            primary_color="black",
+            style="formal",
+            pattern="striped",
+            formality_level=5,
+        )
+        casual_slot = OutfitItemSlot(
+            item_id="casual-slot",
+            slot_role=OutfitSlotRole.TOP,
+            category=WardrobeCategory.TOP,
+            name="casual polo",
             primary_color="white",
             style="casual",
         )
-        score = calculate_learned_affinity([cand_slot], weights, ratings_count=pref.ratings_count)
-        # Activated: style:casual has weight 1.0 -> affinity score = 1.0 (boosted from neutral 0.50)
-        assert score == 1.0
+        candidates = [
+            EvaluatedOutfit(
+                items=[formal_slot],
+                fashion_score=0.8,
+                combination_id="a-formal",
+            ),
+            EvaluatedOutfit(
+                items=[casual_slot],
+                fashion_score=0.8,
+                combination_id="b-casual",
+            ),
+        ]
+        ranked_before, _ = rerank_evaluated_outfits(candidates, preferences=pref_before)
+        assert ranked_before[0].items[0].item_id == "formal-slot"
+
+    fifth_rating = client.put(
+        f"/api/v1/outfits/{outfit_ids[4]}/rating",
+        headers=headers,
+        json={"stars": 5, "source": "manual"},
+    )
+    assert fifth_rating.status_code == 200
+
+    with Session(engine) as session:
+        pref_after = session.get(UserPreference, user_id)
+        assert pref_after is not None
+        assert pref_after.ratings_count == 5
+        ranked_after, _ = rerank_evaluated_outfits(candidates, preferences=pref_after)
+
+        assert ranked_after[0].items[0].item_id == "casual-slot"
+        assert ranked_after[0].composite_score > ranked_after[1].composite_score
 
 
 def test_rate_outfit_header_and_body_session_conflict_422(api_client):
@@ -1502,8 +1543,8 @@ def test_rate_outfit_after_dismiss_resets_cooldown_and_cadence(api_client):
         assert prompt_state.last_rated_at is not None
 
 
-def test_dismiss_feedback_prompt_success_sets_cooldown_and_suppresses_session(api_client):
-    """INVARIANT: Dismissing feedback prompt sets cooldown to at least 3 and suppresses session."""
+def test_dismiss_feedback_prompt_success_sets_cooldown_without_session_suppression(api_client):
+    """INVARIANT: Dismissal applies cooldown without suppressing the whole session."""
     client, engine = api_client
     session_id = str(uuid4())
 
@@ -1534,7 +1575,7 @@ def test_dismiss_feedback_prompt_success_sets_cooldown_and_suppresses_session(ap
                 FeedbackSuppressedSession.client_session_id == session_id,
             )
         ).first()
-        assert suppression is not None
+        assert suppression is None
 
 
 def test_dismiss_feedback_prompt_repeated_maintains_cooldown(api_client):
