@@ -260,40 +260,40 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     <article
       data-testid={testId}
       data-outfit-id={outfitId}
-      className={`w-full bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm overflow-hidden transition-all hover:shadow-md ${className}`}
+      className={`w-full bg-white rounded-3xl border border-[#E8E5DE] shadow-xs overflow-hidden transition-all hover:shadow-md ${className}`}
     >
       {/* Card Header */}
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3">
+      <div className="px-5 sm:px-6 py-4 border-b border-[#E8E5DE] bg-white flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           {rank !== undefined && (
             <span
-              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+              className={`px-3 py-1 rounded-full text-xs font-mono font-semibold shrink-0 ${
                 rank === 1
-                  ? 'bg-amber-500 text-white shadow-xs shadow-amber-500/30'
+                  ? 'bg-[#1A1918] text-[#FBFBF9] shadow-2xs'
                   : rank === 2
-                  ? 'bg-slate-400 text-white'
-                  : 'bg-amber-800 text-amber-100'
+                  ? 'bg-[#FAF8F5] text-[#1A1918] border border-[#D5D1C7]'
+                  : 'bg-[#FAF8F5] text-[#736E65] border border-[#E8E5DE]'
               }`}
             >
               #{rank}
             </span>
           )}
 
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+          <h3 className="font-serif text-base sm:text-lg font-medium text-[#1A1918] truncate">
             {rank !== undefined ? `Gợi Ý Phối Đồ Số ${rank}` : 'Bộ Trang Phục Phối Sẵn'}
           </h3>
 
           {matchPercentage !== null && (
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 shrink-0">
+            <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#9C5234]/10 text-[#9C5234] border border-[#9C5234]/25 shrink-0">
               <span>{matchPercentage}%</span>{' '}
-              <span className="font-medium text-[11px] opacity-80">phù hợp</span>
+              <span className="font-normal text-[11px] opacity-85">phù hợp</span>
             </span>
           )}
         </div>
 
         {/* Header Actions: Bookmark & Wear Badge */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="hidden sm:inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono text-[#736E65]">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -309,8 +309,8 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             aria-pressed={isBookmarked}
             className={`p-2 rounded-xl border transition-all ${
               isBookmarked
-                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 shadow-xs'
-                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:border-slate-300'
+                ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs'
+                : 'bg-[#FAF8F5] border-[#E8E5DE] text-[#736E65] hover:text-[#1A1918] hover:border-[#D5D1C7]'
             }`}
           >
             <svg
@@ -331,12 +331,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       </div>
 
       {/* Card Body */}
-      <div className="p-5">
+      <div className="p-5 sm:p-6">
         {/* Error notification for bookmark */}
         {bookmarkError && (
           <div
             role="alert"
-            className="mb-3 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between"
+            className="mb-4 px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between"
           >
             <span>{bookmarkError}</span>
             <button
@@ -350,7 +350,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         )}
 
         {/* Stylist Explanation */}
-        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic border-l-2 border-indigo-500 pl-3 mb-5">
+        <p className="font-serif text-base text-[#1A1918] italic leading-relaxed border-l-2 border-[#9C5234] pl-4 my-5 bg-[#FAF8F5]/60 py-3.5 px-4 rounded-r-2xl">
           &ldquo;{explanationVi}&rdquo;
         </p>
 
@@ -363,14 +363,14 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             return (
               <div
                 key={item.id}
-                className={`flex sm:flex-col items-center sm:items-start gap-3 p-3 rounded-xl border transition-all ${
+                className={`flex sm:flex-col items-center sm:items-start gap-3 p-3.5 rounded-2xl border transition-all ${
                   item.isActive === false
-                    ? 'bg-slate-100/70 dark:bg-slate-900/30 border-dashed border-rose-300 dark:border-rose-900/60 opacity-85'
-                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800'
+                    ? 'bg-[#FAF8F5]/70 border-dashed border-rose-300 opacity-85'
+                    : 'bg-[#FAF8F5] border-[#E8E5DE] hover:border-[#D5D1C7]'
                 }`}
               >
                 {/* Thumbnail with Alt Text */}
-                <div className="w-16 h-16 sm:w-full sm:h-36 rounded-lg bg-slate-200 dark:bg-slate-800 overflow-hidden relative shrink-0 flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-full sm:h-36 rounded-xl bg-white border border-[#E8E5DE] overflow-hidden relative shrink-0 flex items-center justify-center">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -380,14 +380,19 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                       loading="lazy"
                     />
                   ) : (
-                    <span className="text-slate-400 text-xs font-medium">Không có ảnh</span>
+                    <div className="flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                      <svg className="w-6 h-6 text-[#D5D1C7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                      <span className="text-[#736E65] text-xs font-mono">Không có ảnh</span>
+                    </div>
                   )}
-                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs">
+                  <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-[#1A1918]/85 text-[#FBFBF9] backdrop-blur-xs">
                     {slotName}
                   </span>
 
                   {item.isActive === false && (
-                    <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-600 text-white shadow-xs">
+                    <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-600 text-white shadow-xs">
                       Đã xóa khỏi tủ
                     </span>
                   )}
@@ -395,14 +400,14 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  <h4 className="text-xs sm:text-sm font-semibold text-[#1A1918] truncate">
                     {item.name}
                   </h4>
-                  <span className="text-[11px] text-slate-400 capitalize block">
+                  <span className="text-[11px] font-mono text-[#736E65] capitalize block mt-0.5">
                     Vị trí: {slotName}
                   </span>
                   {item.primaryColor && (
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                    <span className="text-[10px] font-mono text-[#736E65] block truncate mt-0.5">
                       Màu: {item.primaryColor}
                     </span>
                   )}
@@ -414,12 +419,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
         {/* Applied Preferences */}
         {appliedPreferences.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-slate-400 font-medium">Đã áp dụng gu thời trang:</span>
+          <div className="mt-4 pt-3 border-t border-[#E8E5DE] flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-mono text-[#736E65]">Đã áp dụng gu thời trang:</span>
             {appliedPreferences.map((pref, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                className="px-3 py-1 rounded-full text-xs font-mono bg-[#FAF8F5] text-[#1A1918] border border-[#E8E5DE]"
               >
                 ✓ {pref}
               </span>
@@ -428,14 +433,14 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         )}
 
         {/* Card Footer: Wear Log Action Button & Rating Controls */}
-        <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
+        <div className="mt-5 pt-4 border-t border-[#E8E5DE] flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleRecordWorn}
               disabled={isWearPending}
               aria-label="Xác nhận đã mặc bộ trang phục này hôm nay"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="tactile-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider bg-white border border-[#D5D1C7] text-[#1A1918] hover:bg-[#1A1918] hover:text-[#FBFBF9] hover:border-[#1A1918] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-2xs"
             >
               {isWearPending ? (
                 <>
@@ -447,7 +452,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                 </>
               ) : (
                 <>
-                  <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-[#9C5234]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Đã Mặc Hôm Nay</span>
@@ -475,7 +480,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
 
           {/* Manual Star Rating Control (1-5 stars) */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-slate-400 font-medium">Đánh giá:</span>
+            <span className="text-[11px] font-mono text-[#736E65]">Đánh giá:</span>
             <div
               className="flex items-center"
               role="group"
@@ -494,13 +499,13 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                     onBlur={() => setHoverRating(null)}
                     disabled={isRatingPending}
                     aria-label={`Đánh giá ${star} sao`}
-                    className="p-1 text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden"
+                    className="p-1 text-[#D5D1C7] hover:text-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden"
                   >
                     <svg
                       className={`w-4 h-4 transition-transform ${
                         isFilled
-                          ? 'text-amber-400 fill-amber-400 scale-105'
-                          : 'text-slate-300 dark:text-slate-600 fill-none'
+                          ? 'text-amber-500 fill-amber-500 scale-105'
+                          : 'text-[#D5D1C7] fill-none'
                       }`}
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -518,25 +523,25 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             </div>
 
             {userRating && (
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-0.5">
+              <span className="text-xs font-mono font-bold text-amber-600 ml-0.5">
                 {userRating}/5★
               </span>
             )}
 
             {ratingSuccessMsg && (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn ml-1">
+              <span className="text-xs font-mono font-semibold text-emerald-600 animate-fadeIn ml-1">
                 ✓ {ratingSuccessMsg}
               </span>
             )}
 
             {ratingError && (
-              <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-fadeIn ml-1">
+              <span className="text-xs font-mono font-semibold text-rose-600 animate-fadeIn ml-1">
                 ✕ {ratingError}
               </span>
             )}
 
             {lastWornAt && !wearSuccessMsg && (
-              <span className="text-[11px] text-slate-400 ml-2 hidden sm:inline">
+              <span className="text-[11px] font-mono text-[#736E65] ml-2 hidden sm:inline" suppressHydrationWarning>
                 Mặc gần nhất: {new Date(lastWornAt).toLocaleDateString('vi-VN')}
               </span>
             )}

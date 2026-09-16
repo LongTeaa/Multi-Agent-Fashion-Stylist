@@ -96,26 +96,26 @@ export const RatingPrompt: React.FC<RatingPromptProps> = ({
       role="region"
       aria-label="Khảo sát đánh giá gợi ý phối đồ"
       data-testid={testId}
-      className={`fixed bottom-5 right-5 z-50 max-w-md w-[calc(100vw-2.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-indigo-200/80 dark:border-indigo-900/80 shadow-xl shadow-indigo-500/10 p-4 sm:p-5 transition-all animate-fadeIn ${className}`}
+      className={`fixed bottom-6 right-6 z-50 max-w-md w-[calc(100vw-3rem)] bg-white/95 backdrop-blur-md rounded-2xl border border-[#E8E5DE] shadow-xl shadow-[#1A1918]/5 p-5 transition-all animate-fadeIn ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 min-w-0 flex-1">
+        <div className="space-y-1.5 min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              AI Stylist Feedback
+            <span className="w-1.5 h-1.5 rounded-full bg-[#9C5234]"></span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#9C5234]">
+              Stylist Feedback
             </span>
             {targetRank !== undefined && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F5F4F0] text-[#736E65]">
                 Set #{targetRank}
               </span>
             )}
           </div>
 
-          <h4 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-snug">
+          <h4 className="font-serif text-sm sm:text-base font-medium text-[#1A1918] leading-snug">
             Bạn chấm gợi ý vừa rồi mấy sao?
           </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-[#5C564E] leading-relaxed">
             Đánh giá của bạn giúp AI tinh chỉnh gu thẩm mỹ cho các lần phối đồ sau.
           </p>
         </div>
@@ -126,7 +126,7 @@ export const RatingPrompt: React.FC<RatingPromptProps> = ({
           onClick={handleDismiss}
           disabled={isSubmitting || isDismissing || Boolean(successMsg)}
           aria-label="Đóng khảo sát đánh giá"
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
+          className="p-1 rounded-lg text-[#736E65] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition disabled:opacity-50"
         >
           ✕
         </button>
@@ -136,7 +136,7 @@ export const RatingPrompt: React.FC<RatingPromptProps> = ({
       {error && (
         <div
           role="alert"
-          className="mt-3 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs"
+          className="mt-3 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs"
         >
           {error}
         </div>

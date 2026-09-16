@@ -64,9 +64,9 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
         onSubmit={handleSubmit}
         role="form"
         aria-label="Khung gửi câu hỏi tư vấn phối đồ"
-        className="w-full bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg shadow-indigo-500/5 transition-all focus-within:border-indigo-500 dark:focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20"
+        className="w-full bg-white rounded-3xl border border-[#E8E5DE] shadow-xs hover:border-[#D5D1C7] focus-within:border-[#1A1918] focus-within:ring-2 focus-within:ring-[#1A1918]/10 transition-all"
       >
-        <div className="p-4 sm:p-5">
+        <div className="p-5 sm:p-6">
           {/* Main prompt input */}
           <label htmlFor="stylist-query-input" className="sr-only">
             Nhu cầu phối đồ của bạn
@@ -80,18 +80,19 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             maxLength={1000}
+            suppressHydrationWarning
             placeholder={
               placeholder ||
               'Ví dụ: Tối nay tôi đi cafe ngoài trời ở Đà Lạt, thời tiết se lạnh, muốn set đồ thanh lịch nhẹ nhàng...'
             }
-            className="w-full bg-transparent resize-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm sm:text-base leading-relaxed"
+            className="w-full bg-transparent resize-none outline-none text-[#1A1918] placeholder-[#736E65] text-sm sm:text-base leading-relaxed font-sans"
           />
 
           {/* Location field (collapsible or toggled) */}
           {showLocationInput && (
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2">
-              <span className="text-slate-400 dark:text-slate-500 text-xs font-medium flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mt-3 pt-3 border-t border-[#E8E5DE] flex items-center gap-2">
+              <span className="text-[#736E65] text-xs font-mono flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[#9C5234]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -114,7 +115,7 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
                 disabled={isLoading}
                 maxLength={200}
                 placeholder="Ví dụ: Hà Nội, Đà Lạt, TP. Hồ Chí Minh..."
-                className="flex-1 bg-slate-50 dark:bg-slate-900/50 text-xs text-slate-700 dark:text-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500"
+                className="flex-1 bg-[#FAF8F5] text-xs font-mono text-[#1A1918] px-3 py-1.5 rounded-xl border border-[#E8E5DE] outline-none focus:border-[#9C5234]"
               />
               <button
                 type="button"
@@ -122,7 +123,7 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
                   setLocation('');
                   setShowLocationInput(false);
                 }}
-                className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                className="text-[#736E65] hover:text-rose-600 text-xs p-1"
                 aria-label="Xóa địa điểm"
               >
                 ✕
@@ -131,15 +132,15 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
           )}
 
           {/* Footer toolbar */}
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-            <div className="flex items-center gap-2">
+          <div className="mt-4 pt-3 border-t border-[#E8E5DE] flex items-center justify-between text-xs text-[#736E65]">
+            <div className="flex items-center gap-2.5">
               {!showLocationInput && (
                 <button
                   type="button"
                   onClick={() => setShowLocationInput(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium transition"
+                  className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F5] hover:bg-[#F5F2EC] text-[#5C564E] hover:text-[#1A1918] border border-[#E8E5DE] font-mono text-xs transition"
                 >
-                  <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-[#9C5234]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -156,15 +157,15 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
                   <span>+ Thêm địa điểm</span>
                 </button>
               )}
-              <span className="hidden sm:inline text-slate-400 text-[11px]">
-                Nhấn <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 font-sans">Enter ↵</kbd> để gửi
+              <span className="hidden sm:inline text-[#736E65] text-[11px] font-mono">
+                Nhấn <kbd className="px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#E8E5DE] text-[#1A1918] font-mono text-[10px]">Enter ↵</kbd> để gửi
               </span>
             </div>
 
             <div className="flex items-center gap-3">
               <span
-                className={`text-[11px] ${
-                  isOverLimit ? 'text-rose-500 font-bold' : 'text-slate-400'
+                className={`text-[11px] font-mono ${
+                  isOverLimit ? 'text-rose-600 font-bold' : 'text-[#736E65]'
                 }`}
               >
                 {query.length}/1000
@@ -174,12 +175,13 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
                 type="submit"
                 disabled={!canSubmit}
                 aria-busy={isLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-indigo-500/20 transition active:scale-95"
+                suppressHydrationWarning
+                className="tactile-btn group inline-flex items-center gap-2.5 pl-5 pr-2 py-2 rounded-full text-xs font-mono uppercase tracking-wider text-white bg-[#1A1918] hover:bg-[#2D2420] disabled:opacity-40 disabled:cursor-not-allowed shadow-xs transition-all active:scale-95"
               >
                 {isLoading ? (
                   <>
                     <svg
-                      className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-white"
+                      className="animate-spin -ml-0.5 mr-1 h-3.5 w-3.5 text-white"
                       fill="none"
                       viewBox="0 0 24 24"
                     >
@@ -202,14 +204,9 @@ export const ChatComposer = forwardRef<ChatComposerRef, ChatComposerProps>(
                 ) : (
                   <>
                     <span>Phối Đồ</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
+                    <span className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 transition-all text-xs">
+                      →
+                    </span>
                   </>
                 )}
               </button>

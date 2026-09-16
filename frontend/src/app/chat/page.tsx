@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useStylistChat } from '@/hooks/useStylistChat';
 import { ChatComposer, type ChatComposerRef } from '@/components/chat/ChatComposer';
@@ -17,6 +17,10 @@ const SUGGESTED_PROMPTS = [
   'Dạo phố cuối tuần, thời tiết mát mẻ, phong cách tối giản',
 ];
 
+const emptySubscribe = () => () => {};
+const getSessionSuppressedSnapshot = () => isSessionFeedbackSuppressed();
+const getServerSnapshot = () => false;
+
 export default function ChatPage() {
   const {
     status,
@@ -29,6 +33,11 @@ export default function ChatPage() {
 
   const [ratingsMap, setRatingsMap] = useState<Record<string, number>>({});
   const [isPromptDismissed, setIsPromptDismissed] = useState<boolean>(false);
+  const isSessionSuppressed = useSyncExternalStore(
+    emptySubscribe,
+    getSessionSuppressedSnapshot,
+    getServerSnapshot
+  );
 
   const handleRatingChange = (outfitId: string, rating: number) => {
     setRatingsMap((prev) => ({ ...prev, [outfitId]: rating }));
@@ -39,9 +48,7 @@ export default function ChatPage() {
       ? response.recommendations.find((r) => r.outfit_id === response.feedback_target_outfit_id)
       : undefined;
 
-  const isSuppressed =
-    isPromptDismissed ||
-    (typeof window !== 'undefined' && isSessionFeedbackSuppressed());
+  const isSuppressed = isPromptDismissed || isSessionSuppressed;
 
   const shouldShowRatingPrompt =
     status === 'success' &&
@@ -61,58 +68,65 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40 text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[#FBFBF9] text-[#1A1918]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 w-full bg-[#FBFBF9]/90 backdrop-blur-md border-b border-[#E8E5DE]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="flex items-center gap-2 font-black text-lg tracking-tight text-indigo-600 dark:text-indigo-400 hover:opacity-90 transition"
+              className="flex items-center gap-2 font-serif text-lg tracking-tight font-medium text-[#1A1918] hover:text-[#9C5234] transition-colors"
             >
-              <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-md shadow-indigo-200 dark:shadow-none">
+              <span className="w-8 h-8 rounded-full bg-[#1A1918] text-[#FBFBF9] flex items-center justify-center text-xs font-serif shadow-xs">
                 FS
               </span>
               <span>Fashion Stylist</span>
             </Link>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Tư Vấn Stylist AI
+            <span className="text-[#D5D1C7]">/</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#9C5234]" />
+            <span className="text-xs font-mono tracking-wider uppercase text-[#736E65]">
+              Tư Vấn Stylist
             </span>
           </div>
 
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link
               href="/saved"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
             >
               Đã Lưu
             </Link>
             <Link
-              href="/wardrobe"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            >
-              Tủ Đồ
-            </Link>
-            <Link
               href="/profile"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="hidden sm:inline-block px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
             >
               Gu Thời Trang
+            </Link>
+            <Link
+              href="/wardrobe"
+              className="tactile-btn group inline-flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full bg-[#1A1918] text-[#FBFBF9] hover:bg-[#2D2420] text-xs font-mono uppercase tracking-wider shadow-xs"
+            >
+              <span>Tủ Đồ</span>
+              <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 transition-all text-xs">
+                →
+              </span>
             </Link>
           </nav>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-8">
         {/* Page Hero Title */}
-        <div className="text-center sm:text-left space-y-1.5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <div className="text-center sm:text-left space-y-2">
+          <span className="text-xs font-mono uppercase tracking-widest text-[#9C5234] block">
+            Personal Stylist Session
+          </span>
+          <h1 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-[#1A1918]">
             Trợ Lý Phối Đồ Stylist AI
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Mô tả bối cảnh, sự kiện hoặc thời tiết. AI sẽ chọn lọc trang phục từ chính tủ đồ của bạn để tạo nên các set đồ hoàn chỉnh.
+          <p className="text-sm text-[#5C564E] leading-relaxed max-w-xl">
+            Mô tả bối cảnh, sự kiện hoặc thời tiết hôm nay. Hệ thống đa tác nhân sẽ chọn lọc trang phục từ chính tủ đồ của bạn để tạo nên các set đồ chuẩn gu.
           </p>
         </div>
 
@@ -125,8 +139,8 @@ export default function ChatPage() {
 
         {/* Quick Suggestion Pills (Shown when idle or after completion) */}
         {status === 'idle' && (
-          <div className="space-y-2 pt-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+          <div className="space-y-3 pt-2">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#736E65] block">
               Gợi ý bối cảnh thường gặp:
             </span>
             <div className="flex flex-wrap gap-2">
@@ -135,9 +149,10 @@ export default function ChatPage() {
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSuggestedPrompt(prompt)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium text-left bg-white dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700/80 shadow-2xs transition active:scale-98"
+                  className="tactile-btn px-3.5 py-2 rounded-xl text-xs font-medium text-left bg-white hover:bg-[#F5F4F0] text-[#1A1918] border border-[#E8E5DE] shadow-2xs transition flex items-center gap-2"
                 >
-                  💡 {prompt}
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9C5234]" aria-hidden="true"></span>
+                  <span>{prompt}</span>
                 </button>
               ))}
             </div>
@@ -149,26 +164,26 @@ export default function ChatPage() {
           <div
             role="status"
             aria-live="polite"
-            className="w-full bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 shadow-sm animate-pulse"
+            className="w-full bg-white rounded-3xl border border-[#E8E5DE] p-6 sm:p-8 space-y-5 shadow-xs animate-pulse"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-200 dark:bg-indigo-900/50"></div>
-              <div className="space-y-1.5 flex-1">
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
-                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2"></div>
+              <div className="w-9 h-9 rounded-full bg-[#EAE8E1]"></div>
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-[#EAE8E1] rounded w-1/3"></div>
+                <div className="h-3 bg-[#F5F4F0] rounded w-1/2"></div>
               </div>
             </div>
 
-            <div className="h-16 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
+            <div className="h-20 bg-[#F5F4F0] rounded-2xl"></div>
 
             <div className="grid grid-cols-3 gap-3 pt-2">
-              <div className="h-32 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
-              <div className="h-32 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
-              <div className="h-32 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
+              <div className="h-36 bg-[#F5F4F0] rounded-2xl"></div>
+              <div className="h-36 bg-[#F5F4F0] rounded-2xl"></div>
+              <div className="h-36 bg-[#F5F4F0] rounded-2xl"></div>
             </div>
 
-            <p className="text-xs text-center text-indigo-600 dark:text-indigo-400 font-medium animate-bounce pt-2">
-              Stylist AI đang rà soát tủ đồ và tính toán điểm phối màu...
+            <p className="text-xs text-center text-[#736E65] font-mono tracking-wider pt-2">
+              Stylist đang phân tích chất liệu, phom dáng và tính toán bảng màu...
             </p>
           </div>
         )}

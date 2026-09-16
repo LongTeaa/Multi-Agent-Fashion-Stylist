@@ -223,7 +223,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8">
       {/* Step Tracker */}
-      <div className="mb-8">
+      <div className="mb-10">
         <div className="flex items-center justify-center max-w-2xl mx-auto">
           {[
             { key: 'upload', label: '1. Tải ảnh lên' },
@@ -241,26 +241,30 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <React.Fragment key={s.key}>
                 {idx > 0 && (
                   <div
-                    className={`flex-1 h-1 transition-colors ${
-                      isCompleted ? 'bg-indigo-600' : 'bg-slate-200'
+                    className={`flex-1 h-[2px] transition-colors ${
+                      isCompleted ? 'bg-[#9C5234]' : 'bg-[#E8E5DE]'
                     }`}
                   />
                 )}
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono transition-all ${
                       isCompleted
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-[#9C5234] text-white font-medium shadow-2xs'
                         : isCurrent
-                        ? 'bg-indigo-600 text-white ring-4 ring-indigo-100 scale-110'
-                        : 'bg-slate-200 text-slate-500'
+                        ? 'bg-[#1A1918] text-[#FBFBF9] ring-4 ring-[#1A1918]/10 font-bold scale-105 shadow-xs'
+                        : 'bg-[#EAE8E1] text-[#736E65]'
                     }`}
                   >
                     {isCompleted ? '✓' : idx + 1}
                   </div>
                   <span
-                    className={`text-[11px] font-medium mt-1.5 whitespace-nowrap ${
-                      isCurrent ? 'text-indigo-600 font-bold' : 'text-slate-500'
+                    className={`text-[11px] font-mono mt-2 whitespace-nowrap uppercase tracking-wider ${
+                      isCurrent
+                        ? 'text-[#1A1918] font-semibold'
+                        : isCompleted
+                        ? 'text-[#9C5234] font-medium'
+                        : 'text-[#736E65]'
                     }`}
                   >
                     {s.label}
@@ -274,13 +278,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
       {/* Global Error Banner */}
       {errorMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3 shadow-sm">
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-sm flex items-start gap-3 shadow-2xs">
           <svg className="w-5 h-5 flex-shrink-0 text-rose-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
           <div className="flex-1">
-            <p className="font-semibold">Đã xảy ra sự cố</p>
-            <p>{errorMessage}</p>
+            <p className="font-semibold text-xs uppercase font-mono tracking-wider text-rose-800">Đã xảy ra sự cố</p>
+            <p className="mt-0.5 text-xs">{errorMessage}</p>
           </div>
           <button
             type="button"
@@ -299,22 +303,23 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
       {/* STEP 2: PROCESSING */}
       {step === 'processing' && (
-        <div className="max-w-md mx-auto p-10 bg-white rounded-2xl shadow-xl border border-slate-200 text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping opacity-75"></div>
-            <div className="w-20 h-20 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin flex items-center justify-center shadow-md">
-              <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+        <div className="double-bezel-shell max-w-md mx-auto">
+          <div className="double-bezel-core p-10 text-center border border-[#E8E5DE]">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="w-20 h-20 rounded-full border-4 border-[#E8E5DE] border-t-[#9C5234] animate-spin flex items-center justify-center shadow-xs">
+                <svg className="w-8 h-8 text-[#9C5234]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
             </div>
-          </div>
-          <h3 className="text-xl font-bold text-slate-800">AI Đang Phân Tích Trang Phục</h3>
-          <p className="text-sm text-slate-600 mt-2">
-            Đang trích xuất các vùng trang phục, cắt hình và nhận diện chất liệu, kiểu dáng, phong cách...
-          </p>
-          <div className="mt-6 flex justify-center items-center gap-2 text-xs text-indigo-600 font-medium bg-indigo-50/80 py-2 px-4 rounded-full border border-indigo-100">
-            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-            <span>Mã phiên tải: {batchId?.slice(0, 8)}</span>
+            <h3 className="font-serif text-2xl font-normal text-[#1A1918]">AI Đang Phân Tích Trang Phục</h3>
+            <p className="text-xs sm:text-sm text-[#5C564E] mt-2 leading-relaxed">
+              Đang trích xuất các vùng trang phục, cắt hình và nhận diện chất liệu, kiểu dáng, phong cách...
+            </p>
+            <div className="mt-6 inline-flex items-center gap-2 text-xs font-mono text-[#736E65] bg-[#FAF8F5] py-1.5 px-4 rounded-full border border-[#E8E5DE]">
+              <span className="w-2 h-2 rounded-full bg-[#9C5234] animate-pulse"></span>
+              <span>Mã phiên tải: {batchId?.slice(0, 8)}</span>
+            </div>
           </div>
         </div>
       )}
@@ -323,16 +328,16 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       {step === 'review' && batchReview && (
         <div className="space-y-6">
           {/* Top Review Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-white rounded-3xl shadow-2xs border border-[#E8E5DE]">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="font-serif text-xl font-medium text-[#1A1918] flex items-center gap-2.5">
                 <span>Kết Quả Phát Hiện ({batchReview.detections.length} món đồ)</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#9C5234]/10 text-[#9C5234] border border-[#9C5234]/20 font-semibold">
                   Cần kiểm tra
                 </span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Ngữ cảnh ảnh: <span className="font-semibold text-slate-700">{batchReview.input_kind}</span> • Hãy kiểm tra các trường được đánh dấu trước khi lưu.
+              <p className="text-xs font-mono text-[#736E65] mt-1">
+                Ngữ cảnh ảnh: <span className="font-semibold text-[#1A1918]">{batchReview.input_kind}</span> • Hãy kiểm tra các trường trước khi xác nhận lưu.
               </p>
             </div>
 
@@ -341,7 +346,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                 type="button"
                 onClick={handleCancelBatch}
                 disabled={isCancelling}
-                className="px-4 py-2 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition flex items-center gap-1.5"
+                className="tactile-btn px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#736E65] hover:text-rose-600 bg-[#FAF8F5] hover:bg-rose-50 border border-[#E8E5DE] rounded-full transition flex items-center gap-1.5"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -353,12 +358,12 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
           {/* Quality Warnings Banner */}
           {batchReview.quality_warnings.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm shadow-sm flex items-start gap-3">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm shadow-2xs flex items-start gap-3">
               <svg className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="font-semibold">Lưu ý chất lượng ảnh:</p>
+                <p className="font-semibold text-xs font-mono uppercase tracking-wider text-amber-800">Lưu ý chất lượng ảnh:</p>
                 <ul className="list-disc list-inside mt-1 text-xs space-y-0.5 text-amber-800">
                   {batchReview.quality_warnings.map((w, i) => (
                     <li key={i}>{w}</li>
@@ -371,11 +376,11 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           {/* 2-Column Inspector Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left: Original Photo with Bounding Boxes */}
-            <div className="lg:col-span-5 lg:sticky lg:top-6">
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+            <div className="lg:col-span-5 lg:sticky lg:top-24">
+              <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-2xs border border-[#E8E5DE]">
+                <h3 className="text-xs font-mono uppercase tracking-widest text-[#1A1918] font-semibold mb-3 flex items-center justify-between">
                   <span>Ảnh Gốc & Vị Trí Nhận Diện</span>
-                  <span className="text-xs text-indigo-600 font-normal">Tự động gắn khung</span>
+                  <span className="text-[10px] text-[#9C5234] font-normal">Tự động gắn khung</span>
                 </h3>
                 <BoundingBoxOverlay
                   imageUrl={uploadedPreviewUrl}
@@ -405,11 +410,11 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           </div>
 
           {/* Sticky Bottom Action Bar */}
-          <div className="sticky bottom-4 z-30 p-4 bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-800 text-white flex flex-wrap items-center justify-between gap-4">
+          <div className="sticky bottom-4 z-30 p-4 sm:p-5 bg-[#1A1918]/92 backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 text-[#FBFBF9] flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-sm">
-                Đã chọn <strong className="text-indigo-400 font-bold">{acceptedCount}</strong> /{' '}
+              <span className="w-2.5 h-2.5 rounded-full bg-[#9C5234] animate-pulse"></span>
+              <span className="text-xs font-mono text-[#D5D1C7]">
+                Đã chọn <strong className="text-white font-bold">{acceptedCount}</strong> /{' '}
                 {batchReview.detections.length} món đồ để thêm vào tủ đồ.
               </span>
             </div>
@@ -419,7 +424,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                 type="button"
                 onClick={handleCancelBatch}
                 disabled={isCancelling}
-                className="px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition"
+                className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#D5D1C7] hover:text-white transition"
               >
                 Hủy bỏ
               </button>
@@ -427,10 +432,10 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                 type="button"
                 onClick={handleConfirmBatch}
                 disabled={isConfirming || acceptedCount === 0}
-                className={`px-6 py-2.5 rounded-xl font-medium text-white shadow-lg transition flex items-center gap-2 text-sm ${
+                className={`tactile-btn px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-all flex items-center gap-2 ${
                   isConfirming || acceptedCount === 0
-                    ? 'bg-slate-700 cursor-not-allowed text-slate-400'
-                    : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 shadow-indigo-500/30'
+                    ? 'bg-white/15 text-white/40 cursor-not-allowed'
+                    : 'bg-[#9C5234] hover:bg-[#854329] active:scale-95'
                 }`}
               >
                 {isConfirming ? (
@@ -439,7 +444,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Đang lưu vào tủ đồ...
+                    <span>Đang lưu vào tủ đồ...</span>
                   </>
                 ) : (
                   <>
@@ -454,52 +459,56 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
       {/* STEP 4: CONFIRMED */}
       {step === 'confirmed' && (
-        <div className="max-w-lg mx-auto p-8 bg-white rounded-2xl shadow-xl border border-slate-200 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shadow-inner mb-4">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 className="text-2xl font-bold text-slate-900">Số Hóa Thành Công!</h3>
-          <p className="text-sm text-slate-600 mt-2">
-            Đã thêm thành công <strong className="text-emerald-600">{confirmedItemIds.length}</strong> món đồ mới vào tủ đồ của bạn với đầy đủ ảnh crop và thông tin phong cách.
-          </p>
+        <div className="double-bezel-shell max-w-lg mx-auto">
+          <div className="double-bezel-core p-8 sm:p-10 text-center border border-[#E8E5DE]">
+            <div className="w-16 h-16 rounded-full bg-[#9C5234]/10 text-[#9C5234] mx-auto flex items-center justify-center shadow-2xs mb-5">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[#1A1918]">Số Hóa Thành Công!</h3>
+            <p className="text-xs sm:text-sm text-[#5C564E] mt-2.5 leading-relaxed">
+              Đã thêm thành công <strong className="text-[#9C5234]">{confirmedItemIds.length}</strong> món đồ mới vào tủ đồ của bạn với đầy đủ ảnh crop và thông tin phong cách.
+            </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition text-sm"
-            >
-              + Số hóa thêm món khác
-            </button>
-            <a
-              href="/wardrobe"
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-md shadow-indigo-100 text-sm inline-block"
-            >
-              Xem tủ đồ cá nhân →
-            </a>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="tactile-btn w-full sm:w-auto px-5 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-[#1A1918] bg-white border border-[#D5D1C7] hover:bg-[#FAF8F5] transition shadow-2xs"
+              >
+                + Số hóa thêm món khác
+              </button>
+              <a
+                href="/wardrobe"
+                className="tactile-btn w-full sm:w-auto px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-white bg-[#1A1918] hover:bg-[#2D2420] transition shadow-xs inline-block"
+              >
+                Xem tủ đồ cá nhân →
+              </a>
+            </div>
           </div>
         </div>
       )}
 
       {/* STEP 5: FAILED */}
       {step === 'failed' && (
-        <div className="max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl border border-rose-200 text-center">
-          <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center shadow-inner mb-4">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+        <div className="double-bezel-shell max-w-md mx-auto">
+          <div className="double-bezel-core p-8 text-center border border-[#E8E5DE]">
+            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 mx-auto flex items-center justify-center shadow-2xs mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="font-serif text-2xl font-normal text-[#1A1918]">Không Thể Hoàn Tất Số Hóa</h3>
+            <p className="text-xs sm:text-sm text-[#5C564E] mt-2 leading-relaxed">{errorMessage || 'Có lỗi xảy ra trong quá trình phân tích.'}</p>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="tactile-btn mt-6 px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-white bg-[#1A1918] hover:bg-[#2D2420] transition shadow-xs"
+            >
+              Thử lại với ảnh khác
+            </button>
           </div>
-          <h3 className="text-xl font-bold text-slate-900">Không Thể Hoàn Tất Số Hóa</h3>
-          <p className="text-sm text-slate-600 mt-2">{errorMessage || 'Có lỗi xảy ra trong quá trình phân tích.'}</p>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="mt-6 px-6 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition text-sm"
-          >
-            Thử lại với ảnh khác
-          </button>
         </div>
       )}
     </div>

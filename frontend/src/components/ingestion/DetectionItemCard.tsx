@@ -128,21 +128,21 @@ export function DetectionItemCard({
       onClick={onSelect}
       className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
         isSelected
-          ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-xl bg-white'
-          : 'border-slate-200 bg-white/90 hover:border-slate-300 shadow-md'
-      } ${!accepted ? 'opacity-60 bg-slate-50' : ''}`}
+          ? 'border-[#1A1918] ring-2 ring-[#1A1918]/15 shadow-md bg-white'
+          : 'border-[#E8E5DE] bg-white hover:border-[#D5D1C7] shadow-2xs'
+      } ${!accepted ? 'opacity-60 bg-[#FAF8F5]' : ''}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E5DE] bg-[#FAF8F5]/80">
         <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow">
+          <span className="w-7 h-7 rounded-full bg-[#1A1918] text-[#FBFBF9] font-mono font-semibold text-xs flex items-center justify-center shadow-2xs">
             {index + 1}
           </span>
           <div>
-            <h4 className="text-sm font-semibold text-slate-800 capitalize">
+            <h4 className="text-sm font-semibold text-[#1A1918] capitalize">
               {attributes.category || 'Món đồ'} • {attributes.sub_category || 'Chưa phân loại'}
             </h4>
-            <p className="text-xs text-slate-500">Mã AI: {detection.detection_id.slice(0, 8)}</p>
+            <p className="text-xs font-mono text-[#736E65]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
           </div>
         </div>
 
@@ -157,8 +157,8 @@ export function DetectionItemCard({
             onChange={(e) => onToggleAccepted(e.target.checked)}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-          <span className="text-xs font-medium text-slate-700">
+          <div className="w-11 h-6 bg-[#E8E5DE] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D5D1C7] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9C5234]"></div>
+          <span className="text-xs font-mono text-[#5C564E]">
             {accepted ? 'Lưu món này' : 'Bỏ qua'}
           </span>
         </label>
@@ -356,8 +356,8 @@ export function DetectionItemCard({
             {/* Formality Level */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  Mức độ trang trọng: <span className="font-bold text-indigo-600">{attributes.formality_level || 3}/5</span>
+                <label className="text-xs font-semibold text-[#1A1918]">
+                  Mức độ trang trọng: <span className="font-bold text-[#9C5234]">{attributes.formality_level || 3}/5</span>
                 </label>
                 {renderConfidenceBadge('formality_level')}
               </div>
@@ -369,9 +369,9 @@ export function DetectionItemCard({
                 value={attributes.formality_level || 3}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('formality_level', parseInt(e.target.value, 10))}
-                className="w-full accent-indigo-600 cursor-pointer"
+                className="w-full accent-[#9C5234] cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+              <div className="flex justify-between text-[10px] font-mono text-[#736E65] mt-0.5">
                 <span>Thường ngày</span>
                 <span>Bán trang trọng</span>
                 <span>Dạ tiệc</span>
@@ -381,7 +381,7 @@ export function DetectionItemCard({
 
           {/* Season suitability */}
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Mùa thích hợp</label>
+            <label className="text-xs font-semibold text-[#1A1918] block mb-1.5">Mùa thích hợp</label>
             <div className="flex flex-wrap gap-2">
               {SEASONS.map((s) => {
                 const isSeasonActive = Array.isArray(attributes.season) && attributes.season.includes(s.value);
@@ -391,10 +391,10 @@ export function DetectionItemCard({
                     type="button"
                     disabled={!accepted}
                     onClick={() => handleSeasonToggle(s.value)}
-                    className={`text-xs px-3 py-1 rounded-full border transition ${
+                    className={`text-xs px-3.5 py-1 rounded-full border transition font-mono ${
                       isSeasonActive
-                        ? 'bg-indigo-600 text-white border-indigo-600 font-medium shadow-sm'
-                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                        ? 'bg-[#1A1918] text-[#FBFBF9] border-[#1A1918] font-medium shadow-2xs'
+                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
                     }`}
                   >
                     {s.label}

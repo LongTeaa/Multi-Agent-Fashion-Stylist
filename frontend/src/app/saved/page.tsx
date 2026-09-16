@@ -114,42 +114,42 @@ export default function SavedOutfitsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40 text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[#FBFBF9] text-[#1A1918]">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 w-full bg-[#FBFBF9]/90 backdrop-blur-md border-b border-[#E8E5DE]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="flex items-center gap-2 font-black text-lg tracking-tight text-indigo-600 dark:text-indigo-400 hover:opacity-90 transition"
+              className="flex items-center gap-2 font-serif text-lg tracking-tight font-medium text-[#1A1918] hover:text-[#9C5234] transition-colors"
             >
-              <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-md shadow-indigo-200 dark:shadow-none">
+              <span className="w-8 h-8 rounded-full bg-[#1A1918] text-[#FBFBF9] flex items-center justify-center text-xs font-serif shadow-xs">
                 FS
               </span>
               <span>Fashion Stylist</span>
             </Link>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <span className="text-[#D5D1C7]">/</span>
+            <span className="text-xs font-mono tracking-wider uppercase text-[#736E65]">
               Bộ Đồ Đã Lưu
             </span>
           </div>
 
-          <nav className="flex items-center gap-2 sm:gap-4">
+          <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/chat"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
             >
               Tư Vấn Stylist
             </Link>
             <Link
               href="/wardrobe"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
             >
               Tủ Đồ
             </Link>
             <Link
               href="/profile"
-              className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
             >
               Gu Thời Trang
             </Link>
@@ -158,20 +158,23 @@ export default function SavedOutfitsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-8">
         {/* Page Title & Count */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="space-y-1">
+            <span className="text-xs font-mono uppercase tracking-widest text-[#9C5234] block">
+              Curated Wardrobe
+            </span>
+            <h1 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-[#1A1918]">
               Bộ Trang Phục Đã Lưu
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Danh sách các set đồ bạn đã đánh dấu bookmark từ các lần tư vấn của AI Stylist.
+            <p className="text-sm text-[#5C564E] mt-1 leading-relaxed">
+              Danh sách các set đồ bạn đã đánh dấu lưu lại từ các phiên tư vấn phối đồ của AI Stylist.
             </p>
           </div>
 
           {totalItems > 0 && (
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+            <span className="px-3.5 py-1.5 rounded-full text-xs font-mono tracking-wider uppercase bg-[#F5F4F0] text-[#736E65] border border-[#E8E5DE]">
               Tổng cộng {totalItems} bộ đồ
             </span>
           )}
@@ -182,19 +185,19 @@ export default function SavedOutfitsPage() {
           <div
             role="status"
             aria-live="polite"
-            className="space-y-4 animate-pulse"
+            className="space-y-6 animate-pulse"
           >
             {[1, 2].map((idx) => (
               <div
                 key={idx}
-                className="w-full bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4 shadow-sm"
+                className="w-full bg-white rounded-3xl border border-[#E8E5DE] p-6 sm:p-8 space-y-5 shadow-xs"
               >
-                <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
-                <div className="h-12 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
+                <div className="h-6 bg-[#EAE8E1] rounded w-1/3"></div>
+                <div className="h-14 bg-[#F5F4F0] rounded-2xl"></div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="h-28 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
-                  <div className="h-28 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
-                  <div className="h-28 bg-slate-100 dark:bg-slate-700/40 rounded-xl"></div>
+                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
+                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
+                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
                 </div>
               </div>
             ))}
@@ -205,15 +208,15 @@ export default function SavedOutfitsPage() {
         {!loading && error && (
           <div
             role="alert"
-            className="w-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl p-6 text-center space-y-3"
+            className="w-full bg-rose-50 border border-rose-200 rounded-3xl p-8 text-center space-y-4"
           >
-            <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+            <p className="text-sm font-medium text-rose-800">
               {error.message || 'Đã xảy ra lỗi khi tải danh sách bộ đồ đã lưu.'}
             </p>
             <button
               type="button"
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-xs transition"
+              className="tactile-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider text-white bg-rose-700 hover:bg-rose-800 shadow-xs"
             >
               <span>Thử lại</span>
             </button>
@@ -224,25 +227,27 @@ export default function SavedOutfitsPage() {
         {!loading && !error && data && data.total === 0 && (
           <div
             data-testid="saved-outfits-empty"
-            className="w-full bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-8 sm:p-12 text-center space-y-4 shadow-sm"
+            className="w-full bg-white rounded-3xl border border-[#E8E5DE] p-8 sm:p-14 text-center space-y-5 shadow-xs"
           >
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto text-2xl shadow-xs">
-              🔖
+            <div className="w-14 h-14 rounded-2xl bg-[#F5F4F0] text-[#9C5234] flex items-center justify-center mx-auto shadow-2xs">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
             </div>
 
-            <div className="space-y-1.5 max-w-md mx-auto">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            <div className="space-y-2 max-w-md mx-auto">
+              <h2 className="font-serif text-2xl font-normal text-[#1A1918]">
                 Bạn Chưa Lưu Bộ Trang Phục Nào
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="text-sm text-[#5C564E] leading-relaxed">
                 Khi trò chuyện với AI Stylist, bạn có thể nhấn biểu tượng lưu để gom các set đồ ưng ý vào tủ đồ phối sẵn này.
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-3">
               <Link
                 href="/chat"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 transition active:scale-95"
+                className="tactile-btn inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#FBFBF9] bg-[#1A1918] hover:bg-[#2D2420] shadow-sm"
               >
                 <span>Nhờ Stylist Gợi Ý Ngay</span>
                 <span>→</span>

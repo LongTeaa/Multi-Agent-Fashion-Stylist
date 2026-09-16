@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 5 completed — Chat UI, Saved Outfits, Rating, and Wear History (Ready for Phase 6 — Illustrative Lookbook) |
-| Active task | Task 5.10 completed: Nghiệm thu xuyên tầng và handoff Phase 5 (`test_golden_phase5_actions_and_learning_lifecycle` end-to-end golden flow, OpenAPI 404 contract assertions, `MVP_ROADMAP.md` completed). |
-| Most recently modified files | `backend/tests/integration/test_golden_scenario.py`, `backend/tests/contract/test_openapi_contract.py`, `backend/app/schemas/outfits.py`, `docs/07_implementation/MVP_ROADMAP.md`, `CURRENT_STATE.md`. |
-| Latest passing verification command | `backend/.venv/bin/pytest backend/tests/integration/test_golden_scenario.py backend/tests/contract/test_openapi_contract.py -v` (10 passed), `npm --prefix frontend run test -- --run` (71 passed), `npm --prefix frontend run type-check`, `npm --prefix frontend run lint` (0 errors, 0 warnings), `backend/.venv/bin/pytest backend/tests/unit/test_feedback_cadence.py backend/tests/integration/test_outfit_actions_api.py -q` (51 passed) on 2026-09-16. |
-| Next step | Phase 6: Illustrative Lookbook / Virtual Try-on. |
+| Active task | Tích hợp Taste Skill (`taste-skill`, `redesign-skill`, `soft-skill`) và tái cấu trúc UI Frontend theo phong cách Editorial/Warm Minimalist thời trang cao cấp, xóa bỏ toàn bộ AI slop. |
+| Most recently modified files | `frontend/public/images/hero-flatlay.jpg`, `frontend/public/images/model-lookbook.jpg`, `frontend/src/app/page.tsx`, `frontend/src/app/globals.css`, `CURRENT_STATE.md`, `walkthrough.md`. |
+| Latest passing verification command | `npm --prefix frontend run lint` (0 errors), `npm --prefix frontend run type-check` (0 errors), `npm --prefix frontend run test` (71 passed), `npm --prefix frontend run build` (passed), `pytest backend/tests` (393 passed) on 2026-09-16. |
+| Next step | Sẵn sàng commit và push lên remote repo; chuẩn bị cho Phase 6: Illustrative Lookbook. |
 
 ## Update Rules
 
