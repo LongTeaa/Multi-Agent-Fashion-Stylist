@@ -159,11 +159,11 @@ Specification files:
 - `TEST_STRATEGY.md`
 - `../01_product/PRD_MVP.md`, Acceptance Metrics
 
-- [ ] Finalize the fixed fixture and evaluation dataset.
-- [ ] Run all unit, contract, integration, frontend, and browser E2E tests.
-- [ ] Measure Vision accuracy, Context F1, Recall@10, grounding, isolation, and latency.
-- [ ] Verify 375 px responsive behavior and baseline accessibility.
-- [ ] Record dataset, rule-set, and optional live provider/model versions in the thesis results.
+- [x] Finalize the fixed fixture and evaluation dataset.
+- [x] Run all unit, contract, integration, frontend, and browser E2E tests.
+- [x] Measure Vision accuracy, Context F1, Recall@10, grounding, isolation, and latency.
+- [x] Verify 375 px responsive behavior and baseline accessibility.
+- [x] Record dataset, rule-set, and optional live provider/model versions in the thesis results.
 
 Final verification MUST complete upload -> confirmation -> retrieval -> chat -> persistence -> save/worn -> cadence rating -> try-on/fallback with all MVP quality gates satisfied.
 

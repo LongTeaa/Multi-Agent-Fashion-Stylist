@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 6 — Illustrative Lookbook (complete); ready for Phase 7 |
-| Active task | Phase 6 completed: generated lookbook, deterministic fallback, private persistence, try-on API, and responsive modal are implemented. |
-| Most recently modified files | Phase 6 backend try-on services/API/tests, frontend try-on modal/API integration/tests, `.env.example`, and `docs/07_implementation/MVP_ROADMAP.md`. |
-| Latest passing verification command | `npm run build` in `frontend` on 2026-09-17; full verification also passed with `pytest -q` (412 tests) and `npm run test -- --run` (75 tests). |
-| Next step | Begin Phase 7 by finalizing the fixed evaluation fixture and dataset, then run the complete acceptance and browser E2E gates. |
+| Current phase | Phase 7 — Evaluation and Acceptance (complete) |
+| Active task | Phase 7 completed: versioned evaluation datasets, acceptance metrics/report, full-flow backend E2E, Chromium E2E, 375 px responsive behavior, and baseline accessibility are implemented. |
+| Most recently modified files | Phase 7 evaluation fixtures/tests/report, Playwright configuration/specs, 375 px wardrobe fixes, thesis results, roadmap, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `npm --prefix frontend run test:e2e` on 2026-09-17 (4 passed); full verification also passed with `pytest backend/tests -q` (417 tests) and `npm --prefix frontend run test -- --run` (75 tests). |
+| Next step | MVP acceptance is complete; optionally run opt-in live-provider evaluation with credentials and record the provider/model version separately. |
 
 ## Update Rules
 

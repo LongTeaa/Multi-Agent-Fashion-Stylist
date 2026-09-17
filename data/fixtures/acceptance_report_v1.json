@@ -1,0 +1,47 @@
+{
+  "report_version": "acceptance-v1",
+  "executed_at": "2026-09-17T23:29:10+07:00",
+  "execution_mode": "offline_deterministic",
+  "datasets": {
+    "vision": "vision-v1",
+    "context": "context-v1",
+    "retrieval": "retrieval-v1"
+  },
+  "rule_versions": {
+    "vision": "vision-normalization-v1",
+    "context": "context-rules-v1",
+    "retrieval": "metadata-v1",
+    "coordinator": "coordinator-v1.0"
+  },
+  "provider_models": {
+    "vision": "fake-vision-v1",
+    "context": "deterministic-fallback-v1",
+    "image": null,
+    "live_provider_run": false
+  },
+  "metrics": {
+    "vision_tagging_accuracy": 1.0,
+    "input_kind_accuracy": 1.0,
+    "required_context_field_f1": 0.8733,
+    "retrieval_recall_at_10": 1.0,
+    "sparse_wardrobe_precision_at_5": 0.845,
+    "fixed_denominator_precision_at_5": 0.6,
+    "wardrobe_grounding": 1.0,
+    "cross_user_isolation": 1.0,
+    "retrieval_p95_ms_500_items": 61.755,
+    "styling_response_p95_seconds": 0.4134,
+    "moodboard_fallback_p95_ms": 79.0
+  },
+  "verification": {
+    "backend": "417 passed",
+    "frontend": "75 passed",
+    "browser_e2e": "4 passed",
+    "responsive_width_px": 375,
+    "baseline_accessibility": "passed"
+  },
+  "limitations": [
+    "Vision accuracy is measured against versioned synthetic images and deterministic fake-provider outputs.",
+    "No optional live AI provider was executed, so the report does not claim production model accuracy.",
+    "Latency values are local offline measurements and exclude internet/provider latency."
+  ]
+}
