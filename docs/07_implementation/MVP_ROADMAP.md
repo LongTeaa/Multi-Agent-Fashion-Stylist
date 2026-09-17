@@ -137,11 +137,11 @@ Specification files:
 - `../05_api/API_CONTRACT.md`, Try-On and Media APIs
 - `TEST_STRATEGY.md`, Phase 6
 
-- [ ] Implement an image-provider interface and configurable model identifier.
-- [ ] Supply item reference images when supported.
-- [ ] Apply an 8-second timeout and generate a moodboard fallback without requiring transparent PNG input.
-- [ ] Persist private render assets and benchmark metadata.
-- [ ] Build a responsive modal with render-kind labels and ownership protection.
+- [x] Implement an image-provider interface and configurable model identifier.
+- [x] Supply item reference images when supported.
+- [x] Apply an 8-second timeout and generate a moodboard fallback without requiring transparent PNG input.
+- [x] Persist private render assets and benchmark metadata.
+- [x] Build a responsive modal with render-kind labels and ownership protection.
 
 Verification MUST prove that disabling or timing out the image provider returns a private moodboard within the fallback budget and that another user cannot access it.
 
