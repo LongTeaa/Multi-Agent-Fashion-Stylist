@@ -191,6 +191,35 @@ class TestOpenAPIContract:
                     err_content = responses["404"].get("content", {}).get("application/json", {}).get("schema", {})
                     assert "ErrorResponse" in err_content.get("$ref", "")
 
+    def test_tryon_operation_and_response_contract(self, openapi_schema: dict) -> None:
+        paths = openapi_schema.get("paths", {})
+        assert "/api/v1/tryons" in paths
+        operation = paths["/api/v1/tryons"].get("post")
+        assert operation is not None
+
+        parameters = operation.get("parameters", [])
+        assert any(
+            parameter.get("name") == "X-User-Id" and parameter.get("in") == "header"
+            for parameter in parameters
+        )
+        for status_code in ("200", "404", "422", "504"):
+            assert status_code in operation.get("responses", {})
+
+        schemas = openapi_schema.get("components", {}).get("schemas", {})
+        assert set(schemas["TryOnRequest"].get("properties", {})) == {"outfit_id"}
+        response_properties = schemas["TryOnResponseData"].get("properties", {})
+        assert set(response_properties) == {
+            "tryon_id",
+            "outfit_id",
+            "image_url",
+            "render_kind",
+            "fallback_used",
+            "duration_ms",
+            "status",
+        }
+        assert "object_key" not in response_properties
+        assert "bucket" not in response_properties
+
     def test_outfit_actions_request_and_response_schemas(self, openapi_schema: dict) -> None:
         schemas = openapi_schema.get("components", {}).get("schemas", {})
 
