@@ -76,6 +76,12 @@ class ProviderError(AppException):
     message: str = "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
 
 
+class TryOnFailedError(AppException):
+    status_code: int = 504
+    code: str = "TRYON_FAILED"
+    message: str = "Không thể tạo ảnh minh họa lúc này. Vui lòng thử lại sau."
+
+
 class WardrobeEmptyError(AppException):
     status_code: int = 404
     code: str = "WARDROBE_EMPTY"
