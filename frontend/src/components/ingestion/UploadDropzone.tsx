@@ -108,6 +108,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
           <input
             ref={fileInputRef}
             type="file"
+            aria-label="Chọn ảnh trang phục để tải lên"
             multiple
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
@@ -131,7 +132,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
         </div>
 
         {/* Option Declared Kind */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-[#FAF8F5] rounded-2xl border border-[#E8E5DE]">
+        <div className="mt-6 flex flex-col items-stretch justify-between gap-3 p-4 bg-[#FAF8F5] rounded-2xl border border-[#E8E5DE] sm:flex-row sm:items-center sm:gap-4">
           <label htmlFor="input-kind-select" className="text-xs font-mono uppercase tracking-wider text-[#5C564E] font-medium">
             Gợi ý ngữ cảnh ảnh (Tùy chọn):
           </label>
@@ -139,7 +140,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
             id="input-kind-select"
             value={declaredKind}
             onChange={(e) => setDeclaredKind(e.target.value)}
-            className="px-3.5 py-2 text-xs font-mono bg-white border border-[#D5D1C7] rounded-xl text-[#1A1918] focus:border-[#9C5234] focus:ring-1 focus:ring-[#9C5234] outline-none shadow-2xs"
+            className="w-full min-w-0 max-w-full px-3.5 py-2 text-xs font-mono bg-white border border-[#D5D1C7] rounded-xl text-[#1A1918] focus:border-[#9C5234] focus:ring-1 focus:ring-[#9C5234] outline-none shadow-2xs sm:w-auto"
           >
             <option value="">Tự động nhận diện (Khuyến nghị)</option>
             <option value="single_item">Một món đồ riêng lẻ (Áo/Quần chụp phẳng)</option>

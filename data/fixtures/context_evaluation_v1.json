@@ -1,0 +1,42 @@
+{
+  "dataset_version": "context-v1",
+  "rule_version": "context-rules-v1",
+  "provider_model_version": "deterministic-fallback-v1",
+  "profiles": [
+    {"id": "minimal", "preferred_styles": ["minimalist"], "preferred_colors": ["white", "navy"]},
+    {"id": "formal", "preferred_styles": ["formal", "smart_casual"], "preferred_colors": ["black", "brown"]},
+    {"id": "casual", "preferred_styles": ["casual", "streetwear"], "preferred_colors": ["blue", "grey"]}
+  ],
+  "cases": [
+    {"id":"c01","query":"Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?","expected":{"occasion":"cafe","time_of_day":"evening","weather_condition":"cool","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c02","query":"Sáng mai đi làm ở văn phòng, trời nóng","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"hot","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c03","query":"Tối mai dự đám cưới, muốn trang trọng","expected":{"occasion":"wedding","time_of_day":"evening","weather_condition":"cool","target_formality_range":[4,5],"needs_clarification":false}},
+    {"id":"c04","query":"Chiều nay đi dạo phố, trời nắng và muốn thoải mái","expected":{"occasion":"casual","time_of_day":"afternoon","weather_condition":"hot","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c05","query":"Tối hẹn hò, hơi lạnh, muốn thanh lịch","expected":{"occasion":"date","time_of_day":"evening","weather_condition":"cold","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c06","query":"Sáng mai phỏng vấn xin việc, cần lịch sự","expected":{"occasion":"interview","time_of_day":"morning","weather_condition":"cool","target_formality_range":[4,5],"needs_clarification":false}},
+    {"id":"c07","query":"Đi tiệc sinh nhật tối nay, trời ấm áp","expected":{"occasion":"party","time_of_day":"evening","weather_condition":"warm","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c08","query":"Cuối tuần đi chơi buổi sáng, trời mưa","expected":{"occasion":"casual","time_of_day":"morning","weather_condition":"rainy","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c09","query":"Đi cafe sáng nay, muốn lịch sự nhẹ","expected":{"occasion":"cafe","time_of_day":"morning","weather_condition":"cool","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c10","query":"Họp công ty buổi chiều, mặc trang trọng","expected":{"occasion":"daily_work","time_of_day":"afternoon","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c11","query":"Dạo phố tối nay, trời se lạnh","expected":{"occasion":"casual","time_of_day":"evening","weather_condition":"cool","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c12","query":"Đi làm ngày mai, trời mưa, cần giày da","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"rainy","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c13","query":"Tối đi quán bar, muốn sang trọng","expected":{"occasion":"party","time_of_day":"evening","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c14","query":"Sáng đi cafe ngoài trời, trời nắng","expected":{"occasion":"cafe","time_of_day":"morning","weather_condition":"hot","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c15","query":"Đi làm trong phòng máy lạnh, trời nóng","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"hot","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c16","query":"Tối dự tiệc cưới, trời lạnh","expected":{"occasion":"wedding","time_of_day":"evening","weather_condition":"cold","target_formality_range":[4,5],"needs_clarification":false}},
+    {"id":"c17","query":"Chiều cuối tuần ở công viên, muốn năng động","expected":{"occasion":"casual","time_of_day":"afternoon","weather_condition":"cool","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c18","query":"Hẹn hò buổi tối, trời mưa","expected":{"occasion":"date","time_of_day":"evening","weather_condition":"rainy","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c19","query":"Sáng phỏng vấn, trời mát","expected":{"occasion":"interview","time_of_day":"morning","weather_condition":"cool","target_formality_range":[4,5],"needs_clarification":false}},
+    {"id":"c20","query":"Đi làm buổi sáng, muốn thoải mái","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"cool","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c21","query":"Cafe chiều mai ở Đà Lạt, hơi lạnh","expected":{"occasion":"cafe","time_of_day":"afternoon","weather_condition":"cold","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c22","query":"Tối nay đi dạ hội, mặc formal","expected":{"occasion":"party","time_of_day":"evening","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c23","query":"Cuối tuần đi dạo, trời ấm","expected":{"occasion":"casual","time_of_day":"morning","weather_condition":"warm","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c24","query":"Đi cafe tối mai, không muốn áo màu đen","expected":{"occasion":"cafe","time_of_day":"evening","weather_condition":"cool","target_formality_range":[2,3],"needs_clarification":false}},
+    {"id":"c25","query":"Đi công ty sáng nay, trời rét","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"cold","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c26","query":"Sinh nhật bạn tối nay, muốn nổi bật","expected":{"occasion":"party","time_of_day":"evening","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c27","query":"Đi cà phê buổi chiều, muốn đơn giản","expected":{"occasion":"cafe","time_of_day":"afternoon","weather_condition":"cool","target_formality_range":[1,2],"needs_clarification":false}},
+    {"id":"c28","query":"Ngày mai đi dạy, trời mát","expected":{"occasion":"daily_work","time_of_day":"morning","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c29","query":"Buổi hẹn tối nay, muốn lịch sự","expected":{"occasion":"date","time_of_day":"evening","weather_condition":"cool","target_formality_range":[3,4],"needs_clarification":false}},
+    {"id":"c30","query":"Mặc gì?","expected":{"occasion":"casual","time_of_day":"morning","weather_condition":"warm","target_formality_range":[2,3],"needs_clarification":true}}
+  ]
+}

@@ -221,10 +221,10 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const acceptedCount = Object.values(acceptedDetections).filter(Boolean).length;
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full max-w-6xl mx-auto px-0 sm:px-4 py-8">
       {/* Step Tracker */}
       <div className="mb-10">
-        <div className="flex items-center justify-center max-w-2xl mx-auto">
+        <div className="flex items-center justify-center max-w-2xl mx-auto px-1">
           {[
             { key: 'upload', label: '1. Tải ảnh lên' },
             { key: 'processing', label: '2. AI phân tích' },
@@ -246,8 +246,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                     }`}
                   />
                 )}
-                <div className="flex flex-col items-center">
+                <div className="flex shrink-0 flex-col items-center">
                   <div
+                    aria-current={isCurrent ? 'step' : undefined}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono transition-all ${
                       isCompleted
                         ? 'bg-[#9C5234] text-white font-medium shadow-2xs'
@@ -259,7 +260,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                     {isCompleted ? '✓' : idx + 1}
                   </div>
                   <span
-                    className={`text-[11px] font-mono mt-2 whitespace-nowrap uppercase tracking-wider ${
+                    className={`hidden sm:block text-[11px] font-mono mt-2 whitespace-nowrap uppercase tracking-wider ${
                       isCurrent
                         ? 'text-[#1A1918] font-semibold'
                         : isCompleted
@@ -274,6 +275,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             );
           })}
         </div>
+        <p className="mt-3 text-center text-[10px] font-mono uppercase tracking-[0.16em] text-[#5C564E] sm:hidden">
+          {step === 'upload' && 'Bước 1 / 4 · Tải ảnh lên'}
+          {step === 'processing' && 'Bước 2 / 4 · AI phân tích'}
+          {step === 'review' && 'Bước 3 / 4 · Kiểm duyệt & lưu'}
+          {step === 'confirmed' && 'Bước 4 / 4 · Hoàn tất'}
+          {step === 'failed' && 'Quá trình số hóa cần thử lại'}
+        </p>
       </div>
 
       {/* Global Error Banner */}
