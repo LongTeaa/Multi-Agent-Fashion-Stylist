@@ -14,6 +14,8 @@ EXPECTED_ENV_KEYS = {
     "CONTEXT_TIMEOUT_SECONDS",
     "WEATHER_PROVIDER",
     "WEATHER_TIMEOUT_SECONDS",
+    "IMAGE_PROVIDER",
+    "IMAGE_TIMEOUT_SECONDS",
     "LLM_MODEL",
     "VISION_MODEL",
     "IMAGE_MODEL",
@@ -46,6 +48,8 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.context_timeout_seconds == 15
     assert settings.weather_provider == "disabled"
     assert settings.weather_timeout_seconds == 5
+    assert settings.image_provider == "disabled"
+    assert settings.image_timeout_seconds == 8
     assert str(settings.minio_endpoint) == "http://localhost:9000/"
     assert settings.minio_secure is False
     assert settings.minio_bucket_wardrobe == "wardrobe-private"
@@ -83,6 +87,8 @@ def test_environment_values_are_parsed_and_secrets_are_masked(
         ("FRONTEND_URL", "not-a-url"),
         ("CONTEXT_PROVIDER", "unknown"),
         ("WEATHER_PROVIDER", "unknown"),
+        ("IMAGE_PROVIDER", "unknown"),
+        ("IMAGE_TIMEOUT_SECONDS", "9"),
     ],
 )
 def test_invalid_environment_values_are_rejected(

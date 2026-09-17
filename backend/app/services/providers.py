@@ -49,6 +49,49 @@ class VisionProviderProtocol(Protocol):
 
 
 @dataclass(frozen=True)
+class ImageReference:
+    """Private item-crop bytes supplied to an image provider for one request."""
+
+    asset_id: str
+    image_bytes: bytes
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+
+
+@dataclass(frozen=True)
+class ImageGenerationRequest:
+    """Provider-neutral request for an illustrative lookbook image."""
+
+    prompt: str
+    reference_images: tuple[ImageReference, ...] = ()
+
+
+@dataclass(frozen=True)
+class ImageGenerationResult:
+    """Normalized generated image and benchmark identifiers."""
+
+    image_bytes: bytes
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    provider: str
+    model: str
+
+
+@runtime_checkable
+class ImageProviderProtocol(Protocol):
+    """Protocol for optional external illustrative-lookbook generation."""
+
+    @property
+    def provider_name(self) -> str: ...
+
+    @property
+    def model(self) -> str: ...
+
+    @property
+    def supports_reference_images(self) -> bool: ...
+
+    def generate(self, request: ImageGenerationRequest) -> ImageGenerationResult: ...
+
+
+@dataclass(frozen=True)
 class WeatherContextResult:
     """Normalized weather enrichment returned by a weather provider."""
 

@@ -8,14 +8,20 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
-from app.core.config import get_settings, validate_vision_provider_configuration
+from app.core.config import (
+    get_settings,
+    validate_image_provider_configuration,
+    validate_vision_provider_configuration,
+)
 from app.schemas.common import AppException
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Validate provider configuration before the API reports ready."""
-    validate_vision_provider_configuration(get_settings())
+    settings = get_settings()
+    validate_vision_provider_configuration(settings)
+    validate_image_provider_configuration(settings)
     yield
 
 

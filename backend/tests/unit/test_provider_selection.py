@@ -12,11 +12,12 @@ from PIL import Image
 from pydantic import SecretStr
 
 from app.core.config import Settings
-from app.core.dependencies import get_detector, get_vision_provider
+from app.core.dependencies import get_detector, get_image_provider, get_vision_provider
 from app.models.entities import InputKind
 from app.schemas.common import ProviderError
 from app.services.classifier import classify_scene
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
+from app.services.fakes.image_fakes import FakeImageProvider
 from app.services.gemini_provider import GeminiDetector, GeminiVisionProvider
 from app.services.providers import BoundingBoxDetection, DetectionResult
 from app.main import app
@@ -40,6 +41,25 @@ class TestProviderSelection:
             vision = get_vision_provider()
             assert isinstance(detector, FakeDetector)
             assert isinstance(vision, FakeVisionProvider)
+
+    def test_disabled_image_provider_returns_none(self) -> None:
+        settings = Settings(image_provider="disabled", image_model=None)
+        with patch("app.core.dependencies.get_settings", return_value=settings):
+            assert get_image_provider() is None
+
+    def test_fake_image_provider_uses_configured_model(self) -> None:
+        settings = Settings(image_provider="fake", image_model="fake-lookbook-v2")
+        with patch("app.core.dependencies.get_settings", return_value=settings):
+            provider = get_image_provider()
+
+        assert isinstance(provider, FakeImageProvider)
+        assert provider.model == "fake-lookbook-v2"
+
+    def test_enabled_image_provider_requires_model(self) -> None:
+        settings = Settings(image_provider="fake", image_model=None)
+        with patch("app.core.dependencies.get_settings", return_value=settings):
+            with pytest.raises(ValueError, match="IMAGE_MODEL is not configured"):
+                get_image_provider()
 
     def test_gemini_mode_returns_gemini_providers(self) -> None:
         gemini_settings = Settings(

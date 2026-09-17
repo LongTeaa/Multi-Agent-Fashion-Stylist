@@ -14,6 +14,7 @@ from app.core.config import (
     Settings,
     get_settings,
     validate_context_provider_configuration,
+    validate_image_provider_configuration,
     validate_vision_provider_configuration,
     validate_weather_provider_configuration,
 )
@@ -25,7 +26,7 @@ from app.repositories.object_storage import (
     StorageBuckets,
 )
 from app.schemas.common import ValidationError
-from app.services.providers import DetectorProtocol, VisionProviderProtocol
+from app.services.providers import DetectorProtocol, ImageProviderProtocol, VisionProviderProtocol
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
 
@@ -193,6 +194,21 @@ def get_weather_provider() -> WeatherProviderProtocol | None:
         api_key=settings.weather_api_key,
         timeout_seconds=float(settings.weather_timeout_seconds),
     )
+
+
+def get_image_provider() -> ImageProviderProtocol | None:
+    """Return the optional illustrative-lookbook image provider."""
+    settings = get_settings()
+    if settings.image_provider == "disabled":
+        return None
+
+    validate_image_provider_configuration(settings)
+    if settings.image_provider == "fake":
+        from app.services.fakes.image_fakes import FakeImageProvider
+
+        return FakeImageProvider(model=settings.image_model or "")
+
+    raise ValueError(f"Unsupported image_provider: '{settings.image_provider}'")
 
 
 StylistRunner = Callable[..., Any]
