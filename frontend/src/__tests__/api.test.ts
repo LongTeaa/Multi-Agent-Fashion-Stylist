@@ -15,6 +15,7 @@ import {
   getMediaUrl,
   isSessionFeedbackSuppressed,
   clearMemorySuppressedSessionsForTesting,
+  createTryOn,
 } from '@/lib/api';
 import type {
   OutfitDetailResponseData,
@@ -442,6 +443,36 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
           body: JSON.stringify({
             client_session_id: 'test-session-uuid-5678',
           }),
+        })
+      );
+    });
+
+    it('createTryOn calls POST /api/v1/tryons with the persisted outfit ID', async () => {
+      const mockTryOn = {
+        tryon_id: 'tryon-1',
+        outfit_id: 'outfit-1',
+        image_url: '/api/v1/media/render-1',
+        render_kind: 'moodboard' as const,
+        fallback_used: true,
+        duration_ms: 42,
+        status: 'ready' as const,
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: mockTryOn }),
+      } as Response);
+
+      await expect(createTryOn('outfit-1')).resolves.toEqual(mockTryOn);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/tryons'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'X-User-Id': 'test-user-uuid-1234',
+          }),
+          body: JSON.stringify({ outfit_id: 'outfit-1' }),
         })
       );
     });

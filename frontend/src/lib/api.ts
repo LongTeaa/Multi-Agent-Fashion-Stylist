@@ -28,6 +28,7 @@ import type {
   DismissPromptRequest,
   DismissPromptResponseData,
 } from '@/types/feedback';
+import type { TryOnResponseData } from '@/types/tryons';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const USER_STORAGE_KEY = 'fashion_stylist_user_id';
@@ -449,5 +450,16 @@ export async function dismissFeedbackPrompt(
       'X-Client-Session-Id': sessionId,
     },
     body: JSON.stringify(bodyPayload),
+  });
+}
+
+export async function createTryOn(outfitId: string): Promise<TryOnResponseData> {
+  return apiFetch<TryOnResponseData>(`${API_BASE_URL}/api/v1/tryons`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': getStoredUserId(),
+    },
+    body: JSON.stringify({ outfit_id: outfitId }),
   });
 }

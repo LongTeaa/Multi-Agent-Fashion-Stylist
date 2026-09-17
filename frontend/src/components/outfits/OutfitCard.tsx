@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { setOutfitBookmark, recordOutfitWorn, rateOutfit, getMediaUrl, ApiError } from '@/lib/api';
 import type { StylistRecommendationItem } from '@/types/chat';
 import type { OutfitItemDetailResponse } from '@/types/outfits';
+import { TryOnModal } from '@/components/tryon/TryOnModal';
 
 /**
  * Standard RFC 4122 Version 4 UUID generator with fallback
@@ -130,6 +131,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   const [isRatingPending, setIsRatingPending] = useState<boolean>(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
   const [ratingSuccessMsg, setRatingSuccessMsg] = useState<string | null>(null);
+  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
 
   // Idempotency key generated once per user intent session, preserved on retry
   const idempotencyKeyRef = useRef<string>('');
@@ -258,6 +260,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   };
 
   return (
+    <>
     <article
       data-testid={testId}
       data-outfit-id={outfitId}
@@ -438,6 +441,14 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setIsTryOnOpen(true)}
+              aria-label="Xem ảnh minh họa bộ trang phục"
+              className="tactile-btn rounded-full bg-[#9C5234] px-4 py-2 text-xs font-mono uppercase tracking-wider text-white transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#82452E] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9C5234]"
+            >
+              Xem minh họa
+            </button>
+            <button
+              type="button"
               onClick={handleRecordWorn}
               disabled={isWearPending}
               aria-label="Xác nhận đã mặc bộ trang phục này hôm nay"
@@ -550,5 +561,17 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         </div>
       </div>
     </article>
+    <TryOnModal
+      isOpen={isTryOnOpen}
+      outfitId={outfitId}
+      items={items}
+      isBookmarked={isBookmarked}
+      onBookmarkChange={(changedOutfitId, nextBookmarked) => {
+        setIsBookmarked(nextBookmarked);
+        onBookmarkChange?.(changedOutfitId, nextBookmarked);
+      }}
+      onClose={() => setIsTryOnOpen(false)}
+    />
+    </>
   );
 };
