@@ -105,7 +105,7 @@ def test_golden_recommendation_scenario(
     assert seed_result.items_created == 8 or seed_result.items_updated == 8
 
     # Seed User B with existing wardrobe, recommendation, and items to test cross-user isolation substantively
-    user_b_id = f"user_b_control_{uuid4().hex[:8]}"
+    user_b_id = str(uuid4())
     user_b_outfit_id = f"rec_b_{uuid4().hex[:8]}"
 
     with Session(engine) as session:
@@ -426,7 +426,7 @@ def test_golden_phase5_actions_and_learning_lifecycle(
     seed_golden_wardrobe(engine)
 
     # Seed control User B
-    user_b_id = f"user_b_p5_{uuid4().hex[:8]}"
+    user_b_id = str(uuid4())
     with Session(engine) as session:
         session.add(User(id=user_b_id))
         session.commit()

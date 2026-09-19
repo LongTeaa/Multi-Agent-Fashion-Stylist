@@ -29,6 +29,12 @@ import type {
   DismissPromptResponseData,
 } from '@/types/feedback';
 import type { TryOnResponseData } from '@/types/tryons';
+import type {
+  WardrobeItem,
+  WardrobeItemListResponse,
+  WardrobeItemUpdatePayload,
+  WardrobeItemDeleteResponse,
+} from '@/types/wardrobe';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const USER_STORAGE_KEY = 'fashion_stylist_user_id';
@@ -471,5 +477,80 @@ export async function createTryOn(
     },
     body: JSON.stringify({ outfit_id: outfitId }),
     signal: options?.signal,
+  });
+}
+
+/**
+ * List wardrobe items with optional filters and pagination (GET /api/v1/wardrobe/items)
+ */
+export async function listWardrobeItems(params?: {
+  category?: string;
+  style?: string;
+  color?: string;
+  text?: string;
+  page?: number;
+  page_size?: number;
+  userId?: string;
+}): Promise<WardrobeItemListResponse> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set('category', params.category);
+  if (params?.style) query.set('style', params.style);
+  if (params?.color) query.set('color', params.color);
+  if (params?.text) query.set('text', params.text);
+  if (params?.page) query.set('page', params.page.toString());
+  if (params?.page_size) query.set('page_size', params.page_size.toString());
+
+  const queryString = query.toString();
+  const url = `${API_BASE_URL}/api/v1/wardrobe/items${queryString ? `?${queryString}` : ''}`;
+  return apiFetch<WardrobeItemListResponse>(url, {
+    method: 'GET',
+    headers: {
+      'X-User-Id': params?.userId || getStoredUserId(),
+    },
+  });
+}
+
+/**
+ * Get a single wardrobe item by ID (GET /api/v1/wardrobe/items/{id})
+ */
+export async function getWardrobeItem(itemId: string, userId?: string): Promise<WardrobeItem> {
+  return apiFetch<WardrobeItem>(`${API_BASE_URL}/api/v1/wardrobe/items/${itemId}`, {
+    method: 'GET',
+    headers: {
+      'X-User-Id': userId || getStoredUserId(),
+    },
+  });
+}
+
+/**
+ * Update wardrobe item attributes (PATCH /api/v1/wardrobe/items/{id})
+ */
+export async function updateWardrobeItem(
+  itemId: string,
+  payload: WardrobeItemUpdatePayload,
+  userId?: string
+): Promise<WardrobeItem> {
+  return apiFetch<WardrobeItem>(`${API_BASE_URL}/api/v1/wardrobe/items/${itemId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': userId || getStoredUserId(),
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Soft-delete / deactivate a wardrobe item (DELETE /api/v1/wardrobe/items/{id})
+ */
+export async function deleteWardrobeItem(
+  itemId: string,
+  userId?: string
+): Promise<WardrobeItemDeleteResponse> {
+  return apiFetch<WardrobeItemDeleteResponse>(`${API_BASE_URL}/api/v1/wardrobe/items/${itemId}`, {
+    method: 'DELETE',
+    headers: {
+      'X-User-Id': userId || getStoredUserId(),
+    },
   });
 }

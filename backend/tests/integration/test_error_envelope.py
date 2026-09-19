@@ -43,11 +43,13 @@ def test_storage_error_returns_standard_503_envelope() -> None:
         mock_storage.get_object.side_effect = ObjectStorageError("MinIO connection timed out")
         return mock_storage
 
+    test_user_id = str(uuid4())
+
     def dummy_session():
         mock_session = MagicMock()
         mock_asset = MagicMock()
         mock_asset.deleted_at = None
-        mock_asset.user_id = "test-user"
+        mock_asset.user_id = test_user_id
         mock_session.get.return_value = mock_asset
         return mock_session
 
@@ -57,7 +59,7 @@ def test_storage_error_returns_standard_503_envelope() -> None:
         client = TestClient(app, raise_server_exceptions=False)
         response = client.get(
             f"/api/v1/media/{uuid4()}",
-            headers={"X-User-Id": "test-user"},
+            headers={"X-User-Id": test_user_id},
         )
         assert response.status_code == 503
         body = response.json()
@@ -131,11 +133,13 @@ def test_object_not_found_returns_standard_404_envelope() -> None:
         mock_storage.get_object.side_effect = ObjectNotFoundError("Private object was not found")
         return mock_storage
 
+    test_user_id = str(uuid4())
+
     def dummy_session():
         mock_session = MagicMock()
         mock_asset = MagicMock()
         mock_asset.deleted_at = None
-        mock_asset.user_id = "test-user"
+        mock_asset.user_id = test_user_id
         mock_session.get.return_value = mock_asset
         return mock_session
 
@@ -145,7 +149,7 @@ def test_object_not_found_returns_standard_404_envelope() -> None:
         client = TestClient(app, raise_server_exceptions=False)
         response = client.get(
             f"/api/v1/media/{uuid4()}",
-            headers={"X-User-Id": "test-user"},
+            headers={"X-User-Id": test_user_id},
         )
         assert response.status_code == 404
         body = response.json()

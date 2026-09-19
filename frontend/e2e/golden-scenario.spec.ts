@@ -15,6 +15,12 @@ async function installApiMocks(page: Page): Promise<void> {
   await page.route('http://localhost:8000/api/v1/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const headers = request.headers();
+
+    // Verify identity boundary: X-User-Id must always be provided as a valid UUID
+    const userId = headers['x-user-id'];
+    expect(userId).toBeTruthy();
+    expect(userId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
     if (url.pathname === '/api/v1/stylist/chat') {
       await json(route, {
@@ -70,6 +76,7 @@ async function installApiMocks(page: Page): Promise<void> {
     if (url.pathname.endsWith('/worn')) {
       await json(route, {
         outfit_id: 'outfit-golden-e2e',
+        wear_log_id: 'wear-log-golden-e2e',
         worn_at: '2026-09-17T08:00:00Z',
         times_worn: 1,
         already_processed: false,

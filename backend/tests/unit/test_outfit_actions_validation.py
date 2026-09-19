@@ -166,7 +166,7 @@ class TestOutfitActionsEndpointStubs:
         from app.models.entities import User
 
         with Session(engine) as session:
-            session.add(User(id="test-user-id", email="test@example.com", name="Test User"))
+            session.add(User(id="00000000-0000-4000-a000-000000000001", email="test@example.com", full_name="Test User"))
             session.commit()
 
         def override_db():
@@ -181,7 +181,7 @@ class TestOutfitActionsEndpointStubs:
             app.dependency_overrides.pop(get_db_session, None)
 
     def test_outfit_endpoints_and_remaining_stubs(self, client: Any) -> None:
-        headers = {"X-User-Id": "test-user-id"}
+        headers = {"X-User-Id": "00000000-0000-4000-a000-000000000001"}
         outfit_id = str(uuid.uuid4())
 
         # 1. GET /api/v1/outfits/saved (implemented in 5.2: returns 200 with empty list for new user)
@@ -383,8 +383,9 @@ class TestSessionContractAndReconciliation:
         from app.main import app
 
         client = TestClient(app)
+        valid_user = "00000000-0000-4000-a000-000000000001"
         headers = {
-            "X-User-Id": "test-user-id",
+            "X-User-Id": valid_user,
             "X-Client-Session-Id": str(uuid.uuid4()),
         }
         different_session = str(uuid.uuid4())
@@ -413,7 +414,7 @@ class TestSessionContractAndReconciliation:
         # Invalid header on stylist chat
         resp = client.post(
             "/api/v1/stylist/chat",
-            headers={"X-User-Id": "test-user-id", "X-Client-Session-Id": "invalid-uuid"},
+            headers={"X-User-Id": valid_user, "X-Client-Session-Id": "invalid-uuid"},
             json={"query": "Mặc gì đi cafe?"},
         )
         assert resp.status_code == 422

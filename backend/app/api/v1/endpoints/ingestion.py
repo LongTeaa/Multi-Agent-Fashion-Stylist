@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, UploadFile, status
 from sqlalchemy import Engine
@@ -177,12 +178,12 @@ async def upload_ingestion_images(
     response_model=SuccessResponse[IngestionBatchReviewResponseData],
 )
 def get_ingestion_batch(
-    batch_id: str,
+    batch_id: uuid.UUID,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[IngestionBatchReviewResponseData]:
     """Retrieve review details, detected bounding boxes, attributes, and quality warnings for a batch."""
-    data = get_batch_review(session=session, batch_id=batch_id, user_id=current_user_id)
+    data = get_batch_review(session=session, batch_id=str(batch_id), user_id=current_user_id)
     return SuccessResponse(data=data)
 
 
@@ -191,7 +192,7 @@ def get_ingestion_batch(
     response_model=SuccessResponse[IngestionConfirmResponseData],
 )
 def confirm_ingestion(
-    batch_id: str,
+    batch_id: uuid.UUID,
     payload: IngestionConfirmRequest = Body(...),
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
@@ -199,14 +200,14 @@ def confirm_ingestion(
     """Confirm an ingestion batch into canonical wardrobe items idempotently."""
     confirmed_item_ids = confirm_ingestion_batch(
         session=session,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         user_id=current_user_id,
         confirmations=payload.confirmations,
     )
 
     return SuccessResponse(
         data=IngestionConfirmResponseData(
-            batch_id=batch_id,
+            batch_id=str(batch_id),
             status=IngestionStatus.CONFIRMED.value,
             wardrobe_item_ids=confirmed_item_ids,
         )
@@ -218,7 +219,7 @@ def confirm_ingestion(
     response_model=SuccessResponse[IngestionDeleteResponseData],
 )
 def cancel_ingestion(
-    batch_id: str,
+    batch_id: uuid.UUID,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
     storage: ObjectStorage = Depends(get_object_storage),
@@ -227,7 +228,7 @@ def cancel_ingestion(
     cancelled_batch = cancel_ingestion_batch(
         session=session,
         storage=storage,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         user_id=current_user_id,
     )
 

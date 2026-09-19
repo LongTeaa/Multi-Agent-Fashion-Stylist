@@ -165,3 +165,108 @@ class TestDatabaseBatchClassificationUpdate:
             refreshed = session.get(IngestionBatch, batch_id)
             assert refreshed is not None
             assert refreshed.input_kind == InputKind.MULTI_ITEM
+
+
+class TestLiveGeminiVisionProviderNormalization:
+    """Test normalization and error handling on the live GeminiVisionProvider implementation."""
+
+    def test_gemini_vision_normalizes_markdown_json_and_clamps_confidences(self) -> None:
+        import httpx
+        from pydantic import SecretStr
+        from app.services.gemini_provider import GeminiVisionProvider
+
+        gemini_response = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": (
+                                    '```json\n{\n'
+                                    '  "attributes": {\n'
+                                    '    "category": "top",\n'
+                                    '    "sub_category": "t-shirt",\n'
+                                    '    "primary_color": "white",\n'
+                                    '    "pattern": "solid",\n'
+                                    '    "material": "cotton",\n'
+                                    '    "style": "casual",\n'
+                                    '    "fit": "regular",\n'
+                                    '    "formality_level": 2,\n'
+                                    '    "season": ["summer"],\n'
+                                    '    "weather_suitability": ["warm"],\n'
+                                    '    "functional_flags": [],\n'
+                                    '    "free_text_tags": ["basic"]\n'
+                                    '  },\n'
+                                    '  "field_confidence": {\n'
+                                    '    "category": 1.5,\n'
+                                    '    "sub_category": 0.85,\n'
+                                    '    "material": -0.3\n'
+                                    '  },\n'
+                                    '  "quality_warnings": []\n'
+                                    '}\n```'
+                                )
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=gemini_response)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+        )
+
+        dummy_jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00"
+        result = provider.extract_attributes(dummy_jpeg)
+
+        assert result.attributes["category"] == "top"
+        assert result.attributes["sub_category"] == "t-shirt"
+        # Bounded confidence clamping invariant:
+        assert result.field_confidence["category"] == 1.0  # Clamped from 1.5
+        assert result.field_confidence["sub_category"] == 0.85
+        assert result.field_confidence["material"] == 0.0  # Clamped from -0.3
+
+    def test_gemini_vision_malformed_response_raises_provider_error(self) -> None:
+        import httpx
+        from pydantic import SecretStr
+        from app.services.gemini_provider import GeminiVisionProvider
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={"candidates": [{"content": {"parts": [{"text": "not-valid-json"}]}}]},
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+        )
+        dummy_jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00"
+        with pytest.raises(ProviderError):
+            provider.extract_attributes(dummy_jpeg)
+
+    def test_gemini_vision_http_error_raises_provider_error(self) -> None:
+        import httpx
+        from pydantic import SecretStr
+        from app.services.gemini_provider import GeminiVisionProvider
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(500, text="Internal server error from Gemini")
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+        )
+        dummy_jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00"
+        with pytest.raises(ProviderError):
+            provider.extract_attributes(dummy_jpeg)

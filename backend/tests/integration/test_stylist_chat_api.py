@@ -109,7 +109,7 @@ def test_stylist_chat_happy_path(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_id = f"user_api_happy_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
     top_media_id = f"media_top_{uuid4().hex[:8]}"
 
     def override_db():
@@ -212,7 +212,7 @@ def test_stylist_chat_clarification(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_id = f"user_api_clar_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -263,7 +263,7 @@ def test_stylist_chat_empty_wardrobe(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_id = f"user_api_empty_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -303,7 +303,7 @@ def test_stylist_chat_incomplete_wardrobe(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_id = f"user_api_inc_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -364,8 +364,8 @@ def test_stylist_chat_cross_user_isolation(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_a = f"user_api_iso_a_{uuid4().hex[:8]}"
-    user_b = f"user_api_iso_b_{uuid4().hex[:8]}"
+    user_a = str(uuid4())
+    user_b = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -433,7 +433,13 @@ def test_stylist_chat_query_validation(
     migrated_database: tuple[object, object],
 ) -> None:
     client = TestClient(app)
-    headers = {"X-User-Id": "test-user-valid"}
+    headers = {"X-User-Id": "00000000-0000-4000-a000-000000000001"}
+
+    # Invalid non-UUID user id header
+    res_bad_uid = client.post("/api/v1/stylist/chat", headers={"X-User-Id": "not-a-uuid"}, json={"query": "Đi cafe"})
+    assert res_bad_uid.status_code == 422
+    assert res_bad_uid.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert res_bad_uid.json()["error"]["details"]["reason"] == "must_be_valid_uuid"
 
     # Blank query string
     res_empty = client.post("/api/v1/stylist/chat", headers=headers, json={"query": ""})
@@ -450,7 +456,7 @@ def test_stylist_chat_internal_error_safety(
     migrated_database: tuple[object, object],
 ) -> None:
     _, engine = migrated_database
-    user_id = f"user_err_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -576,7 +582,7 @@ def test_stylist_chat_output_tamper_mismatch_safety(
 ) -> None:
     """Verify endpoint rejects tampered/mismatched output states with 502 PROVIDER_ERROR."""
     _, engine = migrated_database
-    user_id = f"user_tamper_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -651,7 +657,7 @@ def test_stylist_chat_output_rank_sequence_safety(
 ) -> None:
     """Verify endpoint rejects non-consecutive or duplicate ranks with 502 PROVIDER_ERROR."""
     _, engine = migrated_database
-    user_id = f"user_rank_tamper_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -726,7 +732,7 @@ def test_stylist_chat_output_composite_score_safety(
 ) -> None:
     """Verify endpoint rejects invalid composite_score with 502 PROVIDER_ERROR rather than 500."""
     _, engine = migrated_database
-    user_id = f"user_score_tamper_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
 
     def override_db():
         with Session(engine) as session:
@@ -784,7 +790,7 @@ def test_stylist_chat_cadence_triggers_feedback_prompt_on_threshold(
 ) -> None:
     """INVARIANT: Stylist chat evaluates FeedbackCadenceService and populates feedback_prompt_eligible and target_outfit_id."""
     _, engine = migrated_database
-    user_id = f"user_cadence_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
     top_media_id = f"media_top_{uuid4().hex[:8]}"
 
     def override_db():
@@ -950,7 +956,7 @@ def test_stylist_chat_input_validation_limits(
 ) -> None:
     """Invariant 4.7: Query (1-1000 chars) and Location (max 200 chars) boundary validation."""
     _, engine = migrated_database
-    user_id = f"user_limits_{uuid4().hex[:8]}"
+    user_id = str(uuid4())
     client = TestClient(app)
 
     # 1. Query empty or whitespace only -> 422
