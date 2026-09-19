@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from sqlalchemy import update
 
 from sqlmodel import Session, select
 
@@ -59,12 +61,30 @@ def cancel_ingestion_batch(
         return batch
 
     now = utc_now()
-    # Mark batch as EXPIRED upfront to immediately signal cancellation to any running background worker
-    batch.status = IngestionStatus.EXPIRED
     now_cmp = now if batch.expires_at.tzinfo is not None else now.replace(tzinfo=None)
-    batch.expires_at = min(batch.expires_at, now_cmp)
-    session.add(batch)
-    session.flush()
+    # Claim cancellation with a database write before touching object storage.
+    # A concurrent confirmation can claim the same batch only if this update loses.
+    result = session.execute(
+        update(IngestionBatch)
+        .where(
+            IngestionBatch.id == batch_id,
+            IngestionBatch.user_id == user_id,
+            IngestionBatch.status.not_in((IngestionStatus.CONFIRMED, IngestionStatus.EXPIRED)),
+        )
+        .values(status=IngestionStatus.EXPIRED, expires_at=now_cmp)
+    )
+    if result.rowcount != 1:
+        session.rollback()
+        session.expire(batch)
+        if batch.status == IngestionStatus.CONFIRMED:
+            raise AppException(
+                message="Không thể hủy lượt tải lên đã được xác nhận vào tủ đồ.",
+                status_code=400,
+                code="BATCH_ALREADY_CONFIRMED",
+            )
+        return batch
+    session.commit()
+    session.refresh(batch)
 
     assets = session.exec(
         select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch_id)
@@ -216,6 +236,7 @@ def record_orphan_cleanup(
     bucket: str,
     object_key: str,
     last_error: str | None = None,
+    not_before: datetime | None = None,
 ) -> OrphanMediaCleanup:
     """Persist an orphan media cleanup record to the durable outbox for retryable convergence."""
     record = OrphanMediaCleanup(
@@ -224,8 +245,32 @@ def record_orphan_cleanup(
         object_key=object_key,
         last_error=last_error,
         created_at=utc_now(),
+        not_before=not_before or utc_now(),
     )
     session.add(record)
+    return record
+
+
+def stage_object_upload(
+    *,
+    session: Session,
+    user_id: str,
+    bucket: str,
+    object_key: str,
+) -> OrphanMediaCleanup:
+    """Commit a cleanup manifest before the corresponding storage write.
+
+    The grace period prevents the scheduler from deleting an upload still in flight.
+    The caller removes this record in the transaction that commits media ownership.
+    """
+    record = record_orphan_cleanup(
+        session=session,
+        user_id=user_id,
+        bucket=bucket,
+        object_key=object_key,
+        not_before=utc_now() + timedelta(minutes=15),
+    )
+    session.commit()
     return record
 
 
@@ -233,11 +278,11 @@ def cleanup_orphan_media(
     *,
     session: Session,
     storage: ObjectStorage,
-    max_retries: int = 5,
+    current_time: datetime | None = None,
 ) -> CleanupSummary:
     """Process pending orphan storage records from the durable outbox table."""
     records = session.exec(
-        select(OrphanMediaCleanup).where(OrphanMediaCleanup.retry_count < max_retries)
+        select(OrphanMediaCleanup).where(OrphanMediaCleanup.not_before <= (current_time or utc_now()))
     ).all()
 
     deleted_count = 0
@@ -287,6 +332,7 @@ def run_cleanup(
         orphan_summary = cleanup_orphan_media(
             session=sess,
             storage=active_storage,
+            current_time=current_time,
         )
         return CleanupSummary(
             batches_expired=batch_summary.batches_expired + orphan_summary.batches_expired,

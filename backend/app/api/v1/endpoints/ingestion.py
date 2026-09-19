@@ -4,6 +4,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, UploadFile, status
+from sqlalchemy import update
 from sqlalchemy import Engine
 from sqlmodel import Session
 
@@ -62,12 +63,16 @@ def _run_batch_processing_task(
         except Exception as exc:
             task_logger.error("Background processing failed for batch %s: %s", batch_id, exc)
             try:
-                batch = session.get(IngestionBatch, batch_id)
-                if batch:
-                    batch.status = IngestionStatus.FAILED
-                    batch.quality_warnings.append(f"Xử lý ảnh nền thất bại: {str(exc)}")
-                    session.add(batch)
-                    session.commit()
+                session.execute(
+                    update(IngestionBatch)
+                    .where(
+                        IngestionBatch.id == batch_id,
+                        IngestionBatch.user_id == user_id,
+                        IngestionBatch.status == IngestionStatus.PROCESSING,
+                    )
+                    .values(status=IngestionStatus.FAILED)
+                )
+                session.commit()
             except Exception:
                 session.rollback()
 
@@ -203,6 +208,7 @@ def confirm_ingestion(
         batch_id=str(batch_id),
         user_id=current_user_id,
         confirmations=payload.confirmations,
+        idempotency_token=payload.idempotency_token,
     )
 
     return SuccessResponse(

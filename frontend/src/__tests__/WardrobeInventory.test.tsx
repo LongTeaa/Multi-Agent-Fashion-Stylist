@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WardrobeInventory } from '@/components/wardrobe/WardrobeInventory';
 import * as api from '@/lib/api';
-import type { WardrobeItem, WardrobeItemListResponse } from '@/types/wardrobe';
+import type { WardrobeItem } from '@/types/wardrobe';
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();

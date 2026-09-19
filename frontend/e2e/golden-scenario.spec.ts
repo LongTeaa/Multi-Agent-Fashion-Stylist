@@ -12,7 +12,7 @@ async function json(route: Route, data: unknown): Promise<void> {
 }
 
 async function installApiMocks(page: Page): Promise<void> {
-  await page.route('http://localhost:8000/api/v1/**', async (route) => {
+  await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const headers = request.headers();

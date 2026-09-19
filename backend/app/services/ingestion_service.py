@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import json
+from hashlib import sha256
 from datetime import timedelta
 from typing import Sequence
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy import update
 
 from app.core.config import get_settings
 from app.models.entities import (
@@ -19,6 +21,7 @@ from app.models.entities import (
     ItemMediaRole,
     MediaAsset,
     MediaKind,
+    OrphanMediaCleanup,
     User,
     WardrobeCategory,
     WardrobeItem,
@@ -40,7 +43,7 @@ from app.schemas.ingestion import (
     IngestionBatchReviewResponseData,
 )
 from app.services.classifier import classify_scene
-from app.services.cleanup_service import record_orphan_cleanup
+from app.services.cleanup_service import stage_object_upload
 from app.services.crop_engine import crop_item_and_generate_thumbnail
 from app.services.providers import (
     BoundingBoxDetection,
@@ -79,7 +82,7 @@ def create_ingestion_batch(
 
     if session.get(User, user_id) is None:
         session.add(User(id=user_id))
-        session.flush()
+        session.commit()
 
     batch_id = new_uuid()
     now = utc_now()
@@ -92,16 +95,29 @@ def create_ingestion_batch(
         created_at=now,
         expires_at=now + timedelta(hours=24),
     )
-    session.add(batch)
-
     uploaded_objects: list[tuple[str, str]] = []
+    upload_manifests: list[OrphanMediaCleanup] = []
     settings = get_settings()
     bucket_name = settings.minio_bucket_wardrobe
+    upload_plan: list[tuple[ValidatedImage, str, str]] = []
+    for val_img in validated_images:
+        asset_id = new_uuid()
+        object_key = f"users/{user_id}/ingestions/{batch_id}/original/{asset_id}.{val_img.extension}"
+        upload_plan.append((val_img, asset_id, object_key))
     try:
-        for val_img in validated_images:
-            asset_id = new_uuid()
-            object_key = f"users/{user_id}/ingestions/{batch_id}/original/{asset_id}.{val_img.extension}"
+        # Commit manifests before any storage write. The batch stays uncommitted.
+        for _, _, object_key in upload_plan:
+            upload_manifests.append(
+                stage_object_upload(
+                    session=session,
+                    user_id=user_id,
+                    bucket=bucket_name,
+                    object_key=object_key,
+                )
+            )
 
+        session.add(batch)
+        for val_img, asset_id, object_key in upload_plan:
             storage.put_object(
                 user_id=user_id,
                 bucket=bucket_name,
@@ -127,6 +143,8 @@ def create_ingestion_batch(
             )
             session.add(media_asset)
 
+        for manifest in upload_manifests:
+            session.delete(manifest)
         session.commit()
         session.refresh(batch)
         return batch
@@ -144,17 +162,8 @@ def create_ingestion_batch(
                     key,
                     cleanup_err,
                 )
-                try:
-                    record_orphan_cleanup(
-                        session=session,
-                        user_id=user_id,
-                        bucket=bucket,
-                        object_key=key,
-                        last_error=str(cleanup_err),
-                    )
-                    session.commit()
-                except Exception as outbox_err:
-                    logger.error("Failed to record orphan media cleanup outbox: %s", outbox_err)
+                # A pre-upload manifest is already committed for this key.
+                logger.error("Staged media cleanup remains pending: %s", key)
 
         if isinstance(exc, (AppException, ValidationError)):
             raise exc
@@ -198,6 +207,9 @@ def process_ingestion_batch(
     ).all()
 
     crop_objects_created: list[tuple[str, str]] = []
+    pending_media: list[MediaAsset] = []
+    pending_detections: list[IngestionDetection] = []
+    crop_manifests: list[OrphanMediaCleanup] = []
     warnings_accumulator: list[str] = list(batch.quality_warnings or [])
 
     settings = get_settings()
@@ -216,17 +228,7 @@ def process_ingestion_batch(
                 try:
                     storage.delete_object(user_id=user_id, bucket=bkt, object_key=key)
                 except Exception as del_err:
-                    try:
-                        record_orphan_cleanup(
-                            session=session,
-                            user_id=user_id,
-                            bucket=bkt,
-                            object_key=key,
-                            last_error=str(del_err),
-                        )
-                        session.commit()
-                    except Exception:
-                        pass
+                    logger.error("Cancelled crop cleanup pending for %s: %s", key, del_err)
             return True
         return False
 
@@ -290,6 +292,16 @@ def process_ingestion_batch(
 
                 # Store crop in wardrobe bucket
                 crop_key = f"users/{user_id}/items/{item_candidate_id}/crop/v1.{cropped.crop_extension}"
+                crop_manifests.append(
+                    stage_object_upload(
+                        session=session,
+                        user_id=user_id,
+                        bucket=wardrobe_bucket,
+                        object_key=crop_key,
+                    )
+                )
+                if check_cancelled_and_abort():
+                    return session.get(IngestionBatch, batch_id) or batch
                 storage.put_object(
                     user_id=user_id,
                     bucket=wardrobe_bucket,
@@ -301,6 +313,16 @@ def process_ingestion_batch(
 
                 # Store thumbnail in thumbnail bucket
                 thumb_key = f"users/{user_id}/items/{item_candidate_id}/thumbnail/v1.{cropped.thumb_extension}"
+                crop_manifests.append(
+                    stage_object_upload(
+                        session=session,
+                        user_id=user_id,
+                        bucket=thumbnail_bucket,
+                        object_key=thumb_key,
+                    )
+                )
+                if check_cancelled_and_abort():
+                    return session.get(IngestionBatch, batch_id) or batch
                 storage.put_object(
                     user_id=user_id,
                     bucket=thumbnail_bucket,
@@ -324,8 +346,7 @@ def process_ingestion_batch(
                     height=cropped.crop_height,
                     sha256=cropped.crop_sha256,
                 )
-                session.add(crop_media_asset)
-                session.flush()
+                pending_media.append(crop_media_asset)
 
                 thumb_asset_id = new_uuid()
                 thumb_media_asset = MediaAsset(
@@ -341,8 +362,7 @@ def process_ingestion_batch(
                     height=cropped.thumb_height,
                     sha256=cropped.thumb_sha256,
                 )
-                session.add(thumb_media_asset)
-                session.flush()
+                pending_media.append(thumb_media_asset)
 
                 # Extract structured attributes
                 try:
@@ -383,7 +403,7 @@ def process_ingestion_batch(
                     field_confidence=extraction.field_confidence,
                     status=DetectionStatus.PROPOSED,
                 )
-                session.add(detection)
+                pending_detections.append(detection)
 
         # Final check before committing NEEDS_REVIEW
         if check_cancelled_and_abort():
@@ -391,21 +411,41 @@ def process_ingestion_batch(
 
         # Resolve aggregate input_kind
         if batch.input_kind not in (None, InputKind.UNKNOWN):
-            pass
+            resolved_input_kind = batch.input_kind
         elif len(detected_kinds) == 1:
-            batch.input_kind = detected_kinds[0]
+            resolved_input_kind = detected_kinds[0]
         else:
             if total_boxes_count == 1:
-                batch.input_kind = InputKind.SINGLE_ITEM
+                resolved_input_kind = InputKind.SINGLE_ITEM
             elif total_boxes_count > 1:
-                batch.input_kind = InputKind.MULTI_ITEM
+                resolved_input_kind = InputKind.MULTI_ITEM
             else:
-                batch.input_kind = InputKind.CLUTTERED
+                resolved_input_kind = InputKind.CLUTTERED
 
-        batch.quality_warnings = list(warnings_accumulator)
-        flag_modified(batch, "quality_warnings")
-        batch.status = IngestionStatus.NEEDS_REVIEW
-        session.add(batch)
+        # Claim the final state under the SQLite writer lock. Cancellation
+        # cannot win after this update, and a cancelled worker cannot revive it.
+        claimed = session.execute(
+            update(IngestionBatch)
+            .where(
+                IngestionBatch.id == batch_id,
+                IngestionBatch.user_id == user_id,
+                IngestionBatch.status == IngestionStatus.PROCESSING,
+            )
+            .values(
+                status=IngestionStatus.NEEDS_REVIEW,
+                input_kind=resolved_input_kind,
+                quality_warnings=list(warnings_accumulator),
+            )
+        )
+        if claimed.rowcount != 1:
+            session.rollback()
+            check_cancelled_and_abort()
+            return session.get(IngestionBatch, batch_id) or batch
+        session.add_all(pending_media)
+        session.flush()
+        session.add_all(pending_detections)
+        for manifest in crop_manifests:
+            session.delete(manifest)
         session.commit()
         session.refresh(batch)
         return batch
@@ -417,28 +457,25 @@ def process_ingestion_batch(
             try:
                 storage.delete_object(user_id=user_id, bucket=bucket, object_key=key)
             except Exception as cleanup_err:
-                logger.error("Transient crop cleanup error %s: %s", key, cleanup_err)
-                try:
-                    record_orphan_cleanup(
-                        session=session,
-                        user_id=user_id,
-                        bucket=bucket,
-                        object_key=key,
-                        last_error=str(cleanup_err),
-                    )
-                    session.commit()
-                except Exception as outbox_err:
-                    logger.error("Failed to record orphan cleanup: %s", outbox_err)
+                logger.error("Transient crop cleanup pending for %s: %s", key, cleanup_err)
 
         batch = session.get(IngestionBatch, batch_id)
         if batch and batch.status == IngestionStatus.PROCESSING:
-            batch.status = IngestionStatus.FAILED
             err_msg = str(getattr(exc, "message", exc))
             fail_warnings = list(batch.quality_warnings or [])
             fail_warnings.append(f"Xử lý ảnh thất bại: {err_msg}")
-            batch.quality_warnings = fail_warnings
-            flag_modified(batch, "quality_warnings")
-            session.add(batch)
+            claimed_failure = session.execute(
+                update(IngestionBatch)
+                .where(
+                    IngestionBatch.id == batch_id,
+                    IngestionBatch.user_id == user_id,
+                    IngestionBatch.status == IngestionStatus.PROCESSING,
+                )
+                .values(status=IngestionStatus.FAILED, quality_warnings=fail_warnings)
+            )
+            if claimed_failure.rowcount != 1:
+                session.rollback()
+                return session.get(IngestionBatch, batch_id) or batch
             session.commit()
             session.refresh(batch)
             return batch
@@ -491,6 +528,7 @@ def confirm_ingestion_batch(
     batch_id: str,
     user_id: str,
     confirmations: list[DetectionConfirmationItem],
+    idempotency_token: str | None = None,
 ) -> list[str]:
     """Idempotently confirm an ingestion batch.
 
@@ -503,8 +541,24 @@ def confirm_ingestion_batch(
     if batch.user_id != user_id:
         raise ForbiddenAssetError()
 
-    # Idempotency: Return existing confirmed items if already completed
-    if batch.status == IngestionStatus.CONFIRMED:
+    fingerprint = sha256(
+        json.dumps(
+            sorted(
+                (item.model_dump(mode="json") for item in confirmations),
+                key=lambda item: item["detection_id"],
+            ),
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+    def confirmed_item_ids(confirmed_batch: IngestionBatch) -> list[str]:
+        if confirmed_batch.confirmation_fingerprint not in (None, fingerprint):
+            raise AppException(
+                message="Nội dung xác nhận không khớp với lần gửi trước.",
+                status_code=409,
+                code="IDEMPOTENCY_CONFLICT",
+            )
         existing_items = session.exec(
             select(WardrobeItem).where(
                 WardrobeItem.ingestion_batch_id == batch_id,
@@ -512,6 +566,10 @@ def confirm_ingestion_batch(
             )
         ).all()
         return [item.id for item in existing_items]
+
+    # Idempotency: Return existing confirmed items only for the same payload.
+    if batch.status == IngestionStatus.CONFIRMED:
+        return confirmed_item_ids(batch)
 
     if batch.status != IngestionStatus.NEEDS_REVIEW:
         raise IngestionNotReadyError(
@@ -551,6 +609,26 @@ def confirm_ingestion_batch(
     created_item_ids: list[str] = []
 
     try:
+        claimed = session.execute(
+            update(IngestionBatch)
+            .where(
+                IngestionBatch.id == batch_id,
+                IngestionBatch.user_id == user_id,
+                IngestionBatch.status == IngestionStatus.NEEDS_REVIEW,
+            )
+            .values(
+                status=IngestionStatus.CONFIRMED,
+                confirmation_token=idempotency_token,
+                confirmation_fingerprint=fingerprint,
+            )
+        )
+        if claimed.rowcount != 1:
+            session.rollback()
+            session.expire(batch)
+            if batch.status == IngestionStatus.CONFIRMED:
+                return confirmed_item_ids(batch)
+            raise IngestionNotReadyError()
+
         for detection in detections:
             conf = conf_map.get(detection.id)
             if conf is None:
@@ -663,21 +741,13 @@ def confirm_ingestion_batch(
                 )
                 session.add(item_media_thumb)
 
-        batch.status = IngestionStatus.CONFIRMED
-        session.add(batch)
         session.commit()
     except IntegrityError:
         session.rollback()
         # Concurrency race: If another request just confirmed this batch, return existing items idempotently
         refreshed_batch = session.get(IngestionBatch, batch_id)
         if refreshed_batch and refreshed_batch.status == IngestionStatus.CONFIRMED:
-            existing_items = session.exec(
-                select(WardrobeItem).where(
-                    WardrobeItem.ingestion_batch_id == batch_id,
-                    WardrobeItem.user_id == user_id,
-                )
-            ).all()
-            return [item.id for item in existing_items]
+            return confirmed_item_ids(refreshed_batch)
         raise
     except Exception:
         session.rollback()

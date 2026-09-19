@@ -178,6 +178,8 @@ class IngestionBatch(SQLModel, table=True):
         default=IngestionStatus.UPLOADED,
         sa_column=enum_column(IngestionStatus, "ingestion_status"),
     )
+    confirmation_token: str | None = Field(default=None, max_length=64)
+    confirmation_fingerprint: str | None = Field(default=None, max_length=64)
     quality_warnings: list[str] = Field(
         default_factory=list,
         sa_column=Column(JSON, nullable=False),
@@ -636,6 +638,10 @@ class OrphanMediaCleanup(SQLModel, table=True):
     retry_count: int = Field(default=0, ge=0)
     last_error: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    not_before: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )

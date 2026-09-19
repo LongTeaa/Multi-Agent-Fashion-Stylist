@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
-import { getMediaUrl } from '@/lib/api';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 interface DetectionItemCardProps {
   detection: DetectionReviewItem;
@@ -81,7 +81,7 @@ export function DetectionItemCard({
   onUpdateAttribute,
 }: DetectionItemCardProps) {
   const confidences = detection.field_confidence || {};
-  const cropUrl = getMediaUrl(detection.crop_url);
+  const cropUrl = detection.crop_url;
 
   const isLowConfidence = (field: string) => {
     const conf = confidences[field];
@@ -169,9 +169,8 @@ export function DetectionItemCard({
         <div className="flex flex-col items-center flex-shrink-0">
           <div className="w-36 h-36 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shadow-inner relative group">
             {cropUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cropUrl}
+              <PrivateMediaImage
+                source={cropUrl}
                 alt="Cropped item"
                 className="w-full h-full object-contain p-1"
               />

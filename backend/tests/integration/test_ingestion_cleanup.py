@@ -910,6 +910,7 @@ class TestIngestionCleanupIntegration:
                 object_key=orphan_key,
                 last_error="Initial network failure",
             )
+            record.retry_count = 5  # A previous retry limit must not strand the object.
             session.commit()
             record_id = record.id
 
@@ -927,4 +928,53 @@ class TestIngestionCleanupIntegration:
             )
             # Outbox record must be deleted
             assert session.get(OrphanMediaCleanup, record_id) is None
+
+    def test_preupload_manifest_survives_failed_final_transaction(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """A committed manifest survives rollback after storage accepted an object."""
+        from app.models.entities import OrphanMediaCleanup
+        from app.services.cleanup_service import cleanup_orphan_media, stage_object_upload
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        key = f"users/{user_id}/tryons/{uuid4()}/render.webp"
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.commit()
+            manifest = stage_object_upload(
+                session=session,
+                user_id=user_id,
+                bucket="tryon-private",
+                object_key=key,
+            )
+            manifest_id = manifest.id
+            test_storage.put_object(
+                user_id=user_id,
+                bucket="tryon-private",
+                object_key=key,
+                data=b"test-render",
+                content_type="image/webp",
+            )
+            session.delete(manifest)
+            session.rollback()  # Simulates failed final media transaction.
+
+        with Session(engine) as session:
+            pending = session.get(OrphanMediaCleanup, manifest_id)
+            assert pending is not None
+            assert cleanup_orphan_media(session=session, storage=test_storage).objects_deleted == 0
+            summary = cleanup_orphan_media(
+                session=session,
+                storage=test_storage,
+                current_time=pending.not_before + timedelta(seconds=1),
+            )
+            assert summary.objects_deleted == 1
+            assert session.get(OrphanMediaCleanup, manifest_id) is None
+            assert not test_storage.object_exists(
+                user_id=user_id,
+                bucket="tryon-private",
+                object_key=key,
+            )
 

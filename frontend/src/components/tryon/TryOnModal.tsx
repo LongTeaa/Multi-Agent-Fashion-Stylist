@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ApiError, createTryOn, getMediaUrl, setOutfitBookmark } from '@/lib/api';
+import { ApiError, createTryOn, setOutfitBookmark } from '@/lib/api';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
 
 const SLOT_NAMES: Record<string, string> = {
@@ -190,9 +191,8 @@ export function TryOnModal({
                 )}
 
                 {!isGenerating && result && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={getMediaUrl(result.image_url)}
+                  <PrivateMediaImage
+                    source={result.image_url}
                     alt={`${renderLabel} cho bộ trang phục`}
                     className="max-h-[68dvh] w-full object-contain"
                   />
@@ -229,9 +229,8 @@ export function TryOnModal({
                   <div key={item.id} className="grid grid-cols-[3rem_1fr] items-center gap-3 rounded-2xl bg-[#F7F5F1] p-2.5">
                     <div className="h-12 w-12 overflow-hidden rounded-xl bg-[#E8E5DE]">
                       {item.imageUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={getMediaUrl(item.imageUrl)}
+                        <PrivateMediaImage
+                          source={item.imageUrl}
                           alt={`Ảnh ${item.name}`}
                           className="h-full w-full object-cover"
                         />

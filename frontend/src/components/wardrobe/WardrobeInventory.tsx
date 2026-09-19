@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { WardrobeCategory, WardrobeItem, WardrobeItemUpdatePayload } from '@/types/wardrobe';
 import { deleteWardrobeItem, listWardrobeItems, updateWardrobeItem } from '@/lib/api';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
   { label: 'Tất cả', value: 'all' },
@@ -32,6 +33,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
   const [selectedCategory, setSelectedCategory] = useState<WardrobeCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +50,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
   const [deleting, setDeleting] = useState(false);
 
   const fetchItems = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     setLoading(true);
     setError(null);
     try {
@@ -57,17 +60,20 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
         page,
         page_size: pageSize,
       });
+      if (requestId !== requestSequence.current) return;
       setItems(res.items);
       setTotal(res.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách trang phục.');
+      if (requestId === requestSequence.current) {
+        setError(err instanceof Error ? err.message : 'Không thể tải danh sách trang phục.');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, [selectedCategory, searchQuery, page]);
 
   useEffect(() => {
-    fetchItems();
+    void Promise.resolve().then(fetchItems);
   }, [fetchItems]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -133,6 +139,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <input
             type="text"
+            aria-label="Tìm kiếm trong tủ đồ"
             data-testid="wardrobe-search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -220,8 +227,8 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               {/* Image Preview */}
               <div className="aspect-4/3 w-full bg-[#F5F4F0] relative overflow-hidden flex items-center justify-center">
                 {item.thumbnail_url || item.media_url ? (
-                  <img
-                    src={item.thumbnail_url || item.media_url || ''}
+                  <PrivateMediaImage
+                    source={item.thumbnail_url || item.media_url || ''}
                     alt={item.sub_category}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

@@ -74,7 +74,7 @@ class DetectionConfirmationItem(BaseModel):
 class IngestionConfirmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    idempotency_token: str | None = None
+    idempotency_token: str | None = Field(default=None, min_length=1, max_length=64)
     confirmations: list[DetectionConfirmationItem] = Field(..., min_length=1)
 
     @model_validator(mode="after")

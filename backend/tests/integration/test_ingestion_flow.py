@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
+from threading import Barrier, Event, current_thread
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import event
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlmodel import Session, select
@@ -34,6 +37,226 @@ from app.models.entities import (
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
 from app.services.providers import BoundingBoxDetection, DetectionResult
+
+
+def _pause_worker_state_claim(engine: object, reached: Event, resume: Event):
+    def callback(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if (
+            current_thread().name.startswith("ingestion-race")
+            and statement.lstrip().upper().startswith("UPDATE INGESTION_BATCHES")
+        ):
+            reached.set()
+            assert resume.wait(timeout=10), "Worker state claim was not released"
+
+    event.listen(engine, "before_cursor_execute", callback)
+    return callback
+
+
+def test_cancel_wins_worker_final_state_claim(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """Cancellation between the worker's final check and update cannot revive a batch."""
+    from app.services.cleanup_service import cancel_ingestion_batch
+    from app.services.ingestion_service import create_ingestion_batch, process_ingestion_batch
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        )
+        batch_id = batch.id
+
+    reached, resume = Event(), Event()
+    callback = _pause_worker_state_claim(engine, reached, resume)
+
+    def worker() -> IngestionBatch:
+        with Session(engine) as session:
+            return process_ingestion_batch(
+                session=session,
+                storage=test_storage,
+                detector=FakeDetector(mode="single_item"),
+                vision_provider=FakeVisionProvider(),
+                batch_id=batch_id,
+                user_id=user_id,
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="ingestion-race") as pool:
+            future = pool.submit(worker)
+            assert reached.wait(timeout=10), "Worker did not reach final state claim"
+            with Session(engine) as session:
+                cancelled = cancel_ingestion_batch(
+                    session=session,
+                    storage=test_storage,
+                    batch_id=batch_id,
+                    user_id=user_id,
+                )
+                assert cancelled.status == IngestionStatus.EXPIRED
+            resume.set()
+            future.result(timeout=10)
+    finally:
+        resume.set()
+        event.remove(engine, "before_cursor_execute", callback)
+
+    with Session(engine) as session:
+        assert session.get(IngestionBatch, batch_id).status == IngestionStatus.EXPIRED
+        assert session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).all() == []
+
+
+def test_cancel_wins_confirmation_state_claim(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """A stale confirmation cannot create items after cancellation deleted media."""
+    from app.schemas.common import IngestionNotReadyError
+    from app.schemas.ingestion import DetectionConfirmationItem
+    from app.services.cleanup_service import cancel_ingestion_batch
+    from app.services.ingestion_service import (
+        confirm_ingestion_batch,
+        create_ingestion_batch,
+        process_ingestion_batch,
+    )
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        )
+        batch_id = batch.id
+    with Session(engine) as session:
+        process_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            detector=FakeDetector(mode="single_item"),
+            vision_provider=FakeVisionProvider(),
+            batch_id=batch_id,
+            user_id=user_id,
+        )
+        detections = session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).all()
+        confirmations = [
+            DetectionConfirmationItem(detection_id=d.id, accepted=True) for d in detections
+        ]
+
+    reached, resume = Event(), Event()
+    callback = _pause_worker_state_claim(engine, reached, resume)
+
+    def worker() -> list[str]:
+        with Session(engine) as session:
+            return confirm_ingestion_batch(
+                session=session,
+                batch_id=batch_id,
+                user_id=user_id,
+                confirmations=confirmations,
+                idempotency_token=str(uuid4()),
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="ingestion-race") as pool:
+            future = pool.submit(worker)
+            assert reached.wait(timeout=10), "Confirmation did not reach state claim"
+            with Session(engine) as session:
+                cancel_ingestion_batch(
+                    session=session,
+                    storage=test_storage,
+                    batch_id=batch_id,
+                    user_id=user_id,
+                )
+            resume.set()
+            with pytest.raises(IngestionNotReadyError):
+                future.result(timeout=10)
+    finally:
+        resume.set()
+        event.remove(engine, "before_cursor_execute", callback)
+
+    with Session(engine) as session:
+        assert session.get(IngestionBatch, batch_id).status == IngestionStatus.EXPIRED
+        assert session.exec(
+            select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+        ).all() == []
+
+
+def test_simultaneous_confirmation_returns_one_persisted_result(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """Two requests that read NEEDS_REVIEW together must return the same items."""
+    from app.schemas.ingestion import DetectionConfirmationItem
+    from app.services.ingestion_service import (
+        confirm_ingestion_batch,
+        create_ingestion_batch,
+        process_ingestion_batch,
+    )
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch_id = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        ).id
+    with Session(engine) as session:
+        process_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            detector=FakeDetector(mode="single_item"),
+            vision_provider=FakeVisionProvider(),
+            batch_id=batch_id,
+            user_id=user_id,
+        )
+        detection = session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).one()
+        confirmations = [DetectionConfirmationItem(detection_id=detection.id, accepted=True)]
+
+    both_ready = Barrier(2)
+
+    def pause_both(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if (
+            current_thread().name.startswith("simultaneous-confirm")
+            and statement.lstrip().upper().startswith("UPDATE INGESTION_BATCHES")
+        ):
+            both_ready.wait(timeout=10)
+
+    def confirm() -> list[str]:
+        with Session(engine) as session:
+            return confirm_ingestion_batch(
+                session=session,
+                batch_id=batch_id,
+                user_id=user_id,
+                confirmations=confirmations,
+                idempotency_token="same-confirmation",
+            )
+
+    event.listen(engine, "before_cursor_execute", pause_both)
+    try:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="simultaneous-confirm") as pool:
+            first = pool.submit(confirm)
+            second = pool.submit(confirm)
+            first_ids, second_ids = first.result(timeout=15), second.result(timeout=15)
+    finally:
+        event.remove(engine, "before_cursor_execute", pause_both)
+
+    assert first_ids == second_ids
+    assert len(first_ids) == 1
+    with Session(engine) as session:
+        assert len(session.exec(
+            select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+        ).all()) == 1
 
 
 def create_test_image_bytes(
@@ -1059,6 +1282,21 @@ class TestConfirmationStateAndSecurityIntegrity:
             assert res2.status_code == 200
             created_ids_2 = res2.json()["data"]["wardrobe_item_ids"]
             assert created_ids_2 == created_ids_1
+
+            conflicting_payload = {
+                **confirm_payload,
+                "confirmations": [dict(item) for item in confirm_payload["confirmations"]],
+            }
+            conflicting_payload["confirmations"][0]["custom_attributes"] = {
+                "primary_color": "red"
+            }
+            conflict = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=conflicting_payload,
+            )
+            assert conflict.status_code == 409
+            assert conflict.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
 
             # Verify no duplicate items exist in database
             with Session(engine) as session:

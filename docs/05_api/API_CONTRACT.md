@@ -62,6 +62,11 @@ Returns current status, quality warnings, and detections for user review:
 ### 2.3 `POST /ingestions/{batch_id}/confirm`
 
 Accepts selected detections and user-corrected attributes. It MUST return the created `wardrobe_item_id` values. Repeated submission of the same confirmation MUST be idempotent.
+The optional `idempotency_token` is at most 64 characters. A retry with the same
+confirmation payload returns the persisted item IDs. A different payload after
+confirmation returns HTTP 409 `IDEMPOTENCY_CONFLICT`, even when the token is reused.
+Confirmation and cancellation MUST claim the batch status atomically before
+creating wardrobe items or deleting media.
 
 ### 2.4 `DELETE /ingestions/{batch_id}`
 
@@ -369,6 +374,9 @@ The operation MUST return HTTP `200` when image generation completes or when the
 ### 9.1 `GET /media/{media_asset_id}`
 
 The operation MUST verify ownership, then redirect to a short-lived signed URL or stream the asset. A client MUST NOT supply a raw object key.
+When streaming through this endpoint, browser clients MUST fetch the bytes with
+`X-User-Id` and use a local blob URL for an image element; the image element's
+ordinary URL request cannot attach this header.
 
 ## 10. Error Codes
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from hashlib import sha256
 from io import BytesIO
+import logging
 from time import monotonic
 from typing import Literal, cast
 
@@ -24,11 +25,13 @@ from app.models.entities import (
 from app.repositories.object_storage import ObjectStorage
 from app.schemas.common import OutfitNotFoundError, TryOnFailedError
 from app.schemas.tryons import TryOnResponseData
-from app.services.cleanup_service import record_orphan_cleanup
+from app.services.cleanup_service import stage_object_upload
 from app.services.image_generation import render_lookbook_with_fallback
 from app.services.moodboard import MoodboardItem
 from app.services.providers import ImageProviderProtocol, ImageReference
 from app.services.tryon_prompt import LookbookPromptItem, build_lookbook_prompt
+
+logger = logging.getLogger(__name__)
 
 
 def _image_dimensions(image_bytes: bytes) -> tuple[int, int]:
@@ -200,6 +203,12 @@ def create_tryon(
 
     tryon_id, media_asset_id = new_uuid(), new_uuid()
     object_key = f"users/{user_id}/tryons/{tryon_id}/render.webp"
+    upload_manifest = stage_object_upload(
+        session=session,
+        user_id=user_id,
+        bucket=tryon_bucket,
+        object_key=object_key,
+    )
     storage.put_object(
         user_id=user_id,
         bucket=tryon_bucket,
@@ -235,6 +244,7 @@ def create_tryon(
         session.add(media_asset)
         session.flush()
         session.add(render)
+        session.delete(upload_manifest)
         session.commit()
     except Exception:
         session.rollback()
@@ -245,17 +255,8 @@ def create_tryon(
                 object_key=object_key,
             )
         except Exception as delete_error:
-            try:
-                record_orphan_cleanup(
-                    session=session,
-                    user_id=user_id,
-                    bucket=tryon_bucket,
-                    object_key=object_key,
-                    last_error=str(delete_error),
-                )
-                session.commit()
-            except Exception:
-                pass
+            # The pre-upload manifest remains committed for scheduled retry.
+            logger.error("Try-on cleanup failed for %s: %s", object_key, delete_error)
         raise
 
     return TryOnResponseData(

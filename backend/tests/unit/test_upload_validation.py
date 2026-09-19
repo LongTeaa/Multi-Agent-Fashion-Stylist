@@ -477,9 +477,17 @@ class TestIngestionApiAndFailureSemantics:
         monkeypatch.setattr(test_storage, "delete_object", track_delete)
 
         with Session(engine) as session:
-            # Simulate DB commit failure
+            # Fail the final batch/media commit after the user and cleanup
+            # manifest commits have succeeded and the object was uploaded.
+            original_commit = session.commit
+            commit_count = 0
+
             def broken_commit():
-                raise RuntimeError("Simulated DB lock/commit crash")
+                nonlocal commit_count
+                commit_count += 1
+                if commit_count == 3:
+                    raise RuntimeError("Simulated DB lock/commit crash")
+                return original_commit()
 
             monkeypatch.setattr(session, "commit", broken_commit)
 
