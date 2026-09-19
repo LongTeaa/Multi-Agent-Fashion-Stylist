@@ -36,10 +36,14 @@ class WardrobeItemAttributes(BaseModel):
 
 
 class WardrobeItemCreate(WardrobeItemAttributes):
+    model_config = ConfigDict(extra="forbid")
+
     media_asset_id: str
 
 
 class WardrobeItemUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     category: WardrobeCategory | None = None
     sub_category: str | None = Field(default=None, min_length=1, max_length=100)
     primary_color: str | None = Field(default=None, min_length=1, max_length=50)

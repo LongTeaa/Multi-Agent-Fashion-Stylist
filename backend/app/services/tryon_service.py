@@ -71,38 +71,54 @@ def _load_outfit_assets(
     if not 2 <= len(outfit_items) <= 5:
         raise TryOnFailedError()
 
+    item_ids = [oi.wardrobe_item_id for oi in outfit_items]
+
+    # Batch query 1: load all WardrobeItems in a single round-trip.
+    wardrobe_items_map: dict[str, WardrobeItem] = {
+        wi.id: wi
+        for wi in session.exec(
+            select(WardrobeItem).where(
+                WardrobeItem.id.in_(item_ids),
+                WardrobeItem.user_id == user_id,
+                WardrobeItem.is_user_confirmed.is_(True),
+            )
+        ).all()
+    }
+
+    # Batch query 2: load PRIMARY media for all items in a single round-trip.
+    # Keeps earliest-created asset per item (deterministic ordering).
+    media_rows = session.exec(
+        select(ItemMedia, MediaAsset)
+        .join(
+            MediaAsset,
+            and_(
+                ItemMedia.media_asset_id == MediaAsset.id,
+                ItemMedia.user_id == MediaAsset.user_id,
+            ),
+        )
+        .where(
+            ItemMedia.wardrobe_item_id.in_(item_ids),
+            ItemMedia.user_id == user_id,
+            ItemMedia.role == ItemMediaRole.PRIMARY,
+            MediaAsset.deleted_at.is_(None),
+        )
+        .order_by(MediaAsset.created_at, MediaAsset.id)
+    ).all()
+    # Keep only the first (earliest) media asset per item.
+    media_map: dict[str, MediaAsset] = {}
+    for item_media, media_asset in media_rows:
+        if item_media.wardrobe_item_id not in media_map:
+            media_map[item_media.wardrobe_item_id] = media_asset
+
     prompt_items: list[LookbookPromptItem] = []
     references: list[ImageReference] = []
     moodboard_items: list[MoodboardItem] = []
     for outfit_item in outfit_items:
-        wardrobe_item = session.exec(
-            select(WardrobeItem).where(
-                WardrobeItem.id == outfit_item.wardrobe_item_id,
-                WardrobeItem.user_id == user_id,
-                WardrobeItem.is_user_confirmed.is_(True),
-            )
-        ).first()
-        media_row = session.exec(
-            select(ItemMedia, MediaAsset)
-            .join(
-                MediaAsset,
-                and_(
-                    ItemMedia.media_asset_id == MediaAsset.id,
-                    ItemMedia.user_id == MediaAsset.user_id,
-                ),
-            )
-            .where(
-                ItemMedia.wardrobe_item_id == outfit_item.wardrobe_item_id,
-                ItemMedia.user_id == user_id,
-                ItemMedia.role == ItemMediaRole.PRIMARY,
-                MediaAsset.deleted_at.is_(None),
-            )
-            .order_by(MediaAsset.created_at, MediaAsset.id)
-        ).first()
-        if wardrobe_item is None or media_row is None:
+        wardrobe_item = wardrobe_items_map.get(outfit_item.wardrobe_item_id)
+        media_asset = media_map.get(outfit_item.wardrobe_item_id)
+        if wardrobe_item is None or media_asset is None:
             raise TryOnFailedError()
 
-        _, media_asset = media_row
         if media_asset.mime_type not in ("image/jpeg", "image/png", "image/webp"):
             raise TryOnFailedError()
         reference_mime = cast(
@@ -148,6 +164,7 @@ def _load_outfit_assets(
         )
 
     return tuple(prompt_items), tuple(references), tuple(moodboard_items)
+
 
 
 def create_tryon(

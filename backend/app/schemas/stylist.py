@@ -1,12 +1,14 @@
 import uuid
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.entities import OutfitSlotRole
 
 
 class StylistChatRequest(BaseModel):
     """Public request payload for POST /api/v1/stylist/chat."""
+
+    model_config = ConfigDict(extra="forbid")
 
     query: str = Field(..., min_length=1, max_length=1000, description="Vietnamese styling query from the user.")
     location: str | None = Field(default=None, max_length=200, description="Optional user location.")
@@ -20,6 +22,7 @@ class StylistChatRequest(BaseModel):
         max_length=64,
         description="Optional client-provided idempotency key for safely retrying recommendation requests.",
     )
+
 
     @field_validator("query")
     @classmethod

@@ -49,7 +49,9 @@ let memorySessionId: string | null = null;
  */
 export function getStoredUserId(): string {
   if (typeof window === 'undefined') {
-    return '00000000-0000-0000-0000-000000000001';
+    // SSR-only sentinel: valid UUID v4 format (version=4, variant=8).
+    // Will not reach the backend in real SSR context; used only for type safety.
+    return '00000000-0000-4000-8000-000000000001';
   }
   try {
     let userId = localStorage.getItem(USER_STORAGE_KEY);
@@ -83,7 +85,9 @@ export function setStoredUserId(id: string): void {
  */
 export function getStoredSessionId(): string {
   if (typeof window === 'undefined') {
-    return '00000000-0000-0000-0000-000000000000';
+    // SSR-only sentinel: valid UUID v4 format (version=4, variant=8).
+    // Will not reach the backend in real SSR context; used only for type safety.
+    return '00000000-0000-4000-8000-000000000000';
   }
   try {
     let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -172,8 +176,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new ApiError(message, code, response.status, errorObj?.details);
   }
 
+  // Validate the discriminated union: even a 200 must carry success:true.
+  const body = json as { success?: boolean; data?: T; error?: { message?: string; code?: string; details?: unknown } };
+  if (body.success === false) {
+    const message = body.error?.message || 'Có lỗi xảy ra khi gọi dịch vụ.';
+    const code = body.error?.code || 'API_ERROR';
+    throw new ApiError(message, code, response.status, body.error?.details);
+  }
+
   return (json as ApiSuccessResponse<T>).data;
 }
+
 
 /**
  * Robust fetch wrapper ensuring all network dropouts and errors surface as typed ApiError.

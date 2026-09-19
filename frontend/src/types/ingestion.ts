@@ -68,14 +68,19 @@ export interface UploadBatchResponse {
 }
 
 export interface ApiSuccessResponse<T> {
+  success: true;
   data: T;
   meta?: Record<string, unknown>;
 }
 
 export interface ApiErrorResponse {
+  success: false;
   error: {
     code: string;
     message: string;
     details?: unknown;
   };
 }
+
+/** Discriminated union of all API responses. Use `success` to narrow. */
+export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
