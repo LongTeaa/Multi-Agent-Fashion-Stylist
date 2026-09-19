@@ -86,8 +86,8 @@ def render_moodboard(items: Iterable[MoodboardItem]) -> MoodboardResult:
     """Render a vertical neutral-card moodboard from opaque or alpha item crops."""
 
     normalized_items = tuple(items)
-    if not 2 <= len(normalized_items) <= 4:
-        raise ValueError("A moodboard requires 2 to 4 outfit items.")
+    if not 2 <= len(normalized_items) <= 5:
+        raise ValueError("A moodboard requires 2 to 5 outfit items.")
 
     canvas = Image.new("RGB", _CANVAS_SIZE, _BACKGROUND)
     draw = ImageDraw.Draw(canvas)

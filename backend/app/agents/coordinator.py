@@ -22,6 +22,7 @@ from app.models.entities import (
     new_uuid,
     utc_now,
 )
+from app.services.outfit_persistence import persist_outfit_recommendations
 
 logger = logging.getLogger(__name__)
 
@@ -362,71 +363,15 @@ def persist_recommendations_atomically(
     context: StylistContext,
     ranked_outfits: list[RankedOutfit],
 ) -> tuple[bool, list[str]]:
-    """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction.
-
-    Guarantees:
-    - All outfits and their items commit together.
-    - If any error occurs, session.rollback() is executed and zero new records remain.
-    - outfit_id is assigned only after successful commit.
-    """
-    persisted_ids: list[str] = []
-    temp_records: list[tuple[RankedOutfit, OutfitRecommendation, list[OutfitItem]]] = []
-
-    try:
-        temp_outfits: list[tuple[RankedOutfit, OutfitRecommendation]] = []
-        for outfit in ranked_outfits:
-            outfit_id = new_uuid()
-            rec = OutfitRecommendation(
-                id=outfit_id,
-                user_id=user_id,
-                request_id=request_id,
-                user_query=user_query,
-                context_snapshot=context.model_dump(),
-                explanation_vi=outfit.explanation_vi,
-                fashion_score=outfit.fashion_score or 0.0,
-                personalization_score=outfit.personalization_score or 0.0,
-                composite_score=outfit.composite_score,
-                rank=outfit.rank,
-                is_bookmarked=False,
-                rule_version=COORDINATOR_RULE_VERSION,
-                created_at=utc_now(),
-            )
-            session.add(rec)
-            temp_outfits.append((outfit, rec))
-            persisted_ids.append(outfit_id)
-
-        # Flush recommendations first so FK constraints are satisfied under SQLite FK enforcement
-        session.flush()
-
-        for outfit, rec in temp_outfits:
-            for item in outfit.items:
-                outfit_item = OutfitItem(
-                    outfit_id=rec.id,
-                    wardrobe_item_id=item.item_id,
-                    user_id=user_id,
-                    slot_role=item.slot_role,
-                )
-                session.add(outfit_item)
-
-        session.commit()
-
-        # Update RankedOutfit instances with the committed outfit_id
-        for outfit, rec in temp_outfits:
-            outfit.outfit_id = rec.id
-
-        return True, persisted_ids
-
-    except Exception as exc:
-        session.rollback()
-        logger.exception(
-            "Atomic persistence failed for user %s, request %s: %s",
-            user_id,
-            request_id,
-            exc,
-        )
-        for outfit in ranked_outfits:
-            outfit.outfit_id = None
-        return False, []
+    """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction with invariant validation."""
+    return persist_outfit_recommendations(
+        session=session,
+        user_id=user_id,
+        request_id=request_id,
+        user_query=user_query,
+        context_snapshot=context.model_dump(),
+        ranked_outfits=ranked_outfits,
+    )
 
 
 # ============================================================================

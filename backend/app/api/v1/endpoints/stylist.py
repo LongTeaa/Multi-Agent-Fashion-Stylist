@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 
 from app.agents.fashion_agent import NO_COMPLETE_OUTFIT_ERROR
 from app.agents.state import StylistGraphState
-from app.agents.wardrobe_agent import EMPTY_WARDROBE_ERROR
+from app.agents.wardrobe_agent import EMPTY_WARDROBE_ERROR, format_localized_item_name
 from app.core.dependencies import (
     StylistRunner,
     get_current_user_id,
@@ -25,6 +25,7 @@ from app.core.dependencies import (
     validate_client_session_id_header,
 )
 from app.services.feedback_cadence_service import FeedbackCadenceService
+from app.services.outfit_service import _primary_media_id
 from app.models.entities import (
     OutfitItem,
     OutfitRecommendation,
@@ -49,6 +50,71 @@ from app.services.providers import ContextLLMProviderProtocol, WeatherProviderPr
 
 router = APIRouter(prefix="/stylist", tags=["stylist"])
 logger = logging.getLogger(__name__)
+
+
+def _reconstruct_idempotent_response(
+    session: Session,
+    user_id: str,
+    request_id: str,
+    existing_recs: list[OutfitRecommendation],
+) -> StylistChatResponseData:
+    """Rebuild StylistChatResponseData from persisted database recommendations."""
+    first_rec = existing_recs[0]
+    ctx_data = first_rec.context_snapshot or {}
+    context = StylistContextResponse(
+        occasion=ctx_data.get("occasion"),
+        time_of_day=ctx_data.get("time_of_day"),
+        event_date=ctx_data.get("event_date"),
+        location_text=ctx_data.get("location_text"),
+        environment=ctx_data.get("environment"),
+        weather_condition=ctx_data.get("weather_condition"),
+    )
+
+    recommendations: list[StylistRecommendationResponse] = []
+    for rec in existing_recs:
+        outfit_items = session.exec(
+            select(OutfitItem, WardrobeItem)
+            .join(WardrobeItem, OutfitItem.wardrobe_item_id == WardrobeItem.id)
+            .where(
+                OutfitItem.outfit_id == rec.id,
+                OutfitItem.user_id == user_id,
+            )
+        ).all()
+
+        item_dtos: list[StylistRecommendationItemResponse] = []
+        for oi, wi in outfit_items:
+            media_id = _primary_media_id(session, wi.id, user_id)
+            img_url = f"/api/v1/media/{media_id}" if media_id else None
+            item_dtos.append(
+                StylistRecommendationItemResponse(
+                    slot=oi.slot_role,
+                    item_id=wi.id,
+                    name=format_localized_item_name(wi),
+                    image_url=img_url,
+                )
+            )
+
+        recommendations.append(
+            StylistRecommendationResponse(
+                outfit_id=rec.id,
+                rank=rec.rank,
+                composite_score=rec.composite_score,
+                items=item_dtos,
+                explanation_vi=rec.explanation_vi,
+                applied_preferences=[],
+            )
+        )
+
+    return StylistChatResponseData(
+        request_id=request_id,
+        needs_clarification=False,
+        clarification_question=None,
+        context=context,
+        recommendations=recommendations,
+        feedback_prompt_eligible=False,
+        feedback_target_outfit_id=None,
+        warnings=[],
+    )
 
 
 def _map_context(ctx: Any) -> StylistContextResponse:
@@ -84,6 +150,7 @@ def stylist_chat(
     payload: StylistChatRequest,
     user_id: str = Depends(get_current_user_id),
     x_client_session_id: str | None = Depends(validate_client_session_id_header),
+    x_idempotency_key: str | None = Header(default=None, alias="X-Idempotency-Key"),
     session: Session = Depends(get_db_session),
     clock: Callable[[], datetime] = Depends(get_utc_clock),
     runner: StylistRunner = Depends(get_stylist_runner),
@@ -92,7 +159,36 @@ def stylist_chat(
     feedback_service: FeedbackCadenceService = Depends(get_feedback_cadence_service),
 ) -> SuccessResponse[StylistChatResponseData]:
     """Execute the AI stylist recommendation pipeline for the authenticated user."""
-    request_id = new_uuid()
+    effective_idempotency_key = (
+        x_idempotency_key
+        or payload.idempotency_key
+        or ""
+    ).strip() or None
+
+    if effective_idempotency_key:
+        existing_recs = session.exec(
+            select(OutfitRecommendation)
+            .where(
+                OutfitRecommendation.user_id == user_id,
+                OutfitRecommendation.request_id == effective_idempotency_key,
+            )
+            .order_by(OutfitRecommendation.rank.asc())
+        ).all()
+        if existing_recs:
+            logger.info(
+                "Idempotent stylist chat hit for user %s, request_id %s",
+                user_id,
+                effective_idempotency_key,
+            )
+            cached_data = _reconstruct_idempotent_response(
+                session=session,
+                user_id=user_id,
+                request_id=effective_idempotency_key,
+                existing_recs=list(existing_recs),
+            )
+            return SuccessResponse(data=cached_data)
+
+    request_id = effective_idempotency_key or new_uuid()
     client_session_id = reconcile_client_session_id(x_client_session_id, payload.client_session_id)
     initial_state: StylistGraphState = {
         "request_id": request_id,

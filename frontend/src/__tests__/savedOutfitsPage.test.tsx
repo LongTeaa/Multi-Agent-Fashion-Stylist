@@ -235,6 +235,8 @@ describe('SavedOutfitsPage Integration', () => {
 
     await waitFor(() => {
       expect(api.setOutfitBookmark).toHaveBeenCalledWith('outfit-1', false);
+      expect(screen.queryByText(/Set đồ thanh lịch đi làm/i)).toBeNull();
+      expect(screen.getByText('Tổng cộng 24 bộ đồ')).toBeDefined();
     });
   });
 

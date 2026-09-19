@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.entities import OutfitSlotRole
 
@@ -8,13 +8,21 @@ from app.models.entities import OutfitSlotRole
 class StylistChatRequest(BaseModel):
     """Public request payload for POST /api/v1/stylist/chat."""
 
-    query: str = Field(..., description="Vietnamese styling query from the user.")
-    location: str | None = Field(default=None, max_length=100, description="Optional user location.")
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(..., min_length=1, max_length=1000, description="Vietnamese styling query from the user.")
+    location: str | None = Field(default=None, max_length=200, description="Optional user location.")
     client_session_id: str | None = Field(
         default=None,
         max_length=64,
         description="Optional client session UUID v4 for session-scoped feedback cadence suppression.",
     )
+    idempotency_key: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Optional client-provided idempotency key for safely retrying recommendation requests.",
+    )
+
 
     @field_validator("query")
     @classmethod
@@ -22,6 +30,8 @@ class StylistChatRequest(BaseModel):
         trimmed = v.strip()
         if not trimmed:
             raise ValueError("Query must not be empty or whitespace only.")
+        if len(trimmed) > 1000:
+            raise ValueError("Query must not exceed 1000 characters.")
         return trimmed
 
     @field_validator("location")
@@ -30,7 +40,11 @@ class StylistChatRequest(BaseModel):
         if v is None:
             return None
         trimmed = v.strip()
-        return trimmed if trimmed else None
+        if not trimmed:
+            return None
+        if len(trimmed) > 200:
+            raise ValueError("Location must not exceed 200 characters.")
+        return trimmed
 
     @field_validator("client_session_id")
     @classmethod
@@ -47,6 +61,14 @@ class StylistChatRequest(BaseModel):
         except Exception:
             raise ValueError("client_session_id must be a valid UUID v4.")
         return str(parsed)
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def validate_idempotency_key(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed if trimmed else None
 
 
 class StylistContextResponse(BaseModel):

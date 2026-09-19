@@ -14,6 +14,7 @@
 users
   |-- user_preferences
   |-- ingestion_batches -- ingestion_detections -- media_assets
+  |-- orphan_media_cleanups
   |-- wardrobe_items ---- item_media
   |                    -- wardrobe_retrieval_documents
   |-- outfit_recommendations -- outfit_items
@@ -55,6 +56,7 @@ users
 | `id`, `user_id` | Primary key and indexed foreign key |
 | `input_kind` | `unknown`, `single_item`, `multi_item`, `worn_outfit`, `cluttered` |
 | `status` | `uploaded`, `processing`, `needs_review`, `confirmed`, `failed`, `expired` |
+| `confirmation_token`, `confirmation_fingerprint` | Nullable replay identity and SHA-256 digest of the confirmed detection payload; set atomically with `confirmed` |
 | `quality_warnings` | JSON array |
 | `created_at`, `expires_at` | UTC datetime |
 
@@ -174,6 +176,15 @@ One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`
 
 Fields: `id`, `user_id`, `outfit_id`, `media_asset_id`, `provider`, `model`, `fallback_used`, `duration_ms`, `status`, and `created_at`.
 
+### 3.16 `orphan_media_cleanups`
+
+Stores a durable cleanup manifest **before** a storage upload. Fields are `id`,
+`user_id`, `bucket`, `object_key`, `retry_count`, `last_error`, `created_at`, and
+`not_before`. The manifest is deleted in the same transaction that commits the
+media asset and its owner. A failed upload or failed database commit leaves it
+for scheduled cleanup. Cleanup may start at `not_before` to avoid deleting an
+in-flight upload and MUST keep retrying failed deletions until they succeed.
+
 ## 4. Relational Invariants
 
 - **INVARIANT:** An outfit and every wardrobe item within it have the same `user_id`.
@@ -213,4 +224,5 @@ Fixture images SHOULD reside in `data/fixtures/sample_clothes/`. The seed comman
 - `feedback_delivered_outfits(user_id)`
 - A unique `(user_id, idempotency_key)` constraint on `wear_logs`
 - A unique `(user_id, outfit_id)` constraint on `feedback_delivered_outfits`
+- `orphan_media_cleanups(user_id)` and `orphan_media_cleanups(created_at)`
 

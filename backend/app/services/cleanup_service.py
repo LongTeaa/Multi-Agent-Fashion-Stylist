@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from sqlalchemy import update
 
 from sqlmodel import Session, select
 
@@ -11,6 +13,7 @@ from app.models.entities import (
     IngestionStatus,
     ItemMedia,
     MediaAsset,
+    OrphanMediaCleanup,
     utc_now,
 )
 from app.repositories.object_storage import ObjectNotFoundError, ObjectStorage
@@ -58,11 +61,35 @@ def cancel_ingestion_batch(
         return batch
 
     now = utc_now()
+    now_cmp = now if batch.expires_at.tzinfo is not None else now.replace(tzinfo=None)
+    # Claim cancellation with a database write before touching object storage.
+    # A concurrent confirmation can claim the same batch only if this update loses.
+    result = session.execute(
+        update(IngestionBatch)
+        .where(
+            IngestionBatch.id == batch_id,
+            IngestionBatch.user_id == user_id,
+            IngestionBatch.status.not_in((IngestionStatus.CONFIRMED, IngestionStatus.EXPIRED)),
+        )
+        .values(status=IngestionStatus.EXPIRED, expires_at=now_cmp)
+    )
+    if result.rowcount != 1:
+        session.rollback()
+        session.expire(batch)
+        if batch.status == IngestionStatus.CONFIRMED:
+            raise AppException(
+                message="Không thể hủy lượt tải lên đã được xác nhận vào tủ đồ.",
+                status_code=400,
+                code="BATCH_ALREADY_CONFIRMED",
+            )
+        return batch
+    session.commit()
+    session.refresh(batch)
+
     assets = session.exec(
         select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch_id)
     ).all()
 
-    all_cleared = True
     for asset in assets:
         if asset.deleted_at is None:
             try:
@@ -78,17 +105,13 @@ def cancel_ingestion_batch(
                 session.add(asset)
             except Exception as del_err:
                 logger.warning("Failed to delete transient file %s: %s", asset.object_key, del_err)
-                all_cleared = False
-
-    if all_cleared:
-        batch.status = IngestionStatus.EXPIRED
-    else:
-        # If some files failed to delete, ensure batch is eligible for retryable cleanup
-        batch.expires_at = min(batch.expires_at, now)
-        logger.warning(
-            "Batch %s cancelled with partial asset deletion. Retaining unexpired status for retry.",
-            batch_id,
-        )
+                record_orphan_cleanup(
+                    session=session,
+                    user_id=asset.user_id,
+                    bucket=asset.bucket,
+                    object_key=asset.object_key,
+                    last_error=str(del_err),
+                )
 
     session.add(batch)
     session.commit()
@@ -204,3 +227,123 @@ def cleanup_expired_batches(
         objects_deleted=objects_deleted,
         failures=failures,
     )
+
+
+def record_orphan_cleanup(
+    *,
+    session: Session,
+    user_id: str,
+    bucket: str,
+    object_key: str,
+    last_error: str | None = None,
+    not_before: datetime | None = None,
+) -> OrphanMediaCleanup:
+    """Persist an orphan media cleanup record to the durable outbox for retryable convergence."""
+    record = OrphanMediaCleanup(
+        user_id=user_id,
+        bucket=bucket,
+        object_key=object_key,
+        last_error=last_error,
+        created_at=utc_now(),
+        not_before=not_before or utc_now(),
+    )
+    session.add(record)
+    return record
+
+
+def stage_object_upload(
+    *,
+    session: Session,
+    user_id: str,
+    bucket: str,
+    object_key: str,
+) -> OrphanMediaCleanup:
+    """Commit a cleanup manifest before the corresponding storage write.
+
+    The grace period prevents the scheduler from deleting an upload still in flight.
+    The caller removes this record in the transaction that commits media ownership.
+    """
+    record = record_orphan_cleanup(
+        session=session,
+        user_id=user_id,
+        bucket=bucket,
+        object_key=object_key,
+        not_before=utc_now() + timedelta(minutes=15),
+    )
+    session.commit()
+    return record
+
+
+def cleanup_orphan_media(
+    *,
+    session: Session,
+    storage: ObjectStorage,
+    current_time: datetime | None = None,
+) -> CleanupSummary:
+    """Process pending orphan storage records from the durable outbox table."""
+    records = session.exec(
+        select(OrphanMediaCleanup).where(OrphanMediaCleanup.not_before <= (current_time or utc_now()))
+    ).all()
+
+    deleted_count = 0
+    failures: list[str] = []
+
+    for record in records:
+        try:
+            storage.delete_object(
+                user_id=record.user_id,
+                bucket=record.bucket,
+                object_key=record.object_key,
+            )
+            session.delete(record)
+            deleted_count += 1
+        except ObjectNotFoundError:
+            # Already deleted from storage -> treat as successful convergence
+            session.delete(record)
+            deleted_count += 1
+        except Exception as exc:
+            record.retry_count += 1
+            record.last_error = str(exc)
+            session.add(record)
+            failures.append(f"{record.bucket}/{record.object_key}: {exc}")
+
+    session.commit()
+    return CleanupSummary(batches_expired=0, objects_deleted=deleted_count, failures=failures)
+
+
+def run_cleanup(
+    *,
+    session: Session | None = None,
+    storage: ObjectStorage | None = None,
+    current_time: datetime | None = None,
+) -> CleanupSummary:
+    """Execute expired batches and orphan media cleanup with provided or default session and storage."""
+    from app.core.database import get_engine
+    from app.core.dependencies import get_object_storage
+
+    active_storage = storage or get_object_storage()
+
+    def _execute(sess: Session) -> CleanupSummary:
+        batch_summary = cleanup_expired_batches(
+            session=sess,
+            storage=active_storage,
+            current_time=current_time,
+        )
+        orphan_summary = cleanup_orphan_media(
+            session=sess,
+            storage=active_storage,
+            current_time=current_time,
+        )
+        return CleanupSummary(
+            batches_expired=batch_summary.batches_expired + orphan_summary.batches_expired,
+            objects_deleted=batch_summary.objects_deleted + orphan_summary.objects_deleted,
+            failures=batch_summary.failures + orphan_summary.failures,
+        )
+
+    if session is not None:
+        return _execute(session)
+
+    engine = get_engine()
+    with Session(engine) as active_session:
+        return _execute(active_session)
+

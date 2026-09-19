@@ -10,38 +10,18 @@ from sqlmodel import Session
 from app.core.database import get_engine
 from app.core.dependencies import get_object_storage
 from app.repositories.object_storage import ObjectStorage
-from app.services.cleanup_service import CleanupSummary, cleanup_expired_batches
+from app.services.cleanup_service import (
+    CleanupSummary,
+    cleanup_expired_batches,
+    cleanup_orphan_media,
+    run_cleanup,
+)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("cleanup_expired_ingestions")
-
-
-def run_cleanup(
-    *,
-    session: Session | None = None,
-    storage: ObjectStorage | None = None,
-    current_time: datetime | None = None,
-) -> CleanupSummary:
-    """Execute expired batches cleanup with provided or default session and storage."""
-    active_storage = storage or get_object_storage()
-
-    if session is not None:
-        return cleanup_expired_batches(
-            session=session,
-            storage=active_storage,
-            current_time=current_time,
-        )
-
-    engine = get_engine()
-    with Session(engine) as active_session:
-        return cleanup_expired_batches(
-            session=active_session,
-            storage=active_storage,
-            current_time=current_time,
-        )
 
 
 def main(

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from app.models.entities import User, UserPreference, utc_now
+from app.models.entities import Rating, User, UserPreference, utc_now
 from app.schemas.common import ValidationError
 from app.schemas.profile import (
     PreferenceOptionGroup,
@@ -12,6 +12,7 @@ from app.schemas.profile import (
     PreferenceSelections,
     ProfileResponseData,
 )
+from app.services.outfit_service import _update_learned_feature_weights
 
 STYLES = ("casual", "minimalist", "smart_casual", "streetwear", "formal", "vintage")
 COLOR_PALETTES = ("neutral", "earth_tone", "cool_tone", "warm_tone", "monochrome")
@@ -138,9 +139,20 @@ def replace_preferences(
     preferences.avoid_colors = list(selections.avoid_colors)
     preferences.avoid_styles = list(selections.avoid_styles)
     preferences.fit_preferences = list(selections.fit_preferences)
-    preferences.learned_feature_weights = build_initial_feature_weights(selections)
-    preferences.updated_at = utc_now()
-    session.add(preferences)
+    # Rebuild learned feature weights from rating history if ratings exist,
+    # otherwise initialize with canonical onboarding weights.
+    user_ratings = session.exec(
+        select(Rating.id).where(Rating.user_id == user_id)
+    ).all()
+    if user_ratings:
+        preferences.ratings_count = len(user_ratings)
+        _update_learned_feature_weights(session, user_id, preferences)
+    else:
+        preferences.ratings_count = 0
+        preferences.learned_feature_weights = build_initial_feature_weights(selections)
+        preferences.updated_at = utc_now()
+        session.add(preferences)
+
     session.commit()
     session.refresh(preferences)
     return _serialize(user, preferences)

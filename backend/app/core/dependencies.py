@@ -58,7 +58,15 @@ def get_current_user_id(
             message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",
             details={"field": "X-User-Id", "reason": "missing_or_empty"},
         )
-    return x_user_id.strip()
+    trimmed = x_user_id.strip()
+    try:
+        parsed = uuid.UUID(trimmed)
+    except Exception:
+        raise ValidationError(
+            message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",
+            details={"field": "X-User-Id", "reason": "must_be_valid_uuid"},
+        )
+    return str(parsed)
 
 
 def validate_client_session_id_header(

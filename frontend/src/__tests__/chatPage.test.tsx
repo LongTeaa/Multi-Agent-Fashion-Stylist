@@ -45,7 +45,7 @@ describe('Chat Page & Components Integration', () => {
             image_url: null,
           },
           {
-            slot: 'shoes',
+            slot: 'footwear',
             item_id: 'shoes-item-1',
             name: 'Giày loafer nâu',
             image_url: '/api/v1/media/loafer',

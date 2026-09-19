@@ -46,6 +46,8 @@ class IngestionBatchReviewResponseData(BaseModel):
 
 
 class CustomAttributesUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     category: WardrobeCategory | None = None
     sub_category: str | None = None
     primary_color: str | None = None
@@ -62,13 +64,17 @@ class CustomAttributesUpdate(BaseModel):
 
 
 class DetectionConfirmationItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     detection_id: str
     accepted: bool = True
     custom_attributes: CustomAttributesUpdate | None = None
 
 
 class IngestionConfirmRequest(BaseModel):
-    idempotency_token: str | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    idempotency_token: str | None = Field(default=None, min_length=1, max_length=64)
     confirmations: list[DetectionConfirmationItem] = Field(..., min_length=1)
 
     @model_validator(mode="after")

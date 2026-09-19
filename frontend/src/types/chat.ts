@@ -1,9 +1,10 @@
-export type OutfitSlotRole = 'top' | 'bottom' | 'shoes';
+export type OutfitSlotRole = 'top' | 'bottom' | 'dress' | 'footwear' | 'outerwear' | 'accessory';
 
 export interface StylistChatRequest {
   query: string;
   location?: string | null;
   client_session_id?: string | null;
+  idempotency_key?: string | null;
 }
 
 export interface StylistRecommendationItem {

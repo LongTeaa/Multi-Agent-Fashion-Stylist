@@ -177,7 +177,7 @@ describe('RatingPrompt Component', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('still closes prompt locally if dismiss API call fails (non-blocking UX invariant)', async () => {
+  it('displays error and keeps prompt open if dismiss API call fails', async () => {
     vi.mocked(api.dismissFeedbackPrompt).mockRejectedValueOnce(
       new ApiError('Network error', 'NETWORK_ERROR', 500)
     );
@@ -198,8 +198,9 @@ describe('RatingPrompt Component', () => {
       expect(api.dismissFeedbackPrompt).toHaveBeenCalledTimes(1);
     });
 
-    // Should still proceed to dismiss UI
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+    // Should display error message and keep prompt open rather than swallowing silently
+    expect(screen.getByText('Network error')).toBeDefined();
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 
   it('displays error alert when rateOutfit fails and leaves prompt open for retry', async () => {

@@ -63,6 +63,8 @@ class SavedOutfitsResponseData(BaseModel):
 
 
 class BookmarkOutfitRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     is_bookmarked: bool = Field(..., strict=True)
 
 
@@ -73,6 +75,8 @@ class BookmarkOutfitResponseData(BaseModel):
 
 
 class WornOutfitRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     idempotency_key: str = Field(
         ...,
         description="UUID v4 idempotency key for preventing duplicate wear logs on retry",
@@ -108,6 +112,8 @@ class WornOutfitResponseData(BaseModel):
 
 
 class OutfitRatingRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     stars: int = Field(
         ...,
         ge=1,

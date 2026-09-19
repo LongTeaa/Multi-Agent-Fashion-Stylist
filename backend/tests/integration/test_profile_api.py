@@ -113,3 +113,135 @@ def test_profile_rejects_invalid_or_excessive_options(
             assert response.json()["error"]["code"] == "VALIDATION_ERROR"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_profile_update_preserves_learned_weights_when_user_has_ratings(
+    migrated_database: tuple[object, object],
+) -> None:
+    """4.4 Test: Updating profile preferences must rebuild learned rating weights from history instead of wiping them."""
+    from app.models.entities import (
+        OutfitItem,
+        OutfitRecommendation,
+        OutfitSlotRole,
+        User,
+        WardrobeCategory,
+        WardrobeItem,
+    )
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    try:
+        client = TestClient(app)
+        headers = {"X-User-Id": user_id}
+
+        # 1. Setup user with wardrobe items and outfit
+        top_id, bot_id, shoes_id, outfit_id = str(uuid4()), str(uuid4()), str(uuid4()), str(uuid4())
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.add(UserPreference(user_id=user_id, styles=["casual"], ratings_count=0))
+            session.flush()
+            session.add(
+                WardrobeItem(
+                    id=top_id,
+                    user_id=user_id,
+                    category=WardrobeCategory.TOP,
+                    sub_category="t-shirt",
+                    style="casual",
+                    fit="regular",
+                    primary_color="white",
+                    pattern="solid",
+                    material="cotton",
+                    formality_level=1,
+                )
+            )
+            session.add(
+                WardrobeItem(
+                    id=bot_id,
+                    user_id=user_id,
+                    category=WardrobeCategory.BOTTOM,
+                    sub_category="jeans",
+                    style="casual",
+                    fit="regular",
+                    primary_color="blue",
+                    pattern="solid",
+                    material="denim",
+                    formality_level=1,
+                )
+            )
+            session.add(
+                WardrobeItem(
+                    id=shoes_id,
+                    user_id=user_id,
+                    category=WardrobeCategory.FOOTWEAR,
+                    sub_category="sneaker",
+                    style="casual",
+                    fit="regular",
+                    primary_color="white",
+                    pattern="solid",
+                    material="leather",
+                    formality_level=1,
+                )
+            )
+            rec = OutfitRecommendation(
+                id=outfit_id,
+                user_id=user_id,
+                request_id=str(uuid4()),
+                user_query="casual outfit",
+                context_snapshot={"occasion": "casual"},
+                explanation_vi="set do casual",
+                fashion_score=0.9,
+                personalization_score=0.9,
+                composite_score=0.9,
+                rank=1,
+                rule_version="v1",
+            )
+            session.add(rec)
+            session.flush()
+            session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=top_id, user_id=user_id, slot_role=OutfitSlotRole.TOP))
+            session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=bot_id, user_id=user_id, slot_role=OutfitSlotRole.BOTTOM))
+            session.add(OutfitItem(outfit_id=outfit_id, wardrobe_item_id=shoes_id, user_id=user_id, slot_role=OutfitSlotRole.FOOTWEAR))
+            session.commit()
+
+        # 2. Rate the outfit 5 stars
+        rate_res = client.put(
+            f"/api/v1/outfits/{outfit_id}/rating",
+            headers=headers,
+            json={"stars": 5, "source": "manual"},
+        )
+        assert rate_res.status_code == 200
+
+        # Verify rating updated learned weights
+        profile_before = client.get("/api/v1/user/profile", headers=headers).json()["data"]
+        assert profile_before["ratings_count"] == 1
+        assert "style:casual" in profile_before["feature_weights"]["weights"]
+        casual_weight = profile_before["feature_weights"]["weights"]["style:casual"]
+        assert casual_weight > 0
+
+        # 3. Update profile preferences with completely different styles
+        update_res = client.put(
+            "/api/v1/user/profile/preferences",
+            headers=headers,
+            json={
+                "styles": ["formal"],
+                "color_palettes": ["neutral"],
+                "priorities": ["polished"],
+                "avoid_colors": [],
+                "avoid_styles": [],
+                "fit_preferences": ["slim"],
+            },
+        )
+        assert update_res.status_code == 200
+        profile_after = update_res.json()["data"]
+
+        # Invariant 4.4: Profile update does NOT wipe learned rating weights back to onboarding weights
+        assert profile_after["ratings_count"] == 1
+        assert "style:casual" in profile_after["feature_weights"]["weights"]
+        assert profile_after["feature_weights"]["weights"]["style:casual"] == casual_weight
+    finally:
+        app.dependency_overrides.clear()

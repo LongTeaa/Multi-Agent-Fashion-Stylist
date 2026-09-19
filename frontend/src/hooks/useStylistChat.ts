@@ -31,6 +31,7 @@ export function useStylistChat(): UseStylistChatReturn {
 
   // Request sequence counter to discard stale out-of-order responses (race condition prevention)
   const sequenceIdRef = useRef<number>(0);
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -40,12 +41,14 @@ export function useStylistChat(): UseStylistChatReturn {
     };
   }, []);
 
-  const sendMessage = useCallback(async (query: string, location?: string) => {
+  const sendMessage = useCallback(async (query: string, location?: string, retryKey?: string) => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery || trimmedQuery.length > 1000) return;
 
     const trimmedLocation = location?.trim().slice(0, 200) || undefined;
     const currentSequenceId = ++sequenceIdRef.current;
+    const currentIdempotencyKey = retryKey || crypto.randomUUID();
+    idempotencyKeyRef.current = currentIdempotencyKey;
 
     setLastQuery(trimmedQuery);
     setLastLocation(trimmedLocation);
@@ -58,6 +61,7 @@ export function useStylistChat(): UseStylistChatReturn {
       const data = await sendStylistChat({
         query: trimmedQuery,
         location: trimmedLocation || null,
+        idempotency_key: currentIdempotencyKey,
       });
 
       // Ignore if unmounted or if a newer request was dispatched while this one was in flight
@@ -92,7 +96,7 @@ export function useStylistChat(): UseStylistChatReturn {
 
   const retry = useCallback(async () => {
     if (!lastQuery) return;
-    await sendMessage(lastQuery, lastLocation);
+    await sendMessage(lastQuery, lastLocation, idempotencyKeyRef.current);
   }, [lastQuery, lastLocation, sendMessage]);
 
   const reset = useCallback(() => {

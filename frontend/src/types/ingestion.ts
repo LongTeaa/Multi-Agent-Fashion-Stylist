@@ -64,18 +64,23 @@ export interface UploadBatchResponse {
   batch_id: string;
   status: string;
   declared_input_kind?: string;
-  item_count: number;
+  item_count?: number;
 }
 
 export interface ApiSuccessResponse<T> {
+  success: true;
   data: T;
   meta?: Record<string, unknown>;
 }
 
 export interface ApiErrorResponse {
+  success: false;
   error: {
     code: string;
     message: string;
     details?: unknown;
   };
 }
+
+/** Discriminated union of all API responses. Use `success` to narrow. */
+export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;

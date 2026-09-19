@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
+from threading import Barrier, Event, current_thread
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import event
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlmodel import Session, select
@@ -34,6 +37,226 @@ from app.models.entities import (
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
 from app.services.providers import BoundingBoxDetection, DetectionResult
+
+
+def _pause_worker_state_claim(engine: object, reached: Event, resume: Event):
+    def callback(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if (
+            current_thread().name.startswith("ingestion-race")
+            and statement.lstrip().upper().startswith("UPDATE INGESTION_BATCHES")
+        ):
+            reached.set()
+            assert resume.wait(timeout=10), "Worker state claim was not released"
+
+    event.listen(engine, "before_cursor_execute", callback)
+    return callback
+
+
+def test_cancel_wins_worker_final_state_claim(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """Cancellation between the worker's final check and update cannot revive a batch."""
+    from app.services.cleanup_service import cancel_ingestion_batch
+    from app.services.ingestion_service import create_ingestion_batch, process_ingestion_batch
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        )
+        batch_id = batch.id
+
+    reached, resume = Event(), Event()
+    callback = _pause_worker_state_claim(engine, reached, resume)
+
+    def worker() -> IngestionBatch:
+        with Session(engine) as session:
+            return process_ingestion_batch(
+                session=session,
+                storage=test_storage,
+                detector=FakeDetector(mode="single_item"),
+                vision_provider=FakeVisionProvider(),
+                batch_id=batch_id,
+                user_id=user_id,
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="ingestion-race") as pool:
+            future = pool.submit(worker)
+            assert reached.wait(timeout=10), "Worker did not reach final state claim"
+            with Session(engine) as session:
+                cancelled = cancel_ingestion_batch(
+                    session=session,
+                    storage=test_storage,
+                    batch_id=batch_id,
+                    user_id=user_id,
+                )
+                assert cancelled.status == IngestionStatus.EXPIRED
+            resume.set()
+            future.result(timeout=10)
+    finally:
+        resume.set()
+        event.remove(engine, "before_cursor_execute", callback)
+
+    with Session(engine) as session:
+        assert session.get(IngestionBatch, batch_id).status == IngestionStatus.EXPIRED
+        assert session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).all() == []
+
+
+def test_cancel_wins_confirmation_state_claim(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """A stale confirmation cannot create items after cancellation deleted media."""
+    from app.schemas.common import IngestionNotReadyError
+    from app.schemas.ingestion import DetectionConfirmationItem
+    from app.services.cleanup_service import cancel_ingestion_batch
+    from app.services.ingestion_service import (
+        confirm_ingestion_batch,
+        create_ingestion_batch,
+        process_ingestion_batch,
+    )
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        )
+        batch_id = batch.id
+    with Session(engine) as session:
+        process_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            detector=FakeDetector(mode="single_item"),
+            vision_provider=FakeVisionProvider(),
+            batch_id=batch_id,
+            user_id=user_id,
+        )
+        detections = session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).all()
+        confirmations = [
+            DetectionConfirmationItem(detection_id=d.id, accepted=True) for d in detections
+        ]
+
+    reached, resume = Event(), Event()
+    callback = _pause_worker_state_claim(engine, reached, resume)
+
+    def worker() -> list[str]:
+        with Session(engine) as session:
+            return confirm_ingestion_batch(
+                session=session,
+                batch_id=batch_id,
+                user_id=user_id,
+                confirmations=confirmations,
+                idempotency_token=str(uuid4()),
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="ingestion-race") as pool:
+            future = pool.submit(worker)
+            assert reached.wait(timeout=10), "Confirmation did not reach state claim"
+            with Session(engine) as session:
+                cancel_ingestion_batch(
+                    session=session,
+                    storage=test_storage,
+                    batch_id=batch_id,
+                    user_id=user_id,
+                )
+            resume.set()
+            with pytest.raises(IngestionNotReadyError):
+                future.result(timeout=10)
+    finally:
+        resume.set()
+        event.remove(engine, "before_cursor_execute", callback)
+
+    with Session(engine) as session:
+        assert session.get(IngestionBatch, batch_id).status == IngestionStatus.EXPIRED
+        assert session.exec(
+            select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+        ).all() == []
+
+
+def test_simultaneous_confirmation_returns_one_persisted_result(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+) -> None:
+    """Two requests that read NEEDS_REVIEW together must return the same items."""
+    from app.schemas.ingestion import DetectionConfirmationItem
+    from app.services.ingestion_service import (
+        confirm_ingestion_batch,
+        create_ingestion_batch,
+        process_ingestion_batch,
+    )
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        batch_id = create_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            user_id=user_id,
+            raw_files=[("photo.jpg", create_test_image_bytes())],
+        ).id
+    with Session(engine) as session:
+        process_ingestion_batch(
+            session=session,
+            storage=test_storage,
+            detector=FakeDetector(mode="single_item"),
+            vision_provider=FakeVisionProvider(),
+            batch_id=batch_id,
+            user_id=user_id,
+        )
+        detection = session.exec(
+            select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
+        ).one()
+        confirmations = [DetectionConfirmationItem(detection_id=detection.id, accepted=True)]
+
+    both_ready = Barrier(2)
+
+    def pause_both(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if (
+            current_thread().name.startswith("simultaneous-confirm")
+            and statement.lstrip().upper().startswith("UPDATE INGESTION_BATCHES")
+        ):
+            both_ready.wait(timeout=10)
+
+    def confirm() -> list[str]:
+        with Session(engine) as session:
+            return confirm_ingestion_batch(
+                session=session,
+                batch_id=batch_id,
+                user_id=user_id,
+                confirmations=confirmations,
+                idempotency_token="same-confirmation",
+            )
+
+    event.listen(engine, "before_cursor_execute", pause_both)
+    try:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="simultaneous-confirm") as pool:
+            first = pool.submit(confirm)
+            second = pool.submit(confirm)
+            first_ids, second_ids = first.result(timeout=15), second.result(timeout=15)
+    finally:
+        event.remove(engine, "before_cursor_execute", pause_both)
+
+    assert first_ids == second_ids
+    assert len(first_ids) == 1
+    with Session(engine) as session:
+        assert len(session.exec(
+            select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+        ).all()) == 1
 
 
 def create_test_image_bytes(
@@ -484,6 +707,37 @@ class TestIngestionFlowIntegration:
             assert review_data["status"] == "needs_review"
             warnings = review_data["quality_warnings"]
             assert any("timeout" in w.lower() or "quá thời gian" in w for w in warnings)
+
+            # 4.2 Invariant: Provisional full-image detection is created so user can review and confirm
+            assert len(review_data["detections"]) == 1
+            det = review_data["detections"][0]
+            assert det["bounding_box"] == [0.0, 0.0, 1.0, 1.0]
+
+            # Complete manual confirmation flow
+            confirm_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {
+                            "detection_id": det["detection_id"],
+                            "accepted": True,
+                            "custom_attributes": {
+                                "category": "top",
+                                "sub_category": "t-shirt",
+                                "primary_color": "black",
+                                "pattern": "solid",
+                                "material": "cotton",
+                                "style": "casual",
+                                "fit": "regular",
+                                "formality_level": 2,
+                            },
+                        }
+                    ]
+                },
+            )
+            assert confirm_res.status_code == 200
+            assert len(confirm_res.json()["data"]["wardrobe_item_ids"]) == 1
 
         finally:
             app.dependency_overrides.clear()
@@ -964,3 +1218,244 @@ class TestConfirmationStateAndSecurityIntegrity:
                 assert db_det1.status == DetectionStatus.PROPOSED
         finally:
             app.dependency_overrides.clear()
+
+    def test_confirm_ingestion_idempotency_repeated_or_concurrent(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """3.2 Idempotent Confirmation: Double-confirmation returns existing WardrobeItem IDs without IntegrityError."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        detector = FakeDetector(mode="multi_item")
+        vision_provider = FakeVisionProvider(scenario="golden_polo")
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: detector
+        app.dependency_overrides[get_vision_provider] = lambda: vision_provider
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (300, 300))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("multi_outfit.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            detections = review_res.json()["data"]["detections"]
+            assert len(detections) >= 1
+
+            confirm_payload = {
+                "idempotency_token": str(uuid4()),
+                "confirmations": [
+                    {"detection_id": d["detection_id"], "accepted": True}
+                    for d in detections
+                ],
+            }
+
+            # First confirmation
+            res1 = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=confirm_payload,
+            )
+            assert res1.status_code == 200
+            created_ids_1 = res1.json()["data"]["wardrobe_item_ids"]
+            assert len(created_ids_1) == len(detections)
+
+            # Second confirmation (simulating duplicate click or network replay)
+            res2 = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=confirm_payload,
+            )
+            assert res2.status_code == 200
+            created_ids_2 = res2.json()["data"]["wardrobe_item_ids"]
+            assert created_ids_2 == created_ids_1
+
+            conflicting_payload = {
+                **confirm_payload,
+                "confirmations": [dict(item) for item in confirm_payload["confirmations"]],
+            }
+            conflicting_payload["confirmations"][0]["custom_attributes"] = {
+                "primary_color": "red"
+            }
+            conflict = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=conflicting_payload,
+            )
+            assert conflict.status_code == 409
+            assert conflict.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+
+            # Verify no duplicate items exist in database
+            with Session(engine) as session:
+                items = session.exec(
+                    select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+                ).all()
+                assert len(items) == len(detections)
+                assert sorted([item.id for item in items]) == sorted(created_ids_1)
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_incomplete_batch_confirmation_is_rejected_and_prevents_orphaned_detections(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """4.1 Invariant: Confirmation must account for all detections; omitting any raises 422."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        detector = FakeDetector(mode="multi_item")
+        vision_provider = FakeVisionProvider(scenario="golden_polo")
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: detector
+        app.dependency_overrides[get_vision_provider] = lambda: vision_provider
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (300, 300))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("multi_outfit.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            detections = review_res.json()["data"]["detections"]
+            assert len(detections) >= 2
+            first_det_id = detections[0]["detection_id"]
+            omitted_det_ids = sorted([d["detection_id"] for d in detections[1:]])
+
+            # Attempt confirmation with only 1 detection reviewed
+            partial_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": first_det_id, "accepted": True}
+                    ]
+                },
+            )
+            assert partial_res.status_code == 422
+            error_data = partial_res.json()["error"]
+            assert error_data["code"] == "VALIDATION_ERROR"
+            assert error_data["details"]["missing_detection_ids"] == omitted_det_ids
+
+            # Verify batch remains in NEEDS_REVIEW
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch.status == IngestionStatus.NEEDS_REVIEW
+                # All detections remain in PROPOSED state
+                dets = session.exec(select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)).all()
+                assert all(d.status == DetectionStatus.PROPOSED for d in dets)
+
+            # Now submit full review covering all detections
+            full_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": d["detection_id"], "accepted": (idx == 0)}
+                        for idx, d in enumerate(detections)
+                    ]
+                },
+            )
+            assert full_res.status_code == 200
+            assert len(full_res.json()["data"]["wardrobe_item_ids"]) == 1
+
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch.status == IngestionStatus.CONFIRMED
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_zero_detections_from_detector_generates_provisional_fallback_and_confirms(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """4.2 Invariant: When detector finds 0 candidate boxes, a full-image provisional detection is created."""
+        from app.services.providers import DetectionResult
+
+        class EmptyDetector:
+            def detect(self, image_bytes: bytes) -> DetectionResult:
+                return DetectionResult(input_kind=InputKind.UNKNOWN, boxes=[], quality_warnings=["No clothing items found."])
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: EmptyDetector()
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (200, 200))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("empty.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            data = review_res.json()["data"]
+            assert data["status"] == "needs_review"
+            assert len(data["detections"]) == 1
+            det = data["detections"][0]
+            assert det["bounding_box"] == [0.0, 0.0, 1.0, 1.0]
+
+            # User can confirm the provisional detection
+            confirm_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {
+                            "detection_id": det["detection_id"],
+                            "accepted": True,
+                            "custom_attributes": {
+                                "category": "top",
+                                "sub_category": "blouse",
+                                "primary_color": "white",
+                                "pattern": "solid",
+                                "material": "silk",
+                                "style": "formal",
+                                "fit": "regular",
+                                "formality_level": 4,
+                            },
+                        }
+                    ]
+                },
+            )
+            assert confirm_res.status_code == 200
+            assert len(confirm_res.json()["data"]["wardrobe_item_ids"]) == 1
+        finally:
+            app.dependency_overrides.clear()
+

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends, Path, Query
 from sqlmodel import Session
 
@@ -60,14 +62,14 @@ def get_saved_outfits(
     },
 )
 def get_outfit_detail(
-    outfit_id: str = Path(min_length=36, max_length=36),
+    outfit_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[OutfitDetailResponseData]:
     """Retrieve a single persisted outfit by ID for the authenticated user."""
     data = outfit_service.get_outfit_detail(
         session=session,
-        outfit_id=outfit_id,
+        outfit_id=str(outfit_id),
         user_id=user_id,
     )
     return SuccessResponse(data=data)
@@ -84,14 +86,14 @@ def get_outfit_detail(
 )
 def bookmark_outfit(
     payload: BookmarkOutfitRequest,
-    outfit_id: str = Path(min_length=36, max_length=36),
+    outfit_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[BookmarkOutfitResponseData]:
     """Bookmark or unbookmark an outfit for the authenticated user."""
     data = outfit_service.set_outfit_bookmark(
         session=session,
-        outfit_id=outfit_id,
+        outfit_id=str(outfit_id),
         user_id=user_id,
         is_bookmarked=payload.is_bookmarked,
     )
@@ -110,14 +112,14 @@ def bookmark_outfit(
 )
 def mark_outfit_worn(
     payload: WornOutfitRequest,
-    outfit_id: str = Path(min_length=36, max_length=36),
+    outfit_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WornOutfitResponseData]:
     """Confirm that the authenticated user has worn the outfit, with idempotency key."""
     data = outfit_service.record_outfit_worn(
         session=session,
-        outfit_id=outfit_id,
+        outfit_id=str(outfit_id),
         user_id=user_id,
         payload=payload,
     )
@@ -135,7 +137,7 @@ def mark_outfit_worn(
 )
 def rate_outfit(
     payload: OutfitRatingRequest,
-    outfit_id: str = Path(min_length=36, max_length=36),
+    outfit_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     x_client_session_id: str | None = Depends(validate_client_session_id_header),
     session: Session = Depends(get_db_session),
@@ -144,7 +146,7 @@ def rate_outfit(
     client_session_id = reconcile_client_session_id(x_client_session_id, payload.client_session_id)
     data = outfit_service.record_outfit_rating(
         session=session,
-        outfit_id=outfit_id,
+        outfit_id=str(outfit_id),
         user_id=user_id,
         payload=payload,
         client_session_id=client_session_id,

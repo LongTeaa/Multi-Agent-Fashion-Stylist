@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { setOutfitBookmark, recordOutfitWorn, rateOutfit, getMediaUrl, ApiError } from '@/lib/api';
+import { setOutfitBookmark, recordOutfitWorn, rateOutfit, ApiError } from '@/lib/api';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { StylistRecommendationItem } from '@/types/chat';
 import type { OutfitItemDetailResponse } from '@/types/outfits';
 import { TryOnModal } from '@/components/tryon/TryOnModal';
@@ -361,7 +362,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         {/* Garment Items Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           {items.map((item) => {
-            const imageUrl = item.imageUrl ? getMediaUrl(item.imageUrl) : null;
+            const imageUrl = item.imageUrl;
             const slotName = SLOT_NAMES[item.slot] || item.slot;
 
             return (
@@ -376,9 +377,8 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                 {/* Thumbnail with Alt Text */}
                 <div className="w-16 h-16 sm:w-full sm:h-36 rounded-xl bg-white border border-[#E8E5DE] overflow-hidden relative shrink-0 flex items-center justify-center">
                   {imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={imageUrl}
+                    <PrivateMediaImage
+                      source={imageUrl}
                       alt={`Ảnh của ${item.name} (${slotName})`}
                       className="w-full h-full object-cover"
                       loading="lazy"

@@ -6,6 +6,7 @@ import type {
   IngestionBatchReviewResponse,
 } from '@/types/ingestion';
 import {
+  ApiError,
   uploadIngestionImages,
   getIngestionBatch,
   confirmIngestionBatch,
@@ -36,12 +37,16 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPollingCancelledRef = useRef<boolean>(false);
+  const idempotencyTokenRef = useRef<string>(crypto.randomUUID());
 
   // Clean up polling timer
   useEffect(() => {
     return () => {
+      isPollingCancelledRef.current = true;
       if (pollingTimerRef.current) {
-        clearInterval(pollingTimerRef.current);
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
       }
     };
   }, []);
@@ -54,21 +59,25 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     };
   }, [uploadedPreviewUrl]);
 
-  // Poll for batch status until ready or failed
+  // Poll for batch status until ready or failed using recursive awaited polling (no overlapping requests)
   const startPollingBatch = useCallback((id: string) => {
     let attempts = 0;
     const maxAttempts = 30; // 45 seconds total
+    isPollingCancelledRef.current = false;
 
     if (pollingTimerRef.current) {
-      clearInterval(pollingTimerRef.current);
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
     }
 
     const poll = async () => {
+      if (isPollingCancelledRef.current) return;
       attempts += 1;
       try {
         const review = await getIngestionBatch(id);
+        if (isPollingCancelledRef.current) return;
+
         if (review.status === 'needs_review') {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setBatchReview(review);
 
           // Initialize accepted states & edited attributes map
@@ -84,29 +93,34 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             setSelectedDetectionId(review.detections[0].detection_id);
           }
           setStep('review');
+          return;
         } else if (review.status === 'failed') {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage(
             review.quality_warnings.join('; ') || 'AI không thể phân tích ảnh này. Vui lòng thử lại.'
           );
           setStep('failed');
+          return;
         } else if (attempts >= maxAttempts) {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage('Quá trình xử lý ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.');
           setStep('failed');
+          return;
         }
       } catch (err: unknown) {
+        if (isPollingCancelledRef.current) return;
         if (attempts >= 5) {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage((err as Error).message || 'Không thể lấy thông tin kết quả phân tích.');
           setStep('failed');
+          return;
         }
+      }
+
+      if (!isPollingCancelledRef.current) {
+        pollingTimerRef.current = setTimeout(poll, 1500);
       }
     };
 
-    // Run first check immediately, then poll every 1.5s
+    // Run first check immediately, then schedule subsequent poll only after response completes
     poll();
-    pollingTimerRef.current = setInterval(poll, 1500);
   }, []);
 
   const handleUpload = async (files: File[], declaredKind?: string) => {
@@ -152,7 +166,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   };
 
   const handleConfirmBatch = async () => {
-    if (!batchId || !batchReview) return;
+    if (!batchId || !batchReview || isConfirming || isCancelling) return;
 
     setIsConfirming(true);
     setErrorMessage(null);
@@ -165,7 +179,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
     try {
       const res = await confirmIngestionBatch(batchId, {
-        idempotency_token: crypto.randomUUID(),
+        idempotency_token: idempotencyTokenRef.current,
         confirmations,
       });
 
@@ -182,8 +196,8 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   };
 
   const handleCancelBatch = async () => {
-    if (!batchId) {
-      handleReset();
+    if (!batchId || isCancelling || isConfirming) {
+      if (!batchId) handleReset();
       return;
     }
 
@@ -193,17 +207,32 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     if (!confirmed) return;
 
     setIsCancelling(true);
+    setErrorMessage(null);
     try {
       await deleteIngestionBatch(batchId);
-    } catch {
-      // Ignore cleanup error if already deleted
-    } finally {
       setIsCancelling(false);
       handleReset();
+    } catch (err: unknown) {
+      setIsCancelling(false);
+      const isAlreadyGone =
+        err instanceof ApiError && (err.status === 404 || err.code === 'ITEM_NOT_FOUND');
+      if (isAlreadyGone) {
+        handleReset();
+      } else {
+        setErrorMessage(
+          (err as Error).message || 'Hủy bỏ lượt tải lên thất bại. Vui lòng thử lại.'
+        );
+      }
     }
   };
 
   const handleReset = () => {
+    isPollingCancelledRef.current = true;
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    idempotencyTokenRef.current = crypto.randomUUID();
     if (uploadedPreviewUrl) {
       URL.revokeObjectURL(uploadedPreviewUrl);
     }
@@ -353,8 +382,8 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <button
                 type="button"
                 onClick={handleCancelBatch}
-                disabled={isCancelling}
-                className="tactile-btn px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#736E65] hover:text-rose-600 bg-[#FAF8F5] hover:bg-rose-50 border border-[#E8E5DE] rounded-full transition flex items-center gap-1.5"
+                disabled={isCancelling || isConfirming}
+                className="tactile-btn px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#736E65] hover:text-rose-600 bg-[#FAF8F5] hover:bg-rose-50 border border-[#E8E5DE] rounded-full transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -431,17 +460,17 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <button
                 type="button"
                 onClick={handleCancelBatch}
-                disabled={isCancelling}
-                className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#D5D1C7] hover:text-white transition"
+                disabled={isCancelling || isConfirming}
+                className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#D5D1C7] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={handleConfirmBatch}
-                disabled={isConfirming || acceptedCount === 0}
+                disabled={isConfirming || isCancelling || acceptedCount === 0}
                 className={`tactile-btn px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-all flex items-center gap-2 ${
-                  isConfirming || acceptedCount === 0
+                  isConfirming || isCancelling || acceptedCount === 0
                     ? 'bg-white/15 text-white/40 cursor-not-allowed'
                     : 'bg-[#9C5234] hover:bg-[#854329] active:scale-95'
                 }`}

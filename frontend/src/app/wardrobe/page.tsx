@@ -1,10 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
-import { IngestionWorkflow } from '@/components/ingestion/IngestionWorkflow';
+import { WardrobeView } from '@/components/wardrobe/WardrobeView';
 
 export const metadata = {
-  title: 'Số Hóa Tủ Đồ - Multi-Agent Fashion Stylist',
-  description: 'Tải lên và số hóa trang phục của bạn với sự hỗ trợ của thị giác máy tính AI.',
+  title: 'Tủ Đồ & Số Hóa - Multi-Agent Fashion Stylist',
+  description: 'Quản lý tủ đồ cá nhân và số hóa trang phục của bạn với sự hỗ trợ của AI.',
 };
 
 export default function WardrobePage() {
@@ -32,8 +32,8 @@ export default function WardrobePage() {
               href="/wardrobe"
               className="px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-mono uppercase tracking-wider text-[#9C5234] font-semibold bg-[#9C5234]/10 border border-[#9C5234]/20 whitespace-nowrap"
             >
-              <span className="sm:hidden">Số hóa</span>
-              <span className="hidden sm:inline">Số Hóa Trang Phục</span>
+              <span className="sm:hidden">Tủ đồ</span>
+              <span className="hidden sm:inline">Tủ Đồ Cá Nhân</span>
             </Link>
             <Link
               href="/saved"
@@ -57,7 +57,7 @@ export default function WardrobePage() {
 
       {/* Main Workflow View */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <IngestionWorkflow />
+        <WardrobeView />
       </main>
     </div>
   );

@@ -210,11 +210,21 @@ def test_get_outfit_detail_success(api_client):
 def test_get_outfit_detail_unknown_404(api_client):
     client, _ = api_client
     unknown_id = str(uuid4())
-    resp = client.get(f"/api/v1/outfits/{unknown_id}", headers={"X-User-Id": "user-404"})
+    resp = client.get(f"/api/v1/outfits/{unknown_id}", headers={"X-User-Id": str(uuid4())})
     assert resp.status_code == 404
     data = resp.json()
     assert data["success"] is False
     assert data["error"]["code"] == "OUTFIT_NOT_FOUND"
+
+    # Non-UUID outfit_id returns 422
+    resp_bad_path = client.get("/api/v1/outfits/not-a-uuid", headers={"X-User-Id": str(uuid4())})
+    assert resp_bad_path.status_code == 422
+    assert resp_bad_path.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    # Non-UUID user_id header returns 422
+    resp_bad_user = client.get(f"/api/v1/outfits/{unknown_id}", headers={"X-User-Id": "user-404"})
+    assert resp_bad_user.status_code == 422
+    assert resp_bad_user.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 def test_get_outfit_detail_cross_user_isolation_404(api_client):

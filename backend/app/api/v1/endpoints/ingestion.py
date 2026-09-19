@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, UploadFile, status
+from sqlalchemy import update
 from sqlalchemy import Engine
 from sqlmodel import Session
 
@@ -61,12 +63,16 @@ def _run_batch_processing_task(
         except Exception as exc:
             task_logger.error("Background processing failed for batch %s: %s", batch_id, exc)
             try:
-                batch = session.get(IngestionBatch, batch_id)
-                if batch:
-                    batch.status = IngestionStatus.FAILED
-                    batch.quality_warnings.append(f"Xử lý ảnh nền thất bại: {str(exc)}")
-                    session.add(batch)
-                    session.commit()
+                session.execute(
+                    update(IngestionBatch)
+                    .where(
+                        IngestionBatch.id == batch_id,
+                        IngestionBatch.user_id == user_id,
+                        IngestionBatch.status == IngestionStatus.PROCESSING,
+                    )
+                    .values(status=IngestionStatus.FAILED)
+                )
+                session.commit()
             except Exception:
                 session.rollback()
 
@@ -177,12 +183,12 @@ async def upload_ingestion_images(
     response_model=SuccessResponse[IngestionBatchReviewResponseData],
 )
 def get_ingestion_batch(
-    batch_id: str,
+    batch_id: uuid.UUID,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[IngestionBatchReviewResponseData]:
     """Retrieve review details, detected bounding boxes, attributes, and quality warnings for a batch."""
-    data = get_batch_review(session=session, batch_id=batch_id, user_id=current_user_id)
+    data = get_batch_review(session=session, batch_id=str(batch_id), user_id=current_user_id)
     return SuccessResponse(data=data)
 
 
@@ -191,7 +197,7 @@ def get_ingestion_batch(
     response_model=SuccessResponse[IngestionConfirmResponseData],
 )
 def confirm_ingestion(
-    batch_id: str,
+    batch_id: uuid.UUID,
     payload: IngestionConfirmRequest = Body(...),
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
@@ -199,14 +205,15 @@ def confirm_ingestion(
     """Confirm an ingestion batch into canonical wardrobe items idempotently."""
     confirmed_item_ids = confirm_ingestion_batch(
         session=session,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         user_id=current_user_id,
         confirmations=payload.confirmations,
+        idempotency_token=payload.idempotency_token,
     )
 
     return SuccessResponse(
         data=IngestionConfirmResponseData(
-            batch_id=batch_id,
+            batch_id=str(batch_id),
             status=IngestionStatus.CONFIRMED.value,
             wardrobe_item_ids=confirmed_item_ids,
         )
@@ -218,7 +225,7 @@ def confirm_ingestion(
     response_model=SuccessResponse[IngestionDeleteResponseData],
 )
 def cancel_ingestion(
-    batch_id: str,
+    batch_id: uuid.UUID,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
     storage: ObjectStorage = Depends(get_object_storage),
@@ -227,7 +234,7 @@ def cancel_ingestion(
     cancelled_batch = cancel_ingestion_batch(
         session=session,
         storage=storage,
-        batch_id=batch_id,
+        batch_id=str(batch_id),
         user_id=current_user_id,
     )
 

@@ -316,3 +316,58 @@ class TestOpenAPIContract:
                 assert prop.lower() not in {"like", "dislike", "is_liked", "is_disliked", "thumbs_up", "thumbs_down"}, (
                     f"Property '{prop}' in schema '{schema_name}' violates no-like/dislike invariant."
                 )
+
+    def test_wardrobe_operations_contract(self, openapi_schema: dict) -> None:
+        """Verify wardrobe CRUD operations and UUID path parameter contract."""
+        paths = openapi_schema.get("paths", {})
+        assert "/api/v1/wardrobe/items" in paths
+        assert "get" in paths["/api/v1/wardrobe/items"]
+        assert "post" in paths["/api/v1/wardrobe/items"]
+
+        item_path = "/api/v1/wardrobe/items/{item_id}"
+        assert item_path in paths
+        assert "get" in paths[item_path]
+        assert "patch" in paths[item_path]
+        assert "delete" in paths[item_path]
+
+        # Verify UUID format on item_id path param
+        get_op = paths[item_path]["get"]
+        param = next(p for p in get_op["parameters"] if p["name"] == "item_id")
+        assert param["in"] == "path"
+        assert param["schema"].get("format") == "uuid"
+
+    def test_media_endpoint_strictly_forbids_user_id_query_param(self, openapi_schema: dict) -> None:
+        """Issue 4.5 & 4.15: Media endpoint must not expose user_id query parameter."""
+        paths = openapi_schema.get("paths", {})
+        media_path = "/api/v1/media/{asset_id}"
+        assert media_path in paths
+        get_op = paths[media_path]["get"]
+        params = get_op.get("parameters", [])
+
+        # Verify asset_id is path param with format uuid
+        asset_param = next((p for p in params if p["name"] == "asset_id"), None)
+        assert asset_param is not None
+        assert asset_param["in"] == "path"
+        assert asset_param["schema"].get("format") == "uuid"
+
+        # Strictly forbid user_id query parameter
+        query_param_names = [p["name"] for p in params if p["in"] == "query"]
+        assert "user_id" not in query_param_names, (
+            "Media endpoint must NOT accept user_id as a query parameter."
+        )
+
+    def test_all_api_routes_have_valid_operations_and_responses(self, openapi_schema: dict) -> None:
+        """Audit 4.15: Verify all routes have valid operations and response statuses defined."""
+        paths = openapi_schema.get("paths", {})
+        for path_name, path_item in paths.items():
+            if not path_name.startswith("/api/v1/"):
+                continue
+            for method in ("get", "post", "put", "patch", "delete"):
+                if method in path_item:
+                    op = path_item[method]
+                    responses = op.get("responses", {})
+                    assert len(responses) > 0, f"Route {method.upper()} {path_name} has no responses defined."
+                    # Must define at least one successful status (2xx)
+                    has_success = any(code.startswith("2") for code in responses)
+                    assert has_success, f"Route {method.upper()} {path_name} lacks 2xx response definition."
+

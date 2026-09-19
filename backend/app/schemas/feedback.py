@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def _validate_uuid_v4(val: str, field_name: str) -> str:
@@ -17,6 +17,8 @@ def _validate_uuid_v4(val: str, field_name: str) -> str:
 
 
 class DismissPromptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     client_session_id: str | None = Field(
         default=None,
         max_length=64,

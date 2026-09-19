@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -64,34 +65,34 @@ def create_item(
 
 @router.get("/{item_id}", response_model=SuccessResponse[WardrobeItemResponseData])
 def get_item(
-    item_id: str,
+    item_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WardrobeItemResponseData]:
-    return SuccessResponse(data=get_wardrobe_item(session=session, user_id=user_id, item_id=item_id))
+    return SuccessResponse(data=get_wardrobe_item(session=session, user_id=user_id, item_id=str(item_id)))
 
 
 @router.patch("/{item_id}", response_model=SuccessResponse[WardrobeItemResponseData])
 def update_item(
-    item_id: str,
+    item_id: uuid.UUID,
     payload: WardrobeItemUpdate,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WardrobeItemResponseData]:
     return SuccessResponse(
         data=update_wardrobe_item(
-            session=session, user_id=user_id, item_id=item_id, payload=payload
+            session=session, user_id=user_id, item_id=str(item_id), payload=payload
         )
     )
 
 
 @router.delete("/{item_id}", response_model=SuccessResponse[WardrobeItemDeleteResponseData])
 def delete_item(
-    item_id: str,
+    item_id: uuid.UUID,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WardrobeItemDeleteResponseData]:
-    delete_wardrobe_item(session=session, user_id=user_id, item_id=item_id)
+    delete_wardrobe_item(session=session, user_id=user_id, item_id=str(item_id))
     return SuccessResponse(
-        data=WardrobeItemDeleteResponseData(item_id=item_id, is_active=False)
+        data=WardrobeItemDeleteResponseData(item_id=str(item_id), is_active=False)
     )

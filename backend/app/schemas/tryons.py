@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TryOnRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     outfit_id: str = Field(min_length=36, max_length=36)
 
 

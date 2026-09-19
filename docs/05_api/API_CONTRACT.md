@@ -62,6 +62,11 @@ Returns current status, quality warnings, and detections for user review:
 ### 2.3 `POST /ingestions/{batch_id}/confirm`
 
 Accepts selected detections and user-corrected attributes. It MUST return the created `wardrobe_item_id` values. Repeated submission of the same confirmation MUST be idempotent.
+The optional `idempotency_token` is at most 64 characters. A retry with the same
+confirmation payload returns the persisted item IDs. A different payload after
+confirmation returns HTTP 409 `IDEMPOTENCY_CONFLICT`, even when the token is reused.
+Confirmation and cancellation MUST claim the batch status atomically before
+creating wardrobe items or deleting media.
 
 ### 2.4 `DELETE /ingestions/{batch_id}`
 
@@ -82,6 +87,12 @@ An item response MUST include a short-lived media URL, normalized metadata, per-
 ## 4. Stylist Chat API
 
 ### 4.1 `POST /stylist/chat`
+
+Request payload constraints:
+- `query` (string, required): 1–1000 characters, user's Vietnamese styling request.
+- `location` (string | null, optional): 1–200 characters if provided, representing user's location.
+- `client_session_id` (string | null, optional): Valid UUID v4 string (max 64 chars).
+- `idempotency_key` (string | null, optional): Valid unique string (max 64 chars) for safely retrying recommendation requests.
 
 Request example; the user query MUST remain Vietnamese:
 
@@ -363,6 +374,9 @@ The operation MUST return HTTP `200` when image generation completes or when the
 ### 9.1 `GET /media/{media_asset_id}`
 
 The operation MUST verify ownership, then redirect to a short-lived signed URL or stream the asset. A client MUST NOT supply a raw object key.
+When streaming through this endpoint, browser clients MUST fetch the bytes with
+`X-User-Id` and use a local blob URL for an image element; the image element's
+ordinary URL request cannot attach this header.
 
 ## 10. Error Codes
 
