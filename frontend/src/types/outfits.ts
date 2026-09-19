@@ -1,7 +1,7 @@
 import type { OutfitSlotRole } from './chat';
 
 export type RatingSource = 'prompted' | 'manual';
-export type WardrobeCategory = 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessory';
+export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'footwear' | 'outerwear' | 'accessory';
 
 export interface OutfitItemDetailResponse {
   slot_role: OutfitSlotRole;

@@ -264,3 +264,40 @@ def cleanup_orphan_media(
 
     session.commit()
     return CleanupSummary(batches_expired=0, objects_deleted=deleted_count, failures=failures)
+
+
+def run_cleanup(
+    *,
+    session: Session | None = None,
+    storage: ObjectStorage | None = None,
+    current_time: datetime | None = None,
+) -> CleanupSummary:
+    """Execute expired batches and orphan media cleanup with provided or default session and storage."""
+    from app.core.database import get_engine
+    from app.core.dependencies import get_object_storage
+
+    active_storage = storage or get_object_storage()
+
+    def _execute(sess: Session) -> CleanupSummary:
+        batch_summary = cleanup_expired_batches(
+            session=sess,
+            storage=active_storage,
+            current_time=current_time,
+        )
+        orphan_summary = cleanup_orphan_media(
+            session=sess,
+            storage=active_storage,
+        )
+        return CleanupSummary(
+            batches_expired=batch_summary.batches_expired + orphan_summary.batches_expired,
+            objects_deleted=batch_summary.objects_deleted + orphan_summary.objects_deleted,
+            failures=batch_summary.failures + orphan_summary.failures,
+        )
+
+    if session is not None:
+        return _execute(session)
+
+    engine = get_engine()
+    with Session(engine) as active_session:
+        return _execute(active_session)
+

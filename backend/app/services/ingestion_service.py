@@ -95,10 +95,11 @@ def create_ingestion_batch(
     session.add(batch)
 
     uploaded_objects: list[tuple[str, str]] = []
+    settings = get_settings()
+    bucket_name = settings.minio_bucket_wardrobe
     try:
         for val_img in validated_images:
             asset_id = new_uuid()
-            bucket_name = "wardrobe-private"
             object_key = f"users/{user_id}/ingestions/{batch_id}/original/{asset_id}.{val_img.extension}"
 
             storage.put_object(

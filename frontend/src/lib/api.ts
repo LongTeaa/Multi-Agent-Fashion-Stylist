@@ -177,6 +177,9 @@ async function apiFetch<T>(input: RequestInfo | URL, init?: RequestInit): Promis
   try {
     response = await fetch(input, init);
   } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw err;
+    }
     if (err instanceof ApiError) {
       throw err;
     }
@@ -456,7 +459,10 @@ export async function dismissFeedbackPrompt(
   });
 }
 
-export async function createTryOn(outfitId: string): Promise<TryOnResponseData> {
+export async function createTryOn(
+  outfitId: string,
+  options?: { signal?: AbortSignal }
+): Promise<TryOnResponseData> {
   return apiFetch<TryOnResponseData>(`${API_BASE_URL}/api/v1/tryons`, {
     method: 'POST',
     headers: {
@@ -464,5 +470,6 @@ export async function createTryOn(outfitId: string): Promise<TryOnResponseData> 
       'X-User-Id': getStoredUserId(),
     },
     body: JSON.stringify({ outfit_id: outfitId }),
+    signal: options?.signal,
   });
 }

@@ -83,6 +83,12 @@ An item response MUST include a short-lived media URL, normalized metadata, per-
 
 ### 4.1 `POST /stylist/chat`
 
+Request payload constraints:
+- `query` (string, required): 1–1000 characters, user's Vietnamese styling request.
+- `location` (string | null, optional): 1–200 characters if provided, representing user's location.
+- `client_session_id` (string | null, optional): Valid UUID v4 string (max 64 chars).
+- `idempotency_key` (string | null, optional): Valid unique string (max 64 chars) for safely retrying recommendation requests.
+
 Request example; the user query MUST remain Vietnamese:
 
 ```json

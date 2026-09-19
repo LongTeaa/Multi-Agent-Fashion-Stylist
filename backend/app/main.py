@@ -18,16 +18,26 @@ from app.core.config import (
 from app.repositories.object_storage import ObjectNotFoundError, ObjectStorageError
 from app.schemas.common import AppException
 
+from app.services.cleanup_scheduler import start_cleanup_scheduler, stop_cleanup_scheduler
+
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Validate provider configuration before the API reports ready."""
+    """Validate provider configuration and manage operational background tasks."""
     settings = get_settings()
     validate_vision_provider_configuration(settings)
     validate_image_provider_configuration(settings)
-    yield
+
+    if settings.cleanup_scheduler_enabled:
+        start_cleanup_scheduler(interval_seconds=settings.cleanup_interval_seconds)
+
+    try:
+        yield
+    finally:
+        if settings.cleanup_scheduler_enabled:
+            await stop_cleanup_scheduler()
 
 
 app = FastAPI(
@@ -36,9 +46,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+settings = get_settings()
+cors_origins = list(settings.cors_origins)
+frontend_url_str = str(settings.frontend_url).rstrip("/")
+if frontend_url_str and frontend_url_str not in cors_origins:
+    cors_origins.append(frontend_url_str)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

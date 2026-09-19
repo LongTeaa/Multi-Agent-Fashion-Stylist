@@ -6,6 +6,7 @@ import type {
   IngestionBatchReviewResponse,
 } from '@/types/ingestion';
 import {
+  ApiError,
   uploadIngestionImages,
   getIngestionBatch,
   confirmIngestionBatch,
@@ -36,13 +37,16 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPollingCancelledRef = useRef<boolean>(false);
   const idempotencyTokenRef = useRef<string>(crypto.randomUUID());
 
   // Clean up polling timer
   useEffect(() => {
     return () => {
+      isPollingCancelledRef.current = true;
       if (pollingTimerRef.current) {
-        clearInterval(pollingTimerRef.current);
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
       }
     };
   }, []);
@@ -55,21 +59,25 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     };
   }, [uploadedPreviewUrl]);
 
-  // Poll for batch status until ready or failed
+  // Poll for batch status until ready or failed using recursive awaited polling (no overlapping requests)
   const startPollingBatch = useCallback((id: string) => {
     let attempts = 0;
     const maxAttempts = 30; // 45 seconds total
+    isPollingCancelledRef.current = false;
 
     if (pollingTimerRef.current) {
-      clearInterval(pollingTimerRef.current);
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
     }
 
     const poll = async () => {
+      if (isPollingCancelledRef.current) return;
       attempts += 1;
       try {
         const review = await getIngestionBatch(id);
+        if (isPollingCancelledRef.current) return;
+
         if (review.status === 'needs_review') {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setBatchReview(review);
 
           // Initialize accepted states & edited attributes map
@@ -85,29 +93,34 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             setSelectedDetectionId(review.detections[0].detection_id);
           }
           setStep('review');
+          return;
         } else if (review.status === 'failed') {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage(
             review.quality_warnings.join('; ') || 'AI không thể phân tích ảnh này. Vui lòng thử lại.'
           );
           setStep('failed');
+          return;
         } else if (attempts >= maxAttempts) {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage('Quá trình xử lý ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.');
           setStep('failed');
+          return;
         }
       } catch (err: unknown) {
+        if (isPollingCancelledRef.current) return;
         if (attempts >= 5) {
-          if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
           setErrorMessage((err as Error).message || 'Không thể lấy thông tin kết quả phân tích.');
           setStep('failed');
+          return;
         }
+      }
+
+      if (!isPollingCancelledRef.current) {
+        pollingTimerRef.current = setTimeout(poll, 1500);
       }
     };
 
-    // Run first check immediately, then poll every 1.5s
+    // Run first check immediately, then schedule subsequent poll only after response completes
     poll();
-    pollingTimerRef.current = setInterval(poll, 1500);
   }, []);
 
   const handleUpload = async (files: File[], declaredKind?: string) => {
@@ -194,17 +207,31 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     if (!confirmed) return;
 
     setIsCancelling(true);
+    setErrorMessage(null);
     try {
       await deleteIngestionBatch(batchId);
-    } catch {
-      // Ignore cleanup error if already deleted
-    } finally {
       setIsCancelling(false);
       handleReset();
+    } catch (err: unknown) {
+      setIsCancelling(false);
+      const isAlreadyGone =
+        err instanceof ApiError && (err.status === 404 || err.code === 'ITEM_NOT_FOUND');
+      if (isAlreadyGone) {
+        handleReset();
+      } else {
+        setErrorMessage(
+          (err as Error).message || 'Hủy bỏ lượt tải lên thất bại. Vui lòng thử lại.'
+        );
+      }
     }
   };
 
   const handleReset = () => {
+    isPollingCancelledRef.current = true;
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
     idempotencyTokenRef.current = crypto.randomUUID();
     if (uploadedPreviewUrl) {
       URL.revokeObjectURL(uploadedPreviewUrl);

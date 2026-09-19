@@ -44,7 +44,7 @@ describe('useStylistChat Hook', () => {
             image_url: '/api/v1/media/bottom-1',
           },
           {
-            slot: 'shoes',
+            slot: 'footwear',
             item_id: 'item-shoes-1',
             name: 'Giày chelsea da',
             image_url: '/api/v1/media/shoes-1',
@@ -354,6 +354,73 @@ describe('useStylistChat Hook', () => {
     });
 
     // Hook unmounted safely without error
+  });
+
+  it('correctly handles recommendations with dress, footwear, outerwear, and accessory slots', async () => {
+    const dressOutfitResponse: StylistChatResponseData = {
+      request_id: 'req-dress-789',
+      needs_clarification: false,
+      clarification_question: null,
+      context: {
+        target_formality_range: [2, 3],
+        style_hints: ['elegant'],
+        vibe_keywords: ['dịu dàng'],
+        must_have: [],
+        must_avoid: [],
+        weather_source: 'user',
+      },
+      recommendations: [
+        {
+          outfit_id: 'outfit-dress-1',
+          rank: 1,
+          composite_score: 0.96,
+          items: [
+            {
+              slot: 'dress',
+              item_id: 'item-dress-1',
+              name: 'Đầm lụa hoa nhí',
+              image_url: '/api/v1/media/dress-1',
+            },
+            {
+              slot: 'outerwear',
+              item_id: 'item-outer-1',
+              name: 'Áo khoác cardigan mỏng',
+              image_url: '/api/v1/media/outer-1',
+            },
+            {
+              slot: 'footwear',
+              item_id: 'item-shoes-2',
+              name: 'Giày búp bê mũi nhọn',
+              image_url: '/api/v1/media/shoes-2',
+            },
+            {
+              slot: 'accessory',
+              item_id: 'item-acc-1',
+              name: 'Túi xách kẹp nách da',
+              image_url: '/api/v1/media/acc-1',
+            },
+          ],
+          explanation_vi: 'Set đầm hoa phối cardigan và phụ kiện thanh lịch.',
+          applied_preferences: ['elegant'],
+        },
+      ],
+      feedback_prompt_eligible: false,
+      feedback_target_outfit_id: null,
+      warnings: [],
+    };
+
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce(dressOutfitResponse);
+
+    const { result } = renderHook(() => useStylistChat());
+
+    await act(async () => {
+      await result.current.sendMessage('Gợi ý set đầm đi tiệc nhẹ');
+    });
+
+    expect(result.current.status).toBe('success');
+    expect(result.current.response?.recommendations?.[0].items).toHaveLength(4);
+    const slots = result.current.response?.recommendations?.[0].items.map((i) => i.slot);
+    expect(slots).toEqual(['dress', 'outerwear', 'footwear', 'accessory']);
   });
 });
 

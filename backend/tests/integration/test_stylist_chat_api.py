@@ -943,3 +943,51 @@ def test_stylist_chat_idempotency_retry_prevents_cadence_skew(
 
     finally:
         app.dependency_overrides.clear()
+
+
+def test_stylist_chat_input_validation_limits(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Invariant 4.7: Query (1-1000 chars) and Location (max 200 chars) boundary validation."""
+    _, engine = migrated_database
+    user_id = f"user_limits_{uuid4().hex[:8]}"
+    client = TestClient(app)
+
+    # 1. Query empty or whitespace only -> 422
+    res_empty = client.post(
+        "/api/v1/stylist/chat",
+        headers={"X-User-Id": user_id},
+        json={"query": "   "},
+    )
+    assert res_empty.status_code == 422
+    assert res_empty.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    # 2. Query exceeding 1000 characters -> 422
+    res_too_long = client.post(
+        "/api/v1/stylist/chat",
+        headers={"X-User-Id": user_id},
+        json={"query": "A" * 1001},
+    )
+    assert res_too_long.status_code == 422
+    assert res_too_long.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    # 3. Location exceeding 200 characters -> 422
+    res_loc_too_long = client.post(
+        "/api/v1/stylist/chat",
+        headers={"X-User-Id": user_id},
+        json={"query": "Hôm nay mặc gì", "location": "L" * 201},
+    )
+    assert res_loc_too_long.status_code == 422
+    assert res_loc_too_long.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    # 4. Location exactly 200 characters -> Passes validation
+    # (may return clarification or domain result, but not 422 validation error)
+    res_loc_valid = client.post(
+        "/api/v1/stylist/chat",
+        headers={"X-User-Id": user_id},
+        json={"query": "Hôm nay mặc gì", "location": "L" * 200},
+    )
+    assert res_loc_valid.status_code in (200, 400)
+    if res_loc_valid.status_code == 200:
+        assert res_loc_valid.json()["success"] is True
+

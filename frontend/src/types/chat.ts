@@ -1,4 +1,4 @@
-export type OutfitSlotRole = 'top' | 'bottom' | 'shoes';
+export type OutfitSlotRole = 'top' | 'bottom' | 'dress' | 'footwear' | 'outerwear' | 'accessory';
 
 export interface StylistChatRequest {
   query: string;

@@ -38,20 +38,46 @@ export function TryOnModal({
   const [saved, setSaved] = useState(isBookmarked);
   const [isSaving, setIsSaving] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef<number>(0);
 
   const generate = useCallback(async () => {
+    // Abort any pending in-flight request before launching a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
+
     setIsGenerating(true);
     setError(null);
     try {
-      setResult(await createTryOn(outfitId));
+      const res = await createTryOn(outfitId, { signal: controller.signal });
+      if (requestIdRef.current === currentRequestId) {
+        setResult(res);
+      }
     } catch (requestError) {
-      setError(
-        requestError instanceof ApiError
-          ? requestError.message
-          : 'Không thể tạo ảnh minh họa lúc này. Vui lòng thử lại.'
-      );
+      if (
+        (requestError instanceof DOMException || requestError instanceof Error) &&
+        requestError.name === 'AbortError'
+      ) {
+        // Intentionally aborted; do not mutate state with error
+        return;
+      }
+      if (requestIdRef.current === currentRequestId) {
+        setError(
+          requestError instanceof ApiError
+            ? requestError.message
+            : 'Không thể tạo ảnh minh họa lúc này. Vui lòng thử lại.'
+        );
+      }
     } finally {
-      setIsGenerating(false);
+      if (requestIdRef.current === currentRequestId) {
+        setIsGenerating(false);
+      }
     }
   }, [outfitId]);
 
@@ -61,9 +87,21 @@ export function TryOnModal({
   }
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      return;
+    }
     const generationTask = window.setTimeout(() => void generate(), 0);
-    return () => window.clearTimeout(generationTask);
+    return () => {
+      window.clearTimeout(generationTask);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [generate, isOpen]);
 
   useEffect(() => {

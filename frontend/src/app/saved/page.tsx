@@ -77,9 +77,21 @@ export default function SavedOutfitsPage() {
   };
 
   const handleBookmarkChange = (outfitId: string, isBookmarked: boolean) => {
-    // Update local list state so unbookmark is immediately reflected
+    // When an item is unbookmarked in the Saved Outfits page, remove it from the list and decrement total
     setData((prev) => {
       if (!prev) return prev;
+      if (!isBookmarked) {
+        const remainingItems = prev.items.filter((item) => item.id !== outfitId);
+        const newTotal = Math.max(0, prev.total - 1);
+        if (remainingItems.length === 0 && prev.page > 1) {
+          setPage((p) => Math.max(1, p - 1));
+        }
+        return {
+          ...prev,
+          items: remainingItems,
+          total: newTotal,
+        };
+      }
       return {
         ...prev,
         items: prev.items.map((item) =>

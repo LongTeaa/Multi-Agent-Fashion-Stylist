@@ -64,7 +64,7 @@ export interface UploadBatchResponse {
   batch_id: string;
   status: string;
   declared_input_kind?: string;
-  item_count: number;
+  item_count?: number;
 }
 
 export interface ApiSuccessResponse<T> {

@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AnyHttpUrl, PositiveInt, SecretStr
+from pydantic import AnyHttpUrl, Field, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -20,6 +20,15 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/fashion_stylist.db"
     frontend_url: AnyHttpUrl = AnyHttpUrl("http://localhost:3000")
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+        ]
+    )
+    cleanup_scheduler_enabled: bool = True
+    cleanup_interval_seconds: PositiveInt = 3600
 
     vision_provider: Literal["fake", "gemini"] = "fake"
     vision_timeout_seconds: PositiveInt = 30

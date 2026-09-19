@@ -83,11 +83,15 @@ export const RatingPrompt: React.FC<RatingPromptProps> = ({
     try {
       const sessionId = getStoredSessionId();
       await dismissFeedbackPrompt({ client_session_id: sessionId });
-    } catch {
-      // Non-blocking: if network fails during dismiss, still close prompt locally
+      onDismiss?.();
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : 'Không thể đồng bộ trạng thái bỏ qua. Vui lòng thử lại.';
+      setError(msg);
     } finally {
       setIsDismissing(false);
-      onDismiss?.();
     }
   };
 

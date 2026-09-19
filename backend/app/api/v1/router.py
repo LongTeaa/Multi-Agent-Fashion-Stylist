@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     outfits,
     profile,
     stylist,
+    system,
     tryons,
     wardrobe,
 )
@@ -22,3 +23,5 @@ api_router.include_router(stylist.router)
 api_router.include_router(outfits.router)
 api_router.include_router(feedback.router)
 api_router.include_router(tryons.router)
+api_router.include_router(system.router)
+
