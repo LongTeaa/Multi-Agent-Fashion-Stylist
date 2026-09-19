@@ -24,6 +24,7 @@ from app.models.entities import (
 from app.repositories.object_storage import ObjectStorage
 from app.schemas.common import OutfitNotFoundError, TryOnFailedError
 from app.schemas.tryons import TryOnResponseData
+from app.services.cleanup_service import record_orphan_cleanup
 from app.services.image_generation import render_lookbook_with_fallback
 from app.services.moodboard import MoodboardItem
 from app.services.providers import ImageProviderProtocol, ImageReference
@@ -226,8 +227,18 @@ def create_tryon(
                 bucket=tryon_bucket,
                 object_key=object_key,
             )
-        except Exception:
-            pass
+        except Exception as delete_error:
+            try:
+                record_orphan_cleanup(
+                    session=session,
+                    user_id=user_id,
+                    bucket=tryon_bucket,
+                    object_key=object_key,
+                    last_error=str(delete_error),
+                )
+                session.commit()
+            except Exception:
+                pass
         raise
 
     return TryOnResponseData(

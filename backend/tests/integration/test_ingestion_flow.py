@@ -964,3 +964,78 @@ class TestConfirmationStateAndSecurityIntegrity:
                 assert db_det1.status == DetectionStatus.PROPOSED
         finally:
             app.dependency_overrides.clear()
+
+    def test_confirm_ingestion_idempotency_repeated_or_concurrent(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """3.2 Idempotent Confirmation: Double-confirmation returns existing WardrobeItem IDs without IntegrityError."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        detector = FakeDetector(mode="multi_item")
+        vision_provider = FakeVisionProvider(scenario="golden_polo")
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: detector
+        app.dependency_overrides[get_vision_provider] = lambda: vision_provider
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (300, 300))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("multi_outfit.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            detections = review_res.json()["data"]["detections"]
+            assert len(detections) >= 1
+
+            confirm_payload = {
+                "idempotency_token": str(uuid4()),
+                "confirmations": [
+                    {"detection_id": d["detection_id"], "accepted": True}
+                    for d in detections
+                ],
+            }
+
+            # First confirmation
+            res1 = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=confirm_payload,
+            )
+            assert res1.status_code == 200
+            created_ids_1 = res1.json()["data"]["wardrobe_item_ids"]
+            assert len(created_ids_1) == len(detections)
+
+            # Second confirmation (simulating duplicate click or network replay)
+            res2 = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json=confirm_payload,
+            )
+            assert res2.status_code == 200
+            created_ids_2 = res2.json()["data"]["wardrobe_item_ids"]
+            assert created_ids_2 == created_ids_1
+
+            # Verify no duplicate items exist in database
+            with Session(engine) as session:
+                items = session.exec(
+                    select(WardrobeItem).where(WardrobeItem.ingestion_batch_id == batch_id)
+                ).all()
+                assert len(items) == len(detections)
+                assert sorted([item.id for item in items]) == sorted(created_ids_1)
+        finally:
+            app.dependency_overrides.clear()
+

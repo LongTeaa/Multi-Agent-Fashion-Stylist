@@ -5,8 +5,10 @@ from datetime import timedelta
 from typing import Sequence
 
 from sqlmodel import Session, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 
+from app.core.config import get_settings
 from app.models.entities import (
     DetectionStatus,
     IngestionBatch,
@@ -38,6 +40,7 @@ from app.schemas.ingestion import (
     IngestionBatchReviewResponseData,
 )
 from app.services.classifier import classify_scene
+from app.services.cleanup_service import record_orphan_cleanup
 from app.services.crop_engine import crop_item_and_generate_thumbnail
 from app.services.providers import (
     DetectorProtocol,
@@ -139,6 +142,17 @@ def create_ingestion_batch(
                     key,
                     cleanup_err,
                 )
+                try:
+                    record_orphan_cleanup(
+                        session=session,
+                        user_id=user_id,
+                        bucket=bucket,
+                        object_key=key,
+                        last_error=str(cleanup_err),
+                    )
+                    session.commit()
+                except Exception as outbox_err:
+                    logger.error("Failed to record orphan media cleanup outbox: %s", outbox_err)
 
         if isinstance(exc, (AppException, ValidationError)):
             raise exc
@@ -184,6 +198,36 @@ def process_ingestion_batch(
     crop_objects_created: list[tuple[str, str]] = []
     warnings_accumulator: list[str] = list(batch.quality_warnings or [])
 
+    settings = get_settings()
+    wardrobe_bucket = settings.minio_bucket_wardrobe
+    thumbnail_bucket = settings.minio_bucket_thumbnails
+
+    def check_cancelled_and_abort() -> bool:
+        session.expire(batch, ["status"])
+        if batch.status != IngestionStatus.PROCESSING:
+            logger.info(
+                "Batch %s is no longer in PROCESSING status (%s); aborting worker.",
+                batch_id,
+                batch.status,
+            )
+            for bkt, key in crop_objects_created:
+                try:
+                    storage.delete_object(user_id=user_id, bucket=bkt, object_key=key)
+                except Exception as del_err:
+                    try:
+                        record_orphan_cleanup(
+                            session=session,
+                            user_id=user_id,
+                            bucket=bkt,
+                            object_key=key,
+                            last_error=str(del_err),
+                        )
+                        session.commit()
+                    except Exception:
+                        pass
+            return True
+        return False
+
     def add_warning(msg: str) -> None:
         if msg not in warnings_accumulator:
             warnings_accumulator.append(msg)
@@ -193,6 +237,9 @@ def process_ingestion_batch(
 
     try:
         for asset in original_assets:
+            if check_cancelled_and_abort():
+                return session.get(IngestionBatch, batch_id) or batch
+
             image_bytes = storage.get_object(
                 user_id=user_id,
                 bucket=asset.bucket,
@@ -207,6 +254,8 @@ def process_ingestion_batch(
                 )
             except TimeoutError:
                 logger.warning("Detector timed out for batch %s", batch_id)
+                if check_cancelled_and_abort():
+                    return session.get(IngestionBatch, batch_id) or batch
                 add_warning("AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.")
                 batch.quality_warnings = list(warnings_accumulator)
                 flag_modified(batch, "quality_warnings")
@@ -216,6 +265,8 @@ def process_ingestion_batch(
                 return batch
             except (ProviderError, Exception) as det_err:
                 logger.warning("Detector error for batch %s: %s", batch_id, det_err)
+                if check_cancelled_and_abort():
+                    return session.get(IngestionBatch, batch_id) or batch
                 add_warning("AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.")
                 batch.quality_warnings = list(warnings_accumulator)
                 flag_modified(batch, "quality_warnings")
@@ -231,30 +282,33 @@ def process_ingestion_batch(
 
             # For each candidate detected region, crop and extract attributes
             for box_det in detection_res.boxes:
+                if check_cancelled_and_abort():
+                    return session.get(IngestionBatch, batch_id) or batch
+
                 cropped = crop_item_and_generate_thumbnail(image_bytes, box_det.box)
                 item_candidate_id = new_uuid()
 
-                # Store crop in wardrobe-private
+                # Store crop in wardrobe bucket
                 crop_key = f"users/{user_id}/items/{item_candidate_id}/crop/v1.{cropped.crop_extension}"
                 storage.put_object(
                     user_id=user_id,
-                    bucket="wardrobe-private",
+                    bucket=wardrobe_bucket,
                     object_key=crop_key,
                     data=cropped.crop_bytes,
                     content_type=cropped.crop_mime_type,
                 )
-                crop_objects_created.append(("wardrobe-private", crop_key))
+                crop_objects_created.append((wardrobe_bucket, crop_key))
 
-                # Store thumbnail in wardrobe-thumbnails
+                # Store thumbnail in thumbnail bucket
                 thumb_key = f"users/{user_id}/items/{item_candidate_id}/thumbnail/v1.{cropped.thumb_extension}"
                 storage.put_object(
                     user_id=user_id,
-                    bucket="wardrobe-thumbnails",
+                    bucket=thumbnail_bucket,
                     object_key=thumb_key,
                     data=cropped.thumb_bytes,
                     content_type=cropped.thumb_mime_type,
                 )
-                crop_objects_created.append(("wardrobe-thumbnails", thumb_key))
+                crop_objects_created.append((thumbnail_bucket, thumb_key))
 
                 crop_asset_id = new_uuid()
                 crop_media_asset = MediaAsset(
@@ -262,7 +316,7 @@ def process_ingestion_batch(
                     user_id=user_id,
                     ingestion_batch_id=batch_id,
                     kind=MediaKind.CROP,
-                    bucket="wardrobe-private",
+                    bucket=wardrobe_bucket,
                     object_key=crop_key,
                     mime_type=cropped.crop_mime_type,
                     size_bytes=cropped.crop_size_bytes,
@@ -279,7 +333,7 @@ def process_ingestion_batch(
                     user_id=user_id,
                     ingestion_batch_id=batch_id,
                     kind=MediaKind.THUMBNAIL,
-                    bucket="wardrobe-thumbnails",
+                    bucket=thumbnail_bucket,
                     object_key=thumb_key,
                     mime_type=cropped.thumb_mime_type,
                     size_bytes=cropped.thumb_size_bytes,
@@ -331,6 +385,10 @@ def process_ingestion_batch(
                 )
                 session.add(detection)
 
+        # Final check before committing NEEDS_REVIEW
+        if check_cancelled_and_abort():
+            return session.get(IngestionBatch, batch_id) or batch
+
         # Resolve aggregate input_kind
         if batch.input_kind not in (None, InputKind.UNKNOWN):
             pass
@@ -360,9 +418,20 @@ def process_ingestion_batch(
                 storage.delete_object(user_id=user_id, bucket=bucket, object_key=key)
             except Exception as cleanup_err:
                 logger.error("Transient crop cleanup error %s: %s", key, cleanup_err)
+                try:
+                    record_orphan_cleanup(
+                        session=session,
+                        user_id=user_id,
+                        bucket=bucket,
+                        object_key=key,
+                        last_error=str(cleanup_err),
+                    )
+                    session.commit()
+                except Exception as outbox_err:
+                    logger.error("Failed to record orphan cleanup: %s", outbox_err)
 
         batch = session.get(IngestionBatch, batch_id)
-        if batch:
+        if batch and batch.status == IngestionStatus.PROCESSING:
             batch.status = IngestionStatus.FAILED
             err_msg = str(getattr(exc, "message", exc))
             fail_warnings = list(batch.quality_warnings or [])
@@ -373,6 +442,7 @@ def process_ingestion_batch(
             session.commit()
             session.refresh(batch)
             return batch
+        return batch or IngestionBatch(id=batch_id, user_id=user_id)
         raise
 
 
@@ -588,6 +658,19 @@ def confirm_ingestion_batch(
         batch.status = IngestionStatus.CONFIRMED
         session.add(batch)
         session.commit()
+    except IntegrityError:
+        session.rollback()
+        # Concurrency race: If another request just confirmed this batch, return existing items idempotently
+        refreshed_batch = session.get(IngestionBatch, batch_id)
+        if refreshed_batch and refreshed_batch.status == IngestionStatus.CONFIRMED:
+            existing_items = session.exec(
+                select(WardrobeItem).where(
+                    WardrobeItem.ingestion_batch_id == batch_id,
+                    WardrobeItem.user_id == user_id,
+                )
+            ).all()
+            return [item.id for item in existing_items]
+        raise
     except Exception:
         session.rollback()
         raise

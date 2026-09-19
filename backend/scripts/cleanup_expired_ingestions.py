@@ -10,7 +10,11 @@ from sqlmodel import Session
 from app.core.database import get_engine
 from app.core.dependencies import get_object_storage
 from app.repositories.object_storage import ObjectStorage
-from app.services.cleanup_service import CleanupSummary, cleanup_expired_batches
+from app.services.cleanup_service import (
+    CleanupSummary,
+    cleanup_expired_batches,
+    cleanup_orphan_media,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,29 +23,42 @@ logging.basicConfig(
 logger = logging.getLogger("cleanup_expired_ingestions")
 
 
+def _execute_cleanup(
+    session: Session,
+    storage: ObjectStorage,
+    current_time: datetime | None,
+) -> CleanupSummary:
+    batch_summary = cleanup_expired_batches(
+        session=session,
+        storage=storage,
+        current_time=current_time,
+    )
+    orphan_summary = cleanup_orphan_media(
+        session=session,
+        storage=storage,
+    )
+    return CleanupSummary(
+        batches_expired=batch_summary.batches_expired + orphan_summary.batches_expired,
+        objects_deleted=batch_summary.objects_deleted + orphan_summary.objects_deleted,
+        failures=batch_summary.failures + orphan_summary.failures,
+    )
+
+
 def run_cleanup(
     *,
     session: Session | None = None,
     storage: ObjectStorage | None = None,
     current_time: datetime | None = None,
 ) -> CleanupSummary:
-    """Execute expired batches cleanup with provided or default session and storage."""
+    """Execute expired batches and orphan media cleanup with provided or default session and storage."""
     active_storage = storage or get_object_storage()
 
     if session is not None:
-        return cleanup_expired_batches(
-            session=session,
-            storage=active_storage,
-            current_time=current_time,
-        )
+        return _execute_cleanup(session, active_storage, current_time)
 
     engine = get_engine()
     with Session(engine) as active_session:
-        return cleanup_expired_batches(
-            session=active_session,
-            storage=active_storage,
-            current_time=current_time,
-        )
+        return _execute_cleanup(active_session, active_storage, current_time)
 
 
 def main(

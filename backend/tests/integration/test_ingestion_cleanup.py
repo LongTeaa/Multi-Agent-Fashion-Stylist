@@ -32,7 +32,7 @@ from app.repositories.object_storage import (
     ObjectStorageError,
     StorageBuckets,
 )
-from app.services.cleanup_service import cleanup_expired_batches
+from app.services.cleanup_service import cancel_ingestion_batch, cleanup_expired_batches
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
 
 
@@ -786,3 +786,145 @@ class TestIngestionCleanupIntegration:
             future_iso = (base_time + timedelta(hours=26)).isoformat()
             code_fail = cli_cleanup_main(["--current-time", future_iso], session=session, storage=test_storage)
             assert code_fail == 1
+
+    def test_worker_cancellation_abort_and_crop_compensation(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """3.1 Worker Cancellation: Ingestion worker aborts when batch is cancelled and cleans up transient crops."""
+        from app.services.ingestion_service import process_ingestion_batch
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        detector = FakeDetector(mode="multi_item")
+        vision_provider = FakeVisionProvider()
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.commit()
+
+        with Session(engine) as session:
+            now = utc_now()
+            batch = IngestionBatch(
+                id=str(uuid4()),
+                user_id=user_id,
+                status=IngestionStatus.PROCESSING,
+                created_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+            session.add(batch)
+            session.flush()
+
+            # Add original media asset
+            orig_data = create_test_image_bytes()
+            key = f"users/{user_id}/ingestions/{batch.id}/original/test.jpg"
+            test_storage.put_object(
+                user_id=user_id,
+                bucket="wardrobe-private",
+                object_key=key,
+                data=orig_data,
+                content_type="image/jpeg",
+            )
+            orig_asset = MediaAsset(
+                id=str(uuid4()),
+                user_id=user_id,
+                ingestion_batch_id=batch.id,
+                kind=MediaKind.ORIGINAL,
+                bucket="wardrobe-private",
+                object_key=key,
+                mime_type="image/jpeg",
+                size_bytes=len(orig_data),
+                width=150,
+                height=150,
+                sha256="a" * 64,
+                created_at=now,
+            )
+            session.add(orig_asset)
+            session.commit()
+            batch_id = batch.id
+
+        # Cancel the batch in another session
+        with Session(engine) as session:
+            cancel_ingestion_batch(
+                session=session,
+                storage=test_storage,
+                batch_id=batch_id,
+                user_id=user_id,
+            )
+
+        # Now run process_ingestion_batch as if worker woke up
+        with Session(engine) as session:
+            res_batch = process_ingestion_batch(
+                session=session,
+                storage=test_storage,
+                detector=detector,
+                vision_provider=vision_provider,
+                batch_id=batch_id,
+                user_id=user_id,
+            )
+            assert res_batch.status == IngestionStatus.EXPIRED
+
+        with Session(engine) as session:
+            db_batch = session.get(IngestionBatch, batch_id)
+            # Batch MUST NOT be resurrected to NEEDS_REVIEW
+            assert db_batch.status == IngestionStatus.EXPIRED
+
+    def test_orphan_media_outbox_retry_and_convergence(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """3.3 Orphan Media Cleanup Outbox: Failed storage deletions are queued and safely retried."""
+        from app.models.entities import OrphanMediaCleanup
+        from app.services.cleanup_service import cleanup_orphan_media, record_orphan_cleanup
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.commit()
+
+            # 1. Put an orphan object in storage
+            item_id = str(uuid4())
+            orphan_key = f"users/{user_id}/items/{item_id}/crop/v1.jpg"
+            test_storage.put_object(
+                user_id=user_id,
+                bucket="wardrobe-private",
+                object_key=orphan_key,
+                data=b"orphan_bytes",
+                content_type="image/jpeg",
+            )
+            assert test_storage.object_exists(
+                user_id=user_id,
+                bucket="wardrobe-private",
+                object_key=orphan_key,
+            )
+
+            # Record in OrphanMediaCleanup outbox
+            record = record_orphan_cleanup(
+                session=session,
+                user_id=user_id,
+                bucket="wardrobe-private",
+                object_key=orphan_key,
+                last_error="Initial network failure",
+            )
+            session.commit()
+            record_id = record.id
+
+        # 2. Run cleanup_orphan_media -> converges and cleans up
+        with Session(engine) as session:
+            summary = cleanup_orphan_media(session=session, storage=test_storage)
+            assert summary.objects_deleted == 1
+            assert len(summary.failures) == 0
+
+            # Storage object must be deleted
+            assert not test_storage.object_exists(
+                user_id=user_id,
+                bucket="wardrobe-private",
+                object_key=orphan_key,
+            )
+            # Outbox record must be deleted
+            assert session.get(OrphanMediaCleanup, record_id) is None
+

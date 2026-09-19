@@ -11,6 +11,7 @@ from app.models.entities import (
     IngestionStatus,
     ItemMedia,
     MediaAsset,
+    OrphanMediaCleanup,
     utc_now,
 )
 from app.repositories.object_storage import ObjectNotFoundError, ObjectStorage
@@ -58,11 +59,17 @@ def cancel_ingestion_batch(
         return batch
 
     now = utc_now()
+    # Mark batch as EXPIRED upfront to immediately signal cancellation to any running background worker
+    batch.status = IngestionStatus.EXPIRED
+    now_cmp = now if batch.expires_at.tzinfo is not None else now.replace(tzinfo=None)
+    batch.expires_at = min(batch.expires_at, now_cmp)
+    session.add(batch)
+    session.flush()
+
     assets = session.exec(
         select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch_id)
     ).all()
 
-    all_cleared = True
     for asset in assets:
         if asset.deleted_at is None:
             try:
@@ -78,17 +85,13 @@ def cancel_ingestion_batch(
                 session.add(asset)
             except Exception as del_err:
                 logger.warning("Failed to delete transient file %s: %s", asset.object_key, del_err)
-                all_cleared = False
-
-    if all_cleared:
-        batch.status = IngestionStatus.EXPIRED
-    else:
-        # If some files failed to delete, ensure batch is eligible for retryable cleanup
-        batch.expires_at = min(batch.expires_at, now)
-        logger.warning(
-            "Batch %s cancelled with partial asset deletion. Retaining unexpired status for retry.",
-            batch_id,
-        )
+                record_orphan_cleanup(
+                    session=session,
+                    user_id=asset.user_id,
+                    bucket=asset.bucket,
+                    object_key=asset.object_key,
+                    last_error=str(del_err),
+                )
 
     session.add(batch)
     session.commit()
@@ -204,3 +207,60 @@ def cleanup_expired_batches(
         objects_deleted=objects_deleted,
         failures=failures,
     )
+
+
+def record_orphan_cleanup(
+    *,
+    session: Session,
+    user_id: str,
+    bucket: str,
+    object_key: str,
+    last_error: str | None = None,
+) -> OrphanMediaCleanup:
+    """Persist an orphan media cleanup record to the durable outbox for retryable convergence."""
+    record = OrphanMediaCleanup(
+        user_id=user_id,
+        bucket=bucket,
+        object_key=object_key,
+        last_error=last_error,
+        created_at=utc_now(),
+    )
+    session.add(record)
+    return record
+
+
+def cleanup_orphan_media(
+    *,
+    session: Session,
+    storage: ObjectStorage,
+    max_retries: int = 5,
+) -> CleanupSummary:
+    """Process pending orphan storage records from the durable outbox table."""
+    records = session.exec(
+        select(OrphanMediaCleanup).where(OrphanMediaCleanup.retry_count < max_retries)
+    ).all()
+
+    deleted_count = 0
+    failures: list[str] = []
+
+    for record in records:
+        try:
+            storage.delete_object(
+                user_id=record.user_id,
+                bucket=record.bucket,
+                object_key=record.object_key,
+            )
+            session.delete(record)
+            deleted_count += 1
+        except ObjectNotFoundError:
+            # Already deleted from storage -> treat as successful convergence
+            session.delete(record)
+            deleted_count += 1
+        except Exception as exc:
+            record.retry_count += 1
+            record.last_error = str(exc)
+            session.add(record)
+            failures.append(f"{record.bucket}/{record.object_key}: {exc}")
+
+    session.commit()
+    return CleanupSummary(batches_expired=0, objects_deleted=deleted_count, failures=failures)

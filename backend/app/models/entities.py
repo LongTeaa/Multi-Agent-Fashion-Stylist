@@ -615,3 +615,27 @@ class TryOnRender(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+
+
+class OrphanMediaCleanup(SQLModel, table=True):
+    __tablename__ = "orphan_media_cleanups"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name="fk_orphan_media_cleanups_user",
+        ),
+        Index("ix_orphan_media_cleanups_user", "user_id"),
+        Index("ix_orphan_media_cleanups_created", "created_at"),
+    )
+
+    id: str = Field(default_factory=new_uuid, primary_key=True, max_length=36)
+    user_id: str = Field(foreign_key="users.id", max_length=36)
+    bucket: str = Field(max_length=100)
+    object_key: str = Field(max_length=500)
+    retry_count: int = Field(default=0, ge=0)
+    last_error: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
