@@ -63,8 +63,8 @@ def build_lookbook_prompt(items: Iterable[LookbookPromptItem]) -> str:
     """Build a null-safe prompt grounded only in confirmed outfit metadata."""
 
     ordered_items = sorted(tuple(items), key=lambda item: _SLOT_ORDER[item.slot])
-    if not 2 <= len(ordered_items) <= 4:
-        raise ValueError("A lookbook prompt requires 2 to 4 outfit items.")
+    if not 2 <= len(ordered_items) <= 5:
+        raise ValueError("A lookbook prompt requires 2 to 5 outfit items.")
 
     item_lines = "\n".join(f"- {_describe_item(item)}" for item in ordered_items)
     return (

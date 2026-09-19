@@ -1,11 +1,13 @@
+import logging
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.v1.router import api_router
 from app.core.config import (
@@ -13,7 +15,10 @@ from app.core.config import (
     validate_image_provider_configuration,
     validate_vision_provider_configuration,
 )
+from app.repositories.object_storage import ObjectNotFoundError, ObjectStorageError
 from app.schemas.common import AppException
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -67,6 +72,92 @@ async def handle_validation_error(_: Request, exc: RequestValidationError) -> JS
                 "details": jsonable_encoder(
                     exc.errors(), custom_encoder={ValueError: str}
                 ),
+            },
+        },
+    )
+
+
+@app.exception_handler(ObjectNotFoundError)
+async def handle_object_not_found(_: Request, exc: ObjectNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "success": False,
+            "error": {
+                "code": "OBJECT_NOT_FOUND",
+                "message": "Không tìm thấy tệp phương tiện yêu cầu trên hệ thống lưu trữ.",
+                "details": None,
+            },
+        },
+    )
+
+
+@app.exception_handler(ObjectStorageError)
+async def handle_object_storage_error(_: Request, exc: ObjectStorageError) -> JSONResponse:
+    logger.error("Object storage error: %s", exc)
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "success": False,
+            "error": {
+                "code": "STORAGE_ERROR",
+                "message": "Hệ thống lưu trữ tệp tạm thời gặp sự cố. Vui lòng thử lại sau.",
+                "details": None,
+            },
+        },
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def handle_integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:
+    logger.warning("Database integrity conflict: %s", exc)
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "success": False,
+            "error": {
+                "code": "DATA_CONFLICT",
+                "message": "Dữ liệu bị xung đột hoặc đã tồn tại trên hệ thống.",
+                "details": None,
+            },
+        },
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def handle_database_error(_: Request, exc: SQLAlchemyError) -> JSONResponse:
+    logger.error("Database error: %s", exc)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "error": {
+                "code": "DATABASE_ERROR",
+                "message": "Đã xảy ra lỗi cơ sở dữ liệu. Vui lòng thử lại sau.",
+                "details": None,
+            },
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected_exception(request: Request, exc: Exception) -> JSONResponse:
+    request_id = request.headers.get("X-Request-Id") or str(uuid4())
+    logger.exception(
+        "Unhandled exception [request_id=%s] on %s %s: %s",
+        request_id,
+        request.method,
+        request.url.path,
+        exc,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "Đã xảy ra lỗi hệ thống không mong muốn. Vui lòng thử lại sau.",
+                "details": {"request_id": request_id},
             },
         },
     )

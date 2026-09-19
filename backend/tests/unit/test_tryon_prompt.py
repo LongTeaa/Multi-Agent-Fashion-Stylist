@@ -64,12 +64,29 @@ def test_prompt_describes_only_supplied_outfit_items_and_omits_null_defaults() -
             _item(OutfitSlotRole.FOOTWEAR, sub_category="sneakers", primary_color="white"),
             _item(OutfitSlotRole.OUTERWEAR, sub_category="jacket", primary_color="black"),
             _item(OutfitSlotRole.ACCESSORY, sub_category="belt", primary_color="brown"),
+            _item(OutfitSlotRole.DRESS, sub_category="dress", primary_color="red"),
         ],
     ],
 )
-def test_prompt_requires_two_to_four_items(items: list[LookbookPromptItem]) -> None:
-    with pytest.raises(ValueError, match="2 to 4"):
+def test_prompt_requires_two_to_five_items(items: list[LookbookPromptItem]) -> None:
+    with pytest.raises(ValueError, match="2 to 5"):
         build_lookbook_prompt(items)
+
+
+def test_prompt_supports_five_items() -> None:
+    items = [
+        _item(OutfitSlotRole.TOP, sub_category="polo", primary_color="white"),
+        _item(OutfitSlotRole.BOTTOM, sub_category="chinos", primary_color="navy"),
+        _item(OutfitSlotRole.FOOTWEAR, sub_category="sneakers", primary_color="white"),
+        _item(OutfitSlotRole.OUTERWEAR, sub_category="jacket", primary_color="black"),
+        _item(OutfitSlotRole.ACCESSORY, sub_category="belt", primary_color="brown"),
+    ]
+    prompt = build_lookbook_prompt(items)
+    assert "polo" in prompt
+    assert "chinos" in prompt
+    assert "sneakers" in prompt
+    assert "jacket" in prompt
+    assert "belt" in prompt
 
 
 def test_reference_images_are_supplied_only_when_provider_supports_them() -> None:

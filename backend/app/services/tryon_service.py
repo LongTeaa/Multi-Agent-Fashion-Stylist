@@ -68,7 +68,7 @@ def _load_outfit_assets(
         )
         .order_by(OutfitItem.slot_role)
     ).all()
-    if not 2 <= len(outfit_items) <= 4:
+    if not 2 <= len(outfit_items) <= 5:
         raise TryOnFailedError()
 
     prompt_items: list[LookbookPromptItem] = []

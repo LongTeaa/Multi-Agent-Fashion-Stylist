@@ -53,7 +53,7 @@ def test_moodboard_supports_rgb_and_alpha_crops_without_transparency_requirement
 
 
 def test_moodboard_rejects_invalid_item_count_and_malformed_images() -> None:
-    with pytest.raises(ValueError, match="2 to 4"):
+    with pytest.raises(ValueError, match="2 to 5"):
         render_moodboard(_items()[:1])
 
     broken = MoodboardItem(

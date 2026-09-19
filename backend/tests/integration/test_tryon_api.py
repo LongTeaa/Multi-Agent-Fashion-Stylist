@@ -52,8 +52,13 @@ def _seed_outfit(
     storage: LocalObjectStorage,
     user_id: str,
     corrupt_second_crop: bool = False,
+    custom_items: tuple[tuple[OutfitSlotRole, WardrobeCategory, str, str], ...] | None = None,
 ) -> str:
     outfit_id = str(uuid4())
+    items_to_seed = custom_items or (
+        (OutfitSlotRole.TOP, WardrobeCategory.TOP, "polo", "white"),
+        (OutfitSlotRole.BOTTOM, WardrobeCategory.BOTTOM, "chinos", "navy"),
+    )
     with Session(engine) as session:
         session.add(User(id=user_id))
         session.flush()
@@ -73,12 +78,7 @@ def _seed_outfit(
             )
         )
         session.flush()
-        for index, (slot, category, sub_category, color) in enumerate(
-            (
-                (OutfitSlotRole.TOP, WardrobeCategory.TOP, "polo", "white"),
-                (OutfitSlotRole.BOTTOM, WardrobeCategory.BOTTOM, "chinos", "navy"),
-            )
-        ):
+        for index, (slot, category, sub_category, color) in enumerate(items_to_seed):
             item_id, asset_id = str(uuid4()), str(uuid4())
             crop_bytes = b"broken" if corrupt_second_crop and index == 1 else _image_bytes(color)
             object_key = f"users/{user_id}/items/{item_id}/crop/v1.jpg"
@@ -285,5 +285,60 @@ def test_tryon_rejects_cross_user_outfit_and_returns_504_when_fallback_fails(
         }
         with Session(engine) as session:
             assert session.exec(select(TryOnRender)).all() == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_tryon_with_five_item_recommendation(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    """Issue 3.4: 5-item outfit recommendation succeeds for both AI lookbook and moodboard fallback."""
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    five_items = (
+        (OutfitSlotRole.TOP, WardrobeCategory.TOP, "polo", "white"),
+        (OutfitSlotRole.BOTTOM, WardrobeCategory.BOTTOM, "chinos", "navy"),
+        (OutfitSlotRole.FOOTWEAR, WardrobeCategory.FOOTWEAR, "sneakers", "white"),
+        (OutfitSlotRole.OUTERWEAR, WardrobeCategory.OUTERWEAR, "jacket", "brown"),
+        (OutfitSlotRole.ACCESSORY, WardrobeCategory.ACCESSORY, "watch", "silver"),
+    )
+    outfit_id = _seed_outfit(
+        engine=engine,
+        storage=storage,
+        user_id=user_id,
+        custom_items=five_items,
+    )
+
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+
+    try:
+        client = TestClient(app)
+
+        # 1. AI Generated lookbook with 5 items
+        app.dependency_overrides[get_image_provider] = lambda: FakeImageProvider(model="fake-lookbook-v2")
+        res_ai = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={"outfit_id": outfit_id},
+        )
+        assert res_ai.status_code == 200
+        data_ai = res_ai.json()["data"]
+        assert data_ai["render_kind"] == "generated_lookbook"
+        assert data_ai["fallback_used"] is False
+
+        # 2. Fallback moodboard with 5 items (2-column, 3-row grid)
+        app.dependency_overrides[get_image_provider] = lambda: None
+        res_moodboard = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={"outfit_id": outfit_id},
+        )
+        assert res_moodboard.status_code == 200
+        data_mb = res_moodboard.json()["data"]
+        assert data_mb["render_kind"] == "moodboard"
+        assert data_mb["fallback_used"] is True
     finally:
         app.dependency_overrides.clear()
