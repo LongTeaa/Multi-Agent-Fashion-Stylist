@@ -270,9 +270,7 @@ export function getMediaUrl(relativeOrAssetUrl: string): string {
     return relativeOrAssetUrl;
   }
   const cleanPath = relativeOrAssetUrl.startsWith('/') ? relativeOrAssetUrl : `/${relativeOrAssetUrl}`;
-  const userId = getStoredUserId();
-  const sep = cleanPath.includes('?') ? '&' : '?';
-  return `${API_BASE_URL}${cleanPath}${sep}user_id=${encodeURIComponent(userId)}`;
+  return `${API_BASE_URL}${cleanPath}`;
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
@@ -312,13 +310,18 @@ export async function sendStylistChat(
     client_session_id: sessionId,
   };
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-User-Id': getStoredUserId(),
+    'X-Client-Session-Id': sessionId,
+  };
+  if (payload.idempotency_key) {
+    headers['X-Idempotency-Key'] = payload.idempotency_key;
+  }
+
   return apiFetch<StylistChatResponseData>(`${API_BASE_URL}/api/v1/stylist/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': getStoredUserId(),
-      'X-Client-Session-Id': sessionId,
-    },
+    headers,
     body: JSON.stringify(bodyPayload),
   });
 }

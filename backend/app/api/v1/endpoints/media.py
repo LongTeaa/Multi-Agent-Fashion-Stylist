@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Response
 from sqlmodel import Session
 
 from app.core.dependencies import get_db_session, get_object_storage
@@ -17,12 +17,11 @@ router = APIRouter(prefix="/media", tags=["media"])
 def get_media_asset(
     asset_id: str,
     x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None,
-    user_id: Annotated[str | None, Query(alias="user_id")] = None,
     session: Session = Depends(get_db_session),
     storage: ObjectStorage = Depends(get_object_storage),
 ) -> Response:
     """Retrieve and stream a private media asset after validating user ownership."""
-    effective_user_id = (x_user_id or "").strip() or (user_id or "").strip()
+    effective_user_id = (x_user_id or "").strip()
     if not effective_user_id:
         raise ValidationError(
             message="Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.",

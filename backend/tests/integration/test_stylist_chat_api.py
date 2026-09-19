@@ -841,3 +841,105 @@ def test_stylist_chat_cadence_triggers_feedback_prompt_on_threshold(
 
     finally:
         app.dependency_overrides.clear()
+
+
+def test_stylist_chat_idempotency_retry_prevents_cadence_skew(
+    migrated_database: tuple[object, object],
+) -> None:
+    """4.3 Test: Retrying a chat request with the same idempotency key returns identical recommendations and does not advance cadence."""
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    idempotency_key = str(uuid4())
+
+    top_media_id = f"media_top_{uuid4().hex[:8]}"
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    app.dependency_overrides[get_utc_clock] = lambda: _fixed_clock
+    app.dependency_overrides[get_feedback_cadence_service] = lambda: FeedbackCadenceService(
+        clock=_fixed_clock,
+        threshold_chooser=lambda: 5,
+    )
+
+    try:
+        with Session(engine) as session:
+            session.add(User(id=user_id))
+            session.commit()
+
+        with Session(engine) as session:
+            session.add(
+                FeedbackPromptState(
+                    user_id=user_id,
+                    eligible_count_since_prompt=0,
+                    next_threshold=5,
+                    cooldown_remaining=0,
+                )
+            )
+            _add_wardrobe_item(session, item_id="top-idemp-1", user_id=user_id, category=WardrobeCategory.TOP, sub_category="polo", color="white", media_id=top_media_id)
+            _add_wardrobe_item(session, item_id="bot-idemp-1", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="navy")
+            _add_wardrobe_item(session, item_id="shoe-idemp-1", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="sneakers", color="white")
+            session.commit()
+
+        client = TestClient(app)
+
+        # 1. Initial request with idempotency_key
+        res1 = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": user_id},
+            json={
+                "query": "Hôm nay đi làm mặc gì?",
+                "location": "Hà Nội",
+                "idempotency_key": idempotency_key,
+            },
+        )
+        assert res1.status_code == 200
+        data1 = res1.json()["data"]
+        assert data1["request_id"] == idempotency_key
+        rec_ids1 = [r["outfit_id"] for r in data1["recommendations"]]
+        assert len(rec_ids1) > 0
+
+        with Session(engine) as session:
+            state1 = session.get(FeedbackPromptState, user_id)
+            initial_eligible = state1.eligible_count_since_prompt
+            assert initial_eligible > 0
+
+        # 2. Retry with same idempotency_key in payload
+        res2 = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": user_id},
+            json={
+                "query": "Hôm nay đi làm mặc gì?",
+                "location": "Hà Nội",
+                "idempotency_key": idempotency_key,
+            },
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()["data"]
+        assert data2["request_id"] == idempotency_key
+        rec_ids2 = [r["outfit_id"] for r in data2["recommendations"]]
+        assert rec_ids2 == rec_ids1
+
+        # 3. Retry with same idempotency_key via X-Idempotency-Key header
+        res3 = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": user_id, "X-Idempotency-Key": idempotency_key},
+            json={
+                "query": "Hôm nay đi làm mặc gì?",
+                "location": "Hà Nội",
+            },
+        )
+        assert res3.status_code == 200
+        data3 = res3.json()["data"]
+        rec_ids3 = [r["outfit_id"] for r in data3["recommendations"]]
+        assert rec_ids3 == rec_ids1
+
+        # Invariant 4.3: Feedback cadence was NOT incremented on retries
+        with Session(engine) as session:
+            state_after = session.get(FeedbackPromptState, user_id)
+            assert state_after.eligible_count_since_prompt == initial_eligible
+
+    finally:
+        app.dependency_overrides.clear()

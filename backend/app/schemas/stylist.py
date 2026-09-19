@@ -15,6 +15,11 @@ class StylistChatRequest(BaseModel):
         max_length=64,
         description="Optional client session UUID v4 for session-scoped feedback cadence suppression.",
     )
+    idempotency_key: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Optional client-provided idempotency key for safely retrying recommendation requests.",
+    )
 
     @field_validator("query")
     @classmethod
@@ -47,6 +52,14 @@ class StylistChatRequest(BaseModel):
         except Exception:
             raise ValueError("client_session_id must be a valid UUID v4.")
         return str(parsed)
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def validate_idempotency_key(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed if trimmed else None
 
 
 class StylistContextResponse(BaseModel):

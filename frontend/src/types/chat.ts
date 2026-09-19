@@ -4,6 +4,7 @@ export interface StylistChatRequest {
   query: string;
   location?: string | null;
   client_session_id?: string | null;
+  idempotency_key?: string | null;
 }
 
 export interface StylistRecommendationItem {

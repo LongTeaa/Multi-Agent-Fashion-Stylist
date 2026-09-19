@@ -43,6 +43,7 @@ from app.services.classifier import classify_scene
 from app.services.cleanup_service import record_orphan_cleanup
 from app.services.crop_engine import crop_item_and_generate_thumbnail
 from app.services.providers import (
+    BoundingBoxDetection,
     DetectorProtocol,
     VisionExtractionResult,
     VisionProviderProtocol,
@@ -252,36 +253,34 @@ def process_ingestion_batch(
                     image_bytes=image_bytes,
                     declared_input_kind=batch.input_kind,
                 )
+                detected_boxes = list(detection_res.boxes)
+                detected_kinds.append(detection_res.input_kind)
+                for warning in detection_res.quality_warnings:
+                    add_warning(warning)
             except TimeoutError:
                 logger.warning("Detector timed out for batch %s", batch_id)
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
                 add_warning("AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.")
-                batch.quality_warnings = list(warnings_accumulator)
-                flag_modified(batch, "quality_warnings")
-                batch.status = IngestionStatus.NEEDS_REVIEW
-                session.add(batch)
-                session.commit()
-                return batch
+                detected_boxes = []
             except (ProviderError, Exception) as det_err:
                 logger.warning("Detector error for batch %s: %s", batch_id, det_err)
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
                 add_warning("AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.")
-                batch.quality_warnings = list(warnings_accumulator)
-                flag_modified(batch, "quality_warnings")
-                batch.status = IngestionStatus.NEEDS_REVIEW
-                session.add(batch)
-                session.commit()
-                return batch
+                detected_boxes = []
 
-            detected_kinds.append(detection_res.input_kind)
-            total_boxes_count += len(detection_res.boxes)
-            for warning in detection_res.quality_warnings:
-                add_warning(warning)
+            if not detected_boxes:
+                # 4.2 Fallback: Create provisional full-image detection box so manual review can proceed and confirm
+                add_warning("Không phát hiện được vùng trang phục riêng lẻ. Đã tạo vùng chọn toàn bộ ảnh để bạn kiểm tra và xác nhận thủ công.")
+                detected_boxes = [
+                    BoundingBoxDetection(box=(0.0, 0.0, 1.0, 1.0), label="clothing", confidence=0.5)
+                ]
+
+            total_boxes_count += len(detected_boxes)
 
             # For each candidate detected region, crop and extract attributes
-            for box_det in detection_res.boxes:
+            for box_det in detected_boxes:
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
 
@@ -538,6 +537,14 @@ def confirm_ingestion_batch(
                 message="Mã phát hiện không tồn tại hoặc không thuộc lượt tải lên này.",
                 details={"detection_id": conf.detection_id},
             )
+
+    # Invariant: All detections in this batch must be explicitly reviewed (accepted or rejected)
+    missing_ids = set(detection_map.keys()) - {c.detection_id for c in confirmations}
+    if missing_ids:
+        raise ValidationError(
+            message="Bạn phải xác nhận hoặc từ chối tất cả các món đồ đã phát hiện trước khi hoàn tất.",
+            details={"missing_detection_ids": sorted(list(missing_ids))},
+        )
 
     conf_map = {c.detection_id: c for c in confirmations}
     created_item_ids: list[str] = []

@@ -112,10 +112,13 @@ describe('useStylistChat Hook', () => {
       await result.current.sendMessage('Đi cafe Đà Lạt', 'Đà Lạt');
     });
 
-    expect(sendSpy).toHaveBeenCalledWith({
-      query: 'Đi cafe Đà Lạt',
-      location: 'Đà Lạt',
-    });
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: 'Đi cafe Đà Lạt',
+        location: 'Đà Lạt',
+        idempotency_key: expect.any(String),
+      })
+    );
     expect(result.current.status).toBe('success');
     expect(result.current.isLoading).toBe(false);
     expect(result.current.response).toEqual(mockSuccessResponse);
@@ -207,9 +210,11 @@ describe('useStylistChat Hook', () => {
     });
 
     expect(sendSpy).toHaveBeenCalledTimes(2);
+    const firstCallKey = sendSpy.mock.calls[0][0].idempotency_key;
     expect(sendSpy).toHaveBeenLastCalledWith({
       query: 'Đi ăn tối sang trọng',
       location: 'Hà Nội',
+      idempotency_key: firstCallKey,
     });
     expect(result.current.status).toBe('success');
     expect(result.current.response).toEqual(mockSuccessResponse);

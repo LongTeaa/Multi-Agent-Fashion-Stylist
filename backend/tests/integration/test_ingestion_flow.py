@@ -485,6 +485,37 @@ class TestIngestionFlowIntegration:
             warnings = review_data["quality_warnings"]
             assert any("timeout" in w.lower() or "quá thời gian" in w for w in warnings)
 
+            # 4.2 Invariant: Provisional full-image detection is created so user can review and confirm
+            assert len(review_data["detections"]) == 1
+            det = review_data["detections"][0]
+            assert det["bounding_box"] == [0.0, 0.0, 1.0, 1.0]
+
+            # Complete manual confirmation flow
+            confirm_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {
+                            "detection_id": det["detection_id"],
+                            "accepted": True,
+                            "custom_attributes": {
+                                "category": "top",
+                                "sub_category": "t-shirt",
+                                "primary_color": "black",
+                                "pattern": "solid",
+                                "material": "cotton",
+                                "style": "casual",
+                                "fit": "regular",
+                                "formality_level": 2,
+                            },
+                        }
+                    ]
+                },
+            )
+            assert confirm_res.status_code == 200
+            assert len(confirm_res.json()["data"]["wardrobe_item_ids"]) == 1
+
         finally:
             app.dependency_overrides.clear()
 
@@ -1036,6 +1067,157 @@ class TestConfirmationStateAndSecurityIntegrity:
                 ).all()
                 assert len(items) == len(detections)
                 assert sorted([item.id for item in items]) == sorted(created_ids_1)
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_incomplete_batch_confirmation_is_rejected_and_prevents_orphaned_detections(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """4.1 Invariant: Confirmation must account for all detections; omitting any raises 422."""
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        detector = FakeDetector(mode="multi_item")
+        vision_provider = FakeVisionProvider(scenario="golden_polo")
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: detector
+        app.dependency_overrides[get_vision_provider] = lambda: vision_provider
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (300, 300))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("multi_outfit.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            detections = review_res.json()["data"]["detections"]
+            assert len(detections) >= 2
+            first_det_id = detections[0]["detection_id"]
+            omitted_det_ids = sorted([d["detection_id"] for d in detections[1:]])
+
+            # Attempt confirmation with only 1 detection reviewed
+            partial_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": first_det_id, "accepted": True}
+                    ]
+                },
+            )
+            assert partial_res.status_code == 422
+            error_data = partial_res.json()["error"]
+            assert error_data["code"] == "VALIDATION_ERROR"
+            assert error_data["details"]["missing_detection_ids"] == omitted_det_ids
+
+            # Verify batch remains in NEEDS_REVIEW
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch.status == IngestionStatus.NEEDS_REVIEW
+                # All detections remain in PROPOSED state
+                dets = session.exec(select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)).all()
+                assert all(d.status == DetectionStatus.PROPOSED for d in dets)
+
+            # Now submit full review covering all detections
+            full_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {"detection_id": d["detection_id"], "accepted": (idx == 0)}
+                        for idx, d in enumerate(detections)
+                    ]
+                },
+            )
+            assert full_res.status_code == 200
+            assert len(full_res.json()["data"]["wardrobe_item_ids"]) == 1
+
+            with Session(engine) as session:
+                batch = session.get(IngestionBatch, batch_id)
+                assert batch.status == IngestionStatus.CONFIRMED
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_zero_detections_from_detector_generates_provisional_fallback_and_confirms(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        """4.2 Invariant: When detector finds 0 candidate boxes, a full-image provisional detection is created."""
+        from app.services.providers import DetectionResult
+
+        class EmptyDetector:
+            def detect(self, image_bytes: bytes) -> DetectionResult:
+                return DetectionResult(input_kind=InputKind.UNKNOWN, boxes=[], quality_warnings=["No clothing items found."])
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: EmptyDetector()
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (200, 200))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("empty.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            data = review_res.json()["data"]
+            assert data["status"] == "needs_review"
+            assert len(data["detections"]) == 1
+            det = data["detections"][0]
+            assert det["bounding_box"] == [0.0, 0.0, 1.0, 1.0]
+
+            # User can confirm the provisional detection
+            confirm_res = client.post(
+                f"/api/v1/ingestions/{batch_id}/confirm",
+                headers={"X-User-Id": user_id},
+                json={
+                    "confirmations": [
+                        {
+                            "detection_id": det["detection_id"],
+                            "accepted": True,
+                            "custom_attributes": {
+                                "category": "top",
+                                "sub_category": "blouse",
+                                "primary_color": "white",
+                                "pattern": "solid",
+                                "material": "silk",
+                                "style": "formal",
+                                "fit": "regular",
+                                "formality_level": 4,
+                            },
+                        }
+                    ]
+                },
+            )
+            assert confirm_res.status_code == 200
+            assert len(confirm_res.json()["data"]["wardrobe_item_ids"]) == 1
         finally:
             app.dependency_overrides.clear()
 

@@ -96,6 +96,12 @@ def test_media_stream_requires_identity_and_enforces_database_owner(
             headers={"X-User-Id": other_user_id},
         )
         assert header_precedence.status_code == 403
+
+        query_fallback_rejected = client.get(
+            f"/api/v1/media/{asset_id}?user_id={owner_id}"
+        )
+        assert query_fallback_rejected.status_code == 422
+        assert query_fallback_rejected.json()["error"]["code"] == "VALIDATION_ERROR"
     finally:
         app.dependency_overrides.clear()
 

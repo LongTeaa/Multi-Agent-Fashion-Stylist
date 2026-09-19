@@ -373,6 +373,21 @@ def persist_recommendations_atomically(
     temp_records: list[tuple[RankedOutfit, OutfitRecommendation, list[OutfitItem]]] = []
 
     try:
+        existing = session.exec(
+            select(OutfitRecommendation)
+            .where(
+                OutfitRecommendation.user_id == user_id,
+                OutfitRecommendation.request_id == request_id,
+            )
+            .order_by(OutfitRecommendation.rank.asc())
+        ).all()
+        if existing:
+            for outfit in ranked_outfits:
+                matched = next((e for e in existing if e.rank == outfit.rank), None)
+                if matched:
+                    outfit.outfit_id = matched.id
+            return True, [e.id for e in existing]
+
         temp_outfits: list[tuple[RankedOutfit, OutfitRecommendation]] = []
         for outfit in ranked_outfits:
             outfit_id = new_uuid()

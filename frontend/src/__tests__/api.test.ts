@@ -106,9 +106,10 @@ describe('API Client & Storage Utilities (Contract & Invariant Verification)', (
   });
 
   describe('Media URL Builder', () => {
-    it('appends user_id query parameter to relative media URLs', () => {
+    it('returns clean media URL without user_id query parameter leak', () => {
       const url = getMediaUrl('/api/v1/media/asset-123');
-      expect(url).toContain('/api/v1/media/asset-123?user_id=test-user-uuid-1234');
+      expect(url).toBe('http://localhost:8000/api/v1/media/asset-123');
+      expect(url).not.toContain('user_id');
     });
 
     it('returns absolute URLs untouched', () => {
