@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 7 — Evaluation and Acceptance (complete) |
-| Active task | PR #4 audit remediation implemented and verified; ready to merge. |
-| Most recently modified files | Ingestion and cleanup services, private media components, migration `0007`, API/data contracts, browser integration tests, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `npm run lint` on 2026-09-19; also `python -m pytest tests -q -m "not live_provider" --tb=short` (457 passed), `npm run test -- --run` (83 passed), `npm run build`, and targeted Playwright E2E (4 passed). |
-| Next step | Merge PR #4, then continue Phase 7 acceptance work. |
+| Active task | Share the current MVP code, specifications, and live test findings on `chore/mvp-state-2026-09-20`. The split SQLite databases still need a safe merge. |
+| Most recently modified files | Gemini image provider/configuration/tests, bottom-category UI labels, documentation and live test report, `scripts/verify_documentation.ps1`, `CURRENT_STATE.md`. |
+| Latest passing verification command | `.\scripts\verify_documentation.ps1` (17 required files, 7 roadmap phases); targeted Gemini/try-on pytest (34 passed) and `npm run lint` also passed on 2026-09-20. |
+| Next step | Review the MVP snapshot with teammates; safely merge the 4 old wardrobe items and linked media from `backend/data` into the canonical root database, then recheck UI across restart. |
 
 ## Update Rules
 

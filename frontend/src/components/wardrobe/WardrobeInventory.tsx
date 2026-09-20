@@ -8,7 +8,7 @@ import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
   { label: 'Tất cả', value: 'all' },
   { label: 'Áo', value: 'top' },
-  { label: 'Quần / Váy', value: 'bottom' },
+  { label: 'Quần / Chân váy', value: 'bottom' },
   { label: 'Đầm', value: 'dress' },
   { label: 'Giày dép', value: 'footwear' },
   { label: 'Áo khoác', value: 'outerwear' },
@@ -17,7 +17,7 @@ const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
 
 const CATEGORY_NAMES: Record<WardrobeCategory, string> = {
   top: 'Áo',
-  bottom: 'Quần / Váy',
+  bottom: 'Quần / Chân váy',
   dress: 'Đầm',
   footwear: 'Giày dép',
   outerwear: 'Áo khoác',

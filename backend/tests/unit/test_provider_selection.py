@@ -195,6 +195,8 @@ class TestGeminiProviderAdapter:
         observed_mime_types: list[str] = []
 
         def handler(request: httpx.Request) -> httpx.Response:
+            assert request.headers["x-goog-api-key"] == "mock-key"
+            assert "key=" not in str(request.url)
             payload = json.loads(request.content)
             observed_mime_types.append(
                 payload["contents"][0]["parts"][1]["inline_data"]["mime_type"]

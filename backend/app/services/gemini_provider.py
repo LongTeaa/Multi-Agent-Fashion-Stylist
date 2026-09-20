@@ -102,7 +102,7 @@ class GeminiDetector:
     def detect(self, image_bytes: bytes) -> DetectionResult:
         """Call Gemini to detect clothing items and determine scene classification."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        params = {"key": self.api_key.get_secret_value()}
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_image = base64.b64encode(image_bytes).decode("ascii")
         image_mime_type = _detect_image_mime_type(image_bytes)
 
@@ -135,11 +135,11 @@ class GeminiDetector:
         try:
             if self._client is not None:
                 resp = self._client.post(
-                    url, params=params, json=payload, timeout=self.timeout_seconds
+                    url, headers=headers, json=payload, timeout=self.timeout_seconds
                 )
             else:
                 with httpx.Client(timeout=self.timeout_seconds) as client:
-                    resp = client.post(url, params=params, json=payload)
+                    resp = client.post(url, headers=headers, json=payload)
 
             if resp.status_code >= 400:
                 logger.error("Gemini detector HTTP error %d: %s", resp.status_code, resp.text)
@@ -201,7 +201,7 @@ class GeminiVisionProvider:
     def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        params = {"key": self.api_key.get_secret_value()}
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
 
@@ -236,11 +236,11 @@ class GeminiVisionProvider:
         try:
             if self._client is not None:
                 resp = self._client.post(
-                    url, params=params, json=payload, timeout=self.timeout_seconds
+                    url, headers=headers, json=payload, timeout=self.timeout_seconds
                 )
             else:
                 with httpx.Client(timeout=self.timeout_seconds) as client:
-                    resp = client.post(url, params=params, json=payload)
+                    resp = client.post(url, headers=headers, json=payload)
 
             if resp.status_code >= 400:
                 logger.error("Gemini vision provider HTTP error %d: %s", resp.status_code, resp.text)

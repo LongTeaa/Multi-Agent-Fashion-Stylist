@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     context_timeout_seconds: PositiveInt = 15
     weather_provider: Literal["disabled", "fake", "openweather"] = "disabled"
     weather_timeout_seconds: PositiveInt = 5
-    image_provider: Literal["disabled", "fake"] = "disabled"
+    image_provider: Literal["disabled", "fake", "gemini"] = "disabled"
     image_timeout_seconds: Literal[8] = 8
     llm_model: str | None = None
     vision_model: str | None = None
@@ -96,3 +96,8 @@ def validate_image_provider_configuration(settings: Settings) -> None:
         return
     if not settings.image_model or not settings.image_model.strip():
         raise ValueError("IMAGE_PROVIDER is enabled but IMAGE_MODEL is not configured.")
+    if settings.image_provider == "gemini" and (
+        not settings.gemini_api_key
+        or not settings.gemini_api_key.get_secret_value().strip()
+    ):
+        raise ValueError("IMAGE_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")

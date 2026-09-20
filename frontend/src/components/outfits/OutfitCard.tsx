@@ -58,7 +58,7 @@ export function normalizeDetailItems(items: OutfitItemDetailResponse[]): Normali
 
 const SLOT_NAMES: Record<string, string> = {
   top: 'Áo',
-  bottom: 'Quần / Váy',
+  bottom: 'Quần / Chân váy',
   dress: 'Đầm / Váy liền',
   footwear: 'Giày / Dép',
   outerwear: 'Áo khoác',
