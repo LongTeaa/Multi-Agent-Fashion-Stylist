@@ -20,9 +20,54 @@ const CATEGORIES = [
   { value: 'bottom', label: 'Quần / Chân váy (Bottom)' },
   { value: 'footwear', label: 'Giày dép (Footwear)' },
   { value: 'outerwear', label: 'Áo khoác (Outerwear)' },
-  { value: 'dress', label: 'Đầm liền (Dress)' },
+  { value: 'dress', label: 'Đầm / Váy liền (Dress)' },
   { value: 'accessory', label: 'Phụ kiện (Accessory)' },
 ];
+
+const SUB_CATEGORY_SUGGESTIONS: Record<string, { value: string; label: string }[]> = {
+  footwear: [
+    { value: 'sneakers', label: 'Sneakers' },
+    { value: 'oxford', label: 'Oxford' },
+    { value: 'loafers', label: 'Loafers (Giày lười)' },
+    { value: 'leather_shoes', label: 'Giày da' },
+    { value: 'sandals', label: 'Sandal' },
+    { value: 'slides', label: 'Dép quai ngang' },
+    { value: 'boots', label: 'Boots' },
+    { value: 'heels', label: 'Giày cao gót' },
+  ],
+  top: [
+    { value: 'tshirt', label: 'Áo thun' },
+    { value: 'polo', label: 'Áo Polo' },
+    { value: 'shirt', label: 'Áo sơ mi' },
+    { value: 'sweater', label: 'Áo len' },
+    { value: 'tanktop', label: 'Áo ba lỗ' },
+  ],
+  bottom: [
+    { value: 'trousers', label: 'Quần tây' },
+    { value: 'chinos', label: 'Quần Chinos' },
+    { value: 'jeans', label: 'Quần Jeans' },
+    { value: 'shorts', label: 'Quần short' },
+    { value: 'skirt', label: 'Chân váy' },
+  ],
+  outerwear: [
+    { value: 'blazer', label: 'Blazer' },
+    { value: 'jacket', label: 'Áo khoác' },
+    { value: 'hoodie', label: 'Hoodie' },
+    { value: 'cardigan', label: 'Cardigan' },
+  ],
+  dress: [
+    { value: 'casual_dress', label: 'Đầm thường ngày' },
+    { value: 'formal_dress', label: 'Đầm dạ hội' },
+    { value: 'shirt_dress', label: 'Đầm sơ mi' },
+  ],
+  accessory: [
+    { value: 'belt', label: 'Thắt lưng' },
+    { value: 'watch', label: 'Đồng hồ' },
+    { value: 'bag', label: 'Túi xách' },
+    { value: 'hat', label: 'Mũ / Nón' },
+    { value: 'glasses', label: 'Kính mắt' },
+  ],
+};
 
 const STYLES = [
   { value: 'casual', label: 'Thường nhật (Casual)' },
@@ -238,9 +283,10 @@ export function DetectionItemCard({
               </div>
               <input
                 type="text"
+                list={`sub-suggestions-${index}`}
                 value={attributes.sub_category || ''}
                 disabled={!accepted}
-                placeholder="VD: polo, chinos, t-shirt, jeans..."
+                placeholder="VD: sneakers, loafers, oxford, polo, chinos..."
                 onChange={(e) => onUpdateAttribute('sub_category', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
                   isLowConfidence('sub_category')
@@ -248,6 +294,32 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               />
+              <datalist id={`sub-suggestions-${index}`}>
+                {(SUB_CATEGORY_SUGGESTIONS[attributes.category] || []).map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </datalist>
+              {SUB_CATEGORY_SUGGESTIONS[attributes.category] && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {SUB_CATEGORY_SUGGESTIONS[attributes.category].map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      disabled={!accepted}
+                      onClick={() => onUpdateAttribute('sub_category', s.value)}
+                      className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${
+                        attributes.sub_category?.toLowerCase() === s.value.toLowerCase()
+                          ? 'bg-[#1A1918] text-white border-[#1A1918]'
+                          : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Primary Color */}

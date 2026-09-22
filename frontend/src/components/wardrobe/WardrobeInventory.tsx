@@ -9,7 +9,7 @@ const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
   { label: 'Tất cả', value: 'all' },
   { label: 'Áo', value: 'top' },
   { label: 'Quần / Chân váy', value: 'bottom' },
-  { label: 'Đầm', value: 'dress' },
+  { label: 'Đầm / Váy liền', value: 'dress' },
   { label: 'Giày dép', value: 'footwear' },
   { label: 'Áo khoác', value: 'outerwear' },
   { label: 'Phụ kiện', value: 'accessory' },
@@ -18,11 +18,46 @@ const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
 const CATEGORY_NAMES: Record<WardrobeCategory, string> = {
   top: 'Áo',
   bottom: 'Quần / Chân váy',
-  dress: 'Đầm',
+  dress: 'Đầm / Váy liền',
   footwear: 'Giày dép',
   outerwear: 'Áo khoác',
   accessory: 'Phụ kiện',
 };
+
+export function formatItemTitle(category: WardrobeCategory, subCategory?: string | null): string {
+  const genericTokens = new Set(['clothing', 'garment', 'apparel', 'item', 'unknown', 'footwear', 'top', 'bottom']);
+  const subMap: Record<string, string> = {
+    sneakers: 'Sneakers',
+    oxford: 'Giày Oxford',
+    loafers: 'Giày Loafers (Giày lười)',
+    leather_shoes: 'Giày da',
+    sandals: 'Sandal',
+    slides: 'Dép quai ngang',
+    boots: 'Boots',
+    heels: 'Giày cao gót',
+    skirt: 'Chân váy',
+    trousers: 'Quần tây',
+    chinos: 'Quần Chinos',
+    shorts: 'Quần short',
+    jeans: 'Quần Jeans',
+    polo: 'Áo Polo',
+    tshirt: 'Áo thun',
+    shirt: 'Áo sơ mi',
+    blazer: 'Áo Blazer',
+    jacket: 'Áo khoác',
+    hoodie: 'Áo Hoodie',
+    sweater: 'Áo len',
+    dress: 'Đầm / Váy liền',
+  };
+
+  const cleanSub = (subCategory || '').trim().toLowerCase();
+  if (cleanSub && !genericTokens.has(cleanSub)) {
+    if (subMap[cleanSub]) return subMap[cleanSub];
+    return subCategory || cleanSub.replace(/_/g, ' ');
+  }
+
+  return CATEGORY_NAMES[category] || 'Trang phục';
+}
 
 interface WardrobeInventoryProps {
   onSwitchToIngestion?: () => void;
@@ -263,7 +298,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
                   <h4 className="font-serif text-base text-[#1A1918] capitalize mb-1">
-                    {item.sub_category}
+                    {formatItemTitle(item.category, item.sub_category)}
                   </h4>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#F5F4F0] text-[#5C564E] font-mono">

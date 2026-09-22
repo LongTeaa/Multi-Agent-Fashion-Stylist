@@ -304,17 +304,22 @@ SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]]
     (["áo cardigan", "cardigan"], WardrobeCategory.OUTERWEAR, "cardigan", None),
     (["áo hoodie", "hoodie"], WardrobeCategory.OUTERWEAR, "hoodie", None),
 
+    # Bottoms - Skirts (Checked before Dresses to prevent 'chân váy' from being classified as dress)
+    (["chân váy chữ a", "chân váy xếp ly", "chân váy bút chì", "chân váy ngắn", "chân váy dài", "chân váy", "skirt", "skirts"], WardrobeCategory.BOTTOM, "skirt", None),
+
     # Dresses
     (["váy đầm", "đầm hoa", "váy hoa", "đầm", "váy", "dress"], WardrobeCategory.DRESS, "dress", None),
 
     # Footwear
-    (["giày da", "giày tây"], WardrobeCategory.FOOTWEAR, "oxford", "leather"),
+    (["giày da", "giày tây da", "giày tây", "giày oxford", "oxford"], WardrobeCategory.FOOTWEAR, "oxford", "leather"),
     (["giày sneaker", "giày thể thao", "sneaker", "sneakers"], WardrobeCategory.FOOTWEAR, "sneakers", None),
     (["giày lười", "giày loafer", "loafer", "loafers"], WardrobeCategory.FOOTWEAR, "loafers", None),
     (["giày sandal", "dép sandal", "sandal", "sandals"], WardrobeCategory.FOOTWEAR, "sandals", None),
-    (["giày boots", "boots", "bốt"], WardrobeCategory.FOOTWEAR, "boots", None),
+    (["dép quai ngang", "dép", "slides", "slide", "slippers"], WardrobeCategory.FOOTWEAR, "slides", None),
+    (["giày boots", "giày bốt", "boots", "boot", "bốt"], WardrobeCategory.FOOTWEAR, "boots", None),
+    (["giày cao gót", "cao gót", "heels"], WardrobeCategory.FOOTWEAR, "heels", None),
 
-    # Bottoms
+    # Bottoms - Pants
     (["quần chinos", "chinos"], WardrobeCategory.BOTTOM, "chinos", None),
     (["quần jean", "quần jeans", "quần bò", "jean", "jeans"], WardrobeCategory.BOTTOM, "jeans", None),
     (["quần tây", "quần âu", "trousers"], WardrobeCategory.BOTTOM, "trousers", None),
@@ -446,12 +451,16 @@ def extract_constraints(
     clauses = re.split(r"[,;.]|\bnhưng\b", t)
 
     avoid_triggers = [
-        "không mặc", "tránh", "không thích", "đừng chọn", "không muốn",
-        "ghét", "đừng phối", "đừng mang", "không mang",
+        "không mặc", "không đi", "không mang", "không chọn", "không muốn", "không thích",
+        "đừng mặc", "đừng đi", "đừng mang", "đừng chọn", "đừng phối",
+        "tránh", "ghét",
     ]
     have_triggers = [
-        "muốn mặc", "thích mặc", "thích", "cần mặc", "cần đi",
-        "ưu tiên", "muốn", "phải có", "phải mang", "phải mặc",
+        "muốn mặc", "thích mặc", "cần mặc", "phải mặc",
+        "muốn đi", "thích đi", "cần đi", "phải đi",
+        "muốn mang", "thích mang", "cần mang", "phải mang",
+        "phải có", "muốn có", "cần có", "ưu tiên",
+        "thích", "muốn",
     ]
 
     for clause in clauses:
@@ -460,7 +469,7 @@ def extract_constraints(
             continue
 
         # Check for avoid triggers
-        for trig in avoid_triggers:
+        for trig in sorted(avoid_triggers, key=len, reverse=True):
             if trig in clause:
                 idx = clause.find(trig) + len(trig)
                 rest = clause[idx:].strip()
@@ -470,9 +479,10 @@ def extract_constraints(
                     if c is not None:
                         structured_must_avoid.append(c)
                         raw_must_avoid.append(c.raw_text)
+                break
 
         # Check for have triggers
-        for trig in have_triggers:
+        for trig in sorted(have_triggers, key=len, reverse=True):
             if trig in clause and not any(neg in clause for neg in ["không ", "chẳng ", "đừng ", "chưa "]):
                 idx = clause.find(trig) + len(trig)
                 rest = clause[idx:].strip()
@@ -484,6 +494,7 @@ def extract_constraints(
                     if c is not None:
                         structured_must_have.append(c)
                         raw_must_have.append(c.raw_text)
+                break
 
     # Deduplicate while preserving order
     dedup_raw_have = list(dict.fromkeys(raw_must_have))

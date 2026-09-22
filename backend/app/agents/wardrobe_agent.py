@@ -104,6 +104,14 @@ BILINGUAL_CONSTRAINT_MAP: dict[str, str] = {
     "quần short": "shorts",
     "quần soóc": "shorts",
     "shorts": "shorts",
+    "chân váy": "skirt",
+    "chân váy chữ a": "skirt",
+    "chân váy xếp ly": "skirt",
+    "chân váy bút chì": "skirt",
+    "chân váy ngắn": "skirt",
+    "chân váy dài": "skirt",
+    "skirt": "skirt",
+    "skirts": "skirt",
     # Outerwear
     "áo khoác": "jacket",
     "khoác": "jacket",
@@ -127,13 +135,35 @@ BILINGUAL_CONSTRAINT_MAP: dict[str, str] = {
     "dress": "dress",
     # Footwear
     "giày sneaker": "sneakers",
+    "giày thể thao": "sneakers",
     "sneaker": "sneakers",
     "sneakers": "sneakers",
-    "giày da": "leather",
+    "giày da": "leather_shoes",
+    "giày tây da": "leather_shoes",
     "giày tây": "oxford",
+    "giày oxford": "oxford",
+    "oxford": "oxford",
     "giày lười": "loafers",
+    "giày loafer": "loafers",
+    "loafer": "loafers",
+    "loafers": "loafers",
+    "giày sandal": "sandals",
+    "dép sandal": "sandals",
+    "sandal": "sandals",
+    "sandals": "sandals",
+    "dép": "slides",
+    "dép quai ngang": "slides",
+    "slides": "slides",
+    "slide": "slides",
+    "giày boots": "boots",
+    "giày bốt": "boots",
+    "boots": "boots",
+    "boot": "boots",
+    "bốt": "boots",
+    "giày cao gót": "heels",
+    "cao gót": "heels",
+    "heels": "heels",
     "giày": "shoes",
-    "dép": "sandals",
 }
 
 # Localization dictionaries for natural Vietnamese item names
@@ -156,23 +186,95 @@ COLOR_VI_MAP: dict[str, str] = {
 }
 
 SUB_CATEGORY_VI_MAP: dict[str, str] = {
+    # Tops
     "polo": "Áo polo",
     "shirt": "Áo sơ mi",
     "t-shirt": "Áo thun",
+    "tshirt": "Áo thun",
+    "tee": "Áo thun",
+    "sweater": "Áo len",
+    "knitwear": "Áo dệt kim",
+    # Bottoms
     "chinos": "Quần chinos",
     "jeans": "Quần jean",
     "jean": "Quần jean",
     "trousers": "Quần tây",
+    "pants": "Quần dài",
     "shorts": "Quần short",
+    "khakis": "Quần kaki",
+    "joggers": "Quần jogger",
+    "sweatpants": "Quần jogger",
+    "skirt": "Chân váy",
+    "skirts": "Chân váy",
+    "mini_skirt": "Chân váy ngắn",
+    "midi_skirt": "Chân váy midi",
+    "pleated_skirt": "Chân váy xếp ly",
+    "pencil_skirt": "Chân váy bút chì",
+    "a_line_skirt": "Chân váy chữ A",
+    # Footwear
     "sneakers": "Giày sneaker",
     "sneaker": "Giày sneaker",
+    "oxford": "Giày tây Oxford",
+    "oxford_shoes": "Giày tây Oxford",
+    "oxfords": "Giày tây Oxford",
+    "loafers": "Giày lười Loafers",
+    "loafer": "Giày lười Loafers",
+    "leather_shoes": "Giày tây da",
+    "sandals": "Sandal",
+    "sandal": "Sandal",
+    "slides": "Dép quai ngang",
+    "slide": "Dép quai ngang",
+    "slippers": "Dép",
+    "boots": "Giày boots",
+    "boot": "Giày boots",
+    "chelsea_boots": "Giày Chelsea boots",
+    "heels": "Giày cao gót",
+    "high_heels": "Giày cao gót",
+    "flats": "Giày búp bê",
+    # Outerwear
     "jacket": "Áo khoác",
+    "coat": "Áo khoác dạ",
     "blazer": "Áo blazer",
     "cardigan": "Áo cardigan",
     "hoodie": "Áo hoodie",
+    "vest": "Áo gile vest",
+    # Accessories
     "belt": "Thắt lưng",
-    "dress": "Váy đầm",
-    "floral dress": "Váy hoa",
+    "bag": "Túi xách",
+    "watch": "Đồng hồ",
+    "glasses": "Kính mắt",
+    "hat": "Mũ",
+    # Dresses
+    "dress": "Đầm",
+    "floral dress": "Đầm hoa",
+    "maxi dress": "Đầm maxi",
+    "maxi_dress": "Đầm maxi",
+    "midi dress": "Đầm midi",
+    "midi_dress": "Đầm midi",
+    "slip dress": "Đầm hai dây",
+    "slip_dress": "Đầm hai dây",
+    "shirt dress": "Đầm sơ mi",
+    "shirt_dress": "Đầm sơ mi",
+}
+
+GENERIC_SUB_CATEGORY_TOKENS: set[str] = {
+    "clothing",
+    "garment",
+    "apparel",
+    "item",
+    "unknown",
+    "none",
+    "",
+    "footwear",
+    "top",
+    "bottom",
+    "dress",
+    "outerwear",
+    "accessory",
+    "shoes",
+    "clothes",
+    "outfit",
+    "wear",
 }
 
 
@@ -193,23 +295,34 @@ def normalize_constraint_token(token: str) -> str:
 
 def format_localized_item_name(item: WardrobeItem) -> str:
     """Produce a natural, user-friendly Vietnamese name for a wardrobe item."""
+    cat_prefixes = {
+        WardrobeCategory.TOP: "Áo",
+        WardrobeCategory.BOTTOM: "Quần",
+        WardrobeCategory.DRESS: "Đầm",
+        WardrobeCategory.FOOTWEAR: "Giày",
+        WardrobeCategory.OUTERWEAR: "Áo khoác",
+        WardrobeCategory.ACCESSORY: "Phụ kiện",
+    }
+    prefix = cat_prefixes.get(item.category, "Trang phục")
+
     sub = item.sub_category.lower().strip()
     color = item.primary_color.lower().strip()
 
-    sub_vi = SUB_CATEGORY_VI_MAP.get(sub)
-    if not sub_vi:
-        cat_prefixes = {
-            WardrobeCategory.TOP: "Áo",
-            WardrobeCategory.BOTTOM: "Quần",
-            WardrobeCategory.DRESS: "Đầm",
-            WardrobeCategory.FOOTWEAR: "Giày",
-            WardrobeCategory.OUTERWEAR: "Áo khoác",
-            WardrobeCategory.ACCESSORY: "Phụ kiện",
-        }
-        prefix = cat_prefixes.get(item.category, "")
-        sub_vi = f"{prefix} {sub}".strip().title()
+    if sub in GENERIC_SUB_CATEGORY_TOKENS or sub == item.category.value:
+        sub_vi = prefix
+    else:
+        sub_vi = SUB_CATEGORY_VI_MAP.get(sub)
+        if not sub_vi:
+            if sub.startswith(prefix.lower()):
+                sub_vi = sub.capitalize()
+            else:
+                sub_vi = f"{prefix} {sub}".strip().title()
 
-    color_vi = COLOR_VI_MAP.get(color, color)
+    if color in ("", "unknown", "none", "n/a", "chưa xác định"):
+        color_vi = ""
+    else:
+        color_vi = COLOR_VI_MAP.get(color, color)
+
     return f"{sub_vi} {color_vi}".strip()
 
 

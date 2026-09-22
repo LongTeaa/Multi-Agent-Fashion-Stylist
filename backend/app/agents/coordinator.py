@@ -333,10 +333,57 @@ def generate_grounded_explanation_vi(
 
     composition_str = ", ".join(garment_parts)
 
-    explanation = (
-        f"Bộ trang phục lý tưởng cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-        f"Tổng thể tạo nên từ {composition_str}, mang lại diện mạo hài hòa và tự tin."
-    )
+    score = outfit.composite_score
+    score_pct = int(round(score * 100))
+    rank = outfit.rank
+
+    if score >= 0.78:
+        if rank == 1:
+            main_sentence = (
+                f"Bộ trang phục rất phù hợp cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Tổng thể tạo nên từ {composition_str}, mang lại diện mạo hài hòa và tự tin."
+            )
+        elif rank == 2:
+            main_sentence = (
+                f"Lựa chọn phối đồ nổi bật khác cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Sự kết hợp hài hòa từ {composition_str} đem lại phong cách chỉn chu và thanh lịch."
+            )
+        else:
+            main_sentence = (
+                f"Thêm một phương án ấn tượng cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Cách phối từ {composition_str} tạo điểm nhấn tinh tế và cuốn hút."
+            )
+    elif score >= 0.65:
+        if rank == 1:
+            main_sentence = (
+                f"Bộ trang phục phù hợp cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Tổng thể phối hợp từ {composition_str}, đảm bảo sự gọn gàng và thoải mái."
+            )
+        elif rank == 2:
+            main_sentence = (
+                f"Phương án phối đồ thay thế cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Sự kết hợp giữa {composition_str} mang lại cảm giác năng động và dễ ứng dụng."
+            )
+        else:
+            main_sentence = (
+                f"Gợi ý phối đồ linh hoạt cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Cách kết hợp {composition_str} giữ được nét hài hòa cho các hoạt động trong ngày."
+            )
+    else:
+        if rank == 1:
+            main_sentence = (
+                f"Lựa chọn gợi ý từ tủ đồ hiện có cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Độ phù hợp ở mức vừa phải ({score_pct}%) do một số món đồ có phong cách hoặc màu sắc chưa thật sự tối ưu cho ngữ cảnh này, "
+                f"nhưng {composition_str} vẫn đảm bảo tính gọn gàng."
+            )
+        else:
+            main_sentence = (
+                f"Phương án tận dụng thêm từ tủ đồ cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
+                f"Độ phù hợp đạt {score_pct}%, giúp bạn có thêm lựa chọn thay đổi dù {composition_str} "
+                f"chưa hoàn toàn đồng nhất với ngữ cảnh."
+            )
+
+    explanation = main_sentence
 
     # Weave in applied preferences if present and strictly in canonical allowlist
     valid_prefs = [

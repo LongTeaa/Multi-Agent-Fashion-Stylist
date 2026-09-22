@@ -700,10 +700,25 @@ def confirm_ingestion_batch(
                     )
 
             sub_cat_raw = attrs.get("sub_category")
-            if not sub_cat_raw or str(sub_cat_raw).strip() in ("", "clothing", "unknown", "none"):
+            if not sub_cat_raw or str(sub_cat_raw).strip().lower() in ("", "clothing", "garment", "apparel", "unknown", "none"):
                 sub_category = category_enum.value
             else:
-                sub_category = str(sub_cat_raw).strip()
+                norm_sub = str(sub_cat_raw).strip().lower()
+                subtype_alias_map = {
+                    "sneaker": "sneakers",
+                    "loafer": "loafers",
+                    "boot": "boots",
+                    "sandal": "sandals",
+                    "slide": "slides",
+                    "jean": "jeans",
+                    "pant": "trousers",
+                    "pants": "trousers",
+                    "skirt": "skirt",
+                    "skirts": "skirt",
+                    "oxford_shoes": "oxford",
+                    "oxfords": "oxford",
+                }
+                sub_category = subtype_alias_map.get(norm_sub, str(sub_cat_raw).strip())
 
             formality_raw = attrs.get("formality_level", 3)
             try:
