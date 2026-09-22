@@ -137,7 +137,7 @@ export function DetectionItemCard({
     const conf = confidences[field];
     if (typeof conf !== 'number') {
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#736E65] border border-[#E8E5DE]">
+        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#FAF8F5] text-[#5C564E] border border-[#E8E5DE]">
           Chưa xác định
         </span>
       );
@@ -147,10 +147,10 @@ export function DetectionItemCard({
 
     return (
       <span
-        className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+        className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full ${
           isLow
-            ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
-            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            ? 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold animate-pulse'
+            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
         }`}
       >
         {isLow ? (
@@ -177,31 +177,31 @@ export function DetectionItemCard({
   return (
     <div
       onClick={onSelect}
-      className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+      className={`rounded-3xl border transition-all duration-200 overflow-hidden ${
         isSelected
           ? 'border-[#1A1918] ring-2 ring-[#1A1918]/15 shadow-md bg-white'
           : 'border-[#E8E5DE] bg-white hover:border-[#D5D1C7] shadow-2xs'
       } ${!accepted ? 'opacity-60 bg-[#FAF8F5]' : ''}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E5DE] bg-[#FAF8F5]/80">
-        <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-full bg-[#1A1918] text-[#FBFBF9] font-mono font-semibold text-xs flex items-center justify-center shadow-2xs">
+      <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#E8E5DE] bg-[#FAF8F5]/80">
+        <div className="flex items-center gap-3.5">
+          <span className="w-8 h-8 rounded-full bg-[#1A1918] text-[#FBFBF9] font-mono font-semibold text-xs flex items-center justify-center shadow-2xs">
             {index + 1}
           </span>
           <div>
-            <h4 className="text-sm font-semibold text-[#1A1918] capitalize">
+            <h4 className="text-base sm:text-lg font-semibold text-[#1A1918] capitalize">
               {CATEGORIES.find((c) => c.value === attributes.category)?.label.split(' ')[0] || attributes.category || 'Món đồ'} •{' '}
               {attributes.sub_category || 'Chưa phân loại'}
             </h4>
-            <p className="text-xs font-mono text-[#736E65]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
+            <p className="text-xs font-mono text-[#5C564E]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
           </div>
         </div>
 
         {/* Accept / Reject Switch */}
         <label
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 cursor-pointer select-none"
+          className="flex items-center gap-2.5 cursor-pointer select-none"
         >
           <input
             type="checkbox"
@@ -210,40 +210,40 @@ export function DetectionItemCard({
             className="sr-only peer"
           />
           <div className="w-11 h-6 bg-[#E8E5DE] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D5D1C7] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9C5234]"></div>
-          <span className="text-xs font-mono text-[#5C564E]">
+          <span className="text-xs sm:text-sm font-mono text-[#1A1918] font-medium">
             {accepted ? 'Lưu món này' : 'Bỏ qua'}
           </span>
         </label>
       </div>
 
-      <div className="p-5 flex flex-col md:flex-row gap-6">
+      <div className="p-5 sm:p-6 flex flex-col md:flex-row gap-6 lg:gap-8">
         {/* Crop Preview Column */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-36 h-36 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shadow-inner relative group">
+          <div className="w-36 h-36 sm:w-44 sm:h-44 xl:w-48 xl:h-48 rounded-2xl border border-[#E8E5DE] overflow-hidden bg-[#FAF8F5] flex items-center justify-center shadow-2xs relative group">
             {cropUrl ? (
               <PrivateMediaImage
                 source={cropUrl}
                 alt="Cropped item"
-                className="w-full h-full object-contain p-1"
+                className="w-full h-full object-contain p-2"
               />
             ) : (
-              <span className="text-xs text-slate-400">Không có ảnh</span>
+              <span className="text-xs font-mono text-[#736E65]">Không có ảnh</span>
             )}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium">
-              Ảnh cắt tự động
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-mono font-medium">
+              Ảnh cắt chi tiết
             </div>
           </div>
-          <span className="mt-2 text-[11px] text-slate-500">Kích thước vùng crop</span>
+          <span className="mt-2 text-xs font-mono text-[#5C564E]">Vùng ảnh phân tích</span>
         </div>
 
         {/* Attribute Correction Form Fields */}
-        <div className="flex-1 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex-1 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {/* Category */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">
-                  Danh mục chính <span className="text-red-500">*</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
+                  Danh mục chính <span className="text-rose-600">*</span>
                 </label>
                 {renderConfidenceBadge('category')}
               </div>
@@ -251,12 +251,12 @@ export function DetectionItemCard({
                 value={attributes.category || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('category', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   !attributes.category || attributes.category === 'unknown'
-                    ? 'border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-400'
+                    ? 'border-rose-400 bg-rose-50/20 focus:ring-2 focus:ring-rose-400 text-[#1A1918]'
                     : isLowConfidence('category')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               >
                 <option value="" disabled>
@@ -269,7 +269,7 @@ export function DetectionItemCard({
                 ))}
               </select>
               {(!attributes.category || attributes.category === 'unknown') && accepted && (
-                <p className="text-[11px] text-red-600 mt-1 font-medium">
+                <p className="text-xs text-rose-600 mt-1.5 font-medium">
                   Vui lòng chọn danh mục chính để lưu món đồ này.
                 </p>
               )}
@@ -277,8 +277,8 @@ export function DetectionItemCard({
 
             {/* Sub-Category */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Loại chi tiết (Sub-category)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại chi tiết (Sub-category)</label>
                 {renderConfidenceBadge('sub_category')}
               </div>
               <input
@@ -288,10 +288,10 @@ export function DetectionItemCard({
                 disabled={!accepted}
                 placeholder="VD: sneakers, loafers, oxford, polo, chinos..."
                 onChange={(e) => onUpdateAttribute('sub_category', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('sub_category')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               />
               <datalist id={`sub-suggestions-${index}`}>
@@ -302,17 +302,17 @@ export function DetectionItemCard({
                 ))}
               </datalist>
               {SUB_CATEGORY_SUGGESTIONS[attributes.category] && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {SUB_CATEGORY_SUGGESTIONS[attributes.category].map((s) => (
                     <button
                       key={s.value}
                       type="button"
                       disabled={!accepted}
                       onClick={() => onUpdateAttribute('sub_category', s.value)}
-                      className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${
+                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
                         attributes.sub_category?.toLowerCase() === s.value.toLowerCase()
-                          ? 'bg-[#1A1918] text-white border-[#1A1918]'
-                          : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
+                          ? 'bg-[#1A1918] text-white border-[#1A1918] font-medium'
+                          : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
                       }`}
                     >
                       {s.label}
@@ -324,8 +324,8 @@ export function DetectionItemCard({
 
             {/* Primary Color */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Màu sắc chủ đạo</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Màu sắc chủ đạo</label>
                 {renderConfidenceBadge('primary_color')}
               </div>
               <input
@@ -334,28 +334,28 @@ export function DetectionItemCard({
                 disabled={!accepted}
                 placeholder="VD: trắng, đen, navy, be..."
                 onChange={(e) => onUpdateAttribute('primary_color', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('primary_color')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               />
             </div>
 
             {/* Pattern */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Họa tiết (Pattern)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết (Pattern)</label>
                 {renderConfidenceBadge('pattern')}
               </div>
               <select
                 value={attributes.pattern || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('pattern', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('pattern')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               >
                 <option value="" disabled>
@@ -371,18 +371,18 @@ export function DetectionItemCard({
 
             {/* Material */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Chất liệu (Material)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu (Material)</label>
                 {renderConfidenceBadge('material')}
               </div>
               <select
                 value={attributes.material || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('material', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('material')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               >
                 <option value="" disabled>
@@ -398,18 +398,18 @@ export function DetectionItemCard({
 
             {/* Style */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Phong cách (Style)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách (Style)</label>
                 {renderConfidenceBadge('style')}
               </div>
               <select
                 value={attributes.style || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('style', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('style')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               >
                 <option value="" disabled>
@@ -425,18 +425,18 @@ export function DetectionItemCard({
 
             {/* Fit */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Phom dáng (Fit)</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng (Fit)</label>
                 {renderConfidenceBadge('fit')}
               </div>
               <select
                 value={attributes.fit || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('fit', e.target.value)}
-                className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   isLowConfidence('fit')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
-                    : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
                 }`}
               >
                 <option value="" disabled>
@@ -452,10 +452,10 @@ export function DetectionItemCard({
 
             {/* Formality Level */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-[#1A1918]">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
                   Mức độ trang trọng:{' '}
-                  <span className="font-bold text-[#9C5234]">
+                  <span className="font-bold text-[#9C5234] text-sm sm:text-base">
                     {attributes.formality_level ? `${attributes.formality_level}/5` : 'Chưa xác định'}
                   </span>
                 </label>
@@ -469,9 +469,9 @@ export function DetectionItemCard({
                 value={attributes.formality_level || 3}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('formality_level', parseInt(e.target.value, 10))}
-                className="w-full accent-[#9C5234] cursor-pointer"
+                className="w-full accent-[#9C5234] cursor-pointer h-2"
               />
-              <div className="flex justify-between text-[10px] font-mono text-[#736E65] mt-0.5">
+              <div className="flex justify-between text-xs font-mono text-[#5C564E] mt-1">
                 <span>Thường ngày (1)</span>
                 <span>Bán trang trọng (3)</span>
                 <span>Dạ tiệc (5)</span>
@@ -481,7 +481,7 @@ export function DetectionItemCard({
 
           {/* Season suitability */}
           <div>
-            <label className="text-xs font-semibold text-[#1A1918] block mb-1.5">Mùa thích hợp</label>
+            <label className="text-xs sm:text-sm font-semibold text-[#1A1918] block mb-2">Mùa thích hợp</label>
             <div className="flex flex-wrap gap-2">
               {SEASONS.map((s) => {
                 const isSeasonActive = Array.isArray(attributes.season) && attributes.season.includes(s.value);
@@ -491,10 +491,10 @@ export function DetectionItemCard({
                     type="button"
                     disabled={!accepted}
                     onClick={() => handleSeasonToggle(s.value)}
-                    className={`text-xs px-3.5 py-1 rounded-full border transition font-mono ${
+                    className={`text-xs sm:text-sm px-4 py-1.5 rounded-full border transition font-mono ${
                       isSeasonActive
                         ? 'bg-[#1A1918] text-[#FBFBF9] border-[#1A1918] font-medium shadow-2xs'
-                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
+                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
                     }`}
                   >
                     {s.label}

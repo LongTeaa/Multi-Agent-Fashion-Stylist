@@ -29,7 +29,7 @@ export function BoundingBoxOverlay({
           <PrivateMediaImage
             source={imageUrl}
             alt="Original Ingestion Upload"
-            className="max-h-[500px] w-auto object-contain block mx-auto select-none rounded-xl"
+            className="max-h-[500px] xl:max-h-[620px] 2xl:max-h-[700px] w-auto object-contain block mx-auto select-none rounded-xl"
             fallbackText="Không thể tải ảnh gốc"
           />
         ) : (

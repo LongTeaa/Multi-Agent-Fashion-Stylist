@@ -253,6 +253,7 @@ export default function Home() {
                   src="/images/hero-flatlay.jpg"
                   alt="High-end editorial fashion flat-lay with linen shirt, tailored pleated trousers, and loafers"
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1152px"
                   className="object-cover object-center transform transition-transform duration-700 ease-out"
                   priority
                 />
@@ -537,6 +538,7 @@ export default function Home() {
                       src="/images/model-lookbook.jpg"
                       alt="Editorial model wearing styled trench coat and pleated trousers in Paris"
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 45vw, 480px"
                       className="object-cover object-center group-hover:scale-103 transition-transform duration-700 ease-out"
                     />
 
