@@ -136,23 +136,37 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
           </p>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <input
-            type="text"
-            aria-label="Tìm kiếm trong tủ đồ"
-            data-testid="wardrobe-search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo loại, màu, phong cách..."
-            className="px-4 py-2 text-sm rounded-xl border border-[#E8E5DE] bg-white text-[#1A1918] placeholder-[#A8A29E] focus:outline-hidden focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-[#1A1918] text-[#FBFBF9] text-xs font-mono uppercase tracking-wider hover:bg-[#2D2420] transition-colors"
-          >
-            Tìm
-          </button>
-        </form>
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1 sm:flex-none">
+            <input
+              type="text"
+              aria-label="Tìm kiếm trong tủ đồ"
+              data-testid="wardrobe-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm theo loại, màu, phong cách..."
+              className="px-4 py-2 text-sm rounded-xl border border-[#E8E5DE] bg-white text-[#1A1918] placeholder-[#A8A29E] focus:outline-hidden focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234] min-w-0"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-[#1A1918] text-[#FBFBF9] text-xs font-mono uppercase tracking-wider hover:bg-[#2D2420] transition-colors shrink-0"
+            >
+              Tìm
+            </button>
+          </form>
+
+          {onSwitchToIngestion && (
+            <button
+              type="button"
+              data-testid="btn-add-garment"
+              onClick={onSwitchToIngestion}
+              className="tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#9C5234] hover:bg-[#854429] text-white text-xs font-mono uppercase tracking-wider font-semibold shadow-xs transition-colors shrink-0"
+            >
+              <span>+</span>
+              <span>Số Hóa Mới</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Category Filter Pills */}

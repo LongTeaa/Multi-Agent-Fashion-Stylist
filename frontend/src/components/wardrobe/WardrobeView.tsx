@@ -5,52 +5,32 @@ import { IngestionWorkflow } from '@/components/ingestion/IngestionWorkflow';
 import { WardrobeInventory } from '@/components/wardrobe/WardrobeInventory';
 
 export function WardrobeView() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'ingestion'>('inventory');
+  const [viewMode, setViewMode] = useState<'inventory' | 'ingestion'>('inventory');
 
   return (
-    <div className="space-y-8">
-      {/* Top Tab Switcher */}
-      <div className="flex items-center justify-between border-b border-[#E8E5DE] pb-4">
-        <div className="flex gap-2">
-          <button
-            data-testid="tab-inventory"
-            onClick={() => setActiveTab('inventory')}
-            className={`px-5 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider transition-all ${
-              activeTab === 'inventory'
-                ? 'bg-[#1A1918] text-[#FBFBF9] font-medium shadow-xs'
-                : 'bg-white border border-[#E8E5DE] text-[#5C564E] hover:border-[#D5D1C7] hover:text-[#1A1918]'
-            }`}
-          >
-            👔 Tủ Đồ Của Tôi
-          </button>
-          <button
-            data-testid="tab-ingestion"
-            onClick={() => setActiveTab('ingestion')}
-            className={`px-5 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider transition-all ${
-              activeTab === 'ingestion'
-                ? 'bg-[#9C5234] text-white font-medium shadow-xs'
-                : 'bg-white border border-[#E8E5DE] text-[#5C564E] hover:border-[#D5D1C7] hover:text-[#9C5234]'
-            }`}
-          >
-            + Số Hóa Trang Phục Mới
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'inventory' ? (
-        <WardrobeInventory onSwitchToIngestion={() => setActiveTab('ingestion')} />
+    <div className="space-y-6">
+      {viewMode === 'inventory' ? (
+        <WardrobeInventory onSwitchToIngestion={() => setViewMode('ingestion')} />
       ) : (
-        <div className="space-y-4">
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className="text-xs font-mono text-[#736E65] hover:text-[#1A1918] flex items-center gap-1 mb-2"
-          >
-            ← Quay lại tủ đồ
-          </button>
-          <IngestionWorkflow />
+        <div className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E8E5DE]">
+            <button
+              type="button"
+              data-testid="btn-back-to-inventory"
+              onClick={() => setViewMode('inventory')}
+              className="tactile-btn inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8E5DE] bg-white text-xs font-mono uppercase tracking-wider text-[#1A1918] hover:bg-[#F5F4F0] hover:border-[#D5D1C7] transition-all shadow-2xs"
+            >
+              <span aria-hidden="true">←</span>
+              <span>Quay lại tủ đồ</span>
+            </button>
+            <span className="text-xs font-mono uppercase tracking-wider text-[#736E65]">
+              Số Hóa & Nhận Diện AI
+            </span>
+          </div>
+          <IngestionWorkflow onFinish={() => setViewMode('inventory')} />
         </div>
       )}
     </div>
   );
 }
+

@@ -117,7 +117,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('active_ingestion_batch_id');
           }
-          setStep('idle');
+          setStep('upload');
           return;
         } else if (attempts >= maxAttempts) {
           if (typeof window !== 'undefined') {

@@ -149,32 +149,38 @@ export default function Home() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-6">
+        <nav aria-label="Điều hướng chính" className="flex items-center gap-1 sm:gap-4 md:gap-5">
+          <Link
+            href="/wardrobe"
+            className="text-xs sm:text-sm font-medium text-[#5C564E] hover:text-[#1A1918] transition-colors px-2 py-1"
+          >
+            Tủ Đồ
+          </Link>
           <Link
             href="/chat"
             className="text-xs sm:text-sm font-medium text-[#5C564E] hover:text-[#1A1918] transition-colors px-2 py-1"
           >
-            Tư Vấn Stylist
+            Tư Vấn Phối Đồ
           </Link>
           <Link
             href="/saved"
             className="text-xs sm:text-sm font-medium text-[#5C564E] hover:text-[#1A1918] transition-colors px-2 py-1"
           >
-            Đã Lưu
+            Bộ Đồ Đã Lưu
           </Link>
           <Link
             href="/profile"
             className="hidden md:inline-block text-xs sm:text-sm font-medium text-[#5C564E] hover:text-[#1A1918] transition-colors px-2 py-1"
           >
-            Gu Sở Thích
+            Gu Thời Trang
           </Link>
 
           {/* Button-in-Button Primary CTA */}
           <Link
-            href="/wardrobe"
+            href="/chat"
             className="tactile-btn group inline-flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 rounded-full bg-[#1A1918] text-[#FBFBF9] hover:bg-[#2D2420] text-xs font-mono uppercase tracking-wider shadow-xs"
           >
-            <span>Tủ Đồ</span>
+            <span>Khám Phá</span>
             <span className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 group-hover:bg-white/25 transition-all">
               →
             </span>

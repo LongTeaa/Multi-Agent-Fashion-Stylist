@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
+import { AppHeader } from '@/components/navigation/AppHeader';
 import { useStylistChat } from '@/hooks/useStylistChat';
 import { ChatComposer, type ChatComposerRef } from '@/components/chat/ChatComposer';
 import { ClarificationBanner } from '@/components/chat/ClarificationBanner';
@@ -71,51 +71,7 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#1A1918]">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-40 w-full bg-[#FBFBF9]/90 backdrop-blur-md border-b border-[#E8E5DE]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-2 font-serif text-lg tracking-tight font-medium text-[#1A1918] hover:text-[#9C5234] transition-colors"
-            >
-              <span className="w-8 h-8 rounded-full bg-[#1A1918] text-[#FBFBF9] flex items-center justify-center text-xs font-serif shadow-xs">
-                FS
-              </span>
-              <span>Fashion Stylist</span>
-            </Link>
-            <span className="text-[#D5D1C7]">/</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#9C5234]" />
-            <span className="text-xs font-mono tracking-wider uppercase text-[#736E65]">
-              Tư Vấn Stylist
-            </span>
-          </div>
-
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <Link
-              href="/saved"
-              className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
-            >
-              Đã Lưu
-            </Link>
-            <Link
-              href="/profile"
-              className="hidden sm:inline-block px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#5C564E] hover:text-[#1A1918] hover:bg-[#F5F4F0] transition-colors"
-            >
-              Gu Thời Trang
-            </Link>
-            <Link
-              href="/wardrobe"
-              className="tactile-btn group inline-flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full bg-[#1A1918] text-[#FBFBF9] hover:bg-[#2D2420] text-xs font-mono uppercase tracking-wider shadow-xs"
-            >
-              <span>Tủ Đồ</span>
-              <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center group-hover:translate-x-0.5 transition-all text-xs">
-                →
-              </span>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-8">
