@@ -90,7 +90,13 @@ export function DetectionItemCard({
 
   const renderConfidenceBadge = (field: string) => {
     const conf = confidences[field];
-    if (typeof conf !== 'number') return null;
+    if (typeof conf !== 'number') {
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#FAF8F5] text-[#736E65] border border-[#E8E5DE]">
+          Chưa xác định
+        </span>
+      );
+    }
     const isLow = conf < 0.70;
     const percentage = Math.round(conf * 100);
 
@@ -108,7 +114,7 @@ export function DetectionItemCard({
             <span className="font-bold">({percentage}%)</span>
           </>
         ) : (
-          <span>✓ {percentage}%</span>
+          <span>✓ {percentage}% (AI nhận diện)</span>
         )}
       </span>
     );
@@ -140,7 +146,8 @@ export function DetectionItemCard({
           </span>
           <div>
             <h4 className="text-sm font-semibold text-[#1A1918] capitalize">
-              {attributes.category || 'Món đồ'} • {attributes.sub_category || 'Chưa phân loại'}
+              {CATEGORIES.find((c) => c.value === attributes.category)?.label.split(' ')[0] || attributes.category || 'Món đồ'} •{' '}
+              {attributes.sub_category || 'Chưa phân loại'}
             </h4>
             <p className="text-xs font-mono text-[#736E65]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
           </div>
@@ -190,7 +197,9 @@ export function DetectionItemCard({
             {/* Category */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Danh mục chính</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  Danh mục chính <span className="text-red-500">*</span>
+                </label>
                 {renderConfidenceBadge('category')}
               </div>
               <select
@@ -198,22 +207,27 @@ export function DetectionItemCard({
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('category', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
-                  isLowConfidence('category')
+                  !attributes.category || attributes.category === 'unknown'
+                    ? 'border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-400'
+                    : isLowConfidence('category')
                     ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400'
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
-                {!CATEGORIES.some((cat) => cat.value === attributes.category) && (
-                  <option value={attributes.category || ''} disabled>
-                    -- Chọn danh mục --
-                  </option>
-                )}
+                <option value="" disabled>
+                  -- Chọn danh mục (Bắt buộc) --
+                </option>
                 {CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
                   </option>
                 ))}
               </select>
+              {(!attributes.category || attributes.category === 'unknown') && accepted && (
+                <p className="text-[11px] text-red-600 mt-1 font-medium">
+                  Vui lòng chọn danh mục chính để lưu món đồ này.
+                </p>
+              )}
             </div>
 
             {/* Sub-Category */}
@@ -263,7 +277,7 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('pattern')}
               </div>
               <select
-                value={attributes.pattern || 'solid'}
+                value={attributes.pattern || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('pattern', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
@@ -272,6 +286,9 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
+                <option value="" disabled>
+                  -- Chưa xác định / Vui lòng chọn --
+                </option>
                 {PATTERNS.map((pat) => (
                   <option key={pat.value} value={pat.value}>
                     {pat.label}
@@ -287,7 +304,7 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('material')}
               </div>
               <select
-                value={attributes.material || 'cotton'}
+                value={attributes.material || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('material', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
@@ -296,6 +313,9 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
+                <option value="" disabled>
+                  -- Chưa xác định / Vui lòng chọn --
+                </option>
                 {MATERIALS.map((mat) => (
                   <option key={mat.value} value={mat.value}>
                     {mat.label}
@@ -311,7 +331,7 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('style')}
               </div>
               <select
-                value={attributes.style || 'casual'}
+                value={attributes.style || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('style', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
@@ -320,6 +340,9 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
+                <option value="" disabled>
+                  -- Chưa xác định / Vui lòng chọn --
+                </option>
                 {STYLES.map((st) => (
                   <option key={st.value} value={st.value}>
                     {st.label}
@@ -335,7 +358,7 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('fit')}
               </div>
               <select
-                value={attributes.fit || 'regular'}
+                value={attributes.fit || ''}
                 disabled={!accepted}
                 onChange={(e) => onUpdateAttribute('fit', e.target.value)}
                 className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none transition ${
@@ -344,6 +367,9 @@ export function DetectionItemCard({
                     : 'border-slate-300 bg-white focus:ring-2 focus:ring-indigo-500'
                 }`}
               >
+                <option value="" disabled>
+                  -- Chưa xác định / Vui lòng chọn --
+                </option>
                 {FITS.map((f) => (
                   <option key={f.value} value={f.value}>
                     {f.label}
@@ -356,7 +382,10 @@ export function DetectionItemCard({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-[#1A1918]">
-                  Mức độ trang trọng: <span className="font-bold text-[#9C5234]">{attributes.formality_level || 3}/5</span>
+                  Mức độ trang trọng:{' '}
+                  <span className="font-bold text-[#9C5234]">
+                    {attributes.formality_level ? `${attributes.formality_level}/5` : 'Chưa xác định'}
+                  </span>
                 </label>
                 {renderConfidenceBadge('formality_level')}
               </div>
@@ -371,9 +400,9 @@ export function DetectionItemCard({
                 className="w-full accent-[#9C5234] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-mono text-[#736E65] mt-0.5">
-                <span>Thường ngày</span>
-                <span>Bán trang trọng</span>
-                <span>Dạ tiệc</span>
+                <span>Thường ngày (1)</span>
+                <span>Bán trang trọng (3)</span>
+                <span>Dạ tiệc (5)</span>
               </div>
             </div>
           </div>

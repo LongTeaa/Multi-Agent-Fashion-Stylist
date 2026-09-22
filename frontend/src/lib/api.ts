@@ -288,7 +288,12 @@ export async function deleteIngestionBatch(batchId: string): Promise<{ batch_id:
  */
 export function getMediaUrl(relativeOrAssetUrl: string): string {
   if (!relativeOrAssetUrl) return '';
-  if (relativeOrAssetUrl.startsWith('http://') || relativeOrAssetUrl.startsWith('https://')) {
+  if (
+    relativeOrAssetUrl.startsWith('http://') ||
+    relativeOrAssetUrl.startsWith('https://') ||
+    relativeOrAssetUrl.startsWith('blob:') ||
+    relativeOrAssetUrl.startsWith('data:')
+  ) {
     return relativeOrAssetUrl;
   }
   const cleanPath = relativeOrAssetUrl.startsWith('/') ? relativeOrAssetUrl : `/${relativeOrAssetUrl}`;

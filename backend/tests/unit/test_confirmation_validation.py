@@ -145,3 +145,140 @@ class TestConfirmationSchemaValidation:
         }
         req = IngestionConfirmRequest.model_validate(payload)
         assert req.confirmations[0].custom_attributes.category == WardrobeCategory.FOOTWEAR
+
+
+class TestConfirmIngestionBatchServiceValidation:
+    """Service-level validation tests for confirm_ingestion_batch."""
+
+    def test_confirm_batch_rejects_missing_or_unknown_category(
+        self,
+        migrated_database: tuple[object, object],
+    ) -> None:
+        from datetime import timedelta
+        from uuid import uuid4
+        from sqlmodel import Session
+        from app.models.entities import (
+            IngestionBatch,
+            IngestionDetection,
+            IngestionStatus,
+            DetectionStatus,
+            User,
+            utc_now,
+        )
+        from app.services.ingestion_service import confirm_ingestion_batch
+        from app.schemas.common import ValidationError as AppValidationError
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        batch_id = str(uuid4())
+        det_id = str(uuid4())
+
+        with Session(engine) as session:
+            user = User(id=user_id, email=f"{user_id}@example.com", name="Test User")
+            session.add(user)
+            session.flush()
+
+            batch = IngestionBatch(
+                id=batch_id,
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                expires_at=utc_now() + timedelta(hours=24),
+            )
+            session.add(batch)
+            session.flush()
+
+            detection = IngestionDetection(
+                id=det_id,
+                user_id=user_id,
+                ingestion_batch_id=batch_id,
+                bounding_box=(0.0, 0.0, 1.0, 1.0),
+                proposed_attributes={"category": "unknown"},
+                field_confidence={"category": 0.3},
+                status=DetectionStatus.PROPOSED,
+            )
+            session.add(detection)
+            session.commit()
+
+            conf = DetectionConfirmationItem(
+                detection_id=det_id,
+                accepted=True,
+                custom_attributes=None,
+            )
+
+            with pytest.raises(AppValidationError) as exc_info:
+                confirm_ingestion_batch(
+                    session=session,
+                    batch_id=batch_id,
+                    user_id=user_id,
+                    confirmations=[conf],
+                )
+            assert "Danh mục trang phục là bắt buộc" in exc_info.value.message
+
+    def test_confirm_batch_sub_category_defaults_to_category_instead_of_clothing(
+        self,
+        migrated_database: tuple[object, object],
+    ) -> None:
+        from datetime import timedelta
+        from uuid import uuid4
+        from sqlmodel import Session
+        from app.models.entities import (
+            IngestionBatch,
+            IngestionDetection,
+            IngestionStatus,
+            DetectionStatus,
+            User,
+            WardrobeCategory,
+            WardrobeItem,
+            utc_now,
+        )
+        from app.services.ingestion_service import confirm_ingestion_batch
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+        batch_id = str(uuid4())
+        det_id = str(uuid4())
+
+        with Session(engine) as session:
+            user = User(id=user_id, email=f"{user_id}@example.com", name="Test User")
+            session.add(user)
+            session.flush()
+
+            batch = IngestionBatch(
+                id=batch_id,
+                user_id=user_id,
+                status=IngestionStatus.NEEDS_REVIEW,
+                expires_at=utc_now() + timedelta(hours=24),
+            )
+            session.add(batch)
+            session.flush()
+
+            detection = IngestionDetection(
+                id=det_id,
+                user_id=user_id,
+                ingestion_batch_id=batch_id,
+                bounding_box=(0.0, 0.0, 1.0, 1.0),
+                proposed_attributes={"category": "bottom", "sub_category": "clothing"},
+                field_confidence={"category": 0.9},
+                status=DetectionStatus.PROPOSED,
+            )
+            session.add(detection)
+            session.commit()
+
+            conf = DetectionConfirmationItem(
+                detection_id=det_id,
+                accepted=True,
+                custom_attributes=None,
+            )
+
+            item_ids = confirm_ingestion_batch(
+                session=session,
+                batch_id=batch_id,
+                user_id=user_id,
+                confirmations=[conf],
+            )
+            assert len(item_ids) == 1
+            item = session.get(WardrobeItem, item_ids[0])
+            assert item is not None
+            assert item.category == WardrobeCategory.BOTTOM
+            # Should default to category 'bottom', NOT 'clothing'
+            assert item.sub_category == "bottom"

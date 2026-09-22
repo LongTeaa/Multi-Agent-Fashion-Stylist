@@ -506,6 +506,14 @@ def get_batch_review(
     if batch.user_id != user_id:
         raise ForbiddenAssetError()
 
+    original_media = session.exec(
+        select(MediaAsset).where(
+            MediaAsset.ingestion_batch_id == batch_id,
+            MediaAsset.kind == MediaKind.ORIGINAL,
+        )
+    ).first()
+    original_media_url = f"/api/v1/media/{original_media.id}" if original_media else None
+
     detections = session.exec(
         select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
     ).all()
@@ -529,6 +537,7 @@ def get_batch_review(
         status=batch.status.value,
         detections=detection_items,
         quality_warnings=batch.quality_warnings,
+        original_media_url=original_media_url,
     )
 
 
@@ -673,7 +682,12 @@ def confirm_ingestion_batch(
                 if len(parts) >= 4 and parts[2] == "items":
                     item_id = parts[3]
 
-            category_raw = attrs.get("category", "top")
+            category_raw = attrs.get("category")
+            if not category_raw or str(category_raw).strip() in ("", "unknown", "none"):
+                raise ValidationError(
+                    message="Danh mục trang phục là bắt buộc và phải được chọn hợp lệ.",
+                    details={"category": category_raw},
+                )
             if isinstance(category_raw, WardrobeCategory):
                 category_enum = category_raw
             else:
@@ -681,9 +695,15 @@ def confirm_ingestion_batch(
                     category_enum = WardrobeCategory(str(category_raw))
                 except (ValueError, TypeError):
                     raise ValidationError(
-                        message=f"Danh mục {category_raw} không hợp lệ.",
+                        message=f"Danh mục '{category_raw}' không hợp lệ. Vui lòng chọn một danh mục hợp lệ.",
                         details={"category": category_raw},
                     )
+
+            sub_cat_raw = attrs.get("sub_category")
+            if not sub_cat_raw or str(sub_cat_raw).strip() in ("", "clothing", "unknown", "none"):
+                sub_category = category_enum.value
+            else:
+                sub_category = str(sub_cat_raw).strip()
 
             formality_raw = attrs.get("formality_level", 3)
             try:
@@ -702,13 +722,13 @@ def confirm_ingestion_batch(
                 ingestion_batch_id=batch_id,
                 ingestion_detection_id=detection.id,
                 category=category_enum,
-                sub_category=str(attrs.get("sub_category", "clothing")),
-                primary_color=str(attrs.get("primary_color", "unknown")),
+                sub_category=sub_category,
+                primary_color=str(attrs.get("primary_color") or "unknown"),
                 secondary_color=attrs.get("secondary_color"),
-                pattern=str(attrs.get("pattern", "unknown")),
-                material=str(attrs.get("material", "unknown")),
-                style=str(attrs.get("style", "casual")),
-                fit=str(attrs.get("fit", "regular")),
+                pattern=str(attrs.get("pattern") or "unknown"),
+                material=str(attrs.get("material") or "unknown"),
+                style=str(attrs.get("style") or "casual"),
+                fit=str(attrs.get("fit") or "regular"),
                 formality_level=formality_level,
                 season=list(attrs.get("season", [])),
                 weather_suitability=list(attrs.get("weather_suitability", [])),

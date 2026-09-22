@@ -23,11 +23,21 @@ interface IngestionWorkflowProps {
 }
 
 export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
-  const [step, setStep] = useState<WorkflowStep>('upload');
+  const [step, setStep] = useState<WorkflowStep>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('active_ingestion_batch_id')) {
+      return 'processing';
+    }
+    return 'upload';
+  });
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const [batchId, setBatchId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('active_ingestion_batch_id');
+    }
+    return null;
+  });
   const [batchReview, setBatchReview] = useState<IngestionBatchReviewResponse | null>(null);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | undefined>(undefined);
   const [selectedDetectionId, setSelectedDetectionId] = useState<string | null>(null);
@@ -95,12 +105,24 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           setStep('review');
           return;
         } else if (review.status === 'failed') {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage(
             review.quality_warnings.join('; ') || 'AI không thể phân tích ảnh này. Vui lòng thử lại.'
           );
           setStep('failed');
           return;
+        } else if (review.status === 'confirmed') {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
+          setStep('idle');
+          return;
         } else if (attempts >= maxAttempts) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage('Quá trình xử lý ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.');
           setStep('failed');
           return;
@@ -108,6 +130,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       } catch (err: unknown) {
         if (isPollingCancelledRef.current) return;
         if (attempts >= 5) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage((err as Error).message || 'Không thể lấy thông tin kết quả phân tích.');
           setStep('failed');
           return;
@@ -123,6 +148,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     poll();
   }, []);
 
+  // On initial mount, resume polling if restoring an in-flight batch from session storage
+  useEffect(() => {
+    if (batchId && step === 'processing') {
+      startPollingBatch(batchId);
+    }
+  }, [batchId, step, startPollingBatch]);
+
   const handleUpload = async (files: File[], declaredKind?: string) => {
     setIsUploading(true);
     setErrorMessage(null);
@@ -134,6 +166,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       );
 
       const res = await uploadIngestionImages(files, declaredKind);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
+      }
       setBatchId(res.batch_id);
       setStep('processing');
       startPollingBatch(res.batch_id);
@@ -168,6 +203,21 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const handleConfirmBatch = async () => {
     if (!batchId || !batchReview || isConfirming || isCancelling) return;
 
+    // Validate that all accepted detections have a valid category selected
+    const hasUnsetCategory = batchReview.detections.some((det) => {
+      const isAccepted = !!acceptedDetections[det.detection_id];
+      if (!isAccepted) return false;
+      const attrs = editedAttributes[det.detection_id] || det.attributes;
+      return !attrs?.category || attrs.category === 'unknown';
+    });
+
+    if (hasUnsetCategory) {
+      setErrorMessage(
+        'Vui lòng chọn danh mục chính hợp lệ cho tất cả các món đồ được chọn lưu trước khi xác nhận.'
+      );
+      return;
+    }
+
     setIsConfirming(true);
     setErrorMessage(null);
 
@@ -184,6 +234,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       });
 
       setConfirmedItemIds(res.wardrobe_item_ids);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('active_ingestion_batch_id');
+      }
       setStep('confirmed');
       if (onFinish) {
         onFinish(res.wardrobe_item_ids);
@@ -210,6 +263,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setErrorMessage(null);
     try {
       await deleteIngestionBatch(batchId);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('active_ingestion_batch_id');
+      }
       setIsCancelling(false);
       handleReset();
     } catch (err: unknown) {
@@ -233,6 +289,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       pollingTimerRef.current = null;
     }
     idempotencyTokenRef.current = crypto.randomUUID();
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('active_ingestion_batch_id');
+    }
     if (uploadedPreviewUrl) {
       URL.revokeObjectURL(uploadedPreviewUrl);
     }
@@ -420,7 +479,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                   <span className="text-[10px] text-[#9C5234] font-normal">Tự động gắn khung</span>
                 </h3>
                 <BoundingBoxOverlay
-                  imageUrl={uploadedPreviewUrl}
+                  imageUrl={batchReview.original_media_url || uploadedPreviewUrl}
                   detections={batchReview.detections}
                   selectedDetectionId={selectedDetectionId}
                   onSelectDetection={setSelectedDetectionId}

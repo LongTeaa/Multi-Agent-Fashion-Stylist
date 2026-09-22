@@ -43,6 +43,7 @@ class IngestionBatchReviewResponseData(BaseModel):
     status: str
     detections: list[DetectionReviewItem] = Field(default_factory=list)
     quality_warnings: list[str] = Field(default_factory=list)
+    original_media_url: str | None = None
 
 
 class CustomAttributesUpdate(BaseModel):

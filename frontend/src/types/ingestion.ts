@@ -41,6 +41,7 @@ export interface IngestionBatchReviewResponse {
   status: IngestionStatus | string;
   quality_warnings: string[];
   detections: DetectionReviewItem[];
+  original_media_url?: string | null;
 }
 
 export interface DetectionConfirmationItem {
