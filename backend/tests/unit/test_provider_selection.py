@@ -473,3 +473,264 @@ class TestGeminiProviderAdapter:
 
         with pytest.raises(ProviderError):
             vision.extract_attributes(create_test_image_bytes("PNG"))
+
+    def test_gemini_detector_retries_on_503_and_succeeds(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return httpx.Response(503, text="Service Unavailable")
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "input_kind": "single_item",
+                                                "boxes": [{"box": [0.1, 0.1, 0.8, 0.8], "label": "top", "confidence": 0.95}],
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            initial_backoff_seconds=0.001,
+        )
+
+        res = detector.detect(create_test_image_bytes())
+        assert calls == 2
+        assert res.input_kind == InputKind.SINGLE_ITEM
+        assert len(res.boxes) == 1
+
+    def test_gemini_detector_retries_on_429_and_succeeds(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return httpx.Response(429, text="Rate limit exceeded")
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "input_kind": "single_item",
+                                                "boxes": [{"box": [0.2, 0.2, 0.7, 0.7], "label": "bottom", "confidence": 0.9}],
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            initial_backoff_seconds=0.001,
+        )
+
+        res = detector.detect(create_test_image_bytes())
+        assert calls == 2
+        assert len(res.boxes) == 1
+
+    def test_gemini_detector_retries_exhausted_raises_provider_error(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            return httpx.Response(503, text="Service Overloaded")
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            max_retries=2,
+            initial_backoff_seconds=0.001,
+        )
+
+        with pytest.raises(ProviderError) as exc_info:
+            detector.detect(create_test_image_bytes())
+        assert calls == 3  # Initial + 2 retries
+        assert "503" in str(exc_info.value.message)
+
+    def test_gemini_detector_client_404_fails_fast_without_retry(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            return httpx.Response(404, text="Model not found")
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            max_retries=2,
+            initial_backoff_seconds=0.001,
+        )
+
+        with pytest.raises(ProviderError) as exc_info:
+            detector.detect(create_test_image_bytes())
+        assert calls == 1  # No retries on 404
+        assert "404" in str(exc_info.value.message)
+
+    def test_gemini_vision_provider_retries_on_503_and_succeeds(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return httpx.Response(503, text="Service Unavailable")
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "attributes": {"category": "top", "primary_color": "white"},
+                                                "field_confidence": {"category": 0.95, "primary_color": 0.90},
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        vision = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            initial_backoff_seconds=0.001,
+        )
+
+        res = vision.extract_attributes(create_test_image_bytes("PNG"))
+        assert calls == 2
+        assert res.attributes["category"] == "top"
+
+    def test_gemini_vision_provider_retries_on_429_and_succeeds(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return httpx.Response(429, text="Rate limit exceeded")
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "attributes": {"category": "bottom", "primary_color": "blue"},
+                                                "field_confidence": {"category": 0.92, "primary_color": 0.88},
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        vision = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            initial_backoff_seconds=0.001,
+        )
+
+        res = vision.extract_attributes(create_test_image_bytes("PNG"))
+        assert calls == 2
+        assert res.attributes["category"] == "bottom"
+
+    def test_gemini_vision_provider_retries_exhausted_raises_provider_error(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            return httpx.Response(429, text="Resource Exhausted")
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        vision = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            max_retries=2,
+            initial_backoff_seconds=0.001,
+        )
+
+        with pytest.raises(ProviderError) as exc_info:
+            vision.extract_attributes(create_test_image_bytes("PNG"))
+        assert calls == 3
+        assert "429" in str(exc_info.value.message)
+
+    def test_gemini_vision_provider_400_fails_fast_without_retry(self) -> None:
+        calls = 0
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            nonlocal calls
+            calls += 1
+            return httpx.Response(400, text="Bad Request")
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        vision = GeminiVisionProvider(
+            api_key=SecretStr("mock-key"),
+            model="gemini-1.5-flash",
+            client=client,
+            max_retries=2,
+            initial_backoff_seconds=0.001,
+        )
+
+        with pytest.raises(ProviderError) as exc_info:
+            vision.extract_attributes(create_test_image_bytes("PNG"))
+        assert calls == 1
+        assert "400" in str(exc_info.value.message)

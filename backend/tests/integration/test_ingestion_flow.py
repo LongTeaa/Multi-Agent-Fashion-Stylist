@@ -25,6 +25,7 @@ from app.models.entities import (
     IngestionBatch,
     IngestionDetection,
     IngestionStatus,
+    InputKind,
     ItemMedia,
     ItemMediaRole,
     MediaAsset,
@@ -1430,6 +1431,7 @@ class TestConfirmationStateAndSecurityIntegrity:
             assert len(data["detections"]) == 1
             det = data["detections"][0]
             assert det["bounding_box"] == [0.0, 0.0, 1.0, 1.0]
+            assert any("Không thể tự động phân tách riêng lẻ" in w for w in data["quality_warnings"])
 
             # User can confirm the provisional detection
             confirm_res = client.post(
@@ -1456,6 +1458,48 @@ class TestConfirmationStateAndSecurityIntegrity:
             )
             assert confirm_res.status_code == 200
             assert len(confirm_res.json()["data"]["wardrobe_item_ids"]) == 1
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_near_full_frame_detection_adds_warning(
+        self,
+        migrated_database: tuple[object, object],
+        test_storage: LocalObjectStorage,
+    ) -> None:
+        class FullFrameDetector:
+            def detect(self, image_bytes: bytes) -> DetectionResult:
+                return DetectionResult(
+                    input_kind=InputKind.SINGLE_ITEM,
+                    boxes=[BoundingBoxDetection(box=(0.01, 0.01, 0.99, 0.99), label="top", confidence=0.8)],
+                    quality_warnings=[],
+                )
+
+        _, engine = migrated_database
+        user_id = str(uuid4())
+
+        app.dependency_overrides[get_db_session] = lambda: Session(engine)
+        app.dependency_overrides[get_object_storage] = lambda: test_storage
+        app.dependency_overrides[get_detector] = lambda: FullFrameDetector()
+
+        try:
+            client = TestClient(app)
+            raw_img = create_test_image_bytes("JPEG", (200, 200))
+
+            upload_res = client.post(
+                "/api/v1/ingestions",
+                headers={"X-User-Id": user_id},
+                files=[("images[]", ("fullframe.jpg", raw_img, "image/jpeg"))],
+            )
+            assert upload_res.status_code == 202
+            batch_id = upload_res.json()["data"]["batch_id"]
+
+            review_res = client.get(
+                f"/api/v1/ingestions/{batch_id}",
+                headers={"X-User-Id": user_id},
+            )
+            assert review_res.status_code == 200
+            data = review_res.json()["data"]
+            assert any("bao phủ gần như toàn bộ khung hình" in w for w in data["quality_warnings"])
         finally:
             app.dependency_overrides.clear()
 

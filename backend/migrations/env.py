@@ -6,13 +6,14 @@ from sqlmodel import SQLModel
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
+from app.core.database import resolve_sqlite_url
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-database_url = get_settings().database_url.replace("%", "%%")
+database_url = resolve_sqlite_url(get_settings().database_url).replace("%", "%%")
 config.set_main_option("sqlalchemy.url", database_url)
 target_metadata = SQLModel.metadata
 

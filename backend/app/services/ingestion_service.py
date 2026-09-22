@@ -275,10 +275,20 @@ def process_ingestion_batch(
 
             if not detected_boxes:
                 # 4.2 Fallback: Create provisional full-image detection box so manual review can proceed and confirm
-                add_warning("Không phát hiện được vùng trang phục riêng lẻ. Đã tạo vùng chọn toàn bộ ảnh để bạn kiểm tra và xác nhận thủ công.")
+                add_warning(
+                    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). "
+                    "Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+                )
                 detected_boxes = [
                     BoundingBoxDetection(box=(0.0, 0.0, 1.0, 1.0), label="clothing", confidence=0.5)
                 ]
+            elif len(detected_boxes) == 1:
+                b = detected_boxes[0].box
+                if (b[2] - b[0]) * (b[3] - b[1]) >= 0.95:
+                    add_warning(
+                        "Vùng chọn hiện tại bao phủ gần như toàn bộ khung hình. "
+                        "Nếu ảnh chụp nhiều lớp đồ hoặc nền phức tạp, bạn có thể chỉnh sửa lại vùng chọn trước khi lưu."
+                    )
 
             total_boxes_count += len(detected_boxes)
 
