@@ -49,18 +49,18 @@ class GeminiContextProvider:
             "generationConfig": {"response_mime_type": "application/json"},
         }
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        params = {"key": self.api_key.get_secret_value()}
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         try:
             if self._client is not None:
                 response = self._client.post(
                     url,
-                    params=params,
+                    headers=headers,
                     json=payload,
                     timeout=self.timeout_seconds,
                 )
             else:
                 with httpx.Client(timeout=self.timeout_seconds) as client:
-                    response = client.post(url, params=params, json=payload)
+                    response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
             return json.loads(_extract_json_from_gemini_response(response.json()))
         except httpx.TimeoutException as exc:

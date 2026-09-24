@@ -23,11 +23,21 @@ interface IngestionWorkflowProps {
 }
 
 export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
-  const [step, setStep] = useState<WorkflowStep>('upload');
+  const [step, setStep] = useState<WorkflowStep>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('active_ingestion_batch_id')) {
+      return 'processing';
+    }
+    return 'upload';
+  });
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const [batchId, setBatchId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('active_ingestion_batch_id');
+    }
+    return null;
+  });
   const [batchReview, setBatchReview] = useState<IngestionBatchReviewResponse | null>(null);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | undefined>(undefined);
   const [selectedDetectionId, setSelectedDetectionId] = useState<string | null>(null);
@@ -95,12 +105,24 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           setStep('review');
           return;
         } else if (review.status === 'failed') {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage(
             review.quality_warnings.join('; ') || 'AI không thể phân tích ảnh này. Vui lòng thử lại.'
           );
           setStep('failed');
           return;
+        } else if (review.status === 'confirmed') {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
+          setStep('upload');
+          return;
         } else if (attempts >= maxAttempts) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage('Quá trình xử lý ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.');
           setStep('failed');
           return;
@@ -108,6 +130,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       } catch (err: unknown) {
         if (isPollingCancelledRef.current) return;
         if (attempts >= 5) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_ingestion_batch_id');
+          }
           setErrorMessage((err as Error).message || 'Không thể lấy thông tin kết quả phân tích.');
           setStep('failed');
           return;
@@ -123,6 +148,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     poll();
   }, []);
 
+  // On initial mount, resume polling if restoring an in-flight batch from session storage
+  useEffect(() => {
+    if (batchId && step === 'processing') {
+      startPollingBatch(batchId);
+    }
+  }, [batchId, step, startPollingBatch]);
+
   const handleUpload = async (files: File[], declaredKind?: string) => {
     setIsUploading(true);
     setErrorMessage(null);
@@ -134,6 +166,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       );
 
       const res = await uploadIngestionImages(files, declaredKind);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
+      }
       setBatchId(res.batch_id);
       setStep('processing');
       startPollingBatch(res.batch_id);
@@ -168,6 +203,21 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const handleConfirmBatch = async () => {
     if (!batchId || !batchReview || isConfirming || isCancelling) return;
 
+    // Validate that all accepted detections have a valid category selected
+    const hasUnsetCategory = batchReview.detections.some((det) => {
+      const isAccepted = !!acceptedDetections[det.detection_id];
+      if (!isAccepted) return false;
+      const attrs = editedAttributes[det.detection_id] || det.attributes;
+      return !attrs?.category || attrs.category === 'unknown';
+    });
+
+    if (hasUnsetCategory) {
+      setErrorMessage(
+        'Vui lòng chọn danh mục chính hợp lệ cho tất cả các món đồ được chọn lưu trước khi xác nhận.'
+      );
+      return;
+    }
+
     setIsConfirming(true);
     setErrorMessage(null);
 
@@ -184,6 +234,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       });
 
       setConfirmedItemIds(res.wardrobe_item_ids);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('active_ingestion_batch_id');
+      }
       setStep('confirmed');
       if (onFinish) {
         onFinish(res.wardrobe_item_ids);
@@ -210,6 +263,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setErrorMessage(null);
     try {
       await deleteIngestionBatch(batchId);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('active_ingestion_batch_id');
+      }
       setIsCancelling(false);
       handleReset();
     } catch (err: unknown) {
@@ -233,6 +289,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       pollingTimerRef.current = null;
     }
     idempotencyTokenRef.current = crypto.randomUUID();
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('active_ingestion_batch_id');
+    }
     if (uploadedPreviewUrl) {
       URL.revokeObjectURL(uploadedPreviewUrl);
     }
@@ -250,7 +309,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const acceptedCount = Object.values(acceptedDetections).filter(Boolean).length;
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-0 sm:px-4 py-8">
+    <div className="w-full max-w-7xl 2xl:max-w-[1480px] mx-auto px-2 sm:px-4 lg:px-6 py-8">
       {/* Step Tracker */}
       <div className="mb-10">
         <div className="flex items-center justify-center max-w-2xl mx-auto px-1">
@@ -395,13 +454,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
           {/* Quality Warnings Banner */}
           {batchReview.quality_warnings.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm shadow-2xs flex items-start gap-3">
-              <svg className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-sm shadow-2xs flex items-start gap-3.5">
+              <svg className="w-5 h-5 flex-shrink-0 text-amber-700 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="font-semibold text-xs font-mono uppercase tracking-wider text-amber-800">Lưu ý chất lượng ảnh:</p>
-                <ul className="list-disc list-inside mt-1 text-xs space-y-0.5 text-amber-800">
+                <p className="font-semibold text-xs sm:text-sm font-mono uppercase tracking-wider text-amber-900">Lưu ý chất lượng ảnh:</p>
+                <ul className="list-disc list-inside mt-1.5 text-xs sm:text-sm space-y-1 text-amber-900 font-medium leading-relaxed">
                   {batchReview.quality_warnings.map((w, i) => (
                     <li key={i}>{w}</li>
                   ))}
@@ -411,16 +470,16 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           )}
 
           {/* 2-Column Inspector Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
             {/* Left: Original Photo with Bounding Boxes */}
-            <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24">
               <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-2xs border border-[#E8E5DE]">
-                <h3 className="text-xs font-mono uppercase tracking-widest text-[#1A1918] font-semibold mb-3 flex items-center justify-between">
+                <h3 className="text-xs sm:text-sm font-mono uppercase tracking-widest text-[#1A1918] font-semibold mb-3.5 flex items-center justify-between">
                   <span>Ảnh Gốc & Vị Trí Nhận Diện</span>
-                  <span className="text-[10px] text-[#9C5234] font-normal">Tự động gắn khung</span>
+                  <span className="text-xs text-[#9C5234] font-normal">Tự động gắn khung</span>
                 </h3>
                 <BoundingBoxOverlay
-                  imageUrl={uploadedPreviewUrl}
+                  imageUrl={batchReview.original_media_url || uploadedPreviewUrl}
                   detections={batchReview.detections}
                   selectedDetectionId={selectedDetectionId}
                   onSelectDetection={setSelectedDetectionId}
@@ -429,7 +488,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             </div>
 
             {/* Right: Detected Item Cards */}
-            <div className="lg:col-span-7 space-y-4">
+            <div className="lg:col-span-7 xl:col-span-7 space-y-5">
               {batchReview.detections.map((det, idx) => (
                 <DetectionItemCard
                   key={det.detection_id}

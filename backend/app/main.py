@@ -15,6 +15,7 @@ from app.core.config import (
     validate_image_provider_configuration,
     validate_vision_provider_configuration,
 )
+from app.core.database import get_engine, validate_database_schema_revision
 from app.repositories.object_storage import ObjectNotFoundError, ObjectStorageError
 from app.schemas.common import AppException
 
@@ -25,10 +26,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Validate provider configuration and manage operational background tasks."""
+    """Validate provider configuration, database schema, and manage operational background tasks."""
     settings = get_settings()
     validate_vision_provider_configuration(settings)
     validate_image_provider_configuration(settings)
+    validate_database_schema_revision(get_engine())
 
     if settings.cleanup_scheduler_enabled:
         start_cleanup_scheduler(interval_seconds=settings.cleanup_interval_seconds)

@@ -233,4 +233,24 @@ describe('WardrobeInventory Component', () => {
       expect(screen.queryByTestId('wardrobe-item-card-item-1')).toBeNull();
     });
   });
+
+  it('renders primary + Số Hóa Mới action button in header and triggers callback', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValueOnce({
+      items: [mockItems[0]],
+      total: 1,
+      page: 1,
+      page_size: 12,
+    });
+
+    const onSwitch = vi.fn();
+    render(<WardrobeInventory onSwitchToIngestion={onSwitch} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-add-garment')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId('btn-add-garment'));
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+  });
 });
+

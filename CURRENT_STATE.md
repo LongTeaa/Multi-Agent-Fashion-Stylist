@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 7 — Evaluation and Acceptance (complete) |
-| Active task | PR #4 audit remediation implemented and verified; ready to merge. |
-| Most recently modified files | Ingestion and cleanup services, private media components, migration `0007`, API/data contracts, browser integration tests, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `npm run lint` on 2026-09-19; also `python -m pytest tests -q -m "not live_provider" --tb=short` (457 passed), `npm run test -- --run` (83 passed), `npm run build`, and targeted Playwright E2E (4 passed). |
-| Next step | Merge PR #4, then continue Phase 7 acceptance work. |
+| Current phase | Phase 7 — Evaluation and Acceptance (follow-up hardening) |
+| Active task | PR #5 review hardening verified; local legacy SQLite wardrobe imported into the canonical root database with backups. |
+| Most recently modified files | `backend/app/core/database.py`, SQLite merge script and tests, `frontend/next.config.ts`, API contract, live test report, `CURRENT_STATE.md`. |
+| Latest passing verification command | `py -3.11 -m pytest tests -q` from `backend` (497 passed); `npm run test -- --run` (99 passed), `npm run lint`, and `npm run build` from `frontend` on 2026-09-24. |
+| Next step | Verify the merged wardrobe and private images through the UI when MinIO is running; review remaining adversarial audit findings against the current implementation. |
 
 ## Update Rules
 

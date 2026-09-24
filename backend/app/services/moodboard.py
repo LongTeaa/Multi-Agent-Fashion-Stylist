@@ -8,12 +8,18 @@ from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from app.models.entities import OutfitSlotRole
 
+from pathlib import Path
+
 _CANVAS_SIZE = (768, 1024)
 _BACKGROUND = "#F4F0E8"
 _CARD = "#FFFEFA"
 _INK = "#25231F"
 _MUTED = "#706B61"
 _ACCENT = "#985A3B"
+
+_ASSETS_FONT_DIR = Path(__file__).resolve().parents[1] / "assets" / "fonts"
+_BUNDLED_REGULAR_FONT = _ASSETS_FONT_DIR / "DejaVuSans.ttf"
+_BUNDLED_BOLD_FONT = _ASSETS_FONT_DIR / "DejaVuSans-Bold.ttf"
 
 
 @dataclass(frozen=True)
@@ -34,9 +40,17 @@ class MoodboardResult:
     included_asset_ids: tuple[str, ...]
 
 
-def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    font_path = _BUNDLED_BOLD_FONT if bold else _BUNDLED_REGULAR_FONT
+    if font_path.is_file():
+        try:
+            return ImageFont.truetype(str(font_path), size=size)
+        except OSError:
+            pass
+    # Fallback to system font name if bundled font file not found
     try:
-        return ImageFont.truetype("DejaVuSans.ttf", size=size)
+        font_name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+        return ImageFont.truetype(font_name, size=size)
     except OSError:
         return ImageFont.load_default(size=size)
 
@@ -76,8 +90,8 @@ def _draw_card(
     slot_name = item.slot.value.upper()
     safe_name = item.name.strip() or "Trang phục"
     safe_color = item.color.strip() or "Không xác định"
-    draw.text((left + 24, bottom - 68), slot_name, font=_font(14), fill=_ACCENT)
-    draw.text((left + 24, bottom - 45), safe_name, font=_font(20), fill=_INK)
+    draw.text((left + 24, bottom - 68), slot_name, font=_font(14, bold=True), fill=_ACCENT)
+    draw.text((left + 24, bottom - 45), safe_name, font=_font(20, bold=True), fill=_INK)
     color_width = draw.textlength(safe_color, font=_font(15))
     draw.text((right - 24 - color_width, bottom - 42), safe_color, font=_font(15), fill=_MUTED)
 
@@ -91,8 +105,8 @@ def render_moodboard(items: Iterable[MoodboardItem]) -> MoodboardResult:
 
     canvas = Image.new("RGB", _CANVAS_SIZE, _BACKGROUND)
     draw = ImageDraw.Draw(canvas)
-    draw.text((48, 42), "MOODBOARD", font=_font(18), fill=_ACCENT)
-    draw.text((48, 72), "Moodboard dự phòng", font=_font(38), fill=_INK)
+    draw.text((48, 42), "MOODBOARD", font=_font(18, bold=True), fill=_ACCENT)
+    draw.text((48, 72), "Moodboard dự phòng", font=_font(38, bold=True), fill=_INK)
     draw.text(
         (48, 122),
         "Bố cục minh họa từ các món đồ trong tủ của bạn",

@@ -8,8 +8,8 @@ import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
   { label: 'Tất cả', value: 'all' },
   { label: 'Áo', value: 'top' },
-  { label: 'Quần / Váy', value: 'bottom' },
-  { label: 'Đầm', value: 'dress' },
+  { label: 'Quần / Chân váy', value: 'bottom' },
+  { label: 'Đầm / Váy liền', value: 'dress' },
   { label: 'Giày dép', value: 'footwear' },
   { label: 'Áo khoác', value: 'outerwear' },
   { label: 'Phụ kiện', value: 'accessory' },
@@ -17,12 +17,47 @@ const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
 
 const CATEGORY_NAMES: Record<WardrobeCategory, string> = {
   top: 'Áo',
-  bottom: 'Quần / Váy',
-  dress: 'Đầm',
+  bottom: 'Quần / Chân váy',
+  dress: 'Đầm / Váy liền',
   footwear: 'Giày dép',
   outerwear: 'Áo khoác',
   accessory: 'Phụ kiện',
 };
+
+export function formatItemTitle(category: WardrobeCategory, subCategory?: string | null): string {
+  const genericTokens = new Set(['clothing', 'garment', 'apparel', 'item', 'unknown', 'footwear', 'top', 'bottom']);
+  const subMap: Record<string, string> = {
+    sneakers: 'Sneakers',
+    oxford: 'Giày Oxford',
+    loafers: 'Giày Loafers (Giày lười)',
+    leather_shoes: 'Giày da',
+    sandals: 'Sandal',
+    slides: 'Dép quai ngang',
+    boots: 'Boots',
+    heels: 'Giày cao gót',
+    skirt: 'Chân váy',
+    trousers: 'Quần tây',
+    chinos: 'Quần Chinos',
+    shorts: 'Quần short',
+    jeans: 'Quần Jeans',
+    polo: 'Áo Polo',
+    tshirt: 'Áo thun',
+    shirt: 'Áo sơ mi',
+    blazer: 'Áo Blazer',
+    jacket: 'Áo khoác',
+    hoodie: 'Áo Hoodie',
+    sweater: 'Áo len',
+    dress: 'Đầm / Váy liền',
+  };
+
+  const cleanSub = (subCategory || '').trim().toLowerCase();
+  if (cleanSub && !genericTokens.has(cleanSub)) {
+    if (subMap[cleanSub]) return subMap[cleanSub];
+    return subCategory || cleanSub.replace(/_/g, ' ');
+  }
+
+  return CATEGORY_NAMES[category] || 'Trang phục';
+}
 
 interface WardrobeInventoryProps {
   onSwitchToIngestion?: () => void;
@@ -136,23 +171,37 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
           </p>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <input
-            type="text"
-            aria-label="Tìm kiếm trong tủ đồ"
-            data-testid="wardrobe-search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo loại, màu, phong cách..."
-            className="px-4 py-2 text-sm rounded-xl border border-[#E8E5DE] bg-white text-[#1A1918] placeholder-[#A8A29E] focus:outline-hidden focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-[#1A1918] text-[#FBFBF9] text-xs font-mono uppercase tracking-wider hover:bg-[#2D2420] transition-colors"
-          >
-            Tìm
-          </button>
-        </form>
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-1 sm:flex-none">
+            <input
+              type="text"
+              aria-label="Tìm kiếm trong tủ đồ"
+              data-testid="wardrobe-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm theo loại, màu, phong cách..."
+              className="px-4 py-2 text-sm rounded-xl border border-[#E8E5DE] bg-white text-[#1A1918] placeholder-[#A8A29E] focus:outline-hidden focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234] min-w-0"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-[#1A1918] text-[#FBFBF9] text-xs font-mono uppercase tracking-wider hover:bg-[#2D2420] transition-colors shrink-0"
+            >
+              Tìm
+            </button>
+          </form>
+
+          {onSwitchToIngestion && (
+            <button
+              type="button"
+              data-testid="btn-add-garment"
+              onClick={onSwitchToIngestion}
+              className="tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#9C5234] hover:bg-[#854429] text-white text-xs font-mono uppercase tracking-wider font-semibold shadow-xs transition-colors shrink-0"
+            >
+              <span>+</span>
+              <span>Số Hóa Mới</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Category Filter Pills */}
@@ -249,7 +298,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
                   <h4 className="font-serif text-base text-[#1A1918] capitalize mb-1">
-                    {item.sub_category}
+                    {formatItemTitle(item.category, item.sub_category)}
                   </h4>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#F5F4F0] text-[#5C564E] font-mono">

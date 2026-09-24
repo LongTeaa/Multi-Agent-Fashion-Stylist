@@ -154,3 +154,55 @@ def test_disabled_provider_uses_fallback_and_both_failures_raise_504_error() -> 
             moodboard_items=(),
             timeout_seconds=8,
         )
+
+
+def test_moodboard_uses_bundled_truetype_font() -> None:
+    from PIL import ImageFont
+    from app.services.moodboard import _BUNDLED_BOLD_FONT, _BUNDLED_REGULAR_FONT, _font
+
+    assert _BUNDLED_REGULAR_FONT.is_file(), f"Font not found at {_BUNDLED_REGULAR_FONT}"
+    assert _BUNDLED_BOLD_FONT.is_file(), f"Font not found at {_BUNDLED_BOLD_FONT}"
+
+    regular_font = _font(18, bold=False)
+    bold_font = _font(18, bold=True)
+
+    assert isinstance(regular_font, ImageFont.FreeTypeFont)
+    assert isinstance(bold_font, ImageFont.FreeTypeFont)
+
+
+def test_moodboard_renders_complex_vietnamese_diacritics() -> None:
+    items = (
+        MoodboardItem(
+            asset_id="asset-top",
+            slot=OutfitSlotRole.TOP,
+            name="Áo sơ mi lụa trắng kem thêu họa tiết",
+            color="Trắng kem",
+            image_bytes=_image_bytes("RGB", (250, 248, 240), "JPEG"),
+        ),
+        MoodboardItem(
+            asset_id="asset-bottom",
+            slot=OutfitSlotRole.BOTTOM,
+            name="Quần tây xếp ly than chì sọc caro",
+            color="Than chì",
+            image_bytes=_image_bytes("RGBA", (45, 45, 50, 255), "PNG"),
+        ),
+        MoodboardItem(
+            asset_id="asset-footwear",
+            slot=OutfitSlotRole.FOOTWEAR,
+            name="Giày lười da bóng thủ công",
+            color="Nâu hạt dẻ",
+            image_bytes=_image_bytes("RGB", (80, 50, 30), "JPEG"),
+        ),
+    )
+
+    result = render_moodboard(items)
+    assert result.mime_type == "image/webp"
+    assert result.width == 768
+    assert result.height == 1024
+    assert len(result.included_asset_ids) == 3
+
+    with Image.open(BytesIO(result.image_bytes)) as img:
+        assert img.format == "WEBP"
+        assert img.size == (768, 1024)
+        assert img.mode == "RGB"
+

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { DetectionReviewItem } from '@/types/ingestion';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 interface BoundingBoxOverlayProps {
   imageUrl?: string;
@@ -25,11 +26,11 @@ export function BoundingBoxOverlay({
       <div className="relative inline-block max-w-full overflow-hidden rounded-2xl">
         {/* Main Original Image */}
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
+          <PrivateMediaImage
+            source={imageUrl}
             alt="Original Ingestion Upload"
-            className="max-h-[500px] w-auto object-contain block mx-auto select-none rounded-xl"
+            className="max-h-[500px] xl:max-h-[620px] 2xl:max-h-[700px] w-auto object-contain block mx-auto select-none rounded-xl"
+            fallbackText="Không thể tải ảnh gốc"
           />
         ) : (
           <div className="w-[420px] h-[420px] bg-[#242220] flex flex-col items-center justify-center text-[#736E65]">

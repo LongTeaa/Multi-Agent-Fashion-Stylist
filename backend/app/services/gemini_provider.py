@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -17,6 +18,8 @@ from app.services.providers import (
 )
 
 logger = logging.getLogger(__name__)
+
+TRANSIENT_HTTP_STATUS_CODES = {429, 503}
 
 
 def _detect_image_mime_type(image_bytes: bytes) -> str:
@@ -92,23 +95,29 @@ class GeminiDetector:
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
+        max_retries: int = 2,
+        initial_backoff_seconds: float = 1.0,
     ) -> None:
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
         self._client = client
+        self.max_retries = max_retries
+        self.initial_backoff_seconds = initial_backoff_seconds
 
     def detect(self, image_bytes: bytes) -> DetectionResult:
         """Call Gemini to detect clothing items and determine scene classification."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        params = {"key": self.api_key.get_secret_value()}
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_image = base64.b64encode(image_bytes).decode("ascii")
         image_mime_type = _detect_image_mime_type(image_bytes)
 
         prompt = (
-            "Analyze this fashion image. Detect clothing/garment items with bounding boxes in normalized "
-            "[x_min, y_min, x_max, y_max] format in [0.0, 1.0]. "
+            "Analyze this fashion image. Detect each distinct clothing/garment/accessory item with precise bounding boxes in "
+            "normalized [x_min, y_min, x_max, y_max] format within [0.0, 1.0]. "
+            "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
+            "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
             "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box, label, confidence}), and 'quality_warnings'."
         )
@@ -132,53 +141,92 @@ class GeminiDetector:
             },
         }
 
-        try:
-            if self._client is not None:
-                resp = self._client.post(
-                    url, params=params, json=payload, timeout=self.timeout_seconds
-                )
-            else:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
-                    resp = client.post(url, params=params, json=payload)
-
-            if resp.status_code >= 400:
-                logger.error("Gemini detector HTTP error %d: %s", resp.status_code, resp.text)
-                raise ProviderError(
-                    f"Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP {resp.status_code}."
-                )
-
-            data = resp.json()
-            json_text = _extract_json_from_gemini_response(data)
-            parsed_json = json.loads(json_text)
-            validated = GeminiDetectorOutput.model_validate(parsed_json)
-
-            domain_boxes: list[BoundingBoxDetection] = []
-            for b in validated.boxes:
-                domain_boxes.append(
-                    BoundingBoxDetection(
-                        box=b.box,
-                        label=b.label,
-                        confidence=ConfidenceValue(b.confidence),
+        for attempt in range(self.max_retries + 1):
+            try:
+                if self._client is not None:
+                    resp = self._client.post(
+                        url, headers=headers, json=payload, timeout=self.timeout_seconds
                     )
+                else:
+                    with httpx.Client(timeout=self.timeout_seconds) as client:
+                        resp = client.post(url, headers=headers, json=payload)
+
+                if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
+                    if attempt < self.max_retries:
+                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                        logger.warning(
+                            "Gemini detector HTTP %d on attempt %d/%d; retrying in %.2fs...",
+                            resp.status_code,
+                            attempt + 1,
+                            self.max_retries + 1,
+                            backoff,
+                        )
+                        time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini detector HTTP error %d after %d attempts: %s",
+                        resp.status_code,
+                        self.max_retries + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
+                if resp.status_code >= 400:
+                    logger.error("Gemini detector HTTP error %d: %s", resp.status_code, resp.text)
+                    raise ProviderError(
+                        f"Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
+                data = resp.json()
+                json_text = _extract_json_from_gemini_response(data)
+                parsed_json = json.loads(json_text)
+                validated = GeminiDetectorOutput.model_validate(parsed_json)
+
+                domain_boxes: list[BoundingBoxDetection] = []
+                for b in validated.boxes:
+                    domain_boxes.append(
+                        BoundingBoxDetection(
+                            box=b.box,
+                            label=b.label,
+                            confidence=ConfidenceValue(b.confidence),
+                        )
+                    )
+
+                return DetectionResult(
+                    input_kind=validated.input_kind,
+                    boxes=domain_boxes,
+                    quality_warnings=validated.quality_warnings,
                 )
 
-            return DetectionResult(
-                input_kind=validated.input_kind,
-                boxes=domain_boxes,
-                quality_warnings=validated.quality_warnings,
-            )
+            except httpx.TimeoutException as err:
+                logger.warning("Gemini detector request timed out: %s", err)
+                raise TimeoutError("AI detector request timed out.") from err
+            except httpx.TransportError as err:
+                if attempt < self.max_retries:
+                    backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    logger.warning(
+                        "Gemini detector transport error (%s) on attempt %d/%d; retrying in %.2fs...",
+                        err,
+                        attempt + 1,
+                        self.max_retries + 1,
+                        backoff,
+                    )
+                    time.sleep(backoff)
+                    continue
+                logger.error("Gemini detector network error after %d attempts: %s", self.max_retries + 1, err)
+                raise ProviderError(f"Không thể kết nối đến dịch vụ AI: {err}") from err
+            except ProviderError:
+                raise
+            except (json.JSONDecodeError, ValidationError) as parse_err:
+                logger.error("Failed to parse/validate Gemini detector response: %s", parse_err)
+                raise ProviderError("Dữ liệu nhận diện từ dịch vụ AI không hợp lệ.") from parse_err
+            except Exception as err:
+                logger.error("Unexpected error in Gemini detector: %s", err)
+                raise ProviderError("Dịch vụ AI phát hiện trang phục gặp sự cố ngoài dự kiến.") from err
 
-        except httpx.TimeoutException as err:
-            logger.warning("Gemini detector request timed out: %s", err)
-            raise TimeoutError("AI detector request timed out.") from err
-        except ProviderError:
-            raise
-        except (json.JSONDecodeError, ValidationError) as parse_err:
-            logger.error("Failed to parse/validate Gemini detector response: %s", parse_err)
-            raise ProviderError("Dữ liệu nhận diện từ dịch vụ AI không hợp lệ.") from parse_err
-        except Exception as err:
-            logger.error("Unexpected error in Gemini detector: %s", err)
-            raise ProviderError("Dịch vụ AI phát hiện trang phục gặp sự cố ngoài dự kiến.") from err
+        raise ProviderError("Dịch vụ AI phát hiện trang phục không phản hồi sau các lần thử lại.")
 
 
 class GeminiVisionProvider:
@@ -191,17 +239,21 @@ class GeminiVisionProvider:
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
+        max_retries: int = 2,
+        initial_backoff_seconds: float = 1.0,
     ) -> None:
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
         self._client = client
+        self.max_retries = max_retries
+        self.initial_backoff_seconds = initial_backoff_seconds
 
     def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        params = {"key": self.api_key.get_secret_value()}
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
 
@@ -233,46 +285,85 @@ class GeminiVisionProvider:
             },
         }
 
-        try:
-            if self._client is not None:
-                resp = self._client.post(
-                    url, params=params, json=payload, timeout=self.timeout_seconds
+        for attempt in range(self.max_retries + 1):
+            try:
+                if self._client is not None:
+                    resp = self._client.post(
+                        url, headers=headers, json=payload, timeout=self.timeout_seconds
+                    )
+                else:
+                    with httpx.Client(timeout=self.timeout_seconds) as client:
+                        resp = client.post(url, headers=headers, json=payload)
+
+                if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
+                    if attempt < self.max_retries:
+                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                        logger.warning(
+                            "Gemini vision provider HTTP %d on attempt %d/%d; retrying in %.2fs...",
+                            resp.status_code,
+                            attempt + 1,
+                            self.max_retries + 1,
+                            backoff,
+                        )
+                        time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini vision provider HTTP error %d after %d attempts: %s",
+                        resp.status_code,
+                        self.max_retries + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI trích xuất thuộc tính tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
+                if resp.status_code >= 400:
+                    logger.error("Gemini vision provider HTTP error %d: %s", resp.status_code, resp.text)
+                    raise ProviderError(
+                        f"Dịch vụ AI trích xuất thuộc tính tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
+                data = resp.json()
+                json_text = _extract_json_from_gemini_response(data)
+                parsed_json = json.loads(json_text)
+                validated = GeminiVisionOutput.model_validate(parsed_json)
+
+                # Ensure confidence scores are bounded in [0.0, 1.0]
+                bounded_conf: dict[str, ConfidenceValue] = {
+                    k: ConfidenceValue(max(0.0, min(1.0, float(v))))
+                    for k, v in validated.field_confidence.items()
+                }
+
+                return VisionExtractionResult(
+                    attributes=validated.attributes,
+                    field_confidence=bounded_conf,
+                    quality_warnings=validated.quality_warnings,
                 )
-            else:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
-                    resp = client.post(url, params=params, json=payload)
 
-            if resp.status_code >= 400:
-                logger.error("Gemini vision provider HTTP error %d: %s", resp.status_code, resp.text)
-                raise ProviderError(
-                    f"Dịch vụ AI trích xuất thuộc tính tạm thời không khả dụng: HTTP {resp.status_code}."
-                )
+            except httpx.TimeoutException as err:
+                logger.warning("Gemini vision provider request timed out: %s", err)
+                raise TimeoutError("AI vision provider timed out.") from err
+            except httpx.TransportError as err:
+                if attempt < self.max_retries:
+                    backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    logger.warning(
+                        "Gemini vision provider transport error (%s) on attempt %d/%d; retrying in %.2fs...",
+                        err,
+                        attempt + 1,
+                        self.max_retries + 1,
+                        backoff,
+                    )
+                    time.sleep(backoff)
+                    continue
+                logger.error("Gemini vision provider network error after %d attempts: %s", self.max_retries + 1, err)
+                raise ProviderError(f"Không thể kết nối đến dịch vụ AI: {err}") from err
+            except ProviderError:
+                raise
+            except (json.JSONDecodeError, ValidationError) as parse_err:
+                logger.error("Failed to parse/validate Gemini vision response: %s", parse_err)
+                raise ProviderError("Dữ liệu thuộc tính trả về từ AI không hợp lệ.") from parse_err
+            except Exception as err:
+                logger.error("Unexpected error in Gemini vision provider: %s", err)
+                raise ProviderError("Dịch vụ AI trích xuất thuộc tính gặp sự cố ngoài dự kiến.") from err
 
-            data = resp.json()
-            json_text = _extract_json_from_gemini_response(data)
-            parsed_json = json.loads(json_text)
-            validated = GeminiVisionOutput.model_validate(parsed_json)
-
-            # Ensure confidence scores are bounded in [0.0, 1.0]
-            bounded_conf: dict[str, ConfidenceValue] = {
-                k: ConfidenceValue(max(0.0, min(1.0, float(v))))
-                for k, v in validated.field_confidence.items()
-            }
-
-            return VisionExtractionResult(
-                attributes=validated.attributes,
-                field_confidence=bounded_conf,
-                quality_warnings=validated.quality_warnings,
-            )
-
-        except httpx.TimeoutException as err:
-            logger.warning("Gemini vision provider request timed out: %s", err)
-            raise TimeoutError("AI vision provider timed out.") from err
-        except ProviderError:
-            raise
-        except (json.JSONDecodeError, ValidationError) as parse_err:
-            logger.error("Failed to parse/validate Gemini vision response: %s", parse_err)
-            raise ProviderError("Dữ liệu thuộc tính trả về từ AI không hợp lệ.") from parse_err
-        except Exception as err:
-            logger.error("Unexpected error in Gemini vision provider: %s", err)
-            raise ProviderError("Dịch vụ AI trích xuất thuộc tính gặp sự cố ngoài dự kiến.") from err
+        raise ProviderError("Dịch vụ AI trích xuất thuộc tính không phản hồi sau các lần thử lại.")

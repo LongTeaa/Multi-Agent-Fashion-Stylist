@@ -215,6 +215,14 @@ def get_image_provider() -> ImageProviderProtocol | None:
         from app.services.fakes.image_fakes import FakeImageProvider
 
         return FakeImageProvider(model=settings.image_model or "")
+    if settings.image_provider == "gemini":
+        from app.services.gemini_image_provider import GeminiImageProvider
+
+        return GeminiImageProvider(
+            api_key=settings.gemini_api_key,
+            model=settings.image_model or "",
+            timeout_seconds=float(settings.image_timeout_seconds),
+        )
 
     raise ValueError(f"Unsupported image_provider: '{settings.image_provider}'")
 
