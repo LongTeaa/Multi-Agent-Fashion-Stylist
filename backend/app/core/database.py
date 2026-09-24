@@ -1,4 +1,3 @@
-import logging
 from functools import lru_cache
 from pathlib import Path
 
@@ -8,9 +7,6 @@ from sqlalchemy.pool import ConnectionPoolEntry
 from sqlmodel import create_engine
 
 from app.core.config import REPOSITORY_ROOT, get_settings
-
-logger = logging.getLogger(__name__)
-
 
 def resolve_sqlite_url(database_url: str) -> str:
     """Resolve relative SQLite database URLs against the repository root."""
@@ -23,7 +19,10 @@ def resolve_sqlite_url(database_url: str) -> str:
         return database_url
 
     p = Path(raw_path)
-    if p.is_absolute():
+    # SQLite's four-slash URL denotes a POSIX absolute path even when this
+    # application is inspected on Windows. A drive-prefixed path is absolute
+    # in SQLite URLs too, but pathlib on another OS need not recognize it.
+    if raw_path.startswith("/") or (len(raw_path) >= 3 and raw_path[1:3] == ":/") or p.is_absolute():
         return database_url
 
     resolved_path = (REPOSITORY_ROOT / raw_path).resolve()
@@ -67,10 +66,12 @@ def validate_database_schema_revision(engine: Engine, expected_head: str = "0007
         try:
             result = connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar()
         except Exception as err:
-            logger.warning("Could not read alembic_version table: %s", err)
-            return
+            raise RuntimeError(
+                "Database schema revision is unavailable. Run 'alembic upgrade head' "
+                "against the configured database before starting the application."
+            ) from err
 
-        if result is not None and result != expected_head:
+        if result != expected_head:
             raise RuntimeError(
                 f"Database schema revision mismatch: current database is at revision {result!r}, "
                 f"but application requires {expected_head!r}. "

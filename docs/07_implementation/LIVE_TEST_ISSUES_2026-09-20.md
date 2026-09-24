@@ -116,6 +116,15 @@ Quy ước: **P1** ảnh hưởng trực tiếp tới dữ liệu hoặc luồng
 - **Hướng giải quyết:** Sao lưu cả hai SQLite trước khi hợp nhất. Chọn một database chuẩn, chuyển các item cũ cùng quan hệ media và metadata phụ thuộc sang database chuẩn theo một giao dịch có kiểm tra khóa ngoại và chống trùng ID; không đổi `.env` qua lại vì sẽ chỉ hoán đổi tập item hiển thị. Sau khi hợp nhất, xác minh số item của cùng user và truy cập ảnh qua API private. Về lâu dài, dùng một đường dẫn SQLite cố định và hiển thị rõ danh tính demo/current workspace trong UI; giữ ổn định origin frontend khi test.
 - **Hoàn tất khi:** Cùng một user thấy cả 4 item cũ và item mới sau restart; từng thumbnail/crop tải được; không có item trùng hoặc media bị gán sai user.
 
+**Cập nhật 24/09/2026:** `backend/scripts/merge_wardrobe_databases.py` hỗ trợ dry run và import có sao lưu hai SQLite, chạy trong một giao dịch, kiểm tra khóa ngoại và chạy lại không nhân đôi bản ghi. Trên máy kiểm thử, đã nhập 4 wardrobe items, 8 item-media links và các batch/detection/media/retrieval records phụ thuộc từ `backend/data/fashion_stylist.db` vào `data/fashion_stylist.db`. Dry run sau import báo 0 bản ghi thiếu. Chạy lại ứng dụng với cùng user/origin và kiểm tra ảnh qua API private vẫn cần thực hiện khi MinIO và frontend hoạt động.
+
+Lệnh cho môi trường có cùng hai file SQLite (dừng API và cleanup scheduler trước khi dùng `--apply`):
+
+```text
+python backend/scripts/merge_wardrobe_databases.py backend/data/fashion_stylist.db data/fashion_stylist.db
+python backend/scripts/merge_wardrobe_databases.py backend/data/fashion_stylist.db data/fashion_stylist.db --apply
+```
+
 ## Thứ tự xử lý đề xuất
 
 1. Giải quyết LT-13 để người dùng thấy cùng một tủ đồ qua các lần chạy; sao lưu và đối chiếu dữ liệu trước khi hợp nhất. Lượt tải sneaker đã xác nhận đường upload qua lỗi thiếu bảng LT-11 và lỗi model 404 LT-01.

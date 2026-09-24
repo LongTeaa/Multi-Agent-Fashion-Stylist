@@ -1,9 +1,12 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // LT-09: Allow specific dev origin used during testing (e.g. host-only network IP)
-  // Scoped strictly without arbitrary wildcards.
-  allowedDevOrigins: ['192.168.56.1'],
+  // Set a comma-separated list of hostnames when accessing the dev server
+  // through a local network interface.
+  allowedDevOrigins: process.env.NEXT_ALLOWED_DEV_ORIGINS
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 };
 
 export default nextConfig;

@@ -48,7 +48,15 @@ def test_validate_database_schema_revision_mismatch_raises() -> None:
         validate_database_schema_revision(engine, expected_head="0007")
 
 
-def test_validate_database_schema_revision_missing_table_graceful() -> None:
+def test_validate_database_schema_revision_missing_table_raises() -> None:
     engine = create_engine("sqlite:///:memory:")
-    # Should not raise when alembic_version table doesn't exist
-    validate_database_schema_revision(engine, expected_head="0007")
+    with pytest.raises(RuntimeError, match="revision is unavailable"):
+        validate_database_schema_revision(engine, expected_head="0007")
+
+
+def test_validate_database_schema_revision_empty_table_raises() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.exec_driver_sql("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)")
+    with pytest.raises(RuntimeError, match="revision mismatch"):
+        validate_database_schema_revision(engine, expected_head="0007")

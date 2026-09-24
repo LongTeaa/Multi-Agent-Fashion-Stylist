@@ -39,6 +39,7 @@ Returns current status, quality warnings, and detections for user review:
   "batch_id": "uuid",
   "input_kind": "multi_item",
   "status": "needs_review",
+  "original_media_url": "/api/v1/media/uuid",
   "detections": [
     {
       "detection_id": "uuid",
@@ -58,6 +59,9 @@ Returns current status, quality warnings, and detections for user review:
   "quality_warnings": []
 }
 ```
+
+`original_media_url` is nullable when an original asset is unavailable. The
+private media endpoint requires the requesting user's identity header.
 
 ### 2.3 `POST /ingestions/{batch_id}/confirm`
 
