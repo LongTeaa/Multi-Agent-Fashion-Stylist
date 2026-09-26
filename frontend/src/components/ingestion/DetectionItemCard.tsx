@@ -115,6 +115,41 @@ const SEASONS = [
   { value: 'all_year', label: 'Cả năm' },
 ];
 
+const SILHOUETTES = [
+  { value: 1, label: 'Rất ôm sát (1 - Very fitted)' },
+  { value: 2, label: 'Ôm vừa (2 - Fitted)' },
+  { value: 3, label: 'Tiêu chuẩn (3 - Regular)' },
+  { value: 4, label: 'Thoải mái / Rộng (4 - Relaxed)' },
+  { value: 5, label: 'Rộng thùng thình (5 - Oversized)' },
+];
+
+const LENGTHS = [
+  { value: 'cropped', label: 'Dáng ngắn lửng (Cropped)' },
+  { value: 'waist', label: 'Dài ngang eo (Waist)' },
+  { value: 'hip', label: 'Dài ngang hông (Hip - Tiêu chuẩn)' },
+  { value: 'long', label: 'Dáng dài (Long - Phủ chân/Dài qua gối)' },
+];
+
+const FUNCTIONAL_FLAGS = [
+  { value: 'movement', label: '🏃 Vận động / Co giãn' },
+  { value: 'outdoor', label: '🏕️ Dã ngoại / Ngoài trời' },
+  { value: 'sun', label: '☀️ Chống nắng' },
+  { value: 'rain', label: '🌧️ Chống mưa / Nước' },
+  { value: 'work', label: '💼 Đi làm / Công sở' },
+  { value: 'sport', label: '⚽ Thể thao' },
+  { value: 'protection', label: '🛡️ Bảo hộ / Giữ nhiệt' },
+  { value: 'light', label: '🪶 Siêu nhẹ / Thoáng' },
+  { value: 'heavy', label: '🧥 Dày ấm / Nặng' },
+];
+
+const COMFORT_LABELS: Record<number, string> = {
+  1: 'Gò bó / Thô cứng (1)',
+  2: 'Hơi hạn chế (2)',
+  3: 'Tiêu chuẩn (3)',
+  4: 'Thoải mái (4)',
+  5: 'Rất thoải mái / Co giãn (5)',
+};
+
 export function DetectionItemCard({
   detection,
   index,
@@ -171,6 +206,15 @@ export function DetectionItemCard({
       onUpdateAttribute('season', current.filter((s) => s !== seasonVal));
     } else {
       onUpdateAttribute('season', [...current, seasonVal]);
+    }
+  };
+
+  const handleFunctionalFlagToggle = (flagVal: string) => {
+    const current = Array.isArray(attributes.functional_flags) ? attributes.functional_flags : [];
+    if (current.includes(flagVal)) {
+      onUpdateAttribute('functional_flags', current.filter((f) => f !== flagVal));
+    } else {
+      onUpdateAttribute('functional_flags', [...current, flagVal]);
     }
   };
 
@@ -477,6 +521,87 @@ export function DetectionItemCard({
                 <span>Dạ tiệc (5)</span>
               </div>
             </div>
+
+            {/* Comfort Level (1-5 Sao) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
+                  Độ thoải mái (Comfort):{' '}
+                  <span className="font-bold text-[#9C5234] text-sm sm:text-base">
+                    {attributes.comfort_level ? `${attributes.comfort_level}/5 ⭐` : 'Chưa xác định'}
+                  </span>
+                </label>
+                {renderConfidenceBadge('comfort_level')}
+              </div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    disabled={!accepted}
+                    onClick={() => onUpdateAttribute('comfort_level', star)}
+                    className={`flex-1 py-1.5 rounded-lg border text-sm transition font-mono ${
+                      (attributes.comfort_level || 3) >= star
+                        ? 'bg-[#9C5234] text-white border-[#9C5234] shadow-2xs font-semibold'
+                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
+                    }`}
+                  >
+                    {star}★
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs font-mono text-[#5C564E]">
+                {COMFORT_LABELS[attributes.comfort_level || 3] || 'Tiêu chuẩn (3)'}
+              </p>
+            </div>
+
+            {/* Silhouette Level (Dáng tổng thể 1-5) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể (Silhouette)</label>
+                {renderConfidenceBadge('silhouette_level')}
+              </div>
+              <select
+                value={attributes.silhouette_level || 3}
+                disabled={!accepted}
+                onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                  isLowConfidence('silhouette_level')
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                }`}
+              >
+                {SILHOUETTES.map((sil) => (
+                  <option key={sil.value} value={sil.value}>
+                    {sil.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Length (Độ dài trang phục) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài (Length)</label>
+                {renderConfidenceBadge('length')}
+              </div>
+              <select
+                value={attributes.length || 'hip'}
+                disabled={!accepted}
+                onChange={(e) => onUpdateAttribute('length', e.target.value)}
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                  isLowConfidence('length')
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                }`}
+              >
+                {LENGTHS.map((len) => (
+                  <option key={len.value} value={len.value}>
+                    {len.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Season suitability */}
@@ -498,6 +623,34 @@ export function DetectionItemCard({
                     }`}
                   >
                     {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Functional flags */}
+          <div>
+            <label className="text-xs sm:text-sm font-semibold text-[#1A1918] block mb-2">
+              Tính năng & Mục đích sử dụng (Thẻ chức năng)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {FUNCTIONAL_FLAGS.map((f) => {
+                const isFlagActive =
+                  Array.isArray(attributes.functional_flags) && attributes.functional_flags.includes(f.value);
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    disabled={!accepted}
+                    onClick={() => handleFunctionalFlagToggle(f.value)}
+                    className={`text-xs sm:text-sm px-3.5 py-1.5 rounded-full border transition font-mono ${
+                      isFlagActive
+                        ? 'bg-[#9C5234] text-[#FBFBF9] border-[#9C5234] font-medium shadow-2xs'
+                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
+                    }`}
+                  >
+                    {f.label}
                   </button>
                 );
               })}

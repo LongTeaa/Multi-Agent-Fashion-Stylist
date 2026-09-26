@@ -24,6 +24,33 @@ const CATEGORY_NAMES: Record<WardrobeCategory, string> = {
   accessory: 'Phụ kiện',
 };
 
+export const SILHOUETTE_NAMES: Record<number, string> = {
+  1: 'Rất ôm sát',
+  2: 'Ôm vừa',
+  3: 'Tiêu chuẩn',
+  4: 'Dáng rộng',
+  5: 'Oversized',
+};
+
+export const LENGTH_NAMES: Record<string, string> = {
+  cropped: 'Lửng (Cropped)',
+  waist: 'Ngang eo',
+  hip: 'Ngang hông',
+  long: 'Dáng dài',
+};
+
+export const FUNCTION_TAG_NAMES: Record<string, string> = {
+  movement: 'Vận động',
+  outdoor: 'Ngoài trời',
+  sun: 'Chống nắng',
+  rain: 'Chống mưa',
+  work: 'Công sở',
+  sport: 'Thể thao',
+  protection: 'Bảo hộ',
+  light: 'Thoáng nhẹ',
+  heavy: 'Dày ấm',
+};
+
 export function formatItemTitle(category: WardrobeCategory, subCategory?: string | null): string {
   const genericTokens = new Set(['clothing', 'garment', 'apparel', 'item', 'unknown', 'footwear', 'top', 'bottom']);
   const subMap: Record<string, string> = {
@@ -126,6 +153,10 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
       material: item.material,
       fit: item.fit,
       formality_level: item.formality_level,
+      comfort_level: item.comfort_level ?? 3,
+      silhouette_level: item.silhouette_level ?? 3,
+      length: item.length || 'hip',
+      functional_flags: item.functional_flags ? [...item.functional_flags] : [],
       is_active: item.is_active,
     });
   };
@@ -300,7 +331,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                   <h4 className="font-serif text-base text-[#1A1918] capitalize mb-1">
                     {formatItemTitle(item.category, item.sub_category)}
                   </h4>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#F5F4F0] text-[#5C564E] font-mono">
                       {item.primary_color}
                     </span>
@@ -310,7 +341,37 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#F5F4F0] text-[#5C564E] font-mono">
                       Trang trọng {item.formality_level}/5
                     </span>
+                    {item.comfort_level !== undefined && item.comfort_level !== null && (
+                      <span
+                        data-testid={`badge-comfort-${item.id}`}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/60 font-mono font-medium"
+                      >
+                        Thoải mái {item.comfort_level}/5 ⭐
+                      </span>
+                    )}
+                    {(item.silhouette_level !== undefined || item.length) && (
+                      <span
+                        data-testid={`badge-silhouette-${item.id}`}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-[#F0EDE6] text-[#4A453E] font-mono"
+                      >
+                        📐 {item.silhouette_level ? (SILHOUETTE_NAMES[item.silhouette_level] || `Dáng ${item.silhouette_level}`) : ''}
+                        {item.silhouette_level && item.length ? ' • ' : ''}
+                        {item.length ? (LENGTH_NAMES[item.length] || item.length) : ''}
+                      </span>
+                    )}
                   </div>
+                  {item.functional_flags && item.functional_flags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2.5">
+                      {item.functional_flags.map((flag) => (
+                        <span
+                          key={flag}
+                          className="text-[10px] px-1.5 py-0.5 rounded-sm bg-stone-100 text-[#736E65] font-mono"
+                        >
+                          #{FUNCTION_TAG_NAMES[flag] || flag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -362,7 +423,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
       {/* Edit Modal */}
       {editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#E8E5DE] space-y-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-[#E8E5DE] space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="font-serif text-xl text-[#1A1918]">Chỉnh Sửa Trang Phục</h3>
             <div className="space-y-3 text-sm">
               <div>
@@ -419,6 +480,104 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                     }
                     className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE]"
                   />
+                </div>
+              </div>
+
+              {/* Comfort level selection */}
+              <div>
+                <label className="block text-xs font-mono text-[#736E65] mb-1">Độ thoải mái (1-5 ⭐)</label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      data-testid={`edit-comfort-${lvl}`}
+                      onClick={() => setEditForm((f) => ({ ...f, comfort_level: lvl }))}
+                      className={`flex-1 py-1.5 text-xs rounded-md font-mono border transition-all ${
+                        (editForm.comfort_level || 3) >= lvl
+                          ? 'bg-amber-100 border-amber-300 text-amber-800 font-bold'
+                          : 'bg-white border-[#E8E5DE] text-stone-400 hover:border-stone-400'
+                      }`}
+                    >
+                      ★ {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Silhouette level and Length selection */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-[#736E65] mb-1">Phom dáng (1-5)</label>
+                  <select
+                    data-testid="edit-silhouette-level"
+                    value={editForm.silhouette_level ?? 3}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, silhouette_level: parseInt(e.target.value, 10) }))
+                    }
+                    className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
+                  >
+                    <option value={1}>1 - Rất ôm sát</option>
+                    <option value={2}>2 - Ôm vừa</option>
+                    <option value={3}>3 - Tiêu chuẩn</option>
+                    <option value={4}>4 - Rộng</option>
+                    <option value={5}>5 - Oversized</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-[#736E65] mb-1">Độ dài trang phục</label>
+                  <select
+                    data-testid="edit-length"
+                    value={editForm.length || 'hip'}
+                    onChange={(e) => setEditForm((f) => ({ ...f, length: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
+                  >
+                    <option value="cropped">Dáng ngắn lửng</option>
+                    <option value="waist">Dài ngang eo</option>
+                    <option value="hip">Dài ngang hông</option>
+                    <option value="long">Dáng dài</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Functional flags tags */}
+              <div>
+                <label className="block text-xs font-mono text-[#736E65] mb-1">Tính năng & Tiện ích</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'movement', label: 'Vận động' },
+                    { id: 'outdoor', label: 'Ngoài trời' },
+                    { id: 'sun', label: 'Chống nắng' },
+                    { id: 'rain', label: 'Chống mưa' },
+                    { id: 'work', label: 'Công sở' },
+                    { id: 'sport', label: 'Thể thao' },
+                    { id: 'protection', label: 'Bảo hộ' },
+                    { id: 'light', label: 'Thoáng nhẹ' },
+                    { id: 'heavy', label: 'Dày ấm' },
+                  ].map((flag) => {
+                    const currentFlags = editForm.functional_flags || [];
+                    const isSelected = currentFlags.includes(flag.id);
+                    return (
+                      <button
+                        key={flag.id}
+                        type="button"
+                        data-testid={`edit-flag-${flag.id}`}
+                        onClick={() => {
+                          const nextFlags = isSelected
+                            ? currentFlags.filter((f) => f !== flag.id)
+                            : [...currentFlags, flag.id];
+                          setEditForm((f) => ({ ...f, functional_flags: nextFlags }));
+                        }}
+                        className={`text-[11px] px-2 py-0.5 rounded-md border font-mono transition-all ${
+                          isSelected
+                            ? 'bg-[#1A1918] text-white border-[#1A1918]'
+                            : 'bg-white text-[#736E65] border-[#E8E5DE] hover:border-[#1A1918]'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : ''}{flag.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

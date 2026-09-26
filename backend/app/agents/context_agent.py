@@ -615,6 +615,19 @@ def extract_context_with_providers(
                 current_date=today,
             )
             context = StylistContext.model_validate(provider_payload)
+            if context.occasion:
+                norm_occ = extract_occasion(context.occasion)
+                if norm_occ != "casual" or any(k in context.occasion.lower() for k in ["casual", "đi chơi", "dạo phố", "chill", "ở nhà"]):
+                    context = context.model_copy(update={
+                        "occasion": norm_occ,
+                        "target_formality_range": extract_formality_range(query, norm_occ),
+                    })
+            if context.time_of_day:
+                if context.time_of_day in ("morning", "afternoon", "evening", "night"):
+                    norm_time = context.time_of_day
+                else:
+                    norm_time = extract_time_of_day(context.time_of_day, context.occasion or fallback.occasion)
+                context = context.model_copy(update={"time_of_day": norm_time})
         except Exception:
             context = fallback
             warnings.append(CONTEXT_FALLBACK_WARNING)

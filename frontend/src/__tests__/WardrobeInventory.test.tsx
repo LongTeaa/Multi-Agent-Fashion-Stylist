@@ -28,9 +28,12 @@ describe('WardrobeInventory Component', () => {
       style: 'casual',
       fit: 'regular',
       formality_level: 3,
+      comfort_level: 4,
+      silhouette_level: 3,
+      length: 'hip',
       season: ['mùa hè'],
       weather_suitability: ['ấm áp'],
-      functional_flags: [],
+      functional_flags: ['movement', 'sun'],
       free_text_tags: ['polo'],
       is_active: true,
       times_worn: 2,
@@ -49,6 +52,9 @@ describe('WardrobeInventory Component', () => {
       style: 'casual',
       fit: 'slim',
       formality_level: 2,
+      comfort_level: 3,
+      silhouette_level: 2,
+      length: 'long',
       season: ['quanh năm'],
       weather_suitability: ['mát mẻ'],
       functional_flags: [],
@@ -251,6 +257,82 @@ describe('WardrobeInventory Component', () => {
 
     fireEvent.click(screen.getByTestId('btn-add-garment'));
     expect(onSwitch).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays fashion attributes badges (comfort, silhouette, length, functional flags) on cards', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValueOnce({
+      items: mockItems,
+      total: 2,
+      page: 1,
+      page_size: 12,
+    });
+
+    render(<WardrobeInventory />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-comfort-item-1')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('badge-comfort-item-1').textContent).toContain('Thoải mái 4/5 ⭐');
+    expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Tiêu chuẩn');
+    expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Ngang hông');
+    expect(screen.getByText('#Vận động')).toBeDefined();
+    expect(screen.getByText('#Chống nắng')).toBeDefined();
+  });
+
+  it('allows editing fashion domain attributes (comfort, silhouette, length, functional flags)', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValueOnce({
+      items: [mockItems[0]],
+      total: 1,
+      page: 1,
+      page_size: 12,
+    });
+
+    const updatedItem = {
+      ...mockItems[0],
+      comfort_level: 5,
+      silhouette_level: 4,
+      length: 'long',
+      functional_flags: ['movement', 'sun', 'rain'],
+    };
+    vi.mocked(api.updateWardrobeItem).mockResolvedValueOnce(updatedItem);
+
+    render(<WardrobeInventory />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-item-item-1')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId('edit-item-item-1'));
+
+    // Change comfort to 5
+    fireEvent.click(screen.getByTestId('edit-comfort-5'));
+
+    // Change silhouette to 4 (Rộng)
+    const silhouetteSelect = screen.getByTestId('edit-silhouette-level');
+    fireEvent.change(silhouetteSelect, { target: { value: '4' } });
+
+    // Change length to long
+    const lengthSelect = screen.getByTestId('edit-length');
+    fireEvent.change(lengthSelect, { target: { value: 'long' } });
+
+    // Toggle rain flag
+    fireEvent.click(screen.getByTestId('edit-flag-rain'));
+
+    // Save
+    fireEvent.click(screen.getByTestId('save-edit-btn'));
+
+    await waitFor(() => {
+      expect(api.updateWardrobeItem).toHaveBeenCalledWith(
+        'item-1',
+        expect.objectContaining({
+          comfort_level: 5,
+          silhouette_level: 4,
+          length: 'long',
+          functional_flags: expect.arrayContaining(['movement', 'sun', 'rain']),
+        })
+      );
+    });
   });
 });
 
