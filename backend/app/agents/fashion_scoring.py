@@ -40,16 +40,40 @@ MAJOR_SLOT_ROLES: set[OutfitSlotRole] = {
 }
 
 STYLE_PAIR_SCORES: dict[tuple[str, str], float] = {
+    # High compatibility (0.95 - 1.0)
+    ("casual", "casual"): 1.00,
+    ("smart_casual", "smart_casual"): 1.00,
+    ("formal", "formal"): 1.00,
+    ("streetwear", "streetwear"): 1.00,
+    ("minimalist", "minimalist"): 1.00,
+    ("vintage", "vintage"): 1.00,
+    ("sporty", "sporty"): 1.00,
+    ("luxury", "luxury"): 1.00,
+
     ("casual", "streetwear"): 0.95,
     ("casual", "minimalist"): 0.95,
     ("smart_casual", "minimalist"): 0.95,
     ("smart_casual", "casual"): 0.95,
+    ("sporty", "streetwear"): 0.90,
+
+    # Medium-High compatibility (0.80 - 0.85)
     ("smart_casual", "formal"): 0.85,
     ("minimalist", "vintage"): 0.85,
+    ("sporty", "casual"): 0.85,
     ("casual", "vintage"): 0.80,
     ("smart_casual", "vintage"): 0.80,
+
+    # Medium compatibility (0.65 - 0.75)
     ("formal", "minimalist"): 0.75,
+    ("formal", "vintage"): 0.70,
+    ("streetwear", "minimalist"): 0.70,
+    ("streetwear", "vintage"): 0.65,
+
+    # Medium-Low compatibility (0.50 - 0.55)
     ("formal", "casual"): 0.55,
+
+    # Low compatibility (0.20 - 0.25)
+    ("sporty", "formal"): 0.25,
     ("formal", "streetwear"): 0.20,
 }
 
@@ -170,6 +194,7 @@ def calculate_style_score(items: list[OutfitItemSlot]) -> float:
     """Calculate deterministic style compatibility score according to Section 4.
 
     Outfit style score is the mean of every major-item pair (symmetric).
+    Applies the Advisor's Style Compatibility Matrix (0.0 to 1.0, continuous scale).
     """
     major_items = _get_major_items(items)
     if len(major_items) < 2:
@@ -179,8 +204,40 @@ def calculate_style_score(items: list[OutfitItemSlot]) -> float:
     n = len(major_items)
     for i in range(n):
         for j in range(i + 1, n):
-            s1 = major_items[i].style.lower().strip()
-            s2 = major_items[j].style.lower().strip()
+            it1 = major_items[i]
+            it2 = major_items[j]
+            s1 = it1.style.lower().strip()
+            s2 = it2.style.lower().strip()
+
+            # Cross-role footwear vs dress / formal suit clash
+            sub1 = it1.sub_category.lower().strip()
+            sub2 = it2.sub_category.lower().strip()
+            is_shoe_formal_clash = (
+                (it1.slot_role == OutfitSlotRole.FOOTWEAR and sub1 in {"sneakers", "running_shoes", "slides"} and (it2.slot_role == OutfitSlotRole.DRESS or it2.category == WardrobeCategory.DRESS) and s2 in {"formal", "luxury"}) or
+                (it2.slot_role == OutfitSlotRole.FOOTWEAR and sub2 in {"sneakers", "running_shoes", "slides"} and (it1.slot_role == OutfitSlotRole.DRESS or it1.category == WardrobeCategory.DRESS) and s1 in {"formal", "luxury"})
+            )
+            if is_shoe_formal_clash:
+                pair_scores.append(0.25)
+                continue
+
+            # Advisor example: Slides / flip-flops with formal suit / trousers -> Low (0.20)
+            is_shoe_suit_clash = (
+                (it1.slot_role == OutfitSlotRole.FOOTWEAR and sub1 in {"slides", "flip_flops"} and s2 in {"formal", "luxury"}) or
+                (it2.slot_role == OutfitSlotRole.FOOTWEAR and sub2 in {"slides", "flip_flops"} and s1 in {"formal", "luxury"})
+            )
+            if is_shoe_suit_clash:
+                pair_scores.append(0.20)
+                continue
+
+            # Advisor example: Hoodie oversized + Formal blazer -> Low/Medium (0.35)
+            is_hoodie_blazer_clash = (
+                ("hoodie" in sub1 and "blazer" in sub2 and s2 in {"formal", "luxury", "smart_casual"}) or
+                ("hoodie" in sub2 and "blazer" in sub1 and s1 in {"formal", "luxury", "smart_casual"})
+            )
+            if is_hoodie_blazer_clash:
+                pair_scores.append(0.35)
+                continue
+
             if s1 == s2:
                 pair_scores.append(1.00)
             elif (s1, s2) in STYLE_PAIR_SCORES:
@@ -290,79 +347,245 @@ def calculate_weather_score(
     return round(final_score, 4)
 
 
-# --- 6. PATTERN & PROPORTION SCORING ---
+# --- 6. PROPORTION BALANCE & PATTERN SCORING ---
 
-def calculate_pattern_proportion_score(
+def _derive_silhouette(item: OutfitItemSlot) -> int:
+    """Derive silhouette level (1-5) with intelligent fallback from fit/sub_category/name."""
+    sil = getattr(item, "silhouette_level", 3)
+    fit = (item.fit or "").lower().strip()
+    sub = (item.sub_category or "").lower().strip()
+    name = (item.name or "").lower().strip()
+
+    if sil != 3:
+        return sil
+
+    # Fallback derivation if silhouette was default 3
+    if any(k in sub or k in name or k in fit for k in ["oversized", "baggy"]):
+        return 5
+    if any(k in sub or k in name or k in fit for k in ["relaxed", "loose", "wide"]):
+        return 4
+    if any(k in fit for k in ["slim"]):
+        return 2
+    if any(k in fit for k in ["skinny", "tight"]):
+        return 1
+    if "hoodie" in sub:
+        return 4
+    return 3
+
+
+def _derive_length(item: OutfitItemSlot, default_len: str = "hip") -> str:
+    """Derive garment length (cropped, waist, hip, long) with fallback from sub_category/name."""
+    length = getattr(item, "length", "").lower().strip()
+    if length and length not in {"unknown", "none"}:
+        return length
+
+    sub = (item.sub_category or "").lower().strip()
+    name = (item.name or "").lower().strip()
+
+    if any(k in sub or k in name for k in ["crop", "cropped"]):
+        return "cropped"
+    if any(k in sub or k in name for k in ["trench", "long_coat", "overcoat", "maxi"]):
+        return "long"
+    if any(k in sub or k in name for k in ["shorts", "mini_skirt", "mini"]):
+        return "cropped"
+
+    return default_len
+
+
+def calculate_proportion_score(
     items: list[OutfitItemSlot],
     target_style: str | None = None,
 ) -> tuple[float, list[str]]:
-    """Calculate pattern and proportion score according to Section 7.
+    """Calculate deterministic proportion balance and pattern compatibility score.
 
-    Starts at 1.0, subtracts penalties, and emits 'fit_unknown' if fit metadata is missing.
-    Oversized exception applies ONLY when target_style is 'streetwear'.
+    Applies the Advisor's 5 Proportion Archetypes:
+    1. Harmonious Contrast (Top vs Bottom):
+       - Tight top (1-2) + Loose bottom (3-5) -> Golden proportion (1.00).
+       - Loose top (4-5) + Fitted/Regular bottom (2-3) -> Classic balance (1.00).
+    2. Vertical Elongation:
+       - Cropped/waist top + Long bottom -> Leg-lengthening bonus (1.00).
+    3. Balanced Standard:
+       - Regular top (3) + Regular bottom (3) -> Clean standard balance (0.90).
+    4. Layered Proportion (Outerwear + Top + Bottom / Dress):
+       - Cropped jacket over long bottom/dress -> Enhances vertical ratio (+0.05).
+       - Long outerwear + long bottom/dress -> Elegant vertical drape (+0.05).
+       - Long outerwear + cropped bottom -> Disproportionate shortening (-0.10).
+       - 3-Layer bulk trap (Oversized outerwear + loose top + baggy pants) -> (-0.15) unless streetwear.
+    5. Clashing Penalties:
+       - Extreme loose (Top 5 + Bottom 5) -> -0.15 unless target_style is 'streetwear'.
+       - Extreme tight (Top 1 + Bottom 1) -> -0.20 unless activewear/sport.
+       - Long top (long) + Cropped bottom -> -0.10 penalty (shortens legs).
+       - Heavily patterned items beyond the first: -0.30 each.
+       - Patterned top + patterned bottom: additional -0.20.
     """
     major_items = _get_major_items(items)
     warnings: list[str] = []
     if not major_items:
         return 1.0, warnings
 
-    penalties = 0.0
-
-    # Check for missing fit metadata
+    # 1. Check for missing fit metadata
     for item in major_items:
         if not item.fit or item.fit.lower().strip() in {"", "unknown", "none"}:
             if "fit_unknown" not in warnings:
                 warnings.append("fit_unknown")
 
-    # Heavily patterned items beyond the first: -0.30 each
+    # 2. Pattern Clashes
+    pattern_penalties = 0.0
     patterned_items = [
         item for item in major_items
         if item.pattern.lower().strip() not in {"solid", "", "none"}
     ]
     if len(patterned_items) > 1:
-        penalties += 0.30 * (len(patterned_items) - 1)
+        pattern_penalties += 0.30 * (len(patterned_items) - 1)
 
-    # Patterned top plus patterned bottom: additional -0.20
     tops = [item for item in items if item.slot_role == OutfitSlotRole.TOP]
     bottoms = [item for item in items if item.slot_role == OutfitSlotRole.BOTTOM]
+    dresses = [item for item in items if item.slot_role == OutfitSlotRole.DRESS]
+    outerwears = [item for item in items if item.slot_role == OutfitSlotRole.OUTERWEAR]
+
     if tops and bottoms:
         top_patterned = tops[0].pattern.lower().strip() not in {"solid", "", "none"}
         bottom_patterned = bottoms[0].pattern.lower().strip() not in {"solid", "", "none"}
         if top_patterned and bottom_patterned:
-            penalties += 0.20
+            pattern_penalties += 0.20
 
-    # Oversized top plus oversized/wide bottom: -0.15 unless TARGET style is streetwear
     target_style_lower = target_style.lower().strip() if target_style else ""
     is_streetwear = (target_style_lower == "streetwear")
-    if tops and bottoms and not is_streetwear:
-        top_oversized = tops[0].fit.lower().strip() in {"oversized", "baggy"}
-        bottom_oversized = bottoms[0].fit.lower().strip() in {"oversized", "wide", "baggy"}
-        if top_oversized and bottom_oversized:
-            penalties += 0.15
+    is_sport = (
+        target_style_lower in {"sporty", "activewear"}
+        or any("sport" in it.functional_flags for it in items)
+    )
 
-    score = max(0.0, min(1.0, 1.0 - penalties))
-    return round(score, 4), warnings
+    base_prop = 1.00
+
+    if tops and bottoms:
+        top = tops[0]
+        bot = bottoms[0]
+
+        top_sil = _derive_silhouette(top)
+        bot_sil = _derive_silhouette(bot)
+        top_len = _derive_length(top, default_len="hip")
+        bot_len = _derive_length(bot, default_len="long")
+
+        top_fit = (top.fit or "").lower().strip()
+        bot_fit = (bot.fit or "").lower().strip()
+
+        is_both_loose = (
+            (top_sil >= 5 and bot_sil >= 4)
+            or (top_sil >= 4 and bot_sil >= 5)
+            or (top_fit in {"oversized", "baggy"} and bot_fit in {"oversized", "wide", "baggy"})
+        )
+        is_both_tight = (
+            (top_sil <= 1 and bot_sil <= 1)
+            or (top_fit in {"skinny", "tight"} and bot_fit in {"skinny", "tight"})
+        )
+
+        # Base proportion archetype evaluation
+        if is_both_loose:
+            base_prop = 1.00 if is_streetwear else 0.85
+        elif is_both_tight:
+            base_prop = 1.00 if is_sport else 0.80
+        elif top_sil <= 2 and bot_sil >= 3:
+            # Fitted top + Wide/Relaxed bottom -> Golden proportion
+            base_prop = 1.00
+        elif top_sil >= 4 and bot_sil in {2, 3}:
+            # Loose/Oversized top + Fitted/Regular bottom -> Classic balance
+            base_prop = 1.00
+        elif top_sil == 3 and bot_sil == 3:
+            # Standard regular balance
+            base_prop = 1.00
+
+        # Vertical Elongation
+        if top_len == "long" and bot_len == "cropped":
+            # Penalty for long top over cropped bottom (shortens legs)
+            base_prop = max(0.0, base_prop - 0.10)
+
+        # Layered Proportion evaluation when Outerwear is worn with Top & Bottom
+        if outerwears:
+            out = outerwears[0]
+            out_sil = _derive_silhouette(out)
+            out_len = _derive_length(out, default_len="hip")
+
+            # 3-Layer bulk trap: outerwear >= 5, top >= 4, bottom >= 5
+            if out_sil >= 5 and top_sil >= 4 and bot_sil >= 5 and not is_streetwear:
+                base_prop = max(0.0, base_prop - 0.15)
+            elif out_len == "long" and bot_len == "cropped":
+                base_prop = max(0.0, base_prop - 0.10)
+
+    elif dresses:
+        dress = dresses[0]
+        dress_sil = _derive_silhouette(dress)
+        dress_len = _derive_length(dress, default_len="long")
+
+        if outerwears:
+            out = outerwears[0]
+            out_sil = _derive_silhouette(out)
+            out_len = _derive_length(out, default_len="hip")
+
+            if dress_sil >= 5 and out_sil >= 5 and not is_streetwear:
+                base_prop = 0.85
+            elif out_len == "long" and dress_len == "cropped":
+                base_prop = 0.85
+            else:
+                base_prop = 1.00
+        else:
+            base_prop = 1.00
+
+    final_prop = max(0.0, min(1.0, base_prop - pattern_penalties))
+    return round(final_prop, 4), warnings
 
 
-# --- 7. COMPOSITE FASHION SCORE & TIE-BREAKING ---
+def calculate_pattern_proportion_score(
+    items: list[OutfitItemSlot],
+    target_style: str | None = None,
+) -> tuple[float, list[str]]:
+    """Backward-compatible alias for calculate_proportion_score."""
+    return calculate_proportion_score(items, target_style)
+
+
+# --- 7. TIER-2 OUTFIT AESTHETIC SCORE ---
+
+def calculate_aesthetic_score(
+    items: list[OutfitItemSlot],
+    target_style: str | None = None,
+) -> tuple[float, dict[str, float], list[str]]:
+    """Calculate intrinsic Tier-2 Outfit Aesthetic Score (0.0 to 1.0, equivalent to 0-100).
+
+    AestheticScore = 0.40 * ColorHarmony + 0.35 * ProportionBalance + 0.25 * StyleCompatibility
+    Completely independent of external weather or user situation.
+    """
+    color_score = calculate_color_score(items)
+    proportion_score, warnings = calculate_proportion_score(items, target_style)
+    style_score = calculate_style_score(items)
+
+    score = 0.40 * color_score + 0.35 * proportion_score + 0.25 * style_score
+    final_score = round(max(0.0, min(1.0, score)), 4)
+
+    components = {
+        "color_score": color_score,
+        "proportion_score": proportion_score,
+        "style_score": style_score,
+        "aesthetic_score": final_score,
+    }
+    return final_score, components, warnings
+
+
+# --- 8. COMPOSITE FASHION SCORE & TIE-BREAKING ---
 
 def calculate_composite_fashion_score(
     items: list[OutfitItemSlot],
     context: StylistContext | None = None,
 ) -> tuple[float, dict[str, float], list[str]]:
-    """Calculate the exact composite fashion score according to Section 8.
-
-    Weights:
-      0.30 * color_score
-      + 0.20 * style_score
-      + 0.20 * formality_score
-      + 0.20 * weather_environment_score
-      + 0.10 * pattern_proportion_score
-    """
+    """Calculate composite fashion score combining Tier-2 Aesthetic with Contextual elements."""
     warnings: list[str] = []
 
-    color_score = calculate_color_score(items)
-    style_score = calculate_style_score(items)
+    target_style = context.style_hints[0] if context and context.style_hints else None
+    aesthetic_score, aest_components, prop_warnings = calculate_aesthetic_score(items, target_style)
+    warnings.extend(prop_warnings)
+
+    color_score = aest_components["color_score"]
+    style_score = aest_components["style_score"]
+    proportion_score = aest_components["proportion_score"]
 
     formality_range = context.target_formality_range if context else [2, 3]
     formality_score = calculate_formality_score(items, formality_range)
@@ -371,16 +594,12 @@ def calculate_composite_fashion_score(
     environment = context.environment if context else None
     weather_score = calculate_weather_score(items, weather_condition, environment)
 
-    target_style = context.style_hints[0] if context and context.style_hints else None
-    pattern_score, pat_warnings = calculate_pattern_proportion_score(items, target_style)
-    warnings.extend(pat_warnings)
-
     composite = (
         0.30 * color_score
         + 0.20 * style_score
         + 0.20 * formality_score
         + 0.20 * weather_score
-        + 0.10 * pattern_score
+        + 0.10 * proportion_score
     )
     final_score = round(max(0.0, min(1.0, composite)), 4)
 
@@ -389,7 +608,9 @@ def calculate_composite_fashion_score(
         "style_score": style_score,
         "formality_score": formality_score,
         "weather_environment_score": weather_score,
-        "pattern_proportion_score": pattern_score,
+        "pattern_proportion_score": proportion_score,
+        "proportion_score": proportion_score,
+        "aesthetic_score": aesthetic_score,
     }
 
     return final_score, components, warnings

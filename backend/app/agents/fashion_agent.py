@@ -239,9 +239,10 @@ def evaluate_and_rank_combinations(
         score, component_scores, warnings = calculate_composite_fashion_score(combo, context)
         all_warnings.extend(warnings)
 
+        aesthetic_score = component_scores.get("aesthetic_score", score)
         evaluated = EvaluatedOutfit(
             items=combo,
-            fashion_score=score,
+            fashion_score=aesthetic_score,
             component_scores=component_scores,
             combination_id=combo_id,
         )

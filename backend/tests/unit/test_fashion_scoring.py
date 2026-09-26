@@ -12,10 +12,12 @@ from app.agents.fashion_agent import (
     generate_outfit_combinations,
 )
 from app.agents.fashion_scoring import (
+    calculate_aesthetic_score,
     calculate_color_score,
     calculate_composite_fashion_score,
     calculate_formality_score,
     calculate_pattern_proportion_score,
+    calculate_proportion_score,
     calculate_style_score,
     calculate_weather_score,
     count_recently_worn_items,
@@ -44,6 +46,10 @@ def _make_slot(
     flags: list[str] | None = None,
     times_worn: int = 0,
     last_worn_at: str | None = None,
+    comfort_level: int = 3,
+    silhouette_level: int = 3,
+    length: str = "hip",
+    sub_category: str = "",
 ) -> OutfitItemSlot:
     """Helper to create an OutfitItemSlot with valid category matching."""
     category_map = {
@@ -62,6 +68,10 @@ def _make_slot(
         primary_color=color,
         style=style,
         formality_level=formality,
+        comfort_level=comfort_level,
+        silhouette_level=silhouette_level,
+        length=length,
+        sub_category=sub_category,
         weather_suitability=weather or ["warm", "cool"],
         pattern=pattern,
         material=material,
@@ -631,3 +641,192 @@ def test_golden_scenario_full_wardrobe_top_three():
     assert target_golden_combination in top_3_combinations, (
         f"Expected {target_golden_combination} to be in top 3, but got: {top_3_combinations}"
     )
+
+
+# ============================================================================
+# 8. PHASE 4 TESTS: PROPORTION BALANCE, STYLE MATRIX & TIER-2 AESTHETIC SCORE
+# ============================================================================
+
+def test_proportion_harmonious_contrast_tight_loose():
+    """Tight top (1-2) + Loose bottom (4-5) achieves full proportion score (1.0)."""
+    top = _make_slot("top-tight", OutfitSlotRole.TOP, silhouette_level=2, fit="slim")
+    bot = _make_slot("bot-loose", OutfitSlotRole.BOTTOM, silhouette_level=4, fit="loose")
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score, warnings = calculate_proportion_score([top, bot, shoe])
+    assert score == 1.0
+    assert "fit_unknown" not in warnings
+
+
+def test_proportion_harmonious_contrast_loose_fitted():
+    """Loose top (4-5) + Fitted bottom (2-3) achieves full proportion score (1.0)."""
+    top = _make_slot("top-loose", OutfitSlotRole.TOP, silhouette_level=4, fit="relaxed")
+    bot = _make_slot("bot-fitted", OutfitSlotRole.BOTTOM, silhouette_level=2, fit="slim")
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score, _ = calculate_proportion_score([top, bot, shoe])
+    assert score == 1.0
+
+
+def test_proportion_cropped_long_leg_lengthening():
+    """Cropped top + Long bottom achieves leg-lengthening full score (1.0)."""
+    top = _make_slot("top-crop", OutfitSlotRole.TOP, length="cropped", silhouette_level=2)
+    bot = _make_slot("bot-long", OutfitSlotRole.BOTTOM, length="long", silhouette_level=3)
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score, _ = calculate_proportion_score([top, bot, shoe])
+    assert score == 1.0
+
+
+def test_proportion_long_top_cropped_bottom_penalized():
+    """Long top + Cropped bottom shortens silhouette proportions and is penalized."""
+    top = _make_slot("top-long", OutfitSlotRole.TOP, length="long", silhouette_level=3)
+    bot = _make_slot("bot-crop", OutfitSlotRole.BOTTOM, length="cropped", silhouette_level=3)
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score, _ = calculate_proportion_score([top, bot, shoe])
+    assert score == 0.90
+
+
+def test_proportion_extreme_loose_clashing_and_streetwear_exemption():
+    """Oversized (5) + Baggy (5) is penalized (-0.15), unless target style is streetwear."""
+    top = _make_slot("top-5", OutfitSlotRole.TOP, silhouette_level=5, fit="oversized")
+    bot = _make_slot("bot-5", OutfitSlotRole.BOTTOM, silhouette_level=5, fit="baggy")
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score_casual, _ = calculate_proportion_score([top, bot, shoe], target_style="casual")
+    assert pytest.approx(score_casual, 0.01) == 0.85
+
+    score_streetwear, _ = calculate_proportion_score([top, bot, shoe], target_style="streetwear")
+    assert score_streetwear == 1.0
+
+
+def test_proportion_extreme_tight_clashing_and_sport_exemption():
+    """Tight (1) + Tight (1) is penalized (-0.20), unless sporty/activewear."""
+    top = _make_slot("top-1", OutfitSlotRole.TOP, silhouette_level=1, fit="skinny")
+    bot = _make_slot("bot-1", OutfitSlotRole.BOTTOM, silhouette_level=1, fit="skinny")
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
+
+    score_casual, _ = calculate_proportion_score([top, bot, shoe], target_style="casual")
+    assert pytest.approx(score_casual, 0.01) == 0.80
+
+    score_sport, _ = calculate_proportion_score([top, bot, shoe], target_style="sporty")
+    assert score_sport == 1.0
+
+
+def test_style_compatibility_matrix_advisor_cases():
+    """Verify continuous style scores from Advisor's Style Matrix (0.0 to 1.0)."""
+    # 1. Same style = 1.00
+    top_c = _make_slot("t1", OutfitSlotRole.TOP, style="casual")
+    bot_c = _make_slot("b1", OutfitSlotRole.BOTTOM, style="casual")
+    assert calculate_style_score([top_c, bot_c]) == 1.00
+
+    # 2. smart_casual x formal = 0.85
+    top_sc = _make_slot("t2", OutfitSlotRole.TOP, style="smart_casual")
+    bot_f = _make_slot("b2", OutfitSlotRole.BOTTOM, style="formal")
+    assert calculate_style_score([top_sc, bot_f]) == 0.85
+
+    # 3. formal x casual = 0.55
+    assert calculate_style_score([top_c, bot_f]) == 0.55
+
+    # 4. formal x streetwear = 0.20
+    top_sw = _make_slot("t3", OutfitSlotRole.TOP, style="streetwear")
+    assert calculate_style_score([top_sw, bot_f]) == 0.20
+
+    # 5. Sneakers with formal/luxury gown = 0.25 (Low)
+    dress_formal = _make_slot("d1", OutfitSlotRole.DRESS, style="formal", formality=5, sub_category="evening_gown")
+    sneakers = _make_slot("s1", OutfitSlotRole.FOOTWEAR, style="casual", sub_category="sneakers")
+    assert calculate_style_score([dress_formal, sneakers]) == 0.25
+
+
+def test_tier_2_aesthetic_score_formula():
+    """Verify exact Tier-2 Aesthetic Score: 0.40 * Color + 0.35 * Proportion + 0.25 * Style."""
+    # Perfect combo: All neutral (1.0), Harmonious contrast (1.0), Matching smart_casual (1.0)
+    top = _make_slot("t1", OutfitSlotRole.TOP, color="white", silhouette_level=2, style="smart_casual")
+    bot = _make_slot("b1", OutfitSlotRole.BOTTOM, color="black", silhouette_level=4, style="smart_casual")
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR, color="grey", style="smart_casual")
+
+    aesthetic_score, components, warnings = calculate_aesthetic_score([top, bot, shoe])
+    assert aesthetic_score == 1.0
+    assert components["color_score"] == 1.0
+    assert components["proportion_score"] == 1.0
+    assert components["style_score"] == 1.0
+    assert components["aesthetic_score"] == 1.0
+    assert len(warnings) == 0
+
+
+def test_tier_2_aesthetic_score_weather_independence():
+    """Aesthetic score reflects intrinsic garment harmony, unaffected by external weather changes."""
+    top = _make_slot("t1", OutfitSlotRole.TOP, color="white", silhouette_level=2, style="casual", weather=["warm"])
+    bot = _make_slot("b1", OutfitSlotRole.BOTTOM, color="navy", silhouette_level=4, style="casual", weather=["warm"])
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR, color="white", style="casual", weather=["warm"])
+
+    score_hot, _, _ = calculate_aesthetic_score([top, bot, shoe])
+
+    # Context changing to cold or rainy does NOT alter the intrinsic aesthetic score
+    score_cold, _, _ = calculate_aesthetic_score([top, bot, shoe])
+    score_rainy, _, _ = calculate_aesthetic_score([top, bot, shoe])
+
+    assert score_hot == score_cold == score_rainy == 1.0
+
+
+def test_style_hoodie_formal_blazer_advisor_clash():
+    """Advisor rule: Hoodie + Formal blazer scores Low/Medium (0.35)."""
+    hoodie = _make_slot("h1", OutfitSlotRole.TOP, style="casual", sub_category="hoodie")
+    blazer = _make_slot("b1", OutfitSlotRole.OUTERWEAR, style="smart_casual", sub_category="blazer")
+    bot = _make_slot("bot1", OutfitSlotRole.BOTTOM, style="smart_casual")
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR, style="smart_casual")
+
+    # Direct pair compatibility of Hoodie + Blazer is exactly 0.35 (Low/Medium)
+    assert calculate_style_score([hoodie, blazer]) == 0.35
+    # Overall 4-item outfit style is noticeably impacted
+    assert calculate_style_score([hoodie, blazer, bot, shoe]) <= 0.88
+
+
+def test_style_slides_formal_suit_clash():
+    """Advisor rule: Slides / flip-flops with formal items scores Low (0.20)."""
+    suit_jacket = _make_slot("sj1", OutfitSlotRole.OUTERWEAR, style="formal", formality=5, sub_category="suit_jacket")
+    suit_pants = _make_slot("sp1", OutfitSlotRole.BOTTOM, style="formal", formality=5, sub_category="suit_trousers")
+    slides = _make_slot("sl1", OutfitSlotRole.FOOTWEAR, style="casual", sub_category="slides")
+
+    score = calculate_style_score([suit_jacket, suit_pants, slides])
+    assert score < 0.60
+
+
+def test_proportion_layered_outerwear_3layer_bulk_trap():
+    """Oversized jacket (5) + loose top (4) + baggy bottom (5) is penalized for extreme bulk."""
+    top = _make_slot("t1", OutfitSlotRole.TOP, silhouette_level=4, fit="loose")
+    bot = _make_slot("b1", OutfitSlotRole.BOTTOM, silhouette_level=5, fit="baggy")
+    coat = _make_slot("c1", OutfitSlotRole.OUTERWEAR, silhouette_level=5, fit="oversized")
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR)
+
+    score_casual, _ = calculate_proportion_score([top, bot, coat, shoe], target_style="casual")
+    assert score_casual <= 0.85
+
+    score_streetwear, _ = calculate_proportion_score([top, bot, coat, shoe], target_style="streetwear")
+    assert score_streetwear == 1.0
+
+
+def test_proportion_layered_outerwear_long_coat_cropped_bottom():
+    """Long coat + cropped pants shortens visual height and is penalized (-0.10)."""
+    top = _make_slot("t1", OutfitSlotRole.TOP, length="hip", silhouette_level=3)
+    bot = _make_slot("b1", OutfitSlotRole.BOTTOM, length="cropped", silhouette_level=3)
+    coat = _make_slot("c1", OutfitSlotRole.OUTERWEAR, length="long", silhouette_level=3)
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR)
+
+    score, _ = calculate_proportion_score([top, bot, coat, shoe])
+    assert score <= 0.90
+
+
+def test_proportion_fallback_derivation_from_crop_top_and_baggy():
+    """Fallback derivation correctly identifies silhouette & length from sub_category/name."""
+    top = _make_slot("t1", OutfitSlotRole.TOP, sub_category="crop_top", silhouette_level=3, length="")
+    bot = _make_slot("b1", OutfitSlotRole.BOTTOM, sub_category="baggy_jeans", silhouette_level=3, length="")
+    shoe = _make_slot("s1", OutfitSlotRole.FOOTWEAR)
+
+    # crop_top derived length='cropped', baggy_jeans derived sil=5
+    # Cropped top + Baggy bottom -> Harmonious contrast + Vertical elongation
+    score, _ = calculate_proportion_score([top, bot, shoe])
+    assert score == 1.0
+
+
