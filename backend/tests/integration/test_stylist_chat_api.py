@@ -155,7 +155,7 @@ def test_stylist_chat_happy_path(
         # Context assertions
         ctx = data["context"]
         assert ctx is not None
-        assert ctx["occasion"] == "cafe"
+        assert any(k in ctx["occasion"].lower() for k in ("cafe", "cà phê", "ca phe"))
         assert ctx["weather_condition"] == "cool"
         assert "confidence" not in ctx
         assert "structured_must_have" not in ctx

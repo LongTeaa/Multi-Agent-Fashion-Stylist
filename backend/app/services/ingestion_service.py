@@ -380,21 +380,77 @@ def process_ingestion_batch(
                 except TimeoutError:
                     logger.warning("Vision provider timed out for batch %s crop", batch_id)
                     extraction = VisionExtractionResult(
-                        attributes={"category": "unknown", "style": "casual"},
-                        field_confidence={"category": 0.5, "style": 0.5},
+                        attributes={
+                            "category": "unknown",
+                            "style": "casual",
+                            "comfort_level": 3,
+                            "silhouette_level": 3,
+                            "length": "hip",
+                            "functional_flags": [],
+                        },
+                        field_confidence={
+                            "category": 0.5,
+                            "style": 0.5,
+                            "comfort_level": 0.5,
+                            "silhouette_level": 0.5,
+                            "length": 0.5,
+                        },
                         quality_warnings=["AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."],
                     )
                 except (ProviderError, Exception) as p_err:
                     logger.warning("Vision provider error for batch %s crop: %s", batch_id, p_err)
                     extraction = VisionExtractionResult(
-                        attributes={"category": "unknown", "style": "casual"},
-                        field_confidence={"category": 0.5, "style": 0.5},
+                        attributes={
+                            "category": "unknown",
+                            "style": "casual",
+                            "comfort_level": 3,
+                            "silhouette_level": 3,
+                            "length": "hip",
+                            "functional_flags": [],
+                        },
+                        field_confidence={
+                            "category": 0.5,
+                            "style": 0.5,
+                            "comfort_level": 0.5,
+                            "silhouette_level": 0.5,
+                            "length": 0.5,
+                        },
                         quality_warnings=["AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."],
                     )
 
+                # Normalize proposed fashion domain attributes
+                norm_attrs = dict(extraction.attributes)
+                try:
+                    c_val = int(norm_attrs.get("comfort_level", 3))
+                    norm_attrs["comfort_level"] = max(1, min(5, c_val))
+                except (ValueError, TypeError):
+                    norm_attrs["comfort_level"] = 3
+
+                try:
+                    s_val = int(norm_attrs.get("silhouette_level", 3))
+                    norm_attrs["silhouette_level"] = max(1, min(5, s_val))
+                except (ValueError, TypeError):
+                    norm_attrs["silhouette_level"] = 3
+
+                from app.models.entities import VALID_LENGTH_VALUES
+                raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
+                norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+
+                if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
+                    norm_attrs["functional_flags"] = [
+                        str(f).strip().lower() for f in norm_attrs["functional_flags"] if str(f).strip()
+                    ]
+                else:
+                    norm_attrs["functional_flags"] = []
+
+                norm_conf = dict(extraction.field_confidence)
+                for field_key in ("comfort_level", "silhouette_level", "length"):
+                    if field_key not in norm_conf:
+                        norm_conf[field_key] = 0.85
+
                 # Flag fields with confidence < 0.70
                 low_conf_fields = [
-                    field for field, conf in extraction.field_confidence.items() if conf < 0.70
+                    field for field, conf in norm_conf.items() if conf < 0.70
                 ]
                 if low_conf_fields:
                     add_warning(f"Một số trường có độ tin cậy thấp (< 70%): {', '.join(low_conf_fields)}.")
@@ -409,8 +465,8 @@ def process_ingestion_batch(
                     ingestion_batch_id=batch_id,
                     crop_media_asset_id=crop_asset_id,
                     bounding_box=box_det.box,
-                    proposed_attributes=extraction.attributes,
-                    field_confidence=extraction.field_confidence,
+                    proposed_attributes=norm_attrs,
+                    field_confidence=norm_conf,
                     status=DetectionStatus.PROPOSED,
                 )
                 pending_detections.append(detection)
