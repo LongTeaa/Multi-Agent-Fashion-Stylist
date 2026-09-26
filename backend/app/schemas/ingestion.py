@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from app.models.entities import (
     BoundingBox,
     ConfidenceValue,
@@ -58,10 +58,32 @@ class CustomAttributesUpdate(BaseModel):
     style: str | None = None
     fit: str | None = None
     formality_level: int | None = Field(default=None, ge=1, le=5)
+    comfort_level: int | None = Field(default=None, ge=1, le=5)
+    silhouette_level: int | None = Field(default=None, ge=1, le=5)
+    length: str | None = None
     season: list[str] | None = None
     weather_suitability: list[str] | None = None
     functional_flags: list[str] | None = None
     free_text_tags: list[str] | None = None
+
+    @field_validator("length")
+    @classmethod
+    def validate_length_taxonomy(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        norm = value.strip().lower()
+        from app.models.entities import VALID_LENGTH_VALUES
+        if norm not in VALID_LENGTH_VALUES:
+            allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
+            raise ValueError(f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.")
+        return norm
+
+    @field_validator("functional_flags")
+    @classmethod
+    def validate_functional_flags(cls, values: list[str] | None) -> list[str] | None:
+        if values is None:
+            return None
+        return [v.strip().lower() for v in values if v.strip()]
 
 
 class DetectionConfirmationItem(BaseModel):

@@ -142,6 +142,9 @@ class OutfitItemSlot(BaseModel):
     style: str
     category: WardrobeCategory
     formality_level: int = Field(default=3, ge=1, le=5)
+    comfort_level: int = Field(default=3, ge=1, le=5)
+    silhouette_level: int = Field(default=3, ge=1, le=5)
+    length: str = Field(default="hip")
     weather_suitability: list[str] = Field(default_factory=list)
     pattern: str = Field(default="solid")
     material: str = Field(default="cotton")

@@ -731,6 +731,42 @@ def confirm_ingestion_batch(
                     details={"formality_level": formality_raw},
                 )
 
+            comfort_raw = attrs.get("comfort_level", 3)
+            try:
+                comfort_level = int(comfort_raw)
+                if not (1 <= comfort_level <= 5):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise ValidationError(
+                    message="Độ thoải mái (comfort_level) phải từ 1 đến 5.",
+                    details={"comfort_level": comfort_raw},
+                )
+
+            silhouette_raw = attrs.get("silhouette_level", 3)
+            try:
+                silhouette_level = int(silhouette_raw)
+                if not (1 <= silhouette_level <= 5):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise ValidationError(
+                    message="Dáng tổng thể (silhouette_level) phải từ 1 đến 5.",
+                    details={"silhouette_level": silhouette_raw},
+                )
+
+            raw_len = attrs.get("length")
+            if raw_len:
+                norm_len = str(raw_len).strip().lower()
+                from app.models.entities import VALID_LENGTH_VALUES
+                if norm_len not in VALID_LENGTH_VALUES:
+                    allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
+                    raise ValidationError(
+                        message=f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.",
+                        details={"length": raw_len},
+                    )
+                length_val = norm_len
+            else:
+                length_val = "hip"
+
             wardrobe_item = WardrobeItem(
                 id=item_id,
                 user_id=user_id,
@@ -745,9 +781,12 @@ def confirm_ingestion_batch(
                 style=str(attrs.get("style") or "casual"),
                 fit=str(attrs.get("fit") or "regular"),
                 formality_level=formality_level,
+                comfort_level=comfort_level,
+                silhouette_level=silhouette_level,
+                length=length_val,
                 season=list(attrs.get("season", [])),
                 weather_suitability=list(attrs.get("weather_suitability", [])),
-                functional_flags=list(attrs.get("functional_flags", [])),
+                functional_flags=[str(flag).strip().lower() for flag in attrs.get("functional_flags", []) if str(flag).strip()],
                 free_text_tags=list(attrs.get("free_text_tags", [])),
                 field_confidence=detection.field_confidence,
                 is_active=True,

@@ -27,9 +27,12 @@ def test_build_retrieval_document_normalizes_all_retrieval_attributes() -> None:
     searchable_text, metadata = build_retrieval_document(item)
 
     assert searchable_text == (
-        "top áo polo white navy solid cotton smart_casual regular "
-        "spring cool breathable đi cà phê formality_3"
+        "top áo polo white navy solid cotton smart_casual regular hip "
+        "spring cool breathable đi cà phê formality_3 comfort_3 silhouette_3 length_hip"
     )
     assert metadata["category"] == "top"
     assert metadata["weather_suitability"] == ["Cool"]
     assert metadata["formality_level"] == 3
+    assert metadata["comfort_level"] == 3
+    assert metadata["silhouette_level"] == 3
+    assert metadata["length"] == "hip"

@@ -112,6 +112,28 @@ class RatingSource(StrEnum):
     MANUAL = "manual"
 
 
+# Taxonomy constants for Garment Profile (Khung 5 thuộc tính của Thầy)
+VALID_FUNCTIONAL_FLAGS: frozenset[str] = frozenset({
+    "movement",
+    "outdoor",
+    "rain",
+    "sun",
+    "work",
+    "sport",
+    "protection",
+    "water_resistant",
+    "heavy",
+    "light",
+})
+
+VALID_LENGTH_VALUES: frozenset[str] = frozenset({
+    "cropped",
+    "waist",
+    "hip",
+    "long",
+})
+
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
@@ -291,6 +313,14 @@ class WardrobeItem(SQLModel, table=True):
             "formality_level BETWEEN 1 AND 5",
             name="ck_wardrobe_items_formality_level",
         ),
+        CheckConstraint(
+            "comfort_level BETWEEN 1 AND 5",
+            name="ck_wardrobe_items_comfort_level",
+        ),
+        CheckConstraint(
+            "silhouette_level BETWEEN 1 AND 5",
+            name="ck_wardrobe_items_silhouette_level",
+        ),
         CheckConstraint("times_worn >= 0", name="ck_wardrobe_items_times_worn"),
     )
 
@@ -308,7 +338,10 @@ class WardrobeItem(SQLModel, table=True):
     material: str = Field(max_length=100)
     style: str = Field(max_length=100)
     fit: str = Field(max_length=100)
-    formality_level: int = Field(ge=1, le=5)
+    formality_level: int = Field(default=3, ge=1, le=5)
+    comfort_level: int = Field(default=3, ge=1, le=5)
+    silhouette_level: int = Field(default=3, ge=1, le=5)
+    length: str = Field(default="hip", max_length=50)
     season: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     weather_suitability: list[str] = Field(
         default_factory=list,
