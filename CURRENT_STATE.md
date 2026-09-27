@@ -3,7 +3,7 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 7 — Evaluation and Acceptance (follow-up hardening) |
-| Active task | PR #6 fashion-domain integration review hardening verified and prepared for merge. |
+| Active task | PR #6 fashion-domain integration review hardening verified and merged into `main` (`650c5be`). |
 | Most recently modified files | Context and fashion scoring agents, ingestion taxonomy and migration `0008`, garment-profile tests, wardrobe review UI, data/API/domain specifications, and `CURRENT_STATE.md`. |
 | Latest passing verification command | `py -3.11 -m pytest tests -q` from `backend` (537 passed); `npm run test -- --run` (101 passed), `npm run lint`, `npm run type-check`, and `npm run build` from `frontend` on 2026-09-27. |
 | Next step | Run the formal-versus-hot-weather contrastive demo against the merged application with Gemini, weather, MinIO, and the canonical wardrobe database enabled. |
