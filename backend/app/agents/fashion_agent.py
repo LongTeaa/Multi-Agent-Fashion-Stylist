@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
+
+logger = logging.getLogger(__name__)
 from app.agents.fashion_scoring import (
     calculate_composite_fashion_score,
     count_recently_worn_items,
@@ -285,6 +288,7 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
     combinations = generate_outfit_combinations(candidate_pool)
 
     if not combinations:
+        logger.warning("No complete combinations from candidate pool: %s", {k: len(v) for k, v in candidate_pool.items()})
         return {
             "evaluated_outfits": [],
             "errors": existing_errors + [NO_COMPLETE_OUTFIT_ERROR],
@@ -300,6 +304,7 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
     )
 
     if not top_evaluated:
+        logger.warning("0 evaluated out of %d combos", len(combinations))
         return {
             "evaluated_outfits": [],
             "errors": existing_errors + [NO_COMPLETE_OUTFIT_ERROR],

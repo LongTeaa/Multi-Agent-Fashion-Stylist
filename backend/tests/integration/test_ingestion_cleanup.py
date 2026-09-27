@@ -219,6 +219,7 @@ class TestIngestionCleanupIntegration:
         app.dependency_overrides[get_db_session] = lambda: Session(engine)
         app.dependency_overrides[get_object_storage] = lambda: test_storage
         app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="single_item")
+        app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider()
 
         try:
             client = TestClient(app)

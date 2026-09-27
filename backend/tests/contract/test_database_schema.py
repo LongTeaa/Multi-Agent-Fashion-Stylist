@@ -6,7 +6,7 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import Engine, create_engine, inspect
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel, Session
 
@@ -130,17 +130,29 @@ def test_retrieval_document_migration_backfills_existing_active_items(
 ) -> None:
     alembic_config, engine = migrated_database
     command.downgrade(alembic_config, "0001")
-    user = User(id=str(uuid4()))
-    item = _new_wardrobe_item(user.id)
-    item.is_user_confirmed = True
-    user_id = user.id
-    item_id = item.id
-    primary_color = item.primary_color
-    with Session(engine) as session:
-        session.add(user)
-        session.flush()
-        session.add(item)
-        session.commit()
+    user_id = str(uuid4())
+    item_id = str(uuid4())
+    primary_color = "navy"
+    now_str = utc_now().isoformat()
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO users (id, created_at, updated_at) VALUES (:id, :now, :now)"),
+            {"id": user_id, "now": now_str},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO wardrobe_items ("
+                "id, user_id, category, sub_category, primary_color, pattern, material, style, fit, "
+                "formality_level, season, weather_suitability, functional_flags, free_text_tags, "
+                "field_confidence, is_active, is_user_confirmed, times_worn, created_at, updated_at"
+                ") VALUES ("
+                ":id, :user_id, 'top', 'shirt', :primary_color, 'solid', 'cotton', 'casual', 'regular', "
+                "2, '[]', '[]', '[]', '[]', '{}', 1, 1, 0, :now, :now"
+                ")"
+            ),
+            {"id": item_id, "user_id": user_id, "primary_color": primary_color, "now": now_str},
+        )
 
     command.upgrade(alembic_config, "head")
 

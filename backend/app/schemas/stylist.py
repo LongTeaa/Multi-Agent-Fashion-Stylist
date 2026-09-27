@@ -87,6 +87,7 @@ class StylistContextResponse(BaseModel):
     must_have: list[str] = Field(default_factory=list)
     must_avoid: list[str] = Field(default_factory=list)
     weather_source: str = "default"
+    weight_profile: str | None = None
 
 
 class StylistRecommendationItemResponse(BaseModel):

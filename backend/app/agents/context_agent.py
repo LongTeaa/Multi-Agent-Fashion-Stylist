@@ -188,29 +188,36 @@ def extract_weather(text: str) -> tuple[str, str]:
         if kw in t and not _is_negated(t, kw) and not _is_negated(t, "mưa"):
             return "rainy", "user"
 
-    # 2. Specific cold modifier per API_CONTRACT.md: 'hơi lạnh' -> 'cold'
+    # 2. Strong Hot condition (Explicit hot weather phrases: 'nắng nóng', 'oi bức', 'trời nóng', 'nóng nực', etc.)
+    # Must precede 'cool_kws' because user queries like "trời nắng nóng... ưu tiên mát mẻ" express hot weather + cool clothing preference!
+    strong_hot_kws = ["nắng nóng", "nóng nực", "trời nóng", "oi bức", "nực"]
+    for kw in strong_hot_kws:
+        if kw in t and not _is_negated(t, kw) and not _is_negated(t, "nóng"):
+            return "hot", "user"
+
+    # 3. Specific cold modifier per API_CONTRACT.md: 'hơi lạnh' -> 'cold'
     if ("hơi lạnh" in t or "rất lạnh" in t or "quá lạnh" in t) and not _is_negated(t, "lạnh"):
         return "cold", "user"
 
-    # 3. Cool condition (includes 'se lạnh', 'mát mẻ', etc. before generic 'lạnh')
+    # 4. Cool condition (includes 'se lạnh', 'mát mẻ', etc. before generic 'lạnh')
     cool_kws = ["se lạnh", "se mát", "mát mẻ", "trời mát", "dịu mát", "se se", "mát"]
     for kw in cool_kws:
         if kw in t and not _is_negated(t, kw):
             return "cool", "user"
 
-    # 4. Cold condition: generic 'lạnh', 'rét', 'buốt'
+    # 5. Cold condition: generic 'lạnh', 'rét', 'buốt'
     cold_kws = ["giá rét", "rét", "buốt", "lạnh", "mùa đông"]
     for kw in cold_kws:
         if kw in t and not _is_negated(t, kw) and not _is_negated(t, "lạnh"):
             return "cold", "user"
 
-    # 5. Hot condition
-    hot_kws = ["nắng nóng", "nóng nực", "trời nóng", "trời nắng", "nóng", "nắng", "oi bức", "nực", "mùa hè"]
+    # 6. General Hot condition ('nóng', 'trời nắng', 'nắng', 'mùa hè')
+    hot_kws = ["trời nắng", "nóng", "nắng", "mùa hè"]
     for kw in hot_kws:
         if kw in t and not _is_negated(t, kw) and not _is_negated(t, "nóng") and not _is_negated(t, "nắng"):
             return "hot", "user"
 
-    # 6. Warm condition
+    # 7. Warm condition
     warm_kws = ["ấm áp", "ấm"]
     for kw in warm_kws:
         if kw in t and not _is_negated(t, kw):
@@ -674,6 +681,33 @@ def extract_context_with_providers(
                 current_date=today,
             )
             context = StylistContext.model_validate(provider_payload)
+            # Sanitize must_have and must_avoid from LLM provider
+            valid_must_have: list[str] = []
+            parsed_struct_have: list[GarmentConstraint] = []
+            for item_str in context.must_have:
+                parsed_c = _parse_single_constraint(item_str)
+                if parsed_c is not None:
+                    valid_must_have.append(parsed_c.raw_text or item_str)
+                    parsed_struct_have.append(parsed_c)
+                else:
+                    if item_str.strip() and item_str not in context.vibe_keywords:
+                        context.vibe_keywords.append(item_str.strip())
+
+            valid_must_avoid: list[str] = []
+            parsed_struct_avoid: list[GarmentConstraint] = []
+            for item_str in context.must_avoid:
+                parsed_c = _parse_single_constraint(item_str)
+                if parsed_c is not None:
+                    valid_must_avoid.append(parsed_c.raw_text or item_str)
+                    parsed_struct_avoid.append(parsed_c)
+
+            context = context.model_copy(update={
+                "must_have": valid_must_have,
+                "structured_must_have": parsed_struct_have,
+                "must_avoid": valid_must_avoid,
+                "structured_must_avoid": parsed_struct_avoid,
+            })
+
             if context.occasion:
                 norm_occ = extract_occasion(context.occasion)
                 if norm_occ != "casual" or any(k in context.occasion.lower() for k in ["casual", "đi chơi", "dạo phố", "chill", "ở nhà"]):

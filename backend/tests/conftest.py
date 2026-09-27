@@ -10,8 +10,17 @@ from sqlalchemy import Engine
 
 from app.core.config import get_settings
 from app.core.database import create_database_engine
+from app.main import app
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def clean_dependency_overrides() -> Iterator[None]:
+    try:
+        yield
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture

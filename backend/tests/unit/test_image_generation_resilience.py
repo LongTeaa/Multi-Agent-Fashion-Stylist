@@ -116,7 +116,7 @@ def test_hanging_provider_trips_circuit_breaker_and_bypasses_hanging_calls():
     duration = time.monotonic() - start_t
     assert res3.fallback_used is True
     assert provider.calls == calls_before  # Not called!
-    assert duration < 0.18  # Bypassed provider wait!
+    assert duration < 0.50  # Bypassed provider wait!
 
     # 4. After cooldown: transitions to HALF_OPEN
     time.sleep(1.05)

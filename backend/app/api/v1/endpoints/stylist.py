@@ -68,6 +68,7 @@ def _reconstruct_idempotent_response(
         location_text=ctx_data.get("location_text"),
         environment=ctx_data.get("environment"),
         weather_condition=ctx_data.get("weather_condition"),
+        weight_profile=ctx_data.get("weight_profile"),
     )
 
     recommendations: list[StylistRecommendationResponse] = []
@@ -133,6 +134,7 @@ def _map_context(ctx: Any) -> StylistContextResponse:
         must_have=list(ctx.must_have or []),
         must_avoid=list(ctx.must_avoid or []),
         weather_source=ctx.weather_source or "default",
+        weight_profile=ctx.weight_profile,
     )
 
 
@@ -225,12 +227,12 @@ def stylist_chat(
             user_id,
             errors,
         )
-        raise ProviderError()
+        raise ProviderError(details={"reason": "unmapped_errors", "errors": errors})
 
     ctx = final_state.get("context")
     if ctx is None:
         logger.error("Stylist recommendation completed without context for user %s", user_id)
-        raise ProviderError()
+        raise ProviderError(details={"reason": "missing_context"})
 
     mapped_ctx = _map_context(ctx)
 
@@ -238,7 +240,7 @@ def stylist_chat(
     if ctx.needs_clarification:
         if not ctx.clarification_question or not ctx.clarification_question.strip():
             logger.error("Clarification requested but clarification_question is empty for user %s", user_id)
-            raise ProviderError()
+            raise ProviderError(details={"reason": "empty_clarification"})
         return SuccessResponse(
             data=StylistChatResponseData(
                 request_id=request_id,
@@ -264,7 +266,7 @@ def stylist_chat(
             rec_ids,
             len(ranked_outfits),
         )
-        raise ProviderError()
+        raise ProviderError(details={"reason": "bounds_or_grounding", "grounding_validated": grounding_validated, "rec_ids": rec_ids, "ranked_len": len(ranked_outfits), "errors": final_state.get("errors", [])})
 
     outfit_ids = [o.outfit_id for o in ranked_outfits if o.outfit_id]
     if len(outfit_ids) != len(ranked_outfits):

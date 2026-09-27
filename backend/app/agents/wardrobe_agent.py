@@ -465,8 +465,9 @@ def retrieve_candidate_pool(
                 general_color_hints.append(norm)
                 required_colors.append(norm)
             else:
-                for cat in WardrobeCategory:
-                    targeted_must_have[cat].append(norm)
+                if len(norm.split()) <= 2 and not any(kw in norm.lower() for kw in ["thời tiết", "phù hợp", "trang phục", "quần áo"]):
+                    for cat in WardrobeCategory:
+                        targeted_must_have[cat].append(norm)
 
     if context.structured_must_avoid:
         for c in context.structured_must_avoid:
@@ -488,8 +489,9 @@ def retrieve_candidate_pool(
             if target_cat is not None:
                 targeted_must_avoid[target_cat].append(norm)
             else:
-                for cat in WardrobeCategory:
-                    targeted_must_avoid[cat].append(norm)
+                if len(norm.split()) <= 2 and not any(kw in norm.lower() for kw in ["thời tiết", "phù hợp", "trang phục", "quần áo"]):
+                    for cat in WardrobeCategory:
+                        targeted_must_avoid[cat].append(norm)
 
     formality_min = context.target_formality_range[0] if len(context.target_formality_range) >= 1 else 1
     formality_max = context.target_formality_range[1] if len(context.target_formality_range) >= 2 else 5
