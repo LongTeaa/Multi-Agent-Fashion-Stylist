@@ -174,7 +174,7 @@ class EvaluatedOutfit(BaseModel):
 
     items: list[OutfitItemSlot] = Field(min_length=1)
     fashion_score: float = Field(ge=0.0, le=1.0)
-    component_scores: dict[str, float] = Field(default_factory=dict)
+    component_scores: dict[str, float | str] = Field(default_factory=dict)
     combination_id: str
 
 

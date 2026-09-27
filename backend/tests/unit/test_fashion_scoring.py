@@ -94,8 +94,6 @@ def test_color_all_neutral():
 
     score = calculate_color_score([top, bottom, shoes])
     assert score == 1.0
-
-
 def test_color_navy_as_neutral_in_neutral_combo():
     """Navy behaves as neutral in neutral-base combinations."""
     top = _make_slot("top-1", OutfitSlotRole.TOP, color="white")
@@ -361,9 +359,9 @@ def test_pattern_oversized_exemption_strictly_checks_target_style():
     bot = _make_slot("bot-1", OutfitSlotRole.BOTTOM, style="casual", fit="wide")
     shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR, fit="regular")
 
-    # When target_style is 'smart_casual', penalty -0.15 MUST apply
+    # When target_style is 'smart_casual', the strict 0.55 penalty MUST apply.
     score_formal, _ = calculate_pattern_proportion_score([top, bot, shoe], target_style="smart_casual")
-    assert pytest.approx(score_formal, 0.01) == 0.85
+    assert pytest.approx(score_formal, 0.01) == 0.55
 
     # When target_style is 'streetwear', penalty is exempted -> 1.0
     score_streetwear, _ = calculate_pattern_proportion_score([top, bot, shoe], target_style="streetwear")
@@ -667,7 +665,6 @@ def test_proportion_harmonious_contrast_loose_fitted():
     score, _ = calculate_proportion_score([top, bot, shoe])
     assert score == 1.0
 
-
 def test_proportion_cropped_long_leg_lengthening():
     """Cropped top + Long bottom achieves leg-lengthening full score (1.0)."""
     top = _make_slot("top-crop", OutfitSlotRole.TOP, length="cropped", silhouette_level=2)
@@ -676,8 +673,6 @@ def test_proportion_cropped_long_leg_lengthening():
 
     score, _ = calculate_proportion_score([top, bot, shoe])
     assert score == 1.0
-
-
 def test_proportion_long_top_cropped_bottom_penalized():
     """Long top + Cropped bottom shortens silhouette proportions and is penalized."""
     top = _make_slot("top-long", OutfitSlotRole.TOP, length="long", silhouette_level=3)
@@ -689,26 +684,26 @@ def test_proportion_long_top_cropped_bottom_penalized():
 
 
 def test_proportion_extreme_loose_clashing_and_streetwear_exemption():
-    """Oversized (5) + Baggy (5) is penalized (-0.15), unless target style is streetwear."""
+    """Oversized (5) + Baggy (5) scores 0.55 unless the style is streetwear."""
     top = _make_slot("top-5", OutfitSlotRole.TOP, silhouette_level=5, fit="oversized")
     bot = _make_slot("bot-5", OutfitSlotRole.BOTTOM, silhouette_level=5, fit="baggy")
     shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
 
     score_casual, _ = calculate_proportion_score([top, bot, shoe], target_style="casual")
-    assert pytest.approx(score_casual, 0.01) == 0.85
+    assert pytest.approx(score_casual, 0.01) == 0.55
 
     score_streetwear, _ = calculate_proportion_score([top, bot, shoe], target_style="streetwear")
     assert score_streetwear == 1.0
 
 
 def test_proportion_extreme_tight_clashing_and_sport_exemption():
-    """Tight (1) + Tight (1) is penalized (-0.20), unless sporty/activewear."""
+    """Tight (1) + Tight (1) scores 0.60 unless sporty/activewear."""
     top = _make_slot("top-1", OutfitSlotRole.TOP, silhouette_level=1, fit="skinny")
     bot = _make_slot("bot-1", OutfitSlotRole.BOTTOM, silhouette_level=1, fit="skinny")
     shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR)
 
     score_casual, _ = calculate_proportion_score([top, bot, shoe], target_style="casual")
-    assert pytest.approx(score_casual, 0.01) == 0.80
+    assert pytest.approx(score_casual, 0.01) == 0.60
 
     score_sport, _ = calculate_proportion_score([top, bot, shoe], target_style="sporty")
     assert score_sport == 1.0
@@ -828,5 +823,3 @@ def test_proportion_fallback_derivation_from_crop_top_and_baggy():
     # Cropped top + Baggy bottom -> Harmonious contrast + Vertical elongation
     score, _ = calculate_proportion_score([top, bot, shoe])
     assert score == 1.0
-
-

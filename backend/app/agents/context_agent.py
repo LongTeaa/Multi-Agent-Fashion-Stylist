@@ -760,11 +760,22 @@ def extract_context_with_providers(
                 location=context.location_text,
                 event_date=date.fromisoformat(context.event_date),
             )
+            enriched_functional_tags = list(context.target_functional_tags)
+            if weather.condition == "rainy":
+                enriched_functional_tags.extend(["water_resistant", "rain"])
             context = context.model_copy(
                 update={
                     "weather_condition": weather.condition,
                     "temperature_celsius": weather.temperature_celsius,
                     "weather_source": "api",
+                    "weight_profile": extract_weight_profile(
+                        query,
+                        context.occasion,
+                        weather.condition,
+                    ),
+                    "target_functional_tags": list(
+                        dict.fromkeys(enriched_functional_tags)
+                    ),
                 }
             )
         except Exception:

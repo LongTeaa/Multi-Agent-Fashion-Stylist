@@ -321,6 +321,10 @@ class WardrobeItem(SQLModel, table=True):
             "silhouette_level BETWEEN 1 AND 5",
             name="ck_wardrobe_items_silhouette_level",
         ),
+        CheckConstraint(
+            "length IN ('cropped', 'waist', 'hip', 'long')",
+            name="ck_wardrobe_items_length",
+        ),
         CheckConstraint("times_worn >= 0", name="ck_wardrobe_items_times_worn"),
     )
 

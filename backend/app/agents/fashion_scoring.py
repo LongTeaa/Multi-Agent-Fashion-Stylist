@@ -482,9 +482,9 @@ def calculate_proportion_score(
 
         # Base proportion archetype evaluation
         if is_both_loose:
-            base_prop = 1.00 if is_streetwear else 0.85
+            base_prop = 1.00 if is_streetwear else 0.55
         elif is_both_tight:
-            base_prop = 1.00 if is_sport else 0.80
+            base_prop = 1.00 if is_sport else 0.60
         elif top_sil <= 2 and bot_sil >= 3:
             # Fitted top + Wide/Relaxed bottom -> Golden proportion
             base_prop = 1.00

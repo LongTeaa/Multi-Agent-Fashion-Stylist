@@ -22,35 +22,35 @@ WEIGHT_PROFILES: dict[str, dict[str, float]] = {
     "formal": {
         "formality": 0.30,
         "aesthetic": 0.25,
-        "personal": 0.20,
+        "personal": 0.10,
         "weather_comfort": 0.15,
-        "functional": 0.10,
+        "functional": 0.20,
     },
     # Comfort / Casual Profile: Hot days, cafe with friends, relaxed weekend, travel
-    # Comfort/Weather (30%) prioritized, Formality down to 10%
+    # Combined weather/comfort fit (55%) is prioritized; formality is 10%.
     "comfort": {
-        "weather_comfort": 0.30,
-        "aesthetic": 0.20,
+        "weather_comfort": 0.55,
+        "aesthetic": 0.15,
         "functional": 0.20,
-        "personal": 0.20,
+        "personal": 0.00,
         "formality": 0.10,
     },
     # Active / Outdoor Profile: Motorcycling, outdoor activity, heavy movement, rain
-    # Function (30%) & Comfort (25%) prioritized
+    # Function (30%) and combined weather/comfort fit (45%) are prioritized.
     "active": {
         "functional": 0.30,
-        "weather_comfort": 0.25,
-        "personal": 0.20,
+        "weather_comfort": 0.45,
+        "personal": 0.00,
         "aesthetic": 0.15,
         "formality": 0.10,
     },
     # Balanced Profile: General or unspecified styling request
     "balanced": {
-        "aesthetic": 0.25,
+        "aesthetic": 0.20,
         "formality": 0.20,
         "weather_comfort": 0.20,
         "functional": 0.20,
-        "personal": 0.15,
+        "personal": 0.20,
     },
 }
 
@@ -145,6 +145,10 @@ def calculate_weather_comfort_fit(
 def _derive_item_functional_flags(item: OutfitItemSlot) -> set[str]:
     """Derive implicit functional tags from sub_category and name if missing from explicit flags."""
     flags = set(f.lower().strip() for f in item.functional_flags)
+    if "water_resistant" in flags:
+        flags.add("rain")
+    if "rain" in flags:
+        flags.add("water_resistant")
     sub = (item.sub_category or "").lower().strip()
     name = (item.name or "").lower().strip()
 
@@ -197,7 +201,7 @@ def calculate_context_composite_score(
     aesthetic_score: float,
     personal_fit: float,
     weight_profile: str = "balanced",
-) -> tuple[float, dict[str, float]]:
+) -> tuple[float, dict[str, float | str]]:
     """Synthesize Tier-3 Final Outfit Score using the Dynamic Weight Profile specified by Advisor.
 
     Formula:
@@ -224,7 +228,7 @@ def calculate_context_composite_score(
     )
     final_score_clamped = round(max(0.0, min(1.0, final_score)), 4)
 
-    breakdown = {
+    breakdown: dict[str, float | str] = {
         "formality_fit": formality_fit,
         "weather_comfort_fit": weather_comfort_fit,
         "functional_fit": functional_fit,

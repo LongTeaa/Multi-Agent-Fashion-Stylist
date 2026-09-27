@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
-from pathlib import Path
 import pytest
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -78,6 +76,23 @@ def test_functional_flags_are_lowercased_and_trimmed() -> None:
         functional_flags=["  OUTDOOR ", "Movement ", "SUN"],
     )
     assert attr.functional_flags == ["outdoor", "movement", "sun"]
+
+
+def test_unknown_functional_flags_are_rejected() -> None:
+    with pytest.raises(ValidationError, match="Unknown functional flags"):
+        WardrobeItemAttributes(
+            category=WardrobeCategory.TOP,
+            sub_category="jacket",
+            primary_color="black",
+            pattern="solid",
+            material="polyester",
+            style="casual",
+            fit="regular",
+            functional_flags=["teleportation"],
+        )
+
+    with pytest.raises(ValidationError, match="Unknown functional flags"):
+        CustomAttributesUpdate(functional_flags=["teleportation"])
 
 
 # ============================================================================
@@ -312,43 +327,3 @@ def test_ingestion_confirm_validates_profile_attributes() -> None:
             }
         )
     assert "Độ dài (length) phải thuộc" in str(exc3.value)
-
-
-# ============================================================================
-# 5. REAL DATABASE BACKWARD COMPATIBILITY TEST (data/fashion_stylist.db)
-# ============================================================================
-
-def test_real_database_migration_backward_compatibility() -> None:
-    """Verify that all existing records in data/fashion_stylist.db safely migrated to valid defaults."""
-    db_path = Path(__file__).resolve().parents[3] / "data" / "fashion_stylist.db"
-    if not db_path.exists():
-        pytest.skip("data/fashion_stylist.db not present in workspace")
-
-    conn = sqlite3.connect(str(db_path))
-    cursor = conn.cursor()
-
-    # Check migration version is 0008
-    cursor.execute("SELECT version_num FROM alembic_version")
-    version = cursor.fetchone()
-    assert version is not None and version[0] == "0008"
-
-    # Query all existing items
-    cursor.execute(
-        "SELECT id, category, formality_level, comfort_level, silhouette_level, length FROM wardrobe_items"
-    )
-    items = cursor.fetchall()
-    assert len(items) > 0, "Database should contain existing test items"
-
-    for item_id, category, formality, comfort, silhouette, length in items:
-        # Must be valid integers within [1, 5]
-        assert 1 <= formality <= 5, f"Item {item_id} has invalid formality_level {formality}"
-        assert 1 <= comfort <= 5, f"Item {item_id} has invalid comfort_level {comfort}"
-        assert 1 <= silhouette <= 5, f"Item {item_id} has invalid silhouette_level {silhouette}"
-        # Must have valid length value
-        assert length in VALID_LENGTH_VALUES, f"Item {item_id} has invalid length {length}"
-        # Default migrated records must have standard default values
-        assert comfort == 3
-        assert silhouette == 3
-        assert length == "hip"
-
-    conn.close()

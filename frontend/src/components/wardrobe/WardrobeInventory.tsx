@@ -44,6 +44,7 @@ export const FUNCTION_TAG_NAMES: Record<string, string> = {
   outdoor: 'Ngoài trời',
   sun: 'Chống nắng',
   rain: 'Chống mưa',
+  water_resistant: 'Chống mưa',
   work: 'Công sở',
   sport: 'Thể thao',
   protection: 'Bảo hộ',
@@ -346,7 +347,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                         data-testid={`badge-comfort-${item.id}`}
                         className="text-[11px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/60 font-mono font-medium"
                       >
-                        Thoải mái {item.comfort_level}/5 ⭐
+                        Thoải mái {item.comfort_level}/5
                       </span>
                     )}
                     {(item.silhouette_level !== undefined || item.length) && (
@@ -354,7 +355,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                         data-testid={`badge-silhouette-${item.id}`}
                         className="text-[11px] px-2 py-0.5 rounded-md bg-[#F0EDE6] text-[#4A453E] font-mono"
                       >
-                        📐 {item.silhouette_level ? (SILHOUETTE_NAMES[item.silhouette_level] || `Dáng ${item.silhouette_level}`) : ''}
+                        {item.silhouette_level ? (SILHOUETTE_NAMES[item.silhouette_level] || `Dáng ${item.silhouette_level}`) : ''}
                         {item.silhouette_level && item.length ? ' • ' : ''}
                         {item.length ? (LENGTH_NAMES[item.length] || item.length) : ''}
                       </span>
@@ -485,7 +486,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
 
               {/* Comfort level selection */}
               <div>
-                <label className="block text-xs font-mono text-[#736E65] mb-1">Độ thoải mái (1-5 ⭐)</label>
+                <label className="block text-xs font-mono text-[#736E65] mb-1">Độ thoải mái (1-5)</label>
                 <div className="flex items-center gap-1.5">
                   {[1, 2, 3, 4, 5].map((lvl) => (
                     <button
@@ -499,7 +500,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                           : 'bg-white border-[#E8E5DE] text-stone-400 hover:border-stone-400'
                       }`}
                     >
-                      ★ {lvl}
+                      {lvl}
                     </button>
                   ))}
                 </div>
@@ -548,7 +549,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                     { id: 'movement', label: 'Vận động' },
                     { id: 'outdoor', label: 'Ngoài trời' },
                     { id: 'sun', label: 'Chống nắng' },
-                    { id: 'rain', label: 'Chống mưa' },
+                    { id: 'water_resistant', label: 'Chống mưa' },
                     { id: 'work', label: 'Công sở' },
                     { id: 'sport', label: 'Thể thao' },
                     { id: 'protection', label: 'Bảo hộ' },

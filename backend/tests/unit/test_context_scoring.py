@@ -127,6 +127,52 @@ def test_functional_fit_matches_target_tags():
     assert score_default == 1.0
 
 
+def test_water_resistant_and_rain_flags_are_equivalent_capabilities():
+    raincoat = _make_slot(
+        "raincoat",
+        OutfitSlotRole.OUTERWEAR,
+        flags=["water_resistant"],
+    )
+
+    assert calculate_functional_fit(
+        [raincoat], target_functional_tags=["water_resistant", "rain"]
+    ) == 1.0
+
+
+def test_weight_profiles_match_the_normative_vectors():
+    assert WEIGHT_PROFILES == {
+        "formal": {
+            "formality": 0.30,
+            "aesthetic": 0.25,
+            "personal": 0.10,
+            "weather_comfort": 0.15,
+            "functional": 0.20,
+        },
+        "comfort": {
+            "weather_comfort": 0.55,
+            "aesthetic": 0.15,
+            "functional": 0.20,
+            "personal": 0.00,
+            "formality": 0.10,
+        },
+        "active": {
+            "functional": 0.30,
+            "weather_comfort": 0.45,
+            "personal": 0.00,
+            "aesthetic": 0.15,
+            "formality": 0.10,
+        },
+        "balanced": {
+            "aesthetic": 0.20,
+            "formality": 0.20,
+            "weather_comfort": 0.20,
+            "functional": 0.20,
+            "personal": 0.20,
+        },
+    }
+    assert all(sum(profile.values()) == pytest.approx(1.0) for profile in WEIGHT_PROFILES.values())
+
+
 # ============================================================================
 # 3. CONTEXT AGENT INTENT & PROFILE DETECTION
 # ============================================================================
@@ -207,6 +253,50 @@ def test_dynamic_weighting_shifts_rankings_between_formal_and_comfort():
     # Breezy cotton set MUST be Rank 1 for hot cafe (comfort wins over pure aesthetic)
     assert ranked_cafe[0].items[0].item_id == "t_breezy"
     assert ranked_cafe[0].rank == 1
+
+
+def test_context_reranking_considers_candidates_beyond_first_five():
+    aesthetic_leaders = [
+        EvaluatedOutfit(
+            items=[
+                _make_slot(
+                    f"cold-{index}",
+                    OutfitSlotRole.TOP,
+                    comfort_level=1,
+                    weather=["cold"],
+                )
+            ],
+            fashion_score=1.0 - index / 100,
+            combination_id=f"cold-{index}",
+        )
+        for index in range(5)
+    ]
+    context_winner = EvaluatedOutfit(
+        items=[
+            _make_slot(
+                "hot-comfort",
+                OutfitSlotRole.TOP,
+                comfort_level=5,
+                weather=["hot"],
+            )
+        ],
+        fashion_score=0.50,
+        combination_id="hot-comfort",
+    )
+    context = StylistContext(
+        occasion="cafe",
+        time_of_day="afternoon",
+        weather_condition="hot",
+        target_formality_range=[2, 3],
+        weight_profile="comfort",
+    )
+
+    ranked, _ = rerank_evaluated_outfits(
+        [*aesthetic_leaders, context_winner],
+        context=context,
+    )
+
+    assert ranked[0].items[0].item_id == "hot-comfort"
 
 
 # ============================================================================

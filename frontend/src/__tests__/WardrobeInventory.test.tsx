@@ -273,7 +273,7 @@ describe('WardrobeInventory Component', () => {
       expect(screen.getByTestId('badge-comfort-item-1')).toBeDefined();
     });
 
-    expect(screen.getByTestId('badge-comfort-item-1').textContent).toContain('Thoải mái 4/5 ⭐');
+    expect(screen.getByTestId('badge-comfort-item-1').textContent).toContain('Thoải mái 4/5');
     expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Tiêu chuẩn');
     expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Ngang hông');
     expect(screen.getByText('#Vận động')).toBeDefined();
@@ -293,7 +293,7 @@ describe('WardrobeInventory Component', () => {
       comfort_level: 5,
       silhouette_level: 4,
       length: 'long',
-      functional_flags: ['movement', 'sun', 'rain'],
+      functional_flags: ['movement', 'sun', 'water_resistant'],
     };
     vi.mocked(api.updateWardrobeItem).mockResolvedValueOnce(updatedItem);
 
@@ -316,8 +316,8 @@ describe('WardrobeInventory Component', () => {
     const lengthSelect = screen.getByTestId('edit-length');
     fireEvent.change(lengthSelect, { target: { value: 'long' } });
 
-    // Toggle rain flag
-    fireEvent.click(screen.getByTestId('edit-flag-rain'));
+    // Toggle water-resistant flag
+    fireEvent.click(screen.getByTestId('edit-flag-water_resistant'));
 
     // Save
     fireEvent.click(screen.getByTestId('save-edit-btn'));
@@ -329,7 +329,7 @@ describe('WardrobeInventory Component', () => {
           comfort_level: 5,
           silhouette_level: 4,
           length: 'long',
-          functional_flags: expect.arrayContaining(['movement', 'sun', 'rain']),
+          functional_flags: expect.arrayContaining(['movement', 'sun', 'water_resistant']),
         })
       );
     });

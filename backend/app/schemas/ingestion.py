@@ -7,6 +7,7 @@ from app.models.entities import (
     ConfidenceValue,
     IngestionStatus,
     InputKind,
+    VALID_FUNCTIONAL_FLAGS,
     WardrobeCategory,
 )
 
@@ -83,7 +84,11 @@ class CustomAttributesUpdate(BaseModel):
     def validate_functional_flags(cls, values: list[str] | None) -> list[str] | None:
         if values is None:
             return None
-        return [v.strip().lower() for v in values if v.strip()]
+        normalized = [v.strip().lower() for v in values if v.strip()]
+        unknown = sorted(set(normalized) - VALID_FUNCTIONAL_FLAGS)
+        if unknown:
+            raise ValueError(f"Unknown functional flags: {', '.join(unknown)}.")
+        return list(dict.fromkeys(normalized))
 
 
 class DetectionConfirmationItem(BaseModel):

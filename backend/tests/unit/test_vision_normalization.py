@@ -501,9 +501,9 @@ class TestFashionDomainVisionIngestion:
         # Functional flags are trimmed, lowercased and filtered
         assert attrs["functional_flags"] == ["movement", "outdoor"]
         # Default confidences supplied
-        assert result.field_confidence["comfort_level"] == 0.85
-        assert result.field_confidence["silhouette_level"] == 0.85
-        assert result.field_confidence["length"] == 0.85
+        assert result.field_confidence["comfort_level"] == 0.50
+        assert result.field_confidence["silhouette_level"] == 0.50
+        assert result.field_confidence["length"] == 0.50
 
     def test_fake_vision_provider_specialized_scenarios(self) -> None:
         p_tshirt = FakeVisionProvider(scenario="oversized_cotton_tshirt")

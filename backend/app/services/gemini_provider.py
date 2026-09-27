@@ -9,7 +9,13 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field, SecretStr, ValidationError
 
-from app.models.entities import BoundingBox, ConfidenceValue, InputKind
+from app.models.entities import (
+    BoundingBox,
+    ConfidenceValue,
+    InputKind,
+    VALID_FUNCTIONAL_FLAGS,
+    VALID_LENGTH_VALUES,
+)
 from app.schemas.common import ProviderError
 from app.services.providers import (
     BoundingBoxDetection,
@@ -364,13 +370,15 @@ class GeminiVisionProvider:
                 except (ValueError, TypeError):
                     attrs["silhouette_level"] = 3
 
-                from app.models.entities import VALID_LENGTH_VALUES
                 raw_len = str(attrs.get("length", "hip")).strip().lower()
                 attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
                 if "functional_flags" in attrs and isinstance(attrs["functional_flags"], list):
                     attrs["functional_flags"] = [
-                        str(f).strip().lower() for f in attrs["functional_flags"] if str(f).strip()
+                        normalized
+                        for flag in attrs["functional_flags"]
+                        if (normalized := str(flag).strip().lower())
+                        and normalized in VALID_FUNCTIONAL_FLAGS
                     ]
                 else:
                     attrs["functional_flags"] = []
@@ -382,7 +390,7 @@ class GeminiVisionProvider:
                 }
                 for field_key in ("comfort_level", "silhouette_level", "length"):
                     if field_key not in bounded_conf:
-                        bounded_conf[field_key] = ConfidenceValue(0.85)
+                        bounded_conf[field_key] = ConfidenceValue(0.50)
 
                 return VisionExtractionResult(
                     attributes=attrs,

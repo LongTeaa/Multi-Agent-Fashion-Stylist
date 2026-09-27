@@ -27,13 +27,13 @@ from app.models.entities import (
 
 def _seed_contrastive_demo_wardrobe(engine: object, user_id: str) -> dict[str, str]:
     """Seed a specialized wardrobe tailored for contrastive defense demonstration:
-    
+
     Contains:
     1. Formal Suit Top: Blazer/Suit jacket, wool, formality=5, comfort=2, silhouette=3, length=hip
     2. Formal Trouser: Quần tây đen, wool/polyester, formality=5, comfort=2, silhouette=3, length=long
     3. Formal Leather Oxford: Giày da đen, leather, formality=5, comfort=2, silhouette=3
     4. Casual Cotton T-shirt: Áo thun cotton trắng mát, cotton, formality=2, comfort=5, silhouette=4, length=hip
-    5. Casual Linen Shorts: Quần đũi/linen xám mát mẻ, linen, formality=2, comfort=5, silhouette=4, length=short
+    5. Casual Linen Shorts: Quần đũi/linen xám mát mẻ, linen, formality=2, comfort=5, silhouette=4, length=cropped
     6. Casual Minimalist Sneakers: Giày thể thao trắng mềm êm, canvas, formality=2, comfort=5, silhouette=3
     """
     now = datetime.now(timezone.utc)
@@ -212,7 +212,7 @@ def _seed_contrastive_demo_wardrobe(engine: object, user_id: str) -> dict[str, s
             formality_level=2,
             comfort_level=5,
             silhouette_level=4,
-            length="short",
+            length="cropped",
             weather=["hot", "warm"],
             flags=["movement"],
             searchable_text="quần đũi lửng soóc xám linen thoáng khí mát mẻ",
@@ -244,7 +244,7 @@ def test_contrastive_defense_demonstration_scenarios(
     migrated_database: tuple[object, object],
 ) -> None:
     """Rigorous end-to-end integration test demonstrating the Advisor's 3-Tier contrastive behavior:
-    
+
     SCENARIO A (Formal Wedding Banquet):
     - User query: "Tối nay tôi đi dự tiệc cưới trang trọng ở khách sạn, cần chỉn chu lịch thiệp"
     - Triggers: weight_profile = "formal" (Formality: 30%, Aesthetic: 25%, Comfort: 15%)
@@ -253,7 +253,7 @@ def test_contrastive_defense_demonstration_scenarios(
 
     SCENARIO B (Hot Weather Comfort Cafe):
     - User query: "Hôm nay trời nắng nóng 35 độ oi bức, tôi đi cà phê dạo phố ưu tiên thoải mái mát mẻ"
-    - Triggers: weight_profile = "comfort" (Comfort: 30%, Weather: 25%, Aesthetic: 15%, Formality: 10%)
+    - Triggers: weight_profile = "comfort" (WeatherComfort: 55%, Function: 20%, Aesthetic: 15%, Formality: 10%)
     - Top 1 Outfit: Áo thun cotton + Quần đũi linen + Giày thể thao (comfort_level = 5)
     - Mathematical Proof: The casual outfit beats the suit outfit due to the weather-comfort dynamic profile,
       even if the suit possesses high formal aesthetic harmony!

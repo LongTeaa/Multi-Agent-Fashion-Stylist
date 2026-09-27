@@ -4,7 +4,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.entities import ConfidenceValue, VALID_LENGTH_VALUES, WardrobeCategory
+from app.models.entities import (
+    ConfidenceValue,
+    VALID_FUNCTIONAL_FLAGS,
+    VALID_LENGTH_VALUES,
+    WardrobeCategory,
+)
 
 
 class WardrobeItemAttributes(BaseModel):
@@ -34,9 +39,7 @@ class WardrobeItemAttributes(BaseModel):
             raise ValueError(f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.")
         return norm
 
-    @field_validator(
-        "season", "weather_suitability", "functional_flags", "free_text_tags"
-    )
+    @field_validator("season", "weather_suitability", "free_text_tags")
     @classmethod
     def validate_bounded_strings(cls, values: list[str]) -> list[str]:
         normalized = [value.strip().lower() for value in values]
@@ -44,6 +47,15 @@ class WardrobeItemAttributes(BaseModel):
             raise ValueError("List values must contain 1 to 100 characters.")
         if len(normalized) != len(set(normalized)):
             raise ValueError("List values must be unique.")
+        return normalized
+
+    @field_validator("functional_flags")
+    @classmethod
+    def validate_functional_flag_taxonomy(cls, values: list[str]) -> list[str]:
+        normalized = cls.validate_bounded_strings(values)
+        unknown = sorted(set(normalized) - VALID_FUNCTIONAL_FLAGS)
+        if unknown:
+            raise ValueError(f"Unknown functional flags: {', '.join(unknown)}.")
         return normalized
 
 
@@ -84,14 +96,21 @@ class WardrobeItemUpdate(BaseModel):
             raise ValueError(f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.")
         return norm
 
-    @field_validator(
-        "season", "weather_suitability", "functional_flags", "free_text_tags"
-    )
+    @field_validator("season", "weather_suitability", "free_text_tags")
     @classmethod
     def validate_bounded_strings(cls, values: list[str] | None) -> list[str] | None:
         if values is None:
             return None
         return WardrobeItemAttributes.validate_bounded_strings(values)
+
+    @field_validator("functional_flags")
+    @classmethod
+    def validate_functional_flag_taxonomy(
+        cls, values: list[str] | None
+    ) -> list[str] | None:
+        if values is None:
+            return None
+        return WardrobeItemAttributes.validate_functional_flag_taxonomy(values)
 
 
 class WardrobeItemResponseData(BaseModel):

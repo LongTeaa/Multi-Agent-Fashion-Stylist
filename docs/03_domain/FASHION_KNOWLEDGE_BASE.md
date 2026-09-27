@@ -36,18 +36,20 @@ Mỗi món đồ trong tủ đồ số hóa (`WardrobeItem`) được chuẩn h�
 * **Mức 5 (Oversized / Baggy):** Phom cực rộng, thùng thình, thụng sâu (phong cách hip-hop, streetwear oversized).
 
 ### 2.4 Chiều dài Trang phục (`length`)
-* **Thân trên (Top):** `cropped` (ngắn ngang eo), `hip` (ngang hông - tiêu chuẩn), `long` (dài qua mông), `extra_long` (dáng dài phủ đùi).
-* **Thân dưới (Bottom):** `micro` (siêu ngắn), `short` (ngang đùi), `knee` (ngang gối), `midi` (qua gối đến bắp chân), `long` (chạm mắt cá chân/trùm giày).
-* **Váy/Đầm (Dress):** `mini`, `knee`, `midi`, `maxi`.
+The canonical MVP taxonomy is shared by every garment category: `cropped`, `waist`, `hip`, and `long`. More granular category-specific lengths are outside the MVP and MUST be normalized to one of these four values before persistence.
 
 ### 2.5 Nhãn Chức năng Thực tế (`functional_flags`)
 Danh sách nhãn đa trị phục vụ thích ứng hoàn cảnh vận động thực tế:
 * `sun`: Khả năng chống nắng (UPF, dài tay che phủ).
 * `movement`: Phù hợp vận động, co giãn thoải mái, dễ bước lên xe máy/phương tiện.
 * `outdoor`: Chống bám bụi, bền bỉ ngoài trời.
-* `breathable`: Vải thấm hút mồ hôi, thoáng khí.
+* `rain`: Phù hợp ngữ cảnh mưa.
 * `water_resistant`: Chống nước nhẹ, đi mưa nhỏ.
 * `work`: Đạt quy chuẩn tác phong văn phòng, công sở.
+* `sport`: Phù hợp hoạt động thể thao.
+* `protection`: Có đặc tính bảo vệ hoặc che phủ.
+* `light`: Vải hoặc kết cấu nhẹ.
+* `heavy`: Vải hoặc kết cấu dày, nặng.
 
 ---
 
@@ -57,18 +59,18 @@ Danh sách nhãn đa trị phục vụ thích ứng hoàn cảnh vận động t
 graph TD
     A["Tủ đồ Người dùng (Wardrobe Inventory)"] --> Tier1["TẦNG 1: BỘ LỌC CỨNG (Item & Invariant Level)"]
     Tier1 -->|"Loại bỏ đồ không hợp lệ, phân loại slot role"| ValidOutfits["Tập hợp các bộ đồ hoàn chỉnh (Valid Combos)"]
-    
+
     ValidOutfits --> Tier2["TẦNG 2: ĐIỂM THẨM MỸ NỘI TẠI (Aesthetic Score)
     - Hài hòa Màu sắc: 40%
     - Cân bằng Tỷ lệ Phom dáng: 35%
     - Tương thích Phong cách: 25%"]
-    
+
     Tier2 --> Tier3["TẦNG 3: SỰ PHÙ HỢP NGỮ CẢNH & TRỌNG SỐ ĐỘNG (Context Fit & Dynamic Weights)
     - Nhận diện ý định & kích hoạt Hồ sơ Trọng số:
       * Formal Profile (Trang trọng 30%, Thẩm mỹ 25%, Thoải mái 15%)
-      * Comfort Profile (Thoải mái 30%, Thời tiết 25%, Thẩm mỹ 15%)
-      * Active Profile (Chức năng 30%, Thoải mái 25%, Thời tiết 20%)"]
-      
+      * Comfort Profile (Thời tiết/Thoải mái 55%, Chức năng 20%, Thẩm mỹ 15%)
+      * Active Profile (Chức năng 30%, Thời tiết/Thoải mái 45%, Thẩm mỹ 15%)"]
+
     Tier3 --> FinalRanking["Xếp hạng Top 1, Top 2, Top 3 & Lời giải thích chuyên môn (VI)"]
 ```
 
@@ -114,9 +116,11 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 | Hồ sơ Trọng số (Profile) | Hoàn cảnh kích hoạt tiêu biểu | $w_{\text{formality}}$ | $w_{\text{comfort}}$ | $w_{\text{func}}$ | $w_{\text{aest}}$ | $w_{\text{pers}}$ |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Formal Profile** | Hội nghị, tiệc cưới, phỏng vấn, lễ kỷ niệm | **0.30** | 0.15 | 0.20 | **0.25** | 0.10 |
-| **Comfort Profile** | Cà phê dạo phố, du lịch, ngày nắng nóng oi bức | 0.10 | **0.30** (Weather: 0.25) | 0.20 | 0.15 | 0.10 |
-| **Active Profile** | Chơi thể thao, đi xe máy, di chuyển ngoài trời | 0.10 | 0.25 | **0.30** | 0.15 | 0.10 |
+| **Comfort Profile** | Cà phê dạo phố, du lịch, ngày nắng nóng oi bức | 0.10 | **0.55** | 0.20 | 0.15 | 0.00 |
+| **Active Profile** | Chơi thể thao, đi xe máy, di chuyển ngoài trời | 0.10 | **0.45** | **0.30** | 0.15 | 0.00 |
 | **Balanced Profile** | Yêu cầu chung chung không nêu rõ ưu tiên | 0.20 | 0.20 | 0.20 | 0.20 | 0.20 |
+
+`WeatherComfortFit` is one combined score, so the comfort and weather shares from the advisor examples are aggregated into a single normalized weight. Every profile MUST sum to `1.00`.
 
 ---
 

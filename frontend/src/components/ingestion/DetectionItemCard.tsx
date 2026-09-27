@@ -131,15 +131,15 @@ const LENGTHS = [
 ];
 
 const FUNCTIONAL_FLAGS = [
-  { value: 'movement', label: '🏃 Vận động / Co giãn' },
-  { value: 'outdoor', label: '🏕️ Dã ngoại / Ngoài trời' },
-  { value: 'sun', label: '☀️ Chống nắng' },
-  { value: 'rain', label: '🌧️ Chống mưa / Nước' },
-  { value: 'work', label: '💼 Đi làm / Công sở' },
-  { value: 'sport', label: '⚽ Thể thao' },
-  { value: 'protection', label: '🛡️ Bảo hộ / Giữ nhiệt' },
-  { value: 'light', label: '🪶 Siêu nhẹ / Thoáng' },
-  { value: 'heavy', label: '🧥 Dày ấm / Nặng' },
+  { value: 'movement', label: 'Vận động / Co giãn' },
+  { value: 'outdoor', label: 'Dã ngoại / Ngoài trời' },
+  { value: 'sun', label: 'Chống nắng' },
+  { value: 'water_resistant', label: 'Chống mưa / Nước' },
+  { value: 'work', label: 'Đi làm / Công sở' },
+  { value: 'sport', label: 'Thể thao' },
+  { value: 'protection', label: 'Bảo hộ / Giữ nhiệt' },
+  { value: 'light', label: 'Siêu nhẹ / Thoáng' },
+  { value: 'heavy', label: 'Dày ấm / Nặng' },
 ];
 
 const COMFORT_LABELS: Record<number, string> = {
@@ -528,7 +528,7 @@ export function DetectionItemCard({
                 <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
                   Độ thoải mái (Comfort):{' '}
                   <span className="font-bold text-[#9C5234] text-sm sm:text-base">
-                    {attributes.comfort_level ? `${attributes.comfort_level}/5 ⭐` : 'Chưa xác định'}
+                    {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
                   </span>
                 </label>
                 {renderConfidenceBadge('comfort_level')}
@@ -546,7 +546,7 @@ export function DetectionItemCard({
                         : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
                     }`}
                   >
-                    {star}★
+                    {star}
                   </button>
                 ))}
               </div>

@@ -23,6 +23,8 @@ from app.models.entities import (
     MediaKind,
     OrphanMediaCleanup,
     User,
+    VALID_FUNCTIONAL_FLAGS,
+    VALID_LENGTH_VALUES,
     WardrobeCategory,
     WardrobeItem,
     new_uuid,
@@ -432,13 +434,15 @@ def process_ingestion_batch(
                 except (ValueError, TypeError):
                     norm_attrs["silhouette_level"] = 3
 
-                from app.models.entities import VALID_LENGTH_VALUES
                 raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
                 norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
                 if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
                     norm_attrs["functional_flags"] = [
-                        str(f).strip().lower() for f in norm_attrs["functional_flags"] if str(f).strip()
+                        normalized
+                        for flag in norm_attrs["functional_flags"]
+                        if (normalized := str(flag).strip().lower())
+                        and normalized in VALID_FUNCTIONAL_FLAGS
                     ]
                 else:
                     norm_attrs["functional_flags"] = []
@@ -446,7 +450,7 @@ def process_ingestion_batch(
                 norm_conf = dict(extraction.field_confidence)
                 for field_key in ("comfort_level", "silhouette_level", "length"):
                     if field_key not in norm_conf:
-                        norm_conf[field_key] = 0.85
+                        norm_conf[field_key] = 0.50
 
                 # Flag fields with confidence < 0.70
                 low_conf_fields = [
@@ -812,7 +816,6 @@ def confirm_ingestion_batch(
             raw_len = attrs.get("length")
             if raw_len:
                 norm_len = str(raw_len).strip().lower()
-                from app.models.entities import VALID_LENGTH_VALUES
                 if norm_len not in VALID_LENGTH_VALUES:
                     allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
                     raise ValidationError(
@@ -842,7 +845,12 @@ def confirm_ingestion_batch(
                 length=length_val,
                 season=list(attrs.get("season", [])),
                 weather_suitability=list(attrs.get("weather_suitability", [])),
-                functional_flags=[str(flag).strip().lower() for flag in attrs.get("functional_flags", []) if str(flag).strip()],
+                functional_flags=[
+                    normalized
+                    for flag in attrs.get("functional_flags", [])
+                    if (normalized := str(flag).strip().lower())
+                    and normalized in VALID_FUNCTIONAL_FLAGS
+                ],
                 free_text_tags=list(attrs.get("free_text_tags", [])),
                 field_confidence=detection.field_confidence,
                 is_active=True,

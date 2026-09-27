@@ -396,7 +396,7 @@ def rerank_evaluated_outfits(
     reference_time: datetime | None = None,
     max_output: int = 3,
 ) -> tuple[list[RankedOutfit], list[str]]:
-    """Rerank up to 5 evaluated candidates into 1 to 3 final RankedOutfit results.
+    """Rerank the complete bounded Fashion Agent pool into 1 to 3 results.
 
     Formula:
       preference_score = (
@@ -446,18 +446,16 @@ def rerank_evaluated_outfits(
     ]
 
     if has_avoid_rules and clean_pairs:
-        # Inspect the full bounded Fashion pool before selecting at most five
-        # clean candidates for actual reranking.
-        active_pairs = clean_pairs[:5]
+        active_pairs = clean_pairs
         is_relaxed = False
     elif has_avoid_rules and not clean_pairs:
         # Controlled relaxation: every valid candidate violates avoid rules.
         # Relax constraints with warning to avoid empty recommendation.
         warnings.append(AVOID_RELAXATION_WARNING)
-        active_pairs = candidate_pairs[:5]
+        active_pairs = candidate_pairs
         is_relaxed = True
     else:
-        active_pairs = candidate_pairs[:5]
+        active_pairs = candidate_pairs
         is_relaxed = False
 
     scored_candidates: list[tuple[float, float, float, EvaluatedOutfit, list[str]]] = []
