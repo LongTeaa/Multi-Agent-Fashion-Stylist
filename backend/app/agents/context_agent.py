@@ -84,6 +84,7 @@ def is_ambiguous_query(text: str) -> bool:
         "cafe", "cà phê", "công sở", "văn phòng", "cưới", "tiệc", "hẹn",
         "dạo", "phỏng vấn", "date", "party", "interview", "sinh nhật",
         "đi chơi", "cuối tuần", "chill", "ở nhà",
+        "xe máy", "ngoài trời", "thể thao", "vận động", "chạy bộ", "tập gym", "leo núi",
     ])
     if "đi làm" in cleaned and not any(neg in cleaned for neg in ["nghỉ làm", "không đi làm", "chưa đi làm"]):
         has_occasion = True
@@ -294,6 +295,59 @@ def extract_vibe_keywords(text: str) -> list[str]:
         if not any(v != other and v in other for other in vibes):
             filtered_vibes.append(v)
     return list(dict.fromkeys(filtered_vibes))
+
+
+def extract_weight_profile(
+    text: str,
+    occasion: str,
+    weather_condition: str,
+) -> str:
+    """Detect intent and select appropriate Dynamic Context Weight Profile from Advisor.
+
+    Profiles:
+    - 'formal': weddings, interviews, formal events, partner meetings, conferences
+    - 'active': motorcycling, sports, outdoor movement, rain protection
+    - 'comfort': casual cafe, warm/hot days prioritizing comfort/softness
+    - 'balanced': general or neutral queries
+    """
+    t = text.lower()
+
+    # 1. Formal intent
+    if occasion in ("wedding", "interview"):
+        return "formal"
+    if any(k in t for k in ["trang trọng", "hội nghị", "tiệc cưới", "phỏng vấn", "lễ cưới", "gặp đối tác", "sự kiện", "dạ tiệc"]):
+        return "formal"
+
+    # 2. Active / Functional intent
+    if any(k in t for k in ["xe máy", "đi xe máy", "ngoài trời", "vận động", "thể thao", "chạy bộ", "tập gym", "leo núi", "di chuyển nhiều"]):
+        return "active"
+    if weather_condition == "rainy":
+        return "active"
+
+    # 3. Comfort / Casual intent
+    if any(k in t for k in ["thoải mái", "mát mẻ", "tiện lợi", "dễ chịu", "du lịch", "cà phê", "cafe", "dạo phố"]):
+        return "comfort"
+    if weather_condition == "hot" and occasion in ("casual", "cafe"):
+        return "comfort"
+
+    return "balanced"
+
+
+def extract_functional_tags(text: str) -> list[str]:
+    """Extract required functional tags from Vietnamese query (e.g. outdoor, sun, movement, water_resistant)."""
+    t = text.lower()
+    tags: list[str] = []
+
+    if any(k in t for k in ["xe máy", "đi xe máy", "ngoài trời", "phố đi bộ", "sân vườn"]):
+        tags.extend(["outdoor", "movement", "protection"])
+    if any(k in t for k in ["nắng", "trời nắng", "chống nắng", "nắng nóng"]):
+        tags.append("sun")
+    if any(k in t for k in ["mưa", "trời mưa", "mưa rào", "ướt"]):
+        tags.extend(["water_resistant", "rain"])
+    if any(k in t for k in ["vận động", "thể thao", "chạy bộ", "di chuyển nhiều", "đi bộ"]):
+        tags.extend(["movement", "sport"])
+
+    return list(dict.fromkeys(tags))
 
 
 SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]] = [
@@ -544,6 +598,8 @@ def extract_context(
     style_hints = extract_style_hints(norm_query)
     vibe_keywords = extract_vibe_keywords(norm_query)
     must_have, must_avoid, struct_have, struct_avoid = extract_constraints(norm_query)
+    weight_profile = extract_weight_profile(norm_query, occasion, weather_condition)
+    target_functional_tags = extract_functional_tags(norm_query)
 
     # Calibrated confidence scoring based on explicitly stated vs defaulted attributes
     has_explicit_occasion = any(k in norm_query.lower() for k in [
@@ -553,6 +609,7 @@ def extract_context(
         "quán bar", "pub", "club", "hẹn hò", "date", "người yêu", "buổi hẹn",
         "cafe", "cà phê", "quán cafe", "uống cafe", "đi dạo", "dạo phố",
         "đi chơi", "cuối tuần", "chill", "ở nhà",
+        "xe máy", "ngoài trời", "thể thao", "vận động", "chạy bộ", "tập gym", "leo núi",
     ]) or ("đi làm" in norm_query.lower() and not any(neg in norm_query.lower() for neg in ["nghỉ làm", "không đi làm", "chưa đi làm"]))
 
     confidence = 0.95
@@ -578,6 +635,8 @@ def extract_context(
         structured_must_have=struct_have,
         structured_must_avoid=struct_avoid,
         weather_source=weather_source,
+        weight_profile=weight_profile,
+        target_functional_tags=target_functional_tags,
         needs_clarification=False,
         clarification_question=None,
         confidence=confidence,
@@ -647,6 +706,11 @@ def extract_context_with_providers(
         updates["weather_condition"] = fallback.weather_condition
         updates["weather_source"] = "user"
         updates["temperature_celsius"] = fallback.temperature_celsius
+    # Preserve dynamic weight profile and functional tags from deterministic intent analysis
+    if fallback.weight_profile != "balanced" or not getattr(context, "weight_profile", None):
+        updates["weight_profile"] = fallback.weight_profile
+    if fallback.target_functional_tags:
+        updates["target_functional_tags"] = fallback.target_functional_tags
     if updates:
         context = context.model_copy(update=updates)
 

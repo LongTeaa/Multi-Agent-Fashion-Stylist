@@ -99,6 +99,14 @@ class StylistContext(BaseModel):
         default="default",
         description="Source of weather data",
     )
+    weight_profile: Literal["formal", "comfort", "active", "balanced"] = Field(
+        default="balanced",
+        description="Dynamic weighting profile: formal, comfort, active, balanced",
+    )
+    target_functional_tags: list[str] = Field(
+        default_factory=list,
+        description="Target functional requirement tags, e.g. ['outdoor', 'sun', 'movement', 'water_resistant']",
+    )
     client_session_id: str | None = Field(
         default=None,
         description="Client session identifier for feedback cadence suppression",

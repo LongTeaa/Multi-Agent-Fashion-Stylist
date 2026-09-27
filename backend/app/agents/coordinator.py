@@ -382,6 +382,15 @@ def generate_grounded_explanation_vi(
                 f"Độ phù hợp đạt {score_pct}%, giúp bạn có thêm lựa chọn thay đổi dù {composition_str} "
                 f"chưa hoàn toàn đồng nhất với ngữ cảnh."
             )
+    # Advisor Phase 5: Integrate dynamic weight profile rationale
+    profile = getattr(context, "weight_profile", "balanced")
+    profile_reasons = {
+        "formal": "Bộ đồ tôn vinh vẻ trang trọng, chỉn chu và phong thái lịch thiệp chuẩn mực cho sự kiện.",
+        "comfort": "Set đồ tối ưu sự thoải mái với chất liệu thoáng mát, mềm mại, giúp bạn tự tin vận động trong ngày.",
+        "active": "Thiết kế ưu tiên tính cơ động và bảo vệ, hỗ trợ tối đa cho việc di chuyển ngoài trời và đi lại.",
+    }
+    if profile in profile_reasons and score >= 0.65:
+        main_sentence += f" {profile_reasons[profile]}"
 
     explanation = main_sentence
 

@@ -7,6 +7,12 @@ from sqlmodel import Session, select
 
 logger = logging.getLogger(__name__)
 
+from app.agents.context_scoring import (
+    calculate_context_composite_score,
+    calculate_functional_fit,
+    calculate_weather_comfort_fit,
+)
+from app.agents.fashion_scoring import calculate_formality_score
 from app.agents.state import (
     EvaluatedOutfit,
     OutfitItemSlot,
@@ -480,9 +486,33 @@ def rerank_evaluated_outfits(
         )
         pref_score = round(max(0.0, min(1.0, raw_preference)), 4)
 
-        composite = round(
-            max(0.0, min(1.0, 0.60 * cand.fashion_score + 0.40 * pref_score)), 4
-        )
+        if context is not None:
+            # Tier-3 Dynamic Context Weighting (Advisor Architecture)
+            weight_profile = getattr(context, "weight_profile", "balanced")
+            target_formality = context.target_formality_range or [2, 3]
+            weather = context.weather_condition or "warm"
+            env = context.environment
+            target_func_tags = getattr(context, "target_functional_tags", [])
+
+            formality_fit = calculate_formality_score(cand.items, target_formality)
+            weather_comfort_fit = calculate_weather_comfort_fit(cand.items, weather, env)
+            functional_fit = calculate_functional_fit(cand.items, target_func_tags)
+            aesthetic_score = cand.fashion_score
+
+            composite, breakdown = calculate_context_composite_score(
+                formality_fit=formality_fit,
+                weather_comfort_fit=weather_comfort_fit,
+                functional_fit=functional_fit,
+                aesthetic_score=aesthetic_score,
+                personal_fit=pref_score,
+                weight_profile=weight_profile,
+            )
+            cand.component_scores.update(breakdown)
+        else:
+            # Default backward-compatible fallback when context is omitted
+            composite = round(
+                max(0.0, min(1.0, 0.60 * cand.fashion_score + 0.40 * pref_score)), 4
+            )
 
         applied_prefs = style_tags + palette_tags + priority_tags
         scored_candidates.append((composite, cand.fashion_score, pref_score, cand, applied_prefs))
