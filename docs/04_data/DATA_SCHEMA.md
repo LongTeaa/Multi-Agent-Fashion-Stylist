@@ -92,7 +92,8 @@ users
 | `sub_category` | Normalized string |
 | `primary_color`, `secondary_color` | Canonical color; secondary is nullable |
 | `pattern`, `material`, `style`, `fit` | Normalized strings |
-| `formality_level` | Integer 1–5 |
+| `formality_level`, `comfort_level`, `silhouette_level` | Integer 1–5 with database CHECK constraints |
+| `length` | One of `cropped`, `waist`, `hip`, `long` |
 | `season`, `weather_suitability`, `functional_flags` | JSON arrays |
 | `free_text_tags` | User-confirmed JSON array |
 | `field_confidence` | JSON object |

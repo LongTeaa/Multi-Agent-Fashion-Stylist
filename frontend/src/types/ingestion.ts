@@ -20,6 +20,9 @@ export interface FashionAttributes {
   style?: string | null;
   fit?: string | null;
   formality_level?: number;
+  comfort_level?: number;
+  silhouette_level?: number;
+  length?: string | null;
   season?: string[];
   weather_suitability?: string[];
   functional_flags?: string[];

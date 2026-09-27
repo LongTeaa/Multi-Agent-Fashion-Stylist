@@ -21,6 +21,7 @@ _SCALAR_FIELDS = (
     "material",
     "style",
     "fit",
+    "length",
 )
 
 
@@ -34,20 +35,26 @@ def _normalize_text(value: object) -> str:
 def build_retrieval_document(item: WardrobeItem) -> tuple[str, dict[str, object]]:
     """Build the deterministic metadata document used by retrieval implementations."""
     metadata: dict[str, object] = {
-        field: (getattr(item, field).value if hasattr(getattr(item, field), "value") else getattr(item, field))
+        field: (getattr(item, field).value if hasattr(getattr(item, field), "value") else getattr(item, field, None))
         for field in _SCALAR_FIELDS
     }
-    metadata.update({field: list(getattr(item, field)) for field in _LIST_FIELDS})
+    metadata.update({field: list(getattr(item, field, [])) for field in _LIST_FIELDS})
     metadata["formality_level"] = item.formality_level
+    metadata["comfort_level"] = getattr(item, "comfort_level", 3)
+    metadata["silhouette_level"] = getattr(item, "silhouette_level", 3)
+    metadata["length"] = getattr(item, "length", "hip")
 
     tokens: list[str] = []
     for field in _SCALAR_FIELDS:
-        value = metadata[field]
+        value = metadata.get(field)
         if value:
             tokens.append(_normalize_text(value))
     for field in _LIST_FIELDS:
-        tokens.extend(_normalize_text(value) for value in metadata[field])
+        tokens.extend(_normalize_text(value) for value in metadata.get(field, []))
     tokens.append(f"formality_{item.formality_level}")
+    tokens.append(f"comfort_{getattr(item, 'comfort_level', 3)}")
+    tokens.append(f"silhouette_{getattr(item, 'silhouette_level', 3)}")
+    tokens.append(f"length_{getattr(item, 'length', 'hip')}")
     return " ".join(dict.fromkeys(token for token in tokens if token)), metadata
 
 

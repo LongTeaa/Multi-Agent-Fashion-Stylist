@@ -86,7 +86,7 @@ Cancels an unconfirmed batch and schedules its temporary assets for cleanup.
 | PATCH | `/wardrobe/items/{item_id}` | Partial update and retrieval-document refresh |
 | DELETE | `/wardrobe/items/{item_id}` | Soft delete and active-index removal |
 
-An item response MUST include a short-lived media URL, normalized metadata, per-field confidence, `is_user_confirmed`, `times_worn`, and `last_worn_at`.
+An item response MUST include a short-lived media URL, normalized metadata, per-field confidence, `is_user_confirmed`, `times_worn`, and `last_worn_at`. Normalized metadata includes `comfort_level` and `silhouette_level` as integers from 1–5, `length` as `cropped | waist | hip | long`, and canonical `functional_flags`. Create, update, and ingestion-confirmation requests use the same bounds and taxonomy.
 
 ## 4. Stylist Chat API
 
@@ -128,7 +128,8 @@ Response data:
     "vibe_keywords": ["lịch sự nhẹ"],
     "must_have": [],
     "must_avoid": [],
-    "weather_source": "user"
+    "weather_source": "user",
+    "weight_profile": "comfort"
   },
   "recommendations": [
     {

@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 7 — Evaluation and Acceptance (follow-up hardening) |
-| Active task | PR #5 review hardening verified; local legacy SQLite wardrobe imported into the canonical root database with backups. |
-| Most recently modified files | `backend/app/core/database.py`, SQLite merge script and tests, `frontend/next.config.ts`, API contract, live test report, `CURRENT_STATE.md`. |
-| Latest passing verification command | `py -3.11 -m pytest tests -q` from `backend` (497 passed); `npm run test -- --run` (99 passed), `npm run lint`, and `npm run build` from `frontend` on 2026-09-24. |
-| Next step | Verify the merged wardrobe and private images through the UI when MinIO is running; review remaining adversarial audit findings against the current implementation. |
+| Active task | PR #6 fashion-domain integration review hardening verified and prepared for merge. |
+| Most recently modified files | Context and fashion scoring agents, ingestion taxonomy and migration `0008`, garment-profile tests, wardrobe review UI, data/API/domain specifications, and `CURRENT_STATE.md`. |
+| Latest passing verification command | `py -3.11 -m pytest tests -q` from `backend` (537 passed); `npm run test -- --run` (101 passed), `npm run lint`, `npm run type-check`, and `npm run build` from `frontend` on 2026-09-27. |
+| Next step | Run the formal-versus-hot-weather contrastive demo against the merged application with Gemini, weather, MinIO, and the canonical wardrobe database enabled. |
 
 ## Update Rules
 

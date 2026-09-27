@@ -53,6 +53,20 @@ def test_context_provider_and_weather_enrichment_are_injectable():
     assert ctx.weather_source == "api"
 
 
+def test_weather_enrichment_recomputes_profile_and_functional_requirements():
+    ctx, warnings = extract_context_with_providers(
+        "Ngày mai tôi đi làm ở Hà Nội",
+        current_date=date(2026, 9, 12),
+        weather_provider=FakeWeatherProvider("rainy"),
+    )
+
+    assert warnings == []
+    assert ctx.weather_condition == "rainy"
+    assert ctx.weather_source == "api"
+    assert ctx.weight_profile == "active"
+    assert {"rain", "water_resistant"} <= set(ctx.target_functional_tags)
+
+
 def test_fake_context_provider_maps_underspecified_query_to_clarification():
     ctx, warnings = extract_context_with_providers(
         "Mặc gì?",

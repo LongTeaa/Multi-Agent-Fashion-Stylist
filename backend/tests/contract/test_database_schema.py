@@ -6,7 +6,7 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import Engine, create_engine, inspect
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel, Session
 
@@ -130,17 +130,29 @@ def test_retrieval_document_migration_backfills_existing_active_items(
 ) -> None:
     alembic_config, engine = migrated_database
     command.downgrade(alembic_config, "0001")
-    user = User(id=str(uuid4()))
-    item = _new_wardrobe_item(user.id)
-    item.is_user_confirmed = True
-    user_id = user.id
-    item_id = item.id
-    primary_color = item.primary_color
-    with Session(engine) as session:
-        session.add(user)
-        session.flush()
-        session.add(item)
-        session.commit()
+    user_id = str(uuid4())
+    item_id = str(uuid4())
+    primary_color = "navy"
+    now_str = utc_now().isoformat()
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO users (id, created_at, updated_at) VALUES (:id, :now, :now)"),
+            {"id": user_id, "now": now_str},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO wardrobe_items ("
+                "id, user_id, category, sub_category, primary_color, pattern, material, style, fit, "
+                "formality_level, season, weather_suitability, functional_flags, free_text_tags, "
+                "field_confidence, is_active, is_user_confirmed, times_worn, created_at, updated_at"
+                ") VALUES ("
+                ":id, :user_id, 'top', 'shirt', :primary_color, 'solid', 'cotton', 'casual', 'regular', "
+                "2, '[]', '[]', '[]', '[]', '{}', 1, 1, 0, :now, :now"
+                ")"
+            ),
+            {"id": item_id, "user_id": user_id, "primary_color": primary_color, "now": now_str},
+        )
 
     command.upgrade(alembic_config, "head")
 
@@ -149,6 +161,49 @@ def test_retrieval_document_migration_backfills_existing_active_items(
         assert document is not None
         assert document.user_id == user_id
         assert primary_color in document.searchable_text
+
+
+def test_garment_profile_migration_preserves_existing_items_with_defaults(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    alembic_config, engine = migrated_database
+    command.downgrade(alembic_config, "0007")
+    user_id = str(uuid4())
+    now_str = utc_now().isoformat()
+
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO users (id, created_at, updated_at) VALUES (:id, :now, :now)"),
+            {"id": user_id, "now": now_str},
+        )
+        for index in range(16):
+            conn.execute(
+                text(
+                    "INSERT INTO wardrobe_items ("
+                    "id, user_id, category, sub_category, primary_color, pattern, material, style, fit, "
+                    "formality_level, season, weather_suitability, functional_flags, free_text_tags, "
+                    "field_confidence, is_active, is_user_confirmed, times_worn, created_at, updated_at"
+                    ") VALUES ("
+                    ":id, :user_id, 'top', 'shirt', 'white', 'solid', 'cotton', 'casual', 'regular', "
+                    "3, '[]', '[]', '[]', '[]', '{}', 1, 1, 0, :now, :now"
+                    ")"
+                ),
+                {"id": str(uuid4()), "user_id": user_id, "now": now_str},
+            )
+
+    command.upgrade(alembic_config, "head")
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT comfort_level, silhouette_level, length "
+                "FROM wardrobe_items WHERE user_id = :user_id"
+            ),
+            {"user_id": user_id},
+        ).all()
+
+    assert len(rows) == 16
+    assert all(tuple(row) == (3, 3, "hip") for row in rows)
 
 
 def test_retrieval_document_rejects_cross_user_item_reference(
@@ -192,7 +247,10 @@ def test_migration_contains_database_constraints_for_normative_bounds(
         "ck_outfit_recommendations_composite_score",
         "ck_ratings_stars",
         "ck_tryon_renders_duration_ms",
+        "ck_wardrobe_items_comfort_level",
         "ck_wardrobe_items_formality_level",
+        "ck_wardrobe_items_length",
+        "ck_wardrobe_items_silhouette_level",
     } <= constraint_names
 
     foreign_key_names = {

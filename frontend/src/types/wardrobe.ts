@@ -17,6 +17,9 @@ export interface WardrobeItem {
   style: string;
   fit: string;
   formality_level: number;
+  comfort_level: number;
+  silhouette_level: number;
+  length: string;
   season: string[];
   weather_suitability: string[];
   functional_flags: string[];
@@ -44,6 +47,9 @@ export interface WardrobeItemUpdatePayload {
   style?: string;
   fit?: string;
   formality_level?: number;
+  comfort_level?: number;
+  silhouette_level?: number;
+  length?: string;
   season?: string[];
   weather_suitability?: string[];
   functional_flags?: string[];

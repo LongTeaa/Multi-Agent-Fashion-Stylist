@@ -11,6 +11,7 @@ from PIL import Image
 from sqlmodel import Session, select
 
 from app.core.dependencies import (
+    get_context_llm_provider,
     get_db_session,
     get_detector,
     get_image_provider,
@@ -59,6 +60,7 @@ def test_complete_offline_mvp_acceptance_flow(
     app.dependency_overrides[get_object_storage] = lambda: storage
     app.dependency_overrides[get_detector] = lambda: detector
     app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider()
+    app.dependency_overrides[get_context_llm_provider] = lambda: None
     app.dependency_overrides[get_image_provider] = lambda: None
 
     try:

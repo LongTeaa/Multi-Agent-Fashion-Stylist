@@ -99,6 +99,14 @@ class StylistContext(BaseModel):
         default="default",
         description="Source of weather data",
     )
+    weight_profile: Literal["formal", "comfort", "active", "balanced"] = Field(
+        default="balanced",
+        description="Dynamic weighting profile: formal, comfort, active, balanced",
+    )
+    target_functional_tags: list[str] = Field(
+        default_factory=list,
+        description="Target functional requirement tags, e.g. ['outdoor', 'sun', 'movement', 'water_resistant']",
+    )
     client_session_id: str | None = Field(
         default=None,
         description="Client session identifier for feedback cadence suppression",
@@ -142,6 +150,9 @@ class OutfitItemSlot(BaseModel):
     style: str
     category: WardrobeCategory
     formality_level: int = Field(default=3, ge=1, le=5)
+    comfort_level: int = Field(default=3, ge=1, le=5)
+    silhouette_level: int = Field(default=3, ge=1, le=5)
+    length: str = Field(default="hip")
     weather_suitability: list[str] = Field(default_factory=list)
     pattern: str = Field(default="solid")
     material: str = Field(default="cotton")
@@ -163,7 +174,7 @@ class EvaluatedOutfit(BaseModel):
 
     items: list[OutfitItemSlot] = Field(min_length=1)
     fashion_score: float = Field(ge=0.0, le=1.0)
-    component_scores: dict[str, float] = Field(default_factory=dict)
+    component_scores: dict[str, float | str] = Field(default_factory=dict)
     combination_id: str
 
 

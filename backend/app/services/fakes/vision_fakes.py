@@ -132,6 +132,9 @@ class FakeVisionProvider:
                 "style": "smart_casual",
                 "fit": "regular",
                 "formality_level": 3,
+                "comfort_level": 3,
+                "silhouette_level": 3,
+                "length": "hip",
                 "season": ["spring", "summer"],
                 "weather_suitability": ["warm", "cool"],
                 "functional_flags": [],
@@ -146,6 +149,9 @@ class FakeVisionProvider:
                 "style": 0.65,     # < 0.70 flag
                 "fit": 0.80,
                 "formality_level": 0.85,
+                "comfort_level": 0.58,     # < 0.70 flag
+                "silhouette_level": 0.62,  # < 0.70 flag
+                "length": 0.64,            # < 0.70 flag
                 "season": 0.75,
                 "weather_suitability": 0.75,
             }
@@ -166,9 +172,12 @@ class FakeVisionProvider:
                 "style": "smart_casual",
                 "fit": "slim",
                 "formality_level": 3,
+                "comfort_level": 3,
+                "silhouette_level": 2,
+                "length": "long",
                 "season": ["all_year"],
                 "weather_suitability": ["warm", "cool"],
-                "functional_flags": [],
+                "functional_flags": ["movement"],
                 "free_text_tags": ["navy chinos"],
             }
             confidences = {
@@ -180,8 +189,171 @@ class FakeVisionProvider:
                 "style": 0.92,
                 "fit": 0.85,
                 "formality_level": 0.90,
+                "comfort_level": 0.88,
+                "silhouette_level": 0.85,
+                "length": 0.94,
                 "season": 0.90,
                 "weather_suitability": 0.90,
+            }
+            return VisionExtractionResult(
+                attributes=attributes,
+                field_confidence=confidences,
+                quality_warnings=[],
+            )
+
+        if self.scenario == "oversized_cotton_tshirt":
+            attributes = {
+                "category": "top",
+                "sub_category": "t-shirt",
+                "primary_color": "black",
+                "secondary_color": None,
+                "pattern": "graphic",
+                "material": "cotton",
+                "style": "streetwear",
+                "fit": "oversized",
+                "formality_level": 1,
+                "comfort_level": 5,
+                "silhouette_level": 5,
+                "length": "hip",
+                "season": ["spring", "summer"],
+                "weather_suitability": ["hot", "warm"],
+                "functional_flags": ["light", "movement"],
+                "free_text_tags": ["oversized tee", "graphic print"],
+            }
+            confidences = {
+                "category": 0.98,
+                "sub_category": 0.96,
+                "primary_color": 0.97,
+                "pattern": 0.94,
+                "material": 0.92,
+                "style": 0.91,
+                "fit": 0.95,
+                "formality_level": 0.93,
+                "comfort_level": 0.96,
+                "silhouette_level": 0.95,
+                "length": 0.94,
+                "season": 0.92,
+                "weather_suitability": 0.92,
+            }
+            return VisionExtractionResult(
+                attributes=attributes,
+                field_confidence=confidences,
+                quality_warnings=[],
+            )
+
+        if self.scenario == "fitted_formal_dress_shirt":
+            attributes = {
+                "category": "top",
+                "sub_category": "shirt",
+                "primary_color": "white",
+                "secondary_color": None,
+                "pattern": "solid",
+                "material": "cotton_poplin",
+                "style": "formal",
+                "fit": "slim",
+                "formality_level": 5,
+                "comfort_level": 2,
+                "silhouette_level": 1,
+                "length": "hip",
+                "season": ["all_year"],
+                "weather_suitability": ["mild", "cool"],
+                "functional_flags": ["protection"],
+                "free_text_tags": ["formal shirt", "tailored"],
+            }
+            confidences = {
+                "category": 0.99,
+                "sub_category": 0.97,
+                "primary_color": 0.98,
+                "pattern": 0.96,
+                "material": 0.91,
+                "style": 0.95,
+                "fit": 0.94,
+                "formality_level": 0.97,
+                "comfort_level": 0.90,
+                "silhouette_level": 0.93,
+                "length": 0.95,
+                "season": 0.92,
+                "weather_suitability": 0.92,
+            }
+            return VisionExtractionResult(
+                attributes=attributes,
+                field_confidence=confidences,
+                quality_warnings=[],
+            )
+
+        if self.scenario == "cropped_knit_top":
+            attributes = {
+                "category": "top",
+                "sub_category": "knitwear",
+                "primary_color": "beige",
+                "secondary_color": None,
+                "pattern": "ribbed",
+                "material": "wool",
+                "style": "casual",
+                "fit": "slim",
+                "formality_level": 2,
+                "comfort_level": 4,
+                "silhouette_level": 2,
+                "length": "cropped",
+                "season": ["fall", "winter"],
+                "weather_suitability": ["cool", "cold"],
+                "functional_flags": ["movement", "light"],
+                "free_text_tags": ["crop knit", "ribbed sweater"],
+            }
+            confidences = {
+                "category": 0.97,
+                "sub_category": 0.93,
+                "primary_color": 0.95,
+                "pattern": 0.91,
+                "material": 0.89,
+                "style": 0.90,
+                "fit": 0.92,
+                "formality_level": 0.88,
+                "comfort_level": 0.92,
+                "silhouette_level": 0.91,
+                "length": 0.96,
+                "season": 0.90,
+                "weather_suitability": 0.90,
+            }
+            return VisionExtractionResult(
+                attributes=attributes,
+                field_confidence=confidences,
+                quality_warnings=[],
+            )
+
+        if self.scenario == "wide_leg_trousers":
+            attributes = {
+                "category": "bottom",
+                "sub_category": "trousers",
+                "primary_color": "grey",
+                "secondary_color": None,
+                "pattern": "solid",
+                "material": "wool_blend",
+                "style": "smart_casual",
+                "fit": "relaxed",
+                "formality_level": 4,
+                "comfort_level": 4,
+                "silhouette_level": 4,
+                "length": "long",
+                "season": ["fall", "winter", "spring"],
+                "weather_suitability": ["mild", "cool"],
+                "functional_flags": ["movement"],
+                "free_text_tags": ["wide leg", "pleated trousers"],
+            }
+            confidences = {
+                "category": 0.98,
+                "sub_category": 0.95,
+                "primary_color": 0.97,
+                "pattern": 0.95,
+                "material": 0.90,
+                "style": 0.93,
+                "fit": 0.92,
+                "formality_level": 0.94,
+                "comfort_level": 0.91,
+                "silhouette_level": 0.92,
+                "length": 0.95,
+                "season": 0.91,
+                "weather_suitability": 0.91,
             }
             return VisionExtractionResult(
                 attributes=attributes,
@@ -200,9 +372,12 @@ class FakeVisionProvider:
             "style": "smart_casual",
             "fit": "regular",
             "formality_level": 3,
+            "comfort_level": 4,
+            "silhouette_level": 3,
+            "length": "hip",
             "season": ["spring", "summer"],
             "weather_suitability": ["warm", "cool"],
-            "functional_flags": [],
+            "functional_flags": ["light", "movement"],
             "free_text_tags": ["white polo"],
         }
         confidences = {
@@ -214,6 +389,9 @@ class FakeVisionProvider:
             "style": 0.92,
             "fit": 0.88,
             "formality_level": 0.90,
+            "comfort_level": 0.90,
+            "silhouette_level": 0.88,
+            "length": 0.92,
             "season": 0.88,
             "weather_suitability": 0.88,
         }

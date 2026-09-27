@@ -84,4 +84,8 @@ class FakeWeatherProvider:
             raise LookupError("Unknown location.")
         if self.scenario == "provider_error":
             raise RuntimeError("Weather provider failed.")
+        if self.scenario == "rainy":
+            return WeatherContextResult(condition="rainy", temperature_celsius=24.0)
+        if self.scenario == "hot":
+            return WeatherContextResult(condition="hot", temperature_celsius=35.0)
         return WeatherContextResult(condition="cold", temperature_celsius=18.0)

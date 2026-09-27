@@ -11,7 +11,11 @@ from PIL import Image
 from sqlmodel import Session
 
 from app.agents.context_agent import extract_context
-from app.core.dependencies import get_db_session
+from app.core.dependencies import (
+    get_context_llm_provider,
+    get_db_session,
+    get_weather_provider,
+)
 from app.core.seed import GOLDEN_USER_ID, seed_golden_wardrobe
 from app.main import app
 from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
@@ -147,6 +151,8 @@ def test_styling_response_p95_meets_budget(
     _, engine = migrated_database
     seed_golden_wardrobe(engine)
     app.dependency_overrides[get_db_session] = lambda: Session(engine)
+    app.dependency_overrides[get_context_llm_provider] = lambda: None
+    app.dependency_overrides[get_weather_provider] = lambda: None
     durations: list[float] = []
     try:
         client = TestClient(app)
@@ -157,8 +163,8 @@ def test_styling_response_p95_meets_budget(
                 headers={"X-User-Id": GOLDEN_USER_ID},
                 json={"query": "Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?"},
             )
-            durations.append(perf_counter() - started)
             assert response.status_code == 200
+            durations.append(perf_counter() - started)
         p95_seconds = quantiles(durations, n=20)[18]
         print(json.dumps({"styling_response_p95_seconds": round(p95_seconds, 4)}))
         assert p95_seconds <= 5.0
