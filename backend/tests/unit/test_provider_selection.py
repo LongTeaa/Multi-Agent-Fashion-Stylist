@@ -734,3 +734,46 @@ class TestGeminiProviderAdapter:
             vision.extract_attributes(create_test_image_bytes("PNG"))
         assert calls == 1
         assert "400" in str(exc_info.value.message)
+
+    def test_gemini_detector_normalizes_0_to_1000_scale_boxes(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "input_kind": "single_item",
+                                                "boxes": [
+                                                    {
+                                                        "box": [183.0, 324.0, 377.0, 684.0],
+                                                        "label": "pants",
+                                                        "confidence": 0.95,
+                                                    }
+                                                ],
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        detector = GeminiDetector(
+            api_key=SecretStr("mock-key"),
+            model="gemini-3.5-flash",
+            client=client,
+        )
+
+        res = detector.detect(create_test_image_bytes("PNG"))
+        assert len(res.boxes) == 1
+        assert res.boxes[0].box == (0.324, 0.183, 0.684, 0.377)
+        assert res.boxes[0].label == "pants"

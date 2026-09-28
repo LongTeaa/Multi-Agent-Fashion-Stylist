@@ -7,7 +7,7 @@ import time
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, Field, SecretStr, ValidationError
+from pydantic import BaseModel, Field, SecretStr, ValidationError, field_validator
 
 from app.models.entities import (
     BoundingBox,
@@ -43,12 +43,48 @@ def _detect_image_mime_type(image_bytes: bytes) -> str:
     raise ProviderError("Dữ liệu ảnh gửi đến dịch vụ AI không hợp lệ.")
 
 
+def _normalize_box_coordinates(
+    raw_box: tuple[float, float, float, float] | list[float],
+) -> tuple[float, float, float, float]:
+    """Convert Gemini [ymin, xmin, ymax, xmax] to canonical [xmin, ymin, xmax, ymax] within [0.0, 1.0]."""
+    c1, c2, c3, c4 = (float(v) for v in raw_box)
+    max_val = max(c1, c2, c3, c4)
+    if max_val > 1.0:
+        scale = 1000.0 if max_val <= 1000.0 else max_val
+        c1, c2, c3, c4 = c1 / scale, c2 / scale, c3 / scale, c4 / scale
+
+    # Google Gemini object detection standard returns [ymin, xmin, ymax, xmax].
+    # Canonical application format requires [xmin, ymin, xmax, ymax].
+    ymin = max(0.0, min(1.0, min(c1, c3)))
+    ymax = max(0.0, min(1.0, max(c1, c3)))
+    xmin = max(0.0, min(1.0, min(c2, c4)))
+    xmax = max(0.0, min(1.0, max(c2, c4)))
+
+    if xmax - xmin < 0.005:
+        xmax = min(1.0, xmin + 0.05)
+        if xmax == 1.0:
+            xmin = max(0.0, xmax - 0.05)
+    if ymax - ymin < 0.005:
+        ymax = min(1.0, ymin + 0.05)
+        if ymax == 1.0:
+            ymin = max(0.0, ymax - 0.05)
+
+    return (round(xmin, 4), round(ymin, 4), round(xmax, 4), round(ymax, 4))
+
+
 class GeminiBoxDetection(BaseModel):
     """Pydantic model for validating Gemini bounding box detection output."""
 
     box: tuple[float, float, float, float]
     label: str
     confidence: float = Field(default=0.95, ge=0.0, le=1.0)
+
+    @field_validator("box", mode="before")
+    @classmethod
+    def sanitize_box(cls, val: Any) -> tuple[float, float, float, float]:
+        if isinstance(val, (list, tuple)) and len(val) == 4:
+            return _normalize_box_coordinates(val)
+        return val
 
 
 class GeminiDetectorOutput(BaseModel):
@@ -122,6 +158,7 @@ class GeminiDetector:
         prompt = (
             "Analyze this fashion image. Detect each distinct clothing/garment/accessory item with precise bounding boxes in "
             "normalized [x_min, y_min, x_max, y_max] format within [0.0, 1.0]. "
+            "All coordinates must be floats strictly between 0.0 and 1.0 (do not use 0-1000 scale or pixel values). "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "

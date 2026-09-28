@@ -72,7 +72,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   // Poll for batch status until ready or failed using recursive awaited polling (no overlapping requests)
   const startPollingBatch = useCallback((id: string) => {
     let attempts = 0;
-    const maxAttempts = 30; // 45 seconds total
+    const maxAttempts = 120; // 180 seconds total (allow extensive multi-item AI analysis)
     isPollingCancelledRef.current = false;
 
     if (pollingTimerRef.current) {
