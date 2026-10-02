@@ -151,12 +151,12 @@ class OutfitItemSlot(BaseModel):
     category: WardrobeCategory
     formality_level: int = Field(default=3, ge=1, le=5)
     comfort_level: int = Field(default=3, ge=1, le=5)
-    silhouette_level: int = Field(default=3, ge=1, le=5)
-    length: str = Field(default="hip")
+    silhouette_level: int | None = Field(default=None, ge=1, le=5)
+    length: str | None = Field(default=None)
     weather_suitability: list[str] = Field(default_factory=list)
     pattern: str = Field(default="solid")
     material: str = Field(default="cotton")
-    fit: str = Field(default="regular")
+    fit: str | None = Field(default=None)
     functional_flags: list[str] = Field(default_factory=list)
     image_url: str | None = None
     times_worn: int = Field(default=0, ge=0)

@@ -422,20 +422,28 @@ def process_ingestion_batch(
 
                 # Normalize proposed fashion domain attributes
                 norm_attrs = dict(extraction.attributes)
+                cat_raw = str(norm_attrs.get("category", "")).strip().lower()
+                is_garment = cat_raw not in ("footwear", "accessory")
+
                 try:
                     c_val = int(norm_attrs.get("comfort_level", 3))
                     norm_attrs["comfort_level"] = max(1, min(5, c_val))
                 except (ValueError, TypeError):
                     norm_attrs["comfort_level"] = 3
 
-                try:
-                    s_val = int(norm_attrs.get("silhouette_level", 3))
-                    norm_attrs["silhouette_level"] = max(1, min(5, s_val))
-                except (ValueError, TypeError):
-                    norm_attrs["silhouette_level"] = 3
+                if is_garment:
+                    try:
+                        s_val = int(norm_attrs.get("silhouette_level", 3))
+                        norm_attrs["silhouette_level"] = max(1, min(5, s_val))
+                    except (ValueError, TypeError):
+                        norm_attrs["silhouette_level"] = 3
 
-                raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
-                norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+                    raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
+                    norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+                else:
+                    norm_attrs["fit"] = None
+                    norm_attrs["silhouette_level"] = None
+                    norm_attrs["length"] = None
 
                 if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
                     norm_attrs["functional_flags"] = [
@@ -448,9 +456,16 @@ def process_ingestion_batch(
                     norm_attrs["functional_flags"] = []
 
                 norm_conf = dict(extraction.field_confidence)
-                for field_key in ("comfort_level", "silhouette_level", "length"):
-                    if field_key not in norm_conf:
-                        norm_conf[field_key] = 0.50
+                if is_garment:
+                    for field_key in ("comfort_level", "silhouette_level", "length"):
+                        if field_key not in norm_conf:
+                            norm_conf[field_key] = 0.50
+                else:
+                    if "comfort_level" not in norm_conf:
+                        norm_conf["comfort_level"] = 0.50
+                    norm_conf.pop("silhouette_level", None)
+                    norm_conf.pop("length", None)
+                    norm_conf.pop("fit", None)
 
                 # Flag fields with confidence < 0.70
                 low_conf_fields = [
@@ -802,29 +817,36 @@ def confirm_ingestion_batch(
                     details={"comfort_level": comfort_raw},
                 )
 
-            silhouette_raw = attrs.get("silhouette_level", 3)
-            try:
-                silhouette_level = int(silhouette_raw)
-                if not (1 <= silhouette_level <= 5):
-                    raise ValueError()
-            except (ValueError, TypeError):
-                raise ValidationError(
-                    message="Dáng tổng thể (silhouette_level) phải từ 1 đến 5.",
-                    details={"silhouette_level": silhouette_raw},
-                )
-
-            raw_len = attrs.get("length")
-            if raw_len:
-                norm_len = str(raw_len).strip().lower()
-                if norm_len not in VALID_LENGTH_VALUES:
-                    allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
+            is_garment = category_enum not in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY)
+            if is_garment:
+                silhouette_raw = attrs.get("silhouette_level", 3)
+                try:
+                    silhouette_level = int(silhouette_raw)
+                    if not (1 <= silhouette_level <= 5):
+                        raise ValueError()
+                except (ValueError, TypeError):
                     raise ValidationError(
-                        message=f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.",
-                        details={"length": raw_len},
+                        message="Dáng tổng thể (silhouette_level) phải từ 1 đến 5.",
+                        details={"silhouette_level": silhouette_raw},
                     )
-                length_val = norm_len
+
+                raw_len = attrs.get("length")
+                if raw_len:
+                    norm_len = str(raw_len).strip().lower()
+                    if norm_len not in VALID_LENGTH_VALUES:
+                        allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
+                        raise ValidationError(
+                            message=f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.",
+                            details={"length": raw_len},
+                        )
+                    length_val = norm_len
+                else:
+                    length_val = "hip"
+                fit_val = str(attrs.get("fit") or "regular")
             else:
-                length_val = "hip"
+                silhouette_level = None
+                length_val = None
+                fit_val = None
 
             wardrobe_item = WardrobeItem(
                 id=item_id,
@@ -838,7 +860,7 @@ def confirm_ingestion_batch(
                 pattern=str(attrs.get("pattern") or "unknown"),
                 material=str(attrs.get("material") or "unknown"),
                 style=str(attrs.get("style") or "casual"),
-                fit=str(attrs.get("fit") or "regular"),
+                fit=fit_val,
                 formality_level=formality_level,
                 comfort_level=comfort_level,
                 silhouette_level=silhouette_level,

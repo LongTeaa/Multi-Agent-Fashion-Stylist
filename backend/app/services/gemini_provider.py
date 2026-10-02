@@ -310,19 +310,19 @@ class GeminiVisionProvider:
             "- pattern: pattern type (e.g., solid, striped, plaid, floral, graphic)\n"
             "- material: fabric composition (e.g., cotton, linen, wool, denim, silk, polyester, leather)\n"
             "- style: aesthetic style (e.g., casual, smart_casual, formal, streetwear, athletic, minimalist)\n"
-            "- fit: silhouette fit descriptor (e.g., tight, slim, regular, relaxed, oversized)\n"
+            "- fit: silhouette fit descriptor (e.g., tight, slim, regular, relaxed, oversized). Note: For footwear and accessory, fit must be null.\n"
             "- formality_level: integer from 1 to 5 (1=very casual/loungewear, 3=smart casual, 5=strictly formal/black tie)\n"
             "- comfort_level: integer from 1 to 5 evaluating fabric texture, breathability, softness, stretch and movement freedom:\n"
             "  * 1-2: Stiff, rigid, heavy, unbreathable, restrictive or tight (e.g., rigid raw denim, patent leather, stiff formal corsetry)\n"
             "  * 3: Moderate comfort, standard everyday weave (e.g., classic chino, standard poplin shirt)\n"
             "  * 4-5: Highly comfortable, soft, stretchable, breathable (e.g., soft combed cotton jersey, breathable linen, elastic knitwear, relaxed loungewear)\n"
-            "- silhouette_level: integer from 1 to 5 quantifying cut volume and garment outline:\n"
+            "- silhouette_level: integer from 1 to 5 quantifying cut volume and garment outline. Note: For footwear and accessory, silhouette_level must be null:\n"
             "  * 1: Extra slim / skin-tight / bodycon\n"
             "  * 2: Slim fit / fitted\n"
             "  * 3: Standard regular fit / straight cut\n"
             "  * 4: Relaxed / loose fit / wide leg\n"
             "  * 5: Oversized / baggy / exaggerated silhouette\n"
-            "- length: garment length classification strictly one of: 'cropped' (waist/chest crop, culottes, mini/shorts), 'waist' (hits right at the belt line), 'hip' (standard hip/seat coverage), 'long' (extended, knee/ankle coverage, floor-length)\n"
+            "- length: garment length classification strictly one of: 'cropped' (waist/chest crop, culottes, mini/shorts), 'waist' (hits right at the belt line), 'hip' (standard hip/seat coverage), 'long' (extended, knee/ankle coverage, floor-length). Note: For footwear and accessory, length must be null.\n"
             "- season: list of suitable seasons from [spring, summer, fall, winter, all_year]\n"
             "- weather_suitability: list of weather types from [hot, warm, mild, cool, cold, rainy, sunny]\n"
             "- functional_flags: list of applicable functional tags from [movement, outdoor, sun, rain, work, sport, protection, water_resistant, heavy, light]\n"
@@ -395,20 +395,28 @@ class GeminiVisionProvider:
 
                 # Normalize domain-specific attributes
                 attrs = dict(validated.attributes)
+                cat_raw = str(attrs.get("category", "")).strip().lower()
+                is_garment = cat_raw not in ("footwear", "accessory")
+
                 try:
                     c_val = int(attrs.get("comfort_level", 3))
                     attrs["comfort_level"] = max(1, min(5, c_val))
                 except (ValueError, TypeError):
                     attrs["comfort_level"] = 3
 
-                try:
-                    s_val = int(attrs.get("silhouette_level", 3))
-                    attrs["silhouette_level"] = max(1, min(5, s_val))
-                except (ValueError, TypeError):
-                    attrs["silhouette_level"] = 3
+                if is_garment:
+                    try:
+                        s_val = int(attrs.get("silhouette_level", 3))
+                        attrs["silhouette_level"] = max(1, min(5, s_val))
+                    except (ValueError, TypeError):
+                        attrs["silhouette_level"] = 3
 
-                raw_len = str(attrs.get("length", "hip")).strip().lower()
-                attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+                    raw_len = str(attrs.get("length", "hip")).strip().lower()
+                    attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+                else:
+                    attrs["fit"] = None
+                    attrs["silhouette_level"] = None
+                    attrs["length"] = None
 
                 if "functional_flags" in attrs and isinstance(attrs["functional_flags"], list):
                     attrs["functional_flags"] = [
@@ -425,9 +433,16 @@ class GeminiVisionProvider:
                     k: ConfidenceValue(max(0.0, min(1.0, float(v))))
                     for k, v in validated.field_confidence.items()
                 }
-                for field_key in ("comfort_level", "silhouette_level", "length"):
-                    if field_key not in bounded_conf:
-                        bounded_conf[field_key] = ConfidenceValue(0.50)
+                if is_garment:
+                    for field_key in ("comfort_level", "silhouette_level", "length"):
+                        if field_key not in bounded_conf:
+                            bounded_conf[field_key] = ConfidenceValue(0.50)
+                else:
+                    if "comfort_level" not in bounded_conf:
+                        bounded_conf["comfort_level"] = ConfidenceValue(0.50)
+                    bounded_conf.pop("silhouette_level", None)
+                    bounded_conf.pop("length", None)
+                    bounded_conf.pop("fit", None)
 
                 return VisionExtractionResult(
                     attributes=attrs,

@@ -171,6 +171,10 @@ def update_wardrobe_item(
         return serialize_item(session, item)
     for field, value in changes.items():
         setattr(item, field, value)
+    if item.category in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY):
+        item.fit = None
+        item.silhouette_level = None
+        item.length = None
     item.updated_at = datetime.now(timezone.utc)
     session.add(item)
     refresh_retrieval_document(session, item)

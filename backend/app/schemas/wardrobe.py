@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.entities import (
     ConfidenceValue,
@@ -20,11 +20,11 @@ class WardrobeItemAttributes(BaseModel):
     pattern: str = Field(min_length=1, max_length=100)
     material: str = Field(min_length=1, max_length=100)
     style: str = Field(min_length=1, max_length=100)
-    fit: str = Field(min_length=1, max_length=100)
+    fit: str | None = Field(default=None, max_length=100)
     formality_level: int = Field(default=3, ge=1, le=5)
     comfort_level: int = Field(default=3, ge=1, le=5)
-    silhouette_level: int = Field(default=3, ge=1, le=5)
-    length: str = Field(default="hip", min_length=1, max_length=50)
+    silhouette_level: int | None = Field(default=None, ge=1, le=5)
+    length: str | None = Field(default=None, max_length=50)
     season: list[str] = Field(default_factory=list, max_length=10)
     weather_suitability: list[str] = Field(default_factory=list, max_length=10)
     functional_flags: list[str] = Field(default_factory=list, max_length=20)
@@ -32,12 +32,22 @@ class WardrobeItemAttributes(BaseModel):
 
     @field_validator("length")
     @classmethod
-    def validate_length_taxonomy(cls, value: str) -> str:
+    def validate_length_taxonomy(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         norm = value.strip().lower()
         if norm not in VALID_LENGTH_VALUES:
             allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
             raise ValueError(f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.")
         return norm
+
+    @model_validator(mode="after")
+    def clean_category_specific_attributes(self) -> WardrobeItemAttributes:
+        if self.category in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY):
+            self.fit = None
+            self.silhouette_level = None
+            self.length = None
+        return self
 
     @field_validator("season", "weather_suitability", "free_text_tags")
     @classmethod
@@ -124,11 +134,11 @@ class WardrobeItemResponseData(BaseModel):
     pattern: str
     material: str
     style: str
-    fit: str
+    fit: str | None = None
     formality_level: int
     comfort_level: int = 3
-    silhouette_level: int = 3
-    length: str = "hip"
+    silhouette_level: int | None = None
+    length: str | None = None
     season: list[str]
     weather_suitability: list[str]
     functional_flags: list[str]

@@ -60,7 +60,7 @@ def get_engine() -> Engine:
     return create_database_engine(get_settings().database_url)
 
 
-def validate_database_schema_revision(engine: Engine, expected_head: str = "0008") -> None:
+def validate_database_schema_revision(engine: Engine, expected_head: str = "0009") -> None:
     """Ensure the database schema has been migrated to the expected head revision."""
     with engine.connect() as connection:
         try:

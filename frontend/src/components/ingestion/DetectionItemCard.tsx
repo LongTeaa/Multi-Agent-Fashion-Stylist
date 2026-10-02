@@ -162,6 +162,7 @@ export function DetectionItemCard({
 }: DetectionItemCardProps) {
   const confidences = detection.field_confidence || {};
   const cropUrl = detection.crop_url;
+  const isGarment = attributes.category !== 'footwear' && attributes.category !== 'accessory';
 
   const isLowConfidence = (field: string) => {
     const conf = confidences[field];
@@ -294,7 +295,15 @@ export function DetectionItemCard({
               <select
                 value={attributes.category || ''}
                 disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('category', e.target.value)}
+                onChange={(e) => {
+                  const newCat = e.target.value;
+                  onUpdateAttribute('category', newCat);
+                  if (newCat === 'footwear' || newCat === 'accessory') {
+                    onUpdateAttribute('fit', null);
+                    onUpdateAttribute('silhouette_level', null);
+                    onUpdateAttribute('length', null);
+                  }
+                }}
                 className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   !attributes.category || attributes.category === 'unknown'
                     ? 'border-rose-400 bg-rose-50/20 focus:ring-2 focus:ring-rose-400 text-[#1A1918]'
@@ -467,32 +476,34 @@ export function DetectionItemCard({
               </select>
             </div>
 
-            {/* Fit */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng (Fit)</label>
-                {renderConfidenceBadge('fit')}
-              </div>
-              <select
-                value={attributes.fit || ''}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('fit', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('fit')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                <option value="" disabled>
-                  -- Chưa xác định / Vui lòng chọn --
-                </option>
-                {FITS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
+            {/* Fit (Garments only) */}
+            {isGarment && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng (Fit)</label>
+                  {renderConfidenceBadge('fit')}
+                </div>
+                <select
+                  value={attributes.fit || ''}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('fit', e.target.value)}
+                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                    isLowConfidence('fit')
+                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                  }`}
+                >
+                  <option value="" disabled>
+                    -- Chưa xác định / Vui lòng chọn --
                   </option>
-                ))}
-              </select>
-            </div>
+                  {FITS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Formality Level */}
             <div>
@@ -555,53 +566,57 @@ export function DetectionItemCard({
               </p>
             </div>
 
-            {/* Silhouette Level (Dáng tổng thể 1-5) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể (Silhouette)</label>
-                {renderConfidenceBadge('silhouette_level')}
+            {/* Silhouette Level (Dáng tổng thể 1-5, Garments only) */}
+            {isGarment && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể (Silhouette)</label>
+                  {renderConfidenceBadge('silhouette_level')}
+                </div>
+                <select
+                  value={attributes.silhouette_level || 3}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
+                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                    isLowConfidence('silhouette_level')
+                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                  }`}
+                >
+                  {SILHOUETTES.map((sil) => (
+                    <option key={sil.value} value={sil.value}>
+                      {sil.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={attributes.silhouette_level || 3}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('silhouette_level')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                {SILHOUETTES.map((sil) => (
-                  <option key={sil.value} value={sil.value}>
-                    {sil.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            )}
 
-            {/* Length (Độ dài trang phục) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài (Length)</label>
-                {renderConfidenceBadge('length')}
+            {/* Length (Độ dài trang phục, Garments only) */}
+            {isGarment && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài (Length)</label>
+                  {renderConfidenceBadge('length')}
+                </div>
+                <select
+                  value={attributes.length || 'hip'}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('length', e.target.value)}
+                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                    isLowConfidence('length')
+                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                  }`}
+                >
+                  {LENGTHS.map((len) => (
+                    <option key={len.value} value={len.value}>
+                      {len.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={attributes.length || 'hip'}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('length', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('length')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                {LENGTHS.map((len) => (
-                  <option key={len.value} value={len.value}>
-                    {len.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            )}
           </div>
 
           {/* Season suitability */}

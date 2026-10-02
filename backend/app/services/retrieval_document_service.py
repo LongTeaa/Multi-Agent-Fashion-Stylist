@@ -34,15 +34,26 @@ def _normalize_text(value: object) -> str:
 
 def build_retrieval_document(item: WardrobeItem) -> tuple[str, dict[str, object]]:
     """Build the deterministic metadata document used by retrieval implementations."""
+    cat_val = item.category.value if hasattr(item.category, "value") else str(item.category)
+    is_garment = cat_val.lower() not in ("footwear", "accessory")
+
     metadata: dict[str, object] = {
         field: (getattr(item, field).value if hasattr(getattr(item, field), "value") else getattr(item, field, None))
         for field in _SCALAR_FIELDS
     }
+    if is_garment:
+        if not metadata.get("length"):
+            metadata["length"] = "hip"
+
     metadata.update({field: list(getattr(item, field, [])) for field in _LIST_FIELDS})
     metadata["formality_level"] = item.formality_level
     metadata["comfort_level"] = getattr(item, "comfort_level", 3)
-    metadata["silhouette_level"] = getattr(item, "silhouette_level", 3)
-    metadata["length"] = getattr(item, "length", "hip")
+    if is_garment:
+        metadata["silhouette_level"] = getattr(item, "silhouette_level", None) or 3
+        metadata["length"] = getattr(item, "length", None) or "hip"
+    else:
+        metadata["silhouette_level"] = getattr(item, "silhouette_level", None)
+        metadata["length"] = getattr(item, "length", None)
 
     tokens: list[str] = []
     for field in _SCALAR_FIELDS:
@@ -52,9 +63,12 @@ def build_retrieval_document(item: WardrobeItem) -> tuple[str, dict[str, object]
     for field in _LIST_FIELDS:
         tokens.extend(_normalize_text(value) for value in metadata.get(field, []))
     tokens.append(f"formality_{item.formality_level}")
-    tokens.append(f"comfort_{getattr(item, 'comfort_level', 3)}")
-    tokens.append(f"silhouette_{getattr(item, 'silhouette_level', 3)}")
-    tokens.append(f"length_{getattr(item, 'length', 'hip')}")
+    if getattr(item, "comfort_level", None) is not None:
+        tokens.append(f"comfort_{item.comfort_level}")
+    if metadata.get("silhouette_level") is not None:
+        tokens.append(f"silhouette_{metadata['silhouette_level']}")
+    if metadata.get("length") is not None:
+        tokens.append(f"length_{metadata['length']}")
     return " ".join(dict.fromkeys(token for token in tokens if token)), metadata
 
 

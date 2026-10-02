@@ -111,4 +111,70 @@ describe('DetectionItemCard', () => {
     fireEvent.change(categorySelect, { target: { value: 'bottom' } });
     expect(handleUpdate).toHaveBeenCalledWith('category', 'bottom');
   });
+
+  it('does not render Fit, Silhouette, or Length fields when category is footwear', () => {
+    const footwearDetection: DetectionReviewItem = {
+      ...mockDetection,
+      attributes: {
+        category: 'footwear',
+        sub_category: 'sneakers',
+        primary_color: 'white',
+        pattern: 'solid',
+        material: 'leather',
+        style: 'casual',
+        fit: null,
+        silhouette_level: null,
+        length: null,
+        formality_level: 2,
+        comfort_level: 4,
+        season: ['all_year'],
+      },
+    };
+
+    render(
+      <DetectionItemCard
+        detection={footwearDetection}
+        index={0}
+        isSelected={false}
+        accepted={true}
+        attributes={footwearDetection.attributes}
+        onSelect={vi.fn()}
+        onToggleAccepted={vi.fn()}
+        onUpdateAttribute={vi.fn()}
+      />
+    );
+
+    // Garment-specific fields should NOT be rendered for footwear
+    expect(screen.queryByText('Phom dáng (Fit)')).toBeNull();
+    expect(screen.queryByText('Dáng tổng thể (Silhouette)')).toBeNull();
+    expect(screen.queryByText('Độ dài (Length)')).toBeNull();
+
+    // Universal fields should still be present
+    expect(screen.getByText('Mức độ trang trọng:')).toBeDefined();
+    expect(screen.getByText('Độ thoải mái (Comfort):')).toBeDefined();
+    expect(screen.getByText('Màu sắc chủ đạo')).toBeDefined();
+  });
+
+  it('auto-clears fit, silhouette_level, and length when category is switched to footwear', () => {
+    const handleUpdate = vi.fn();
+    render(
+      <DetectionItemCard
+        detection={mockDetection}
+        index={0}
+        isSelected={false}
+        accepted={true}
+        attributes={mockDetection.attributes}
+        onSelect={vi.fn()}
+        onToggleAccepted={vi.fn()}
+        onUpdateAttribute={handleUpdate}
+      />
+    );
+
+    const categorySelect = screen.getByDisplayValue('Áo (Top)');
+    fireEvent.change(categorySelect, { target: { value: 'footwear' } });
+    expect(handleUpdate).toHaveBeenCalledWith('category', 'footwear');
+    expect(handleUpdate).toHaveBeenCalledWith('fit', null);
+    expect(handleUpdate).toHaveBeenCalledWith('silhouette_level', null);
+    expect(handleUpdate).toHaveBeenCalledWith('length', null);
+  });
 });

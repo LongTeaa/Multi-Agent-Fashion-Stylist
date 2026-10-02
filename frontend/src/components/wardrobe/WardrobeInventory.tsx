@@ -155,8 +155,8 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
       fit: item.fit,
       formality_level: item.formality_level,
       comfort_level: item.comfort_level ?? 3,
-      silhouette_level: item.silhouette_level ?? 3,
-      length: item.length || 'hip',
+      silhouette_level: item.silhouette_level ?? undefined,
+      length: item.length || undefined,
       functional_flags: item.functional_flags ? [...item.functional_flags] : [],
       is_active: item.is_active,
     });
@@ -350,7 +350,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                         Thoải mái {item.comfort_level}/5
                       </span>
                     )}
-                    {(item.silhouette_level !== undefined || item.length) && (
+                    {Boolean(item.silhouette_level || item.length) && (
                       <span
                         data-testid={`badge-silhouette-${item.id}`}
                         className="text-[11px] px-2 py-0.5 rounded-md bg-[#F0EDE6] text-[#4A453E] font-mono"
@@ -507,39 +507,41 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               </div>
 
               {/* Silhouette level and Length selection */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-mono text-[#736E65] mb-1">Phom dáng (1-5)</label>
-                  <select
-                    data-testid="edit-silhouette-level"
-                    value={editForm.silhouette_level ?? 3}
-                    onChange={(e) =>
-                      setEditForm((f) => ({ ...f, silhouette_level: parseInt(e.target.value, 10) }))
-                    }
-                    className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
-                  >
-                    <option value={1}>1 - Rất ôm sát</option>
-                    <option value={2}>2 - Ôm vừa</option>
-                    <option value={3}>3 - Tiêu chuẩn</option>
-                    <option value={4}>4 - Rộng</option>
-                    <option value={5}>5 - Oversized</option>
-                  </select>
+              {editingItem && editingItem.category !== 'footwear' && editingItem.category !== 'accessory' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-mono text-[#736E65] mb-1">Phom dáng (1-5)</label>
+                    <select
+                      data-testid="edit-silhouette-level"
+                      value={editForm.silhouette_level ?? 3}
+                      onChange={(e) =>
+                        setEditForm((f) => ({ ...f, silhouette_level: parseInt(e.target.value, 10) }))
+                      }
+                      className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
+                    >
+                      <option value={1}>1 - Rất ôm sát</option>
+                      <option value={2}>2 - Ôm vừa</option>
+                      <option value={3}>3 - Tiêu chuẩn</option>
+                      <option value={4}>4 - Rộng</option>
+                      <option value={5}>5 - Oversized</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-[#736E65] mb-1">Độ dài trang phục</label>
+                    <select
+                      data-testid="edit-length"
+                      value={editForm.length || 'hip'}
+                      onChange={(e) => setEditForm((f) => ({ ...f, length: e.target.value }))}
+                      className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
+                    >
+                      <option value="cropped">Dáng ngắn lửng</option>
+                      <option value="waist">Dài ngang eo</option>
+                      <option value="hip">Dài ngang hông</option>
+                      <option value="long">Dáng dài</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-mono text-[#736E65] mb-1">Độ dài trang phục</label>
-                  <select
-                    data-testid="edit-length"
-                    value={editForm.length || 'hip'}
-                    onChange={(e) => setEditForm((f) => ({ ...f, length: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-lg border border-[#E8E5DE] bg-white text-xs font-mono"
-                  >
-                    <option value="cropped">Dáng ngắn lửng</option>
-                    <option value="waist">Dài ngang eo</option>
-                    <option value="hip">Dài ngang hông</option>
-                    <option value="long">Dáng dài</option>
-                  </select>
-                </div>
-              </div>
+              )}
 
               {/* Functional flags tags */}
               <div>

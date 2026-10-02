@@ -351,15 +351,15 @@ def calculate_weather_score(
 
 def _derive_silhouette(item: OutfitItemSlot) -> int:
     """Derive silhouette level (1-5) with intelligent fallback from fit/sub_category/name."""
-    sil = getattr(item, "silhouette_level", 3)
+    sil = getattr(item, "silhouette_level", None)
     fit = (item.fit or "").lower().strip()
     sub = (item.sub_category or "").lower().strip()
     name = (item.name or "").lower().strip()
 
-    if sil != 3:
+    if sil is not None and sil != 3:
         return sil
 
-    # Fallback derivation if silhouette was default 3
+    # Fallback derivation if silhouette was default 3 or None
     if any(k in sub or k in name or k in fit for k in ["oversized", "baggy"]):
         return 5
     if any(k in sub or k in name or k in fit for k in ["relaxed", "loose", "wide"]):
@@ -370,12 +370,13 @@ def _derive_silhouette(item: OutfitItemSlot) -> int:
         return 1
     if "hoodie" in sub:
         return 4
-    return 3
+    return sil if sil is not None else 3
 
 
 def _derive_length(item: OutfitItemSlot, default_len: str = "hip") -> str:
     """Derive garment length (cropped, waist, hip, long) with fallback from sub_category/name."""
-    length = getattr(item, "length", "").lower().strip()
+    raw_len = getattr(item, "length", None)
+    length = (raw_len or "").lower().strip()
     if length and length not in {"unknown", "none"}:
         return length
 
@@ -423,8 +424,9 @@ def calculate_proportion_score(
     if not major_items:
         return 1.0, warnings
 
-    # 1. Check for missing fit metadata
-    for item in major_items:
+    # 1. Check for missing fit metadata on garments (excluding footwear)
+    garment_items = [item for item in major_items if item.slot_role != OutfitSlotRole.FOOTWEAR]
+    for item in garment_items:
         if not item.fit or item.fit.lower().strip() in {"", "unknown", "none"}:
             if "fit_unknown" not in warnings:
                 warnings.append("fit_unknown")
