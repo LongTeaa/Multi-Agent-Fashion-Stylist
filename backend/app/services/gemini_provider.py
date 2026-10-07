@@ -352,11 +352,48 @@ class GeminiVisionProvider:
         self.max_retries = max_retries
         self.initial_backoff_seconds = initial_backoff_seconds
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
+
+        spatial_section = ""
+        if spatial_context:
+            box = spatial_context.get("box", [0.0, 0.0, 1.0, 1.0])
+            ymin, ymax = box[1], box[3]
+            rel_h = spatial_context.get("relative_height_percent", round((ymax - ymin) * 100, 1))
+            rel_w = spatial_context.get("relative_width_percent", 0.0)
+            body_zone = spatial_context.get("estimated_body_zone")
+            scene_kind = spatial_context.get("scene_kind", "unknown")
+            detected_label = spatial_context.get("detected_label", "clothing")
+
+            body_zone_lines = ""
+            if body_zone and body_zone not in ("unknown", "not_applicable"):
+                body_zone_lines = (
+                    f"- Anatomical/body position: {body_zone}\n"
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * LENGTH: Correlate vertical coverage and span with human body anatomy:\n"
+                    "    - 'cropped': small vertical span ending above normal waist/hip (e.g. crop-top, shorts, mini skirt, culottes)\n"
+                    "    - 'waist': ends right at the waistline/belt level\n"
+                    "    - 'hip': standard length covering hip/seat\n"
+                    "    - 'long': extended vertical span covering thighs down to knees, calves, or ankles/floor\n"
+                    "  * SILHOUETTE_LEVEL: Consider horizontal width relative to body zone (1=skin-tight to 5=baggy/oversized)\n"
+                    "  * CATEGORY: Use anatomical position to resolve ambiguities (e.g. feet_footwear implies footwear, upper implies top/outerwear)\n"
+                )
+
+            spatial_section = (
+                "\n\nSPATIAL CONTEXT FROM ORIGINAL FULL-FRAME IMAGE:\n"
+                f"- Original frame scene kind: {scene_kind}\n"
+                f"- Initial detected region label: {detected_label}\n"
+                f"- Vertical coordinates on full frame: y_min={ymin:.2f}, y_max={ymax:.2f} (spans {rel_h}% of total frame height)\n"
+                f"- Horizontal width: spans {rel_w}% of frame width\n"
+                f"{body_zone_lines}"
+            )
 
         prompt = (
             "Analyze this cropped clothing item in high detail for a digital fashion stylist wardrobe. "
@@ -384,7 +421,8 @@ class GeminiVisionProvider:
             "- season: list of suitable seasons from [spring, summer, fall, winter, all_year]\n"
             "- weather_suitability: list of weather types from [hot, warm, mild, cool, cold, rainy, sunny]\n"
             "- functional_flags: list of applicable functional tags from [movement, outdoor, sun, rain, work, sport, protection, water_resistant, heavy, light]\n"
-            "- free_text_tags: list of short descriptive tags\n\n"
+            "- free_text_tags: list of short descriptive tags\n"
+            f"{spatial_section}\n"
             "Provide field_confidence: dictionary mapping field names to confidence scores between 0.0 and 1.0.\n"
             "Return a JSON object with keys: 'attributes', 'field_confidence', and 'quality_warnings'."
         )

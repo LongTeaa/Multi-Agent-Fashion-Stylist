@@ -45,7 +45,11 @@ class DetectorProtocol(Protocol):
 class VisionProviderProtocol(Protocol):
     """Protocol for extracting fashion attributes and confidence scores from an item crop."""
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult: ...
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult: ...
 
 
 @dataclass(frozen=True)

@@ -110,11 +110,17 @@ class FakeVisionProvider:
 
     def __init__(self, scenario: str = "golden_polo") -> None:
         self.scenario = scenario
+        self.last_spatial_context: dict[str, Any] | None = None
 
     def set_scenario(self, scenario: str) -> None:
         self.scenario = scenario
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult:
+        self.last_spatial_context = spatial_context
         if self.scenario == "timeout":
             raise TimeoutError("AI vision provider timed out.")
 

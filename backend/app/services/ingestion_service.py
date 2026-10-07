@@ -59,6 +59,103 @@ from app.services.upload_validation import ValidatedImage, validate_image_bytes
 logger = logging.getLogger(__name__)
 
 
+def compute_spatial_context(
+    box: tuple[float, float, float, float],
+    scene_kind: InputKind | str | None = None,
+    detected_label: str | None = None,
+    person_box: tuple[float, float, float, float] | None = None,
+    all_boxes: list[tuple[float, float, float, float]] | None = None,
+) -> dict[str, Any]:
+    """Compute spatial layout metrics, person-relative body zones, and flat-lay relative geometry."""
+    xmin, ymin, xmax, ymax = box
+    width = round(max(0.0, xmax - xmin), 4)
+    height = round(max(0.0, ymax - ymin), 4)
+    center_y = round((ymin + ymax) / 2.0, 4)
+    aspect_ratio = round(width / max(0.001, height), 2)
+
+    # Classify garment shape proportion from aspect ratio
+    if aspect_ratio >= 1.15:
+        shape_type = "wide_horizontal"  # Cropped tops, shorts, mini skirts, accessories
+    elif aspect_ratio >= 0.70:
+        shape_type = "standard_square"  # Standard t-shirts, shirts, hoodies
+    else:
+        shape_type = "tall_vertical"    # Long trousers, maxi dresses, trench coats
+
+    scene_str = scene_kind.value if isinstance(scene_kind, InputKind) else str(scene_kind or "unknown")
+
+    body_zone: str | None = None
+    person_relative: bool = False
+    norm_center_y: float = center_y
+
+    # If worn outfit with a person reference box, normalize coordinates relative to the person's body
+    if scene_str == InputKind.WORN_OUTFIT.value and person_box is not None:
+        p_xmin, p_ymin, p_xmax, p_ymax = person_box
+        p_height = max(0.01, p_ymax - p_ymin)
+        # Position relative to top of the person's head (0.0) down to feet (1.0)
+        norm_center_y = round((center_y - p_ymin) / p_height, 4)
+        person_relative = True
+
+        if norm_center_y < 0.35:
+            body_zone = "upper_torso_head"
+        elif norm_center_y < 0.58:
+            body_zone = "mid_torso_waist"
+        elif norm_center_y < 0.85:
+            body_zone = "lower_body_legs"
+        else:
+            body_zone = "feet_footwear"
+    elif scene_str == InputKind.WORN_OUTFIT.value:
+        # Fallback when person_box is not available, use frame coordinates
+        if center_y < 0.35:
+            body_zone = "upper_torso_head"
+        elif center_y < 0.58:
+            body_zone = "mid_torso_waist"
+        elif center_y < 0.85:
+            body_zone = "lower_body_legs"
+        else:
+            body_zone = "feet_footwear"
+
+    # Flat-lay / Multi-item relative layout ranking
+    flat_lay_rank: str | None = None
+    if scene_str in (InputKind.MULTI_ITEM.value, "flat_lay") and all_boxes and len(all_boxes) >= 2:
+        sorted_centers = sorted([(b[1] + b[3]) / 2.0 for b in all_boxes])
+        current_rank_idx = 0
+        min_diff = 999.0
+        for idx, c in enumerate(sorted_centers):
+            diff = abs(c - center_y)
+            if diff < min_diff:
+                min_diff = diff
+                current_rank_idx = idx
+
+        total_items = len(sorted_centers)
+        if current_rank_idx == 0:
+            flat_lay_rank = "top_layer"
+        elif current_rank_idx == total_items - 1:
+            flat_lay_rank = "bottom_layer"
+        else:
+            flat_lay_rank = "middle_layer"
+
+    result: dict[str, Any] = {
+        "box": [xmin, ymin, xmax, ymax],
+        "relative_height_percent": round(height * 100, 1),
+        "relative_width_percent": round(width * 100, 1),
+        "center_y": center_y,
+        "aspect_ratio": aspect_ratio,
+        "shape_type": shape_type,
+        "estimated_body_zone": body_zone,
+        "person_relative": person_relative,
+        "scene_kind": scene_str,
+        "detected_label": detected_label or "clothing",
+    }
+    if person_box is not None:
+        result["person_box"] = list(person_box)
+        result["person_relative_center_y"] = norm_center_y
+    if flat_lay_rank is not None:
+        result["flat_lay_rank"] = flat_lay_rank
+
+    return result
+
+
+
 def create_ingestion_batch(
     *,
     session: Session,
@@ -252,6 +349,7 @@ def process_ingestion_batch(
                 object_key=asset.object_key,
             )
 
+            detection_res: DetectionResult | None = None
             try:
                 detection_res = classify_scene(
                     detector=detector,
@@ -293,6 +391,12 @@ def process_ingestion_batch(
                     )
 
             total_boxes_count += len(detected_boxes)
+
+            current_scene_kind = (
+                detection_res.input_kind
+                if detection_res is not None
+                else (batch.input_kind if batch.input_kind not in (None, InputKind.UNKNOWN) else InputKind.UNKNOWN)
+            )
 
             # For each candidate detected region, crop and extract attributes
             for box_det in detected_boxes:
@@ -377,8 +481,16 @@ def process_ingestion_batch(
                 pending_media.append(thumb_media_asset)
 
                 # Extract structured attributes
+                spatial_ctx = compute_spatial_context(
+                    box=box_det.box,
+                    scene_kind=current_scene_kind,
+                    detected_label=box_det.label,
+                )
                 try:
-                    extraction = vision_provider.extract_attributes(cropped.crop_bytes)
+                    extraction = vision_provider.extract_attributes(
+                        cropped.crop_bytes,
+                        spatial_context=spatial_ctx,
+                    )
                 except TimeoutError:
                     logger.warning("Vision provider timed out for batch %s crop", batch_id)
                     extraction = VisionExtractionResult(
