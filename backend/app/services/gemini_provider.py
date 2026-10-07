@@ -17,6 +17,7 @@ from app.models.entities import (
     VALID_LENGTH_VALUES,
 )
 from app.schemas.common import ProviderError
+from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.providers import (
     BoundingBoxDetection,
     DetectionResult,
@@ -132,15 +133,25 @@ class GeminiDetector:
 
     def __init__(
         self,
-        api_key: SecretStr,
-        model: str,
+        api_key: SecretStr | None = None,
+        model: str = "gemini-1.5-flash",
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
         max_retries: int = 2,
         initial_backoff_seconds: float = 1.0,
+        *,
+        key_pool: GeminiKeyPool | None = None,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiDetector requires either api_key or key_pool.")
+
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
@@ -151,7 +162,6 @@ class GeminiDetector:
     def detect(self, image_bytes: bytes) -> DetectionResult:
         """Call Gemini to detect clothing items and determine scene classification."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_image = base64.b64encode(image_bytes).decode("ascii")
         image_mime_type = _detect_image_mime_type(image_bytes)
 
@@ -184,8 +194,11 @@ class GeminiDetector:
             },
         }
 
-        for attempt in range(self.max_retries + 1):
+        total_attempts = max(self.max_retries, self.key_pool.total_keys)
+        for attempt in range(total_attempts + 1):
             try:
+                current_key = self.key_pool.get_next_key()
+                headers = {"x-goog-api-key": current_key.get_secret_value()}
                 if self._client is not None:
                     resp = self._client.post(
                         url, headers=headers, json=payload, timeout=self.timeout_seconds
@@ -194,14 +207,50 @@ class GeminiDetector:
                     with httpx.Client(timeout=self.timeout_seconds) as client:
                         resp = client.post(url, headers=headers, json=payload)
 
+                is_rate_limited = (
+                    resp.status_code == 429
+                    or (
+                        resp.status_code in (400, 403, 503)
+                        and any(sig in resp.text for sig in ("RESOURCE_EXHAUSTED", "Quota exceeded", "QUOTA_EXCEEDED"))
+                    )
+                )
+
+                if is_rate_limited:
+                    raw_k = current_key.get_secret_value()
+                    masked = f"{raw_k[:4]}...{raw_k[-4:]}" if len(raw_k) >= 8 else "***"
+                    logger.warning(
+                        "Gemini detector rate limit / 429 on key [%s] (status %d, attempt %d/%d). Marking key into cooldown and rotating...",
+                        masked,
+                        resp.status_code,
+                        attempt + 1,
+                        total_attempts + 1,
+                    )
+                    self.key_pool.mark_rate_limited(current_key)
+                    if attempt < total_attempts:
+                        if self.key_pool.active_keys_count > 0:
+                            time.sleep(0.1)
+                        else:
+                            backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
+                            time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini detector rate limit error %d after %d attempts: %s",
+                        resp.status_code,
+                        total_attempts + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
                 if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
-                    if attempt < self.max_retries:
-                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    if attempt < total_attempts:
+                        backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
                         logger.warning(
                             "Gemini detector HTTP %d on attempt %d/%d; retrying in %.2fs...",
                             resp.status_code,
                             attempt + 1,
-                            self.max_retries + 1,
+                            total_attempts + 1,
                             backoff,
                         )
                         time.sleep(backoff)
@@ -209,7 +258,7 @@ class GeminiDetector:
                     logger.error(
                         "Gemini detector HTTP error %d after %d attempts: %s",
                         resp.status_code,
-                        self.max_retries + 1,
+                        total_attempts + 1,
                         resp.text,
                     )
                     raise ProviderError(
@@ -277,15 +326,25 @@ class GeminiVisionProvider:
 
     def __init__(
         self,
-        api_key: SecretStr,
-        model: str,
+        api_key: SecretStr | None = None,
+        model: str = "gemini-1.5-flash",
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
         max_retries: int = 2,
         initial_backoff_seconds: float = 1.0,
+        *,
+        key_pool: GeminiKeyPool | None = None,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiVisionProvider requires either api_key or key_pool.")
+
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
@@ -296,7 +355,6 @@ class GeminiVisionProvider:
     def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
 
@@ -350,8 +408,11 @@ class GeminiVisionProvider:
             },
         }
 
-        for attempt in range(self.max_retries + 1):
+        total_attempts = max(self.max_retries, self.key_pool.total_keys)
+        for attempt in range(total_attempts + 1):
             try:
+                current_key = self.key_pool.get_next_key()
+                headers = {"x-goog-api-key": current_key.get_secret_value()}
                 if self._client is not None:
                     resp = self._client.post(
                         url, headers=headers, json=payload, timeout=self.timeout_seconds
@@ -360,14 +421,50 @@ class GeminiVisionProvider:
                     with httpx.Client(timeout=self.timeout_seconds) as client:
                         resp = client.post(url, headers=headers, json=payload)
 
+                is_rate_limited = (
+                    resp.status_code == 429
+                    or (
+                        resp.status_code in (400, 403, 503)
+                        and any(sig in resp.text for sig in ("RESOURCE_EXHAUSTED", "Quota exceeded", "QUOTA_EXCEEDED"))
+                    )
+                )
+
+                if is_rate_limited:
+                    raw_k = current_key.get_secret_value()
+                    masked = f"{raw_k[:4]}...{raw_k[-4:]}" if len(raw_k) >= 8 else "***"
+                    logger.warning(
+                        "Gemini vision provider rate limit / 429 on key [%s] (status %d, attempt %d/%d). Marking key into cooldown and rotating...",
+                        masked,
+                        resp.status_code,
+                        attempt + 1,
+                        total_attempts + 1,
+                    )
+                    self.key_pool.mark_rate_limited(current_key)
+                    if attempt < total_attempts:
+                        if self.key_pool.active_keys_count > 0:
+                            time.sleep(0.1)
+                        else:
+                            backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
+                            time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini vision provider rate limit error %d after %d attempts: %s",
+                        resp.status_code,
+                        total_attempts + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI trích xuất thuộc tính tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
                 if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
-                    if attempt < self.max_retries:
-                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    if attempt < total_attempts:
+                        backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
                         logger.warning(
                             "Gemini vision provider HTTP %d on attempt %d/%d; retrying in %.2fs...",
                             resp.status_code,
                             attempt + 1,
-                            self.max_retries + 1,
+                            total_attempts + 1,
                             backoff,
                         )
                         time.sleep(backoff)
@@ -375,7 +472,7 @@ class GeminiVisionProvider:
                     logger.error(
                         "Gemini vision provider HTTP error %d after %d attempts: %s",
                         resp.status_code,
-                        self.max_retries + 1,
+                        total_attempts + 1,
                         resp.text,
                     )
                     raise ProviderError(

@@ -116,6 +116,33 @@ def reconcile_client_session_id(
 
 
 
+_key_pool_instance: Any = None
+_key_pool_signature: tuple[tuple[str, ...], float] | None = None
+
+
+def get_gemini_key_pool(settings: Settings | None = None) -> Any:
+    """Return process-wide singleton GeminiKeyPool instance matching configured keys."""
+    global _key_pool_instance, _key_pool_signature
+    if settings is None:
+        settings = get_settings()
+
+    from app.services.gemini_key_pool import GeminiKeyPool
+
+    active_keys = settings.get_gemini_api_keys() or [SecretStr("placeholder-key")]
+    keys_tuple = tuple(k.get_secret_value() for k in active_keys)
+    cooldown = float(settings.gemini_key_cooldown_seconds)
+    current_sig = (keys_tuple, cooldown)
+
+    if _key_pool_instance is None or _key_pool_signature != current_sig:
+        _key_pool_instance = GeminiKeyPool(
+            api_keys=list(active_keys),
+            cooldown_seconds=cooldown,
+        )
+        _key_pool_signature = current_sig
+
+    return _key_pool_instance
+
+
 def get_detector() -> DetectorProtocol:
     """Return the vision detector instance based on configured VISION_PROVIDER."""
     settings = get_settings()
@@ -130,10 +157,12 @@ def get_detector() -> DetectorProtocol:
 
         from app.services.gemini_provider import GeminiDetector
 
+        key_pool = get_gemini_key_pool(settings)
         return GeminiDetector(
-            api_key=settings.gemini_api_key,
+            api_key=key_pool.keys[0],
             model=settings.vision_model,
             timeout_seconds=float(settings.vision_timeout_seconds),
+            key_pool=key_pool,
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
@@ -153,10 +182,12 @@ def get_vision_provider() -> VisionProviderProtocol:
 
         from app.services.gemini_provider import GeminiVisionProvider
 
+        key_pool = get_gemini_key_pool(settings)
         return GeminiVisionProvider(
-            api_key=settings.gemini_api_key,
+            api_key=key_pool.keys[0],
             model=settings.vision_model,
             timeout_seconds=float(settings.vision_timeout_seconds),
+            key_pool=key_pool,
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
@@ -180,7 +211,7 @@ def get_context_llm_provider() -> ContextLLMProviderProtocol | None:
     from app.services.context_providers import GeminiContextProvider
 
     return GeminiContextProvider(
-        api_key=settings.gemini_api_key,
+        api_key=settings.gemini_api_key or settings.get_primary_gemini_api_key(),
         model=settings.llm_model,
         timeout_seconds=float(settings.context_timeout_seconds),
     )
@@ -219,7 +250,7 @@ def get_image_provider() -> ImageProviderProtocol | None:
         from app.services.gemini_image_provider import GeminiImageProvider
 
         return GeminiImageProvider(
-            api_key=settings.gemini_api_key,
+            api_key=settings.gemini_api_key or settings.get_primary_gemini_api_key(),
             model=settings.image_model or "",
             timeout_seconds=float(settings.image_timeout_seconds),
         )
