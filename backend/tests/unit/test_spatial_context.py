@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 from pydantic import SecretStr
@@ -66,6 +67,9 @@ def test_compute_spatial_context_with_person_box_normalization() -> None:
     assert ctx_shirt["estimated_body_zone"] == "upper_torso_head"
     assert ctx_shirt["person_box"] == list(person_box)
     assert ctx_shirt["person_relative_center_y"] == pytest.approx(0.1833, abs=0.01)
+    assert ctx_shirt["person_relative_y_min"] == pytest.approx(0.0333, abs=0.01)
+    assert ctx_shirt["person_relative_y_max"] == pytest.approx(0.3333, abs=0.01)
+    assert ctx_shirt["person_relative_height_percent"] == pytest.approx(30.0, abs=0.1)
 
     # Pants worn on lower body: y from 0.52 to 0.88 (height=0.36, width=0.22, aspect_ratio=0.61 -> tall_vertical)
     # Center y = 0.70. Relative to person: (0.70 - 0.30) / 0.60 = 0.667 -> lower_body_legs
@@ -78,6 +82,7 @@ def test_compute_spatial_context_with_person_box_normalization() -> None:
     )
     assert ctx_pants["estimated_body_zone"] == "lower_body_legs"
     assert ctx_pants["shape_type"] == "tall_vertical"
+    assert ctx_pants["person_relative_height_percent"] == pytest.approx(60.0, abs=0.1)
 
 
 def test_compute_spatial_context_flat_lay_ranking_and_shape_types() -> None:
@@ -364,3 +369,188 @@ def test_process_ingestion_batch_passes_detected_kind_to_vision_provider() -> No
     assert fake_vision.last_spatial_context["estimated_body_zone"] == "upper_torso_head"
 
 
+def test_classify_scene_detects_worn_outfit_and_filters_person_box() -> None:
+    from app.services.classifier import classify_scene
+    from app.services.providers import BoundingBoxDetection, DetectionResult
+
+    detector = MagicMock()
+    detector.detect.return_value = DetectionResult(
+        input_kind=InputKind.UNKNOWN,
+        boxes=[
+            BoundingBoxDetection(box=(0.15, 0.05, 0.85, 0.95), label="person", confidence=0.98),
+            BoundingBoxDetection(box=(0.20, 0.15, 0.80, 0.45), label="top", confidence=0.92),
+            BoundingBoxDetection(box=(0.25, 0.46, 0.75, 0.85), label="bottom", confidence=0.91),
+        ],
+        quality_warnings=[],
+    )
+
+    res = classify_scene(detector=detector, image_bytes=b"fake")
+    assert res.input_kind == InputKind.WORN_OUTFIT
+    assert res.person_box == (0.15, 0.05, 0.85, 0.95)
+    # Crucial: "person" is filtered out from boxes to prevent cropping the whole human into wardrobe
+    assert len(res.boxes) == 2
+    assert [b.label for b in res.boxes] == ["top", "bottom"]
+
+
+def test_classify_scene_detects_flat_lay_multi_item_without_person() -> None:
+    from app.services.classifier import classify_scene
+    from app.services.providers import BoundingBoxDetection, DetectionResult
+
+    detector = MagicMock()
+    detector.detect.return_value = DetectionResult(
+        input_kind=InputKind.UNKNOWN,
+        boxes=[
+            BoundingBoxDetection(box=(0.1, 0.1, 0.9, 0.4), label="top", confidence=0.9),
+            BoundingBoxDetection(box=(0.1, 0.5, 0.9, 0.9), label="bottom", confidence=0.9),
+        ],
+        quality_warnings=[],
+    )
+
+    res = classify_scene(detector=detector, image_bytes=b"fake")
+    assert res.input_kind == InputKind.MULTI_ITEM
+    assert res.person_box is None
+    assert len(res.boxes) == 2
+
+
+def test_classify_scene_detects_single_item_without_person() -> None:
+    from app.services.classifier import classify_scene
+    from app.services.providers import BoundingBoxDetection, DetectionResult
+
+    detector = MagicMock()
+    detector.detect.return_value = DetectionResult(
+        input_kind=InputKind.UNKNOWN,
+        boxes=[
+            BoundingBoxDetection(box=(0.1, 0.1, 0.9, 0.9), label="t-shirt", confidence=0.95),
+        ],
+        quality_warnings=[],
+    )
+
+    res = classify_scene(detector=detector, image_bytes=b"fake")
+    assert res.input_kind == InputKind.SINGLE_ITEM
+    assert res.person_box is None
+    assert len(res.boxes) == 1
+
+
+def test_process_ingestion_batch_passes_person_box_and_all_boxes_to_spatial_context() -> None:
+    from io import BytesIO
+    from unittest.mock import MagicMock, patch
+    from PIL import Image
+    from app.models.entities import IngestionStatus, MediaKind
+    from app.services.ingestion_service import process_ingestion_batch
+    from app.services.providers import BoundingBoxDetection, DetectionResult
+
+    batch = MagicMock()
+    batch.id = "batch-pbox"
+    batch.user_id = "user-pbox"
+    batch.status = IngestionStatus.PROCESSING
+    batch.input_kind = InputKind.UNKNOWN
+    batch.quality_warnings = []
+
+    asset = MagicMock()
+    asset.id = "asset-pbox"
+    asset.user_id = "user-pbox"
+    asset.ingestion_batch_id = "batch-pbox"
+    asset.kind = MediaKind.ORIGINAL
+    asset.bucket = "uploads"
+    asset.object_key = "photo.jpg"
+
+    session = MagicMock()
+    session.get.return_value = batch
+    session.exec.return_value.all.return_value = [asset]
+    session.execute.return_value.rowcount = 1
+
+    buf = BytesIO()
+    Image.new("RGB", (100, 100), color="white").save(buf, format="JPEG")
+    img_bytes = buf.getvalue()
+
+    storage = MagicMock()
+    storage.get_object.return_value = img_bytes
+
+    # Detector returns person + shirt
+    person_box = (0.1, 0.2, 0.9, 0.9)  # height = 0.70
+    shirt_box = (0.2, 0.25, 0.8, 0.45) # center_y = 0.35 -> relative to person: (0.35 - 0.2) / 0.7 = 0.214 (< 0.35)
+    detector = MagicMock()
+    detector.detect.return_value = DetectionResult(
+        input_kind=InputKind.UNKNOWN,
+        boxes=[
+            BoundingBoxDetection(box=person_box, label="person", confidence=0.99),
+            BoundingBoxDetection(box=shirt_box, label="top", confidence=0.95),
+        ],
+        quality_warnings=[],
+    )
+
+    fake_vision = FakeVisionProvider(scenario="golden_polo")
+
+    with patch("app.services.ingestion_service.stage_object_upload"), \
+         patch("app.services.ingestion_service.get_settings"):
+        process_ingestion_batch(
+            session=session,
+            storage=storage,
+            detector=detector,
+            vision_provider=fake_vision,
+            batch_id="batch-pbox",
+            user_id="user-pbox",
+        )
+
+    # 1. Person box was passed and used for coordinate normalization
+    assert fake_vision.last_spatial_context is not None
+    assert fake_vision.last_spatial_context["scene_kind"] == "worn_outfit"
+    assert fake_vision.last_spatial_context["person_relative"] is True
+    assert fake_vision.last_spatial_context["person_box"] == list(person_box)
+    assert fake_vision.last_spatial_context["estimated_body_zone"] == "upper_torso_head"
+    # 2. Only 1 crop was made (the shirt), the person box was NOT cropped into user's wardrobe!
+    assert session.add_all.call_count >= 2
+    detections_added = session.add_all.call_args_list[1][0][0]
+    assert detections_added[0].bounding_box == shirt_box
+
+
+def test_classify_scene_primary_wearer_resolves_multi_person_bystander() -> None:
+    from app.services.classifier import classify_scene, find_primary_wearer
+    from app.services.providers import BoundingBoxDetection, DetectionResult
+
+    # Bystander box: large box in foreground (area = 0.5 * 0.9 = 0.45), but contains NO garments
+    bystander_person = BoundingBoxDetection(
+        box=(0.0, 0.1, 0.5, 1.0),
+        label="person",
+        confidence=0.99,
+    )
+    # Primary wearer box: smaller box in background (area = 0.3 * 0.8 = 0.24), contains jacket and pants
+    wearer_person = BoundingBoxDetection(
+        box=(0.55, 0.1, 0.85, 0.9),
+        label="person",
+        confidence=0.95,
+    )
+
+    jacket = BoundingBoxDetection(
+        box=(0.58, 0.2, 0.82, 0.5),
+        label="jacket",
+        confidence=0.93,
+    )
+    pants = BoundingBoxDetection(
+        box=(0.60, 0.5, 0.80, 0.85),
+        label="trousers",
+        confidence=0.91,
+    )
+
+    # Unit test find_primary_wearer directly
+    selected = find_primary_wearer(
+        person_boxes=[bystander_person, wearer_person],
+        garment_boxes=[jacket, pants],
+    )
+    # Must pick wearer_person, NOT the larger bystander!
+    assert selected == wearer_person.box
+
+    # Integration test with classify_scene
+    detector = MagicMock()
+    detector.detect.return_value = DetectionResult(
+        input_kind=InputKind.UNKNOWN,
+        boxes=[bystander_person, wearer_person, jacket, pants],
+        quality_warnings=[],
+    )
+
+    res = classify_scene(detector=detector, image_bytes=b"fake-bytes")
+    assert res.input_kind == InputKind.WORN_OUTFIT
+    assert res.person_box == wearer_person.box
+    # The two person boxes must be filtered out, leaving only the two garments
+    assert len(res.boxes) == 2
+    assert [b.label for b in res.boxes] == ["jacket", "trousers"]

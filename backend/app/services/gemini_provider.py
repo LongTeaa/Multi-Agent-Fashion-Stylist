@@ -171,6 +171,7 @@ class GeminiDetector:
             "All coordinates must be floats strictly between 0.0 and 1.0 (do not use 0-1000 scale or pixel values). "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
+            "If the image contains a person wearing clothing, ALSO detect the person with a bounding box labeled 'person' covering the wearer's full visible body. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
             "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box, label, confidence}), and 'quality_warnings'."
         )

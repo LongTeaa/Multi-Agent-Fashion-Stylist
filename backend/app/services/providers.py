@@ -23,6 +23,7 @@ class DetectionResult:
     input_kind: InputKind
     boxes: list[BoundingBoxDetection] = field(default_factory=list)
     quality_warnings: list[str] = field(default_factory=list)
+    person_box: BoundingBox | None = None
 
 
 @dataclass(frozen=True)

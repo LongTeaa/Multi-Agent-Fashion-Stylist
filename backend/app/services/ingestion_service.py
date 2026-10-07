@@ -147,8 +147,13 @@ def compute_spatial_context(
         "detected_label": detected_label or "clothing",
     }
     if person_box is not None:
+        p_xmin, p_ymin, p_xmax, p_ymax = person_box
+        p_height = max(0.01, p_ymax - p_ymin)
         result["person_box"] = list(person_box)
         result["person_relative_center_y"] = norm_center_y
+        result["person_relative_y_min"] = round(max(0.0, (ymin - p_ymin) / p_height), 4)
+        result["person_relative_y_max"] = round(max(0.0, (ymax - p_ymin) / p_height), 4)
+        result["person_relative_height_percent"] = round(height / p_height * 100, 1)
     if flat_lay_rank is not None:
         result["flat_lay_rank"] = flat_lay_rank
 
@@ -481,10 +486,13 @@ def process_ingestion_batch(
                 pending_media.append(thumb_media_asset)
 
                 # Extract structured attributes
+                all_candidate_boxes = [d.box for d in detected_boxes]
                 spatial_ctx = compute_spatial_context(
                     box=box_det.box,
                     scene_kind=current_scene_kind,
                     detected_label=box_det.label,
+                    person_box=detection_res.person_box if detection_res is not None else None,
+                    all_boxes=all_candidate_boxes,
                 )
                 try:
                     extraction = vision_provider.extract_attributes(
