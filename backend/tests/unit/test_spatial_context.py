@@ -298,6 +298,128 @@ def test_gemini_vision_provider_omits_body_zone_for_non_worn_outfit() -> None:
     assert "SPATIAL REASONING GUIDANCE FOR ATTRIBUTES" not in prompt_text
 
 
+def test_gemini_vision_provider_incorporates_person_relative_quantitative_guidance() -> None:
+    captured_payload: dict | None = None
+
+    def mock_transport(request: httpx.Request) -> httpx.Response:
+        nonlocal captured_payload
+        captured_payload = json.loads(request.content.decode("utf-8"))
+        return httpx.Response(
+            status_code=200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": json.dumps({
+                                        "attributes": {
+                                            "category": "top",
+                                            "sub_category": "crop-top",
+                                            "length": "cropped",
+                                        },
+                                        "field_confidence": {},
+                                        "quality_warnings": [],
+                                    })
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(mock_transport))
+    pool = GeminiKeyPool([SecretStr("test-key")])
+    provider = GeminiVisionProvider(key_pool=pool, client=client)
+
+    dummy_crop = b"\xff\xd8\xff\xe0" + b"\x00" * 32
+    spatial_ctx = {
+        "box": [0.25, 0.32, 0.75, 0.50],
+        "relative_height_percent": 18.0,
+        "relative_width_percent": 50.0,
+        "aspect_ratio": 2.78,
+        "shape_type": "wide_horizontal",
+        "estimated_body_zone": "upper_torso_head",
+        "scene_kind": "worn_outfit",
+        "detected_label": "top",
+        "person_relative": True,
+        "person_relative_y_min": 0.0333,
+        "person_relative_y_max": 0.3333,
+        "person_relative_height_percent": 30.0,
+    }
+
+    res = provider.extract_attributes(dummy_crop, spatial_context=spatial_ctx)
+    assert res.attributes["category"] == "top"
+
+    assert captured_payload is not None
+    prompt_text = captured_payload["contents"][0]["parts"][0]["text"]
+    assert "Garment proportion: aspect ratio 2.78 (wide_horizontal)" in prompt_text
+    assert "Wearer-relative vertical span: from 3.3% to 33.3% of person height (spans 30.0% of wearer body)" in prompt_text
+    assert "Anatomical/body position: upper_torso_head" in prompt_text
+    assert "Upper body with span < 25% or ending above waist -> 'cropped'" in prompt_text
+    assert "VISUAL PRIORITY PRINCIPLE" in prompt_text
+
+
+def test_gemini_vision_provider_incorporates_flat_lay_layout_guidance() -> None:
+    captured_payload: dict | None = None
+
+    def mock_transport(request: httpx.Request) -> httpx.Response:
+        nonlocal captured_payload
+        captured_payload = json.loads(request.content.decode("utf-8"))
+        return httpx.Response(
+            status_code=200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": json.dumps({
+                                        "attributes": {
+                                            "category": "top",
+                                            "length": "hip",
+                                        },
+                                        "field_confidence": {},
+                                        "quality_warnings": [],
+                                    })
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(mock_transport))
+    pool = GeminiKeyPool([SecretStr("test-key")])
+    provider = GeminiVisionProvider(key_pool=pool, client=client)
+
+    dummy_crop = b"\xff\xd8\xff\xe0" + b"\x00" * 32
+    spatial_ctx = {
+        "box": [0.20, 0.10, 0.80, 0.30],
+        "relative_height_percent": 20.0,
+        "relative_width_percent": 60.0,
+        "aspect_ratio": 3.0,
+        "shape_type": "wide_horizontal",
+        "estimated_body_zone": None,
+        "scene_kind": "multi_item",
+        "detected_label": "top",
+        "person_relative": False,
+        "flat_lay_rank": "top_layer",
+    }
+
+    res = provider.extract_attributes(dummy_crop, spatial_context=spatial_ctx)
+    assert res.attributes["category"] == "top"
+
+    assert captured_payload is not None
+    prompt_text = captured_payload["contents"][0]["parts"][0]["text"]
+    assert "Garment proportion: aspect ratio 3.0 (wide_horizontal)" in prompt_text
+    assert "Flat-lay arrangement layer: top_layer (items laid flat on surface)" in prompt_text
+    assert "Garment is laid flat: determine category and length from intrinsic garment proportion" in prompt_text
+    assert "Wearer-relative vertical span" not in prompt_text
+    assert "Anatomical/body position" not in prompt_text
+
 
 def test_fake_vision_provider_accepts_spatial_context() -> None:
     fake = FakeVisionProvider(scenario="golden_polo")
@@ -554,3 +676,23 @@ def test_classify_scene_primary_wearer_resolves_multi_person_bystander() -> None
     # The two person boxes must be filtered out, leaving only the two garments
     assert len(res.boxes) == 2
     assert [b.label for b in res.boxes] == ["jacket", "trousers"]
+
+
+def test_gemini_providers_dynamically_resolve_models_from_settings() -> None:
+    from app.core.config import Settings
+    from app.services.gemini_provider import GeminiDetector, GeminiVisionProvider
+
+    custom_settings = Settings(
+        gemini_api_key=SecretStr("custom-key"),
+        vision_model="gemini-2.5-flash",
+        detector_model="gemini-2.0-flash",
+    )
+
+    with patch("app.core.config.get_settings", return_value=custom_settings):
+        # When model is None, GeminiDetector resolves from settings.get_detector_model()
+        detector = GeminiDetector(api_key=SecretStr("test-k"), model=None)
+        assert detector.model == "gemini-2.0-flash"
+
+        # When model is None, GeminiVisionProvider resolves from settings.get_vision_model()
+        vision = GeminiVisionProvider(api_key=SecretStr("test-k"), model=None)
+        assert vision.model == "gemini-2.5-flash"

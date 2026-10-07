@@ -134,7 +134,7 @@ class GeminiDetector:
     def __init__(
         self,
         api_key: SecretStr | None = None,
-        model: str = "gemini-1.5-flash",
+        model: str | None = None,
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
@@ -151,6 +151,10 @@ class GeminiDetector:
             self.key_pool = GeminiKeyPool([api_key])
         else:
             raise ValueError("GeminiDetector requires either api_key or key_pool.")
+
+        if not model or not model.strip():
+            from app.core.config import get_settings
+            model = get_settings().get_detector_model()
 
         self.model = model
         self.timeout_seconds = timeout_seconds
@@ -328,7 +332,7 @@ class GeminiVisionProvider:
     def __init__(
         self,
         api_key: SecretStr | None = None,
-        model: str = "gemini-1.5-flash",
+        model: str | None = None,
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
@@ -345,6 +349,10 @@ class GeminiVisionProvider:
             self.key_pool = GeminiKeyPool([api_key])
         else:
             raise ValueError("GeminiVisionProvider requires either api_key or key_pool.")
+
+        if not model or not model.strip():
+            from app.core.config import get_settings
+            model = get_settings().get_vision_model()
 
         self.model = model
         self.timeout_seconds = timeout_seconds
@@ -369,14 +377,44 @@ class GeminiVisionProvider:
             ymin, ymax = box[1], box[3]
             rel_h = spatial_context.get("relative_height_percent", round((ymax - ymin) * 100, 1))
             rel_w = spatial_context.get("relative_width_percent", 0.0)
+            aspect_ratio = spatial_context.get("aspect_ratio")
+            shape_type = spatial_context.get("shape_type")
             body_zone = spatial_context.get("estimated_body_zone")
             scene_kind = spatial_context.get("scene_kind", "unknown")
             detected_label = spatial_context.get("detected_label", "clothing")
+            person_relative = spatial_context.get("person_relative", False)
+            flat_lay_rank = spatial_context.get("flat_lay_rank")
 
-            body_zone_lines = ""
-            if body_zone and body_zone not in ("unknown", "not_applicable"):
-                body_zone_lines = (
-                    f"- Anatomical/body position: {body_zone}\n"
+            extra_lines: list[str] = []
+            if aspect_ratio is not None and shape_type is not None:
+                extra_lines.append(f"- Garment proportion: aspect ratio {aspect_ratio} ({shape_type})")
+
+            if person_relative and "person_relative_y_min" in spatial_context:
+                py_min = spatial_context["person_relative_y_min"]
+                py_max = spatial_context["person_relative_y_max"]
+                py_span = spatial_context.get("person_relative_height_percent", 0.0)
+                extra_lines.append(
+                    f"- Wearer-relative vertical span: from {py_min*100:.1f}% to {py_max*100:.1f}% of person height (spans {py_span}% of wearer body)"
+                )
+                if body_zone and body_zone not in ("unknown", "not_applicable"):
+                    extra_lines.append(f"- Anatomical/body position: {body_zone}")
+                extra_lines.append(
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * LENGTH: Correlate wearer-relative span and anatomy:\n"
+                    "    - Upper body with span < 25% or ending above waist -> 'cropped' (crop-top)\n"
+                    "    - Upper body ending around belt level -> 'waist'\n"
+                    "    - Standard upper body extending to hips -> 'hip'\n"
+                    "    - Lower body ending above knee -> 'cropped' (shorts/mini-skirt)\n"
+                    "    - Lower body extending down to calf/ankle -> 'long' (trousers/maxi-skirt)\n"
+                    "    - Continuous full body spanning from shoulder past knees (> 50% person height) -> dress or long outerwear\n"
+                    "  * SILHOUETTE_LEVEL: Contrast garment width against wearer torso/limbs (1=skin-tight to 5=oversized/baggy)\n"
+                    "  * CATEGORY: Use anatomical placement to resolve ambiguities (e.g. feet_footwear -> footwear, lower_body_legs -> bottom)\n"
+                    "  * VISUAL PRIORITY PRINCIPLE: Use spatial context as structural guidance. If visible clothing construction (waistbands, hems, seams, silhouettes) clearly indicates a specific style or if the wearer is seated/posing dynamically, always prioritize visible clothing construction over bounding box coordinates."
+                )
+            elif body_zone and body_zone not in ("unknown", "not_applicable"):
+                # Fallback worn outfit without person box
+                extra_lines.append(f"- Anatomical/body position: {body_zone}")
+                extra_lines.append(
                     "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
                     "  * LENGTH: Correlate vertical coverage and span with human body anatomy:\n"
                     "    - 'cropped': small vertical span ending above normal waist/hip (e.g. crop-top, shorts, mini skirt, culottes)\n"
@@ -385,15 +423,26 @@ class GeminiVisionProvider:
                     "    - 'long': extended vertical span covering thighs down to knees, calves, or ankles/floor\n"
                     "  * SILHOUETTE_LEVEL: Consider horizontal width relative to body zone (1=skin-tight to 5=baggy/oversized)\n"
                     "  * CATEGORY: Use anatomical position to resolve ambiguities (e.g. feet_footwear implies footwear, upper implies top/outerwear)\n"
+                    "  * VISUAL PRIORITY PRINCIPLE: Use spatial context as structural guidance. If visible clothing construction (waistbands, hems, seams, silhouettes) clearly indicates a specific style or if the wearer is seated/posing dynamically, always prioritize visible clothing construction over bounding box coordinates."
                 )
+            elif flat_lay_rank:
+                extra_lines.append(f"- Flat-lay arrangement layer: {flat_lay_rank} (items laid flat on surface)")
+                extra_lines.append(
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * Garment is laid flat: determine category and length from intrinsic garment proportion and geometry rather than wearer anatomy"
+                )
+
+            formatted_extras = "\n".join(extra_lines)
+            if formatted_extras:
+                formatted_extras = "\n" + formatted_extras
 
             spatial_section = (
                 "\n\nSPATIAL CONTEXT FROM ORIGINAL FULL-FRAME IMAGE:\n"
                 f"- Original frame scene kind: {scene_kind}\n"
                 f"- Initial detected region label: {detected_label}\n"
                 f"- Vertical coordinates on full frame: y_min={ymin:.2f}, y_max={ymax:.2f} (spans {rel_h}% of total frame height)\n"
-                f"- Horizontal width: spans {rel_w}% of frame width\n"
-                f"{body_zone_lines}"
+                f"- Horizontal width: spans {rel_w}% of frame width"
+                f"{formatted_extras}"
             )
 
         prompt = (

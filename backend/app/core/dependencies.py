@@ -160,7 +160,7 @@ def get_detector() -> DetectorProtocol:
         key_pool = get_gemini_key_pool(settings)
         return GeminiDetector(
             api_key=key_pool.keys[0],
-            model=settings.vision_model,
+            model=settings.get_detector_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
             key_pool=key_pool,
         )
@@ -185,7 +185,7 @@ def get_vision_provider() -> VisionProviderProtocol:
         key_pool = get_gemini_key_pool(settings)
         return GeminiVisionProvider(
             api_key=key_pool.keys[0],
-            model=settings.vision_model,
+            model=settings.get_vision_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
             key_pool=key_pool,
         )

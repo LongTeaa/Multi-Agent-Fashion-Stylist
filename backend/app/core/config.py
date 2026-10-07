@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     image_timeout_seconds: Literal[8] = 8
     llm_model: str | None = None
     vision_model: str | None = None
+    detector_model: str | None = None
     image_model: str | None = None
     gemini_api_key: SecretStr | None = None
     gemini_api_keys: str | list[SecretStr] = Field(default_factory=list)
@@ -116,6 +117,20 @@ class Settings(BaseSettings):
         """Return the primary Gemini API key (first available key)."""
         keys = self.get_gemini_api_keys()
         return keys[0] if keys else None
+
+    def get_detector_model(self) -> str:
+        """Return the model identifier for garment detection, falling back to vision_model."""
+        if self.detector_model and self.detector_model.strip():
+            return self.detector_model.strip()
+        if self.vision_model and self.vision_model.strip():
+            return self.vision_model.strip()
+        return "gemini-1.5-flash"
+
+    def get_vision_model(self) -> str:
+        """Return the model identifier for fashion attribute extraction."""
+        if self.vision_model and self.vision_model.strip():
+            return self.vision_model.strip()
+        return "gemini-1.5-flash"
 
 
 @lru_cache
