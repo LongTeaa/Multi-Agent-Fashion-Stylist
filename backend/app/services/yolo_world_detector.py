@@ -140,7 +140,22 @@ class YoloWorldDetector:
                 providers=["CPUExecutionProvider"],
             )
 
-        self._input_name = self._session.get_inputs()[0].name
+        inputs = self._session.get_inputs()
+        self._input_name = inputs[0].name
+        input_names = [inp.name for inp in inputs]
+        self._needs_txt_feats = "txt_feats" in input_names
+
+        self._txt_feats: np.ndarray | None = None
+        if self._needs_txt_feats:
+            possible_paths = [
+                Path(model_path).parent / "fashion_clip_features.npy",
+                Path("models/fashion_clip_features.npy"),
+                Path("backend/models/fashion_clip_features.npy"),
+            ]
+            for feat_p in possible_paths:
+                if feat_p.is_file():
+                    self._txt_feats = np.load(str(feat_p)).astype(np.float32)
+                    break
 
     def _preprocess(
         self,
@@ -212,6 +227,9 @@ class YoloWorldDetector:
             flat_preds = preds[0]
             boxes_cxcywh = flat_preds[:, :4]
             scores_matrix = flat_preds[:, 4:]
+
+            if np.any(scores_matrix < 0.0) or np.any(scores_matrix > 1.0):
+                scores_matrix = 1.0 / (1.0 + np.exp(-np.clip(scores_matrix, -25.0, 25.0)))
 
             class_ids = np.argmax(scores_matrix, axis=1)
             confidences = np.max(scores_matrix, axis=1)
@@ -320,7 +338,14 @@ class YoloWorldDetector:
         """Execute detection pipeline on image bytes and return DetectionResult."""
         input_tensor, scale, pad_x, pad_y, orig_w, orig_h = self._preprocess(image_bytes)
 
-        outputs = self._session.run(None, {self._input_name: input_tensor})
+        feed_dict = {self._input_name: input_tensor}
+        if self._needs_txt_feats:
+            if self._txt_feats is not None:
+                feed_dict["txt_feats"] = self._txt_feats
+            else:
+                feed_dict["txt_feats"] = np.zeros((1, len(self.classes), 512), dtype=np.float32)
+
+        outputs = self._session.run(None, feed_dict)
 
         boxes = self._postprocess(
             raw_outputs=outputs,

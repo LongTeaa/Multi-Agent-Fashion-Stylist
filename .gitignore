@@ -37,3 +37,9 @@ Thumbs.db
 # IDE metadata
 .idea/
 .vscode/
+
+# Machine learning weights and checkpoints
+*.onnx
+*.pt
+*.bin
+backend/models/*.onnx
