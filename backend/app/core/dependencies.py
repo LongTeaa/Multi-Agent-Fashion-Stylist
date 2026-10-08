@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable, Iterator
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from app.core.config import (
     Settings,
     get_settings,
     validate_context_provider_configuration,
+    validate_detector_configuration,
     validate_image_provider_configuration,
     validate_vision_provider_configuration,
     validate_weather_provider_configuration,
@@ -143,17 +145,73 @@ def get_gemini_key_pool(settings: Settings | None = None) -> Any:
     return _key_pool_instance
 
 
+logger = logging.getLogger(__name__)
+
+_yolo_world_detector_instance: DetectorProtocol | None = None
+_yolo_world_detector_signature: tuple[str, float, float, float] | None = None
+
+
+def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtocol:
+    """Return process-wide cached YoloWorldDetector instance matching current configuration."""
+    global _yolo_world_detector_instance, _yolo_world_detector_signature
+    if settings is None:
+        settings = get_settings()
+
+    current_sig = (
+        settings.yolo_world_model_path,
+        float(settings.yolo_world_confidence_threshold),
+        float(settings.yolo_world_iou_threshold),
+        float(settings.yolo_world_padding),
+    )
+
+    if _yolo_world_detector_instance is None or _yolo_world_detector_signature != current_sig:
+        from app.services.yolo_world_detector import YoloWorldDetector
+
+        _yolo_world_detector_instance = YoloWorldDetector(
+            model_path=settings.yolo_world_model_path,
+            confidence_threshold=settings.yolo_world_confidence_threshold,
+            iou_threshold=settings.yolo_world_iou_threshold,
+            padding=settings.yolo_world_padding,
+        )
+        _yolo_world_detector_signature = current_sig
+
+    return _yolo_world_detector_instance
+
+
 def get_detector() -> DetectorProtocol:
-    """Return the vision detector instance based on configured VISION_PROVIDER."""
+    """Return the vision detector instance based on configured DETECTOR_BACKEND or VISION_PROVIDER."""
     settings = get_settings()
 
-    if settings.vision_provider == "fake":
+    if settings.detector_backend == "yolo_world":
+        validate_detector_configuration(settings)
+        from pathlib import Path
+
+        model_file = Path(settings.yolo_world_model_path)
+        if not model_file.is_file():
+            if settings.get_gemini_api_keys():
+                logger.warning(
+                    "YOLO-World model '%s' not found on disk. Falling back to GeminiDetector.",
+                    settings.yolo_world_model_path,
+                )
+                from app.services.gemini_provider import GeminiDetector
+
+                key_pool = get_gemini_key_pool(settings)
+                return GeminiDetector(
+                    api_key=key_pool.keys[0],
+                    model=settings.get_detector_model(),
+                    timeout_seconds=float(settings.vision_timeout_seconds),
+                    key_pool=key_pool,
+                )
+        return get_yolo_world_detector(settings)
+
+    if settings.detector_backend == "fake" or settings.vision_provider == "fake":
         from app.services.fakes.vision_fakes import FakeDetector
 
         return FakeDetector(mode="multi_item")
 
-    if settings.vision_provider == "gemini":
+    if settings.detector_backend == "gemini":
         validate_vision_provider_configuration(settings)
+        validate_detector_configuration(settings)
 
         from app.services.gemini_provider import GeminiDetector
 
@@ -165,7 +223,7 @@ def get_detector() -> DetectorProtocol:
             key_pool=key_pool,
         )
 
-    raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
+    raise ValueError(f"Unsupported detector_backend: '{settings.detector_backend}'")
 
 
 def get_vision_provider() -> VisionProviderProtocol:
