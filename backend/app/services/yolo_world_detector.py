@@ -192,9 +192,10 @@ class YoloWorldDetector:
         # Handle different output formats:
         # 1. Standard YOLOv8: shape (1, 4 + C, 8400) or (1, 8400, 4 + C)
         # 2. End-to-end NMS output: shape (1, N, 6) or (N, 6)
-        if preds.ndim == 3 and preds.shape[1] < preds.shape[2]:
-            # (1, 4 + C, 8400) -> transpose to (1, 8400, 4 + C)
-            preds = np.transpose(preds, (0, 2, 1))
+        if preds.ndim == 3 and preds.shape[2] != 6:
+            # Transpose if channels dimension (4 + C) is at axis 1
+            if preds.shape[1] < preds.shape[2] or preds.shape[1] in (4 + len(self.classes), 84, 22):
+                preds = np.transpose(preds, (0, 2, 1))
 
         if preds.ndim == 3 and preds.shape[2] == 6:
             # Output is already [x1, y1, x2, y2, score, class_id]
