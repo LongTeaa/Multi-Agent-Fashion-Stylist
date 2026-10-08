@@ -10,6 +10,11 @@ EXPECTED_ENV_KEYS = {
     "FRONTEND_URL",
     "VISION_PROVIDER",
     "VISION_TIMEOUT_SECONDS",
+    "DETECTOR_BACKEND",
+    "YOLO_WORLD_MODEL_PATH",
+    "YOLO_WORLD_CONFIDENCE_THRESHOLD",
+    "YOLO_WORLD_IOU_THRESHOLD",
+    "YOLO_WORLD_PADDING",
     "CONTEXT_PROVIDER",
     "CONTEXT_TIMEOUT_SECONDS",
     "WEATHER_PROVIDER",
@@ -47,6 +52,11 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.object_storage_backend == "minio"
     assert settings.vision_provider == "fake"
     assert settings.vision_timeout_seconds == 30
+    assert settings.detector_backend == "gemini"
+    assert settings.yolo_world_model_path == "models/yolov8s-worldv2.onnx"
+    assert settings.yolo_world_confidence_threshold == 0.25
+    assert settings.yolo_world_iou_threshold == 0.45
+    assert settings.yolo_world_padding == 0.05
     assert settings.context_provider == "fallback"
     assert settings.context_timeout_seconds == 15
     assert settings.weather_provider == "disabled"
@@ -119,3 +129,44 @@ def test_env_example_contains_the_complete_contract() -> None:
     assert entries["WEATHER_API_KEY"] == "your_weather_api_key"
     assert entries["MINIO_ACCESS_KEY"] == "your_access_key"
     assert entries["MINIO_SECRET_KEY"] == "your_secret_key"
+
+
+def test_validate_detector_configuration() -> None:
+    from pydantic import SecretStr
+    from app.core.config import validate_detector_configuration
+
+    # Gemini backend requires API key and model
+    with pytest.raises(ValueError, match="GEMINI_API_KEY is not configured"):
+        validate_detector_configuration(
+            Settings(
+                detector_backend="gemini",
+                gemini_api_key=None,
+                gemini_api_keys=[],
+            )
+        )
+
+    # Gemini with key is valid
+    validate_detector_configuration(
+        Settings(
+            detector_backend="gemini",
+            gemini_api_key=SecretStr("mock-key"),
+            vision_model="gemini-1.5-flash",
+        )
+    )
+
+    # YOLO-World backend with valid model path passes
+    validate_detector_configuration(
+        Settings(
+            detector_backend="yolo_world",
+            yolo_world_model_path="models/yolov8s-worldv2.onnx",
+        )
+    )
+
+    # YOLO-World with empty path raises ValueError
+    with pytest.raises(ValueError, match="YOLO_WORLD_MODEL_PATH is empty"):
+        validate_detector_configuration(
+            Settings(
+                detector_backend="yolo_world",
+                yolo_world_model_path="   ",
+            )
+        )
