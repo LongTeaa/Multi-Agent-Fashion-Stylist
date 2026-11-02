@@ -59,6 +59,11 @@ and digests for visual inspection. Each live report pins the adapter contract an
 manifest digest. `complete` denotes response availability, not passing crop quality;
 inspect per-case localization/count metrics separately. Results pooled across
 retries MUST NOT be described as a single successful full-corpus run.
+Live reports retain raw provider boxes/metrics and effective crop boxes/metrics
+separately, with scene inference, confidence, and crop-policy version. Changes to
+crop policy can also be tested against frozen provider boxes on private real
+pixels without making new AI accuracy claims. Any scene/confidence assumptions
+missing from archived evidence MUST be declared explicitly in replay results.
 
 - Default tests MUST inject `FakeVisionProvider` and `FakeDetector` fixtures with stored outputs for single-item, multi-item, worn-outfit, cluttered, low-quality, malformed, and timeout cases.
 - Assertions MUST use fixture bounding boxes, confidence, and normalized attributes rather than comparing generative prose.

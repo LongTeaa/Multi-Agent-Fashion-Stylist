@@ -75,6 +75,11 @@ It controls only optional onboarding guidance; current warnings are always actio
 
 ### 2.2.1 `PATCH /ingestions/{batch_id}/detections/{detection_id}/crop`
 
+Review `bounding_box` describes the effective source rectangle used for the saved
+crop. Initial isolated, confidently detected footwear may include the conservative
+margin defined in the ingestion specification. Manual PATCH requests are applied
+exactly, without an additional margin; the response rectangle and image agree.
+
 Accepts `{"bounding_box":[0.1,0.2,0.8,0.9]}` in normalized source coordinates.
 Bounds MUST satisfy `0 <= left < right <= 1` and `0 <= top < bottom <= 1`.
 The service verifies ownership and batch/source membership, then atomically

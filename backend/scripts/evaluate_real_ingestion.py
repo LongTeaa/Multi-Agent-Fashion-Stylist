@@ -33,6 +33,8 @@ from app.models.entities import BoundingBox, InputKind, MediaAsset, WardrobeCate
 from app.repositories.object_storage import LocalObjectStorage, StorageBuckets
 from app.schemas.ingestion import DetectionConfirmationItem
 from app.services.crop_engine import crop_item_and_generate_thumbnail
+from app.services.crop_policy import AUTO_CROP_POLICY_VERSION, review_crop_boxes
+from app.services.classifier import classify_scene
 from app.services.gemini_provider import GeminiDetector
 from app.services.ingestion_service import (
     confirm_ingestion_batch, create_ingestion_batch, get_batch_review,
@@ -69,8 +71,8 @@ class AnnotatedReplay:
         self.sources = {sha256(raw).hexdigest(): case for case, raw in cases}
         self.crops: dict[str, WardrobeCategory] = {}
         for case, raw in cases:
-            for region in case.regions:
-                crop = crop_item_and_generate_thumbnail(raw, region.box)
+            for region, box in zip(case.regions, review_crop_boxes(self.detect(raw))):
+                crop = crop_item_and_generate_thumbnail(raw, box.box)
                 self.crops[crop.crop_sha256] = region.category
 
     def detect(self, image_bytes: bytes) -> DetectionResult:
@@ -202,21 +204,26 @@ def main() -> int:
                 continue
             start = perf_counter()
             try:
-                detected = detector.detect(raw)
-                metrics = region_coverage([r.box for r in case.regions], [b.box for b in detected.boxes],
+                detected = classify_scene(detector=detector, image_bytes=raw)
+                effective_boxes = review_crop_boxes(detected)
+                raw_metrics = region_coverage([r.box for r in case.regions], [b.box for b in detected.boxes],
+                                              dataset.iou_threshold, min_retention=0.9)
+                metrics = region_coverage([r.box for r in case.regions], [b.box for b in effective_boxes],
                                           dataset.iou_threshold, min_retention=0.9)
                 crops = []
-                for index, box in enumerate(detected.boxes, 1):
+                for index, box in enumerate(effective_boxes, 1):
                     crop = crop_item_and_generate_thumbnail(raw, box.box)
                     file = f"live-{case_index:02}-{index:02}.png"
                     (output / file).write_bytes(crop.crop_bytes)
                     crops.append(dict(file=file, sha256=crop.crop_sha256,
                                       width=crop.crop_width, height=crop.crop_height))
                 rows.append(dict(id=case.id, status="available", elapsed_seconds=round(perf_counter()-start, 3),
-                    crops=crops,
+                    crops=crops, input_kind=detected.input_kind.value,
+                    input_kind_inferred=detected.input_kind_inferred, raw_metrics=raw_metrics,
                     metrics=metrics, count_pass=(len(detected.boxes) == case.expected_box_count)
                     if case.expected_box_count is not None else None,
-                    boxes=[dict(box=b.box, label=b.label) for b in detected.boxes]))
+                    raw_boxes=[dict(box=b.box, label=b.label, confidence=b.confidence) for b in detected.boxes],
+                    boxes=[dict(box=b.box, label=b.label, confidence=b.confidence) for b in effective_boxes]))
                 failures = 0
             except Exception as error:
                 failures += 1
@@ -227,6 +234,7 @@ def main() -> int:
         available = [r for r in rows if r["status"] == "available"]
         report["live"] = dict(model=settings.vision_model, results=rows,
             adapter_contract="gemini-native-yxyx1000-v1", manifest_sha256=sha256(args.manifest.read_bytes()).hexdigest(),
+            crop_policy=AUTO_CROP_POLICY_VERSION,
             selected_case_ids=[case.id for case, _ in selected_cases],
             available_cases=len(available), total_cases=len(selected_cases),
             status="complete" if len(available) == len(selected_cases) else "incomplete_provider_failures",

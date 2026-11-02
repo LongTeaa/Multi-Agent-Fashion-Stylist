@@ -55,6 +55,37 @@ any margin does not introduce adjacent garments/faces, and independently review
 coarse references before expanding the corpus. Provider instability still prevents
 a complete live measurement of the worn-polo case.
 
+## Tight-boundary remediation
+
+Policy `isolated-footwear-margin-v1` now adds a 2% source-dimension margin at each
+edge for an explicit single-item scene with exactly one recognized footwear box
+and detector confidence >= 0.70. It clips the rectangle to image bounds. Other
+scenes and labels are unchanged, including a single item inferred from an unknown
+scene. Explicit manual edits remain exact. This is deliberately limited to the
+observed footwear issue rather than expanding every worn garment near a face.
+
+Replaying the recorded Derby box `[0.092, 0.488, 0.906, 0.730]` yields
+`[0.072, 0.468, 0.926, 0.750]`. On the original 399×501 image, the crop changes
+from 325×121 to 341×141 pixels and visibly retains the sole. The same IoU/retention
+criterion changes from 0/1 to 1/1. Sneakers remain 1/1; jeans and both T-shirts
+are unchanged; worn trousers remain 0/2 and are not expanded. The frozen replay
+results are in `data/fixtures/vision_crop_margin_regression_v1.json`.
+
+Archived evidence did not retain detector scene/confidence fields, so this replay
+explicitly assumes human-declared scene kinds and confidence 0.95. It establishes
+the correction for the known geometry under policy eligibility, not a fresh model
+accuracy measurement. The new runner records actual scene, inference, confidence,
+raw/effective boxes and metrics for future comparisons. Two attempted fresh Derby
+requests during remediation were unavailable; the live-quality limitation remains.
+
+Integration verification checks that the review rectangle and media pixels agree,
+the previously excluded sole pixels survive, and a manual crop back to the exact
+original coordinates receives no hidden padding. Unit cases cover image-edge
+clipping, a matching pair, low confidence, unknown/inferred scenes, and multiple
+candidates even when the scene is mislabeled. No claim is made that this heuristic
+can detect every unreported adjacent object or face. Future work should inspect
+such borderline images before broadening the policy to other garment categories.
+
 ## Reproduction
 
 From the repository root, with the private files retained locally:

@@ -48,6 +48,7 @@ from app.schemas.ingestion import (
 from app.services.classifier import classify_scene
 from app.services.cleanup_service import stage_object_upload
 from app.services.crop_engine import crop_item_and_generate_thumbnail
+from app.services.crop_policy import review_crop_boxes
 from app.services.providers import (
     BoundingBoxDetection,
     DetectorProtocol,
@@ -259,7 +260,7 @@ def process_ingestion_batch(
                     image_bytes=image_bytes,
                     declared_input_kind=batch.input_kind,
                 )
-                detected_boxes = list(detection_res.boxes)
+                detected_boxes = review_crop_boxes(detection_res)
                 detected_kinds.append(detection_res.input_kind)
                 for warning in detection_res.quality_warnings:
                     add_warning(warning)

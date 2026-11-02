@@ -52,6 +52,18 @@ or degenerate boxes MUST fail validation before cropping; they MUST NOT be
 silently rescaled or interpreted as domain coordinates. Explicit legacy
 `box` fields remain canonical 0–1 XYXY only. The HTTP/UI contract is unchanged.
 
+Automatic crop policy `isolated-footwear-margin-v1` adds 0.02 of the source
+width/height at each edge only when the detector explicitly classifies the photo
+as `single_item`, returns exactly one recognized footwear candidate, and reports
+confidence >= 0.70. Coordinates are clipped to the source bounds. A matching pair
+remains one unit. Scene kinds inferred from box count or a client hint do not
+qualify. Worn/multi-item/cluttered scenes, unknown labels and low-confidence
+candidates receive no expansion. This conservative guard limits adjacent garment
+or face inclusion; it cannot guarantee that a model classified the scene correctly.
+The stored/reviewed bounding box, crop, thumbnail and extraction input all use the
+same effective rectangle. Explicit crop PATCH coordinates remain exact and never
+receive an automatic margin. Existing persisted crops are not rewritten.
+
 Processing clients MUST retain a recoverable batch identifier while the server
 is processing; elapsed polling time alone is not a failed ingestion. Consecutive
 network failures MAY pause polling, with a resume/reload path. Only terminal

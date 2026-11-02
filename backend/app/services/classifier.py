@@ -34,6 +34,7 @@ def classify_scene(
         input_kind=resolved_kind,
         boxes=result.boxes,
         quality_warnings=result.quality_warnings,
+        input_kind_inferred=result.input_kind_inferred or result.input_kind == InputKind.UNKNOWN,
     )
 
 
