@@ -28,6 +28,7 @@ data/*.sqlite
 data/*.sqlite3
 data/object_storage/
 data/storage/
+data/private-vision-review/
 backend/data
 
 # Logs and operating-system files

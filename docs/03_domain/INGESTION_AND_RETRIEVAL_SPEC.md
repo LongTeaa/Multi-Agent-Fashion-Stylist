@@ -44,6 +44,14 @@ detector prompt MUST express this rule; users can enlarge one region to enclose
 a pair and reject a duplicate proposal. Live pair-detection accuracy requires
 a separate real-image evaluation.
 
+The Gemini adapter MUST request native `box_2d` coordinates in
+`[y_min, x_min, y_max, x_max]` order on the 0–1000 grid and convert them once
+to the domain's `[x_min, y_min, x_max, y_max]` order on 0–1. A response schema
+MUST make the provider format explicit. Ambiguous, out-of-range, reversed,
+or degenerate boxes MUST fail validation before cropping; they MUST NOT be
+silently rescaled or interpreted as domain coordinates. Explicit legacy
+`box` fields remain canonical 0–1 XYXY only. The HTTP/UI contract is unchanged.
+
 Processing clients MUST retain a recoverable batch identifier while the server
 is processing; elapsed polling time alone is not a failed ingestion. Consecutive
 network failures MAY pause polling, with a resume/reload path. Only terminal

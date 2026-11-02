@@ -4,10 +4,10 @@ import base64
 import json
 import logging
 import time
-from typing import Any
+from typing import Annotated, Any
 
 import httpx
-from pydantic import BaseModel, Field, SecretStr, ValidationError
+from pydantic import BaseModel, Field, SecretStr, ValidationError, model_validator
 
 from app.models.entities import (
     BoundingBox,
@@ -46,9 +46,33 @@ def _detect_image_mime_type(image_bytes: bytes) -> str:
 class GeminiBoxDetection(BaseModel):
     """Pydantic model for validating Gemini bounding box detection output."""
 
-    box: tuple[float, float, float, float]
+    # Native Gemini box_2d is YXYX on a 0..1000 grid. The old explicitly
+    # canonical `box` field remains readable, but is never rescaled/guessed.
+    box: BoundingBox | None = None
+    box_2d: tuple[
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+    ] | None = None
     label: str
     confidence: float = Field(default=0.95, ge=0.0, le=1.0)
+
+    def canonical_box(self) -> BoundingBox:
+        if self.box_2d is not None:
+            ymin, xmin, ymax, xmax = self.box_2d
+            return xmin / 1000, ymin / 1000, xmax / 1000, ymax / 1000
+        assert self.box is not None
+        return self.box
+
+    @model_validator(mode="after")
+    def validate_coordinate_contract(self) -> GeminiBoxDetection:
+        if (self.box is None) == (self.box_2d is None):
+            raise ValueError("Exactly one explicit coordinate format is required")
+        xmin, ymin, xmax, ymax = self.canonical_box()
+        if xmin >= xmax or ymin >= ymax:
+            raise ValueError("Degenerate or reversed detection box")
+        return self
 
 
 class GeminiDetectorOutput(BaseModel):
@@ -121,13 +145,13 @@ class GeminiDetector:
 
         prompt = (
             "Analyze this fashion image. Detect each distinct clothing/garment/accessory item with precise bounding boxes in "
-            "normalized [x_min, y_min, x_max, y_max] format within [0.0, 1.0]. "
+            "native box_2d [y_min, x_min, y_max, x_max] format on a 0 to 1000 grid. "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
             "Treat the matching left and right shoes of one pair as ONE wardrobe item with a box enclosing both. "
             "Keep different pairs separate. Do not duplicate the same garment region. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
-            "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box, label, confidence}), and 'quality_warnings'."
+            "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box_2d, label, confidence}), and 'quality_warnings'."
         )
 
         payload = {
@@ -146,6 +170,22 @@ class GeminiDetector:
             ],
             "generationConfig": {
                 "response_mime_type": "application/json",
+                "responseSchema": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "input_kind": {"type": "STRING", "enum": [kind.value for kind in InputKind]},
+                        "boxes": {"type": "ARRAY", "items": {
+                            "type": "OBJECT", "properties": {
+                                "box_2d": {"type": "ARRAY", "items": {"type": "NUMBER", "minimum": 0, "maximum": 1000},
+                                           "minItems": 4, "maxItems": 4,
+                                           "description": "[y_min, x_min, y_max, x_max] on 0..1000 grid"},
+                                "label": {"type": "STRING"},
+                                "confidence": {"type": "NUMBER", "minimum": 0, "maximum": 1},
+                            }, "required": ["box_2d", "label", "confidence"],
+                        }},
+                        "quality_warnings": {"type": "ARRAY", "items": {"type": "STRING"}},
+                    }, "required": ["input_kind", "boxes", "quality_warnings"],
+                },
             },
         }
 
@@ -196,7 +236,7 @@ class GeminiDetector:
                 for b in validated.boxes:
                     domain_boxes.append(
                         BoundingBoxDetection(
-                            box=b.box,
+                            box=b.canonical_box(),
                             label=b.label,
                             confidence=ConfidenceValue(b.confidence),
                         )

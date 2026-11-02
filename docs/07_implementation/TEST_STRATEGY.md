@@ -40,6 +40,19 @@ Shared fixtures MUST include an isolated temporary SQLite database, a temporary 
 
 ### 3.2 Vision and Detection
 
+Real-image review uses the digest-pinned `data/fixtures/vision_real_review_v1.json`
+manifest and private source files excluded from Git. Run
+`python backend/scripts/evaluate_real_ingestion.py` for an isolated annotation
+replay over real pixels; this tests source association, exact crop bytes, later-photo
+crop edits, reload, explicit confirmation, and idempotency. It does not measure AI accuracy.
+Add `--live` to send the same images to the configured Gemini detector. Live
+localization uses one-to-one matching at IoU >= 0.5 and annotated-region retention
+>= 0.9, with a separate exact-count check for isolated items and a footwear pair.
+Coarse rectangles are not segmentation ground truth. Semantic attribute accuracy
+is not measured by this runner. Provider failures and skipped cases remain explicit;
+two consecutive failures stop further external calls. Incomplete live runs return
+a nonzero exit code and MUST NOT be reported as passing model-quality evidence.
+
 - Default tests MUST inject `FakeVisionProvider` and `FakeDetector` fixtures with stored outputs for single-item, multi-item, worn-outfit, cluttered, low-quality, malformed, and timeout cases.
 - Assertions MUST use fixture bounding boxes, confidence, and normalized attributes rather than comparing generative prose.
 - A live-provider evaluation MAY run manually against the fixed image set, but MUST NOT gate normal development.
