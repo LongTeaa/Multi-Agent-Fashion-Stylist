@@ -58,6 +58,7 @@ class IngestionBatchReviewResponseData(BaseModel):
     detections: list[DetectionReviewItem] = Field(default_factory=list)
     quality_warnings: list[str] = Field(default_factory=list)
     original_media_url: str | None = None
+    show_review_hint: bool = False
     source_images: list[SourceImageReview] = Field(default_factory=list)
 
 

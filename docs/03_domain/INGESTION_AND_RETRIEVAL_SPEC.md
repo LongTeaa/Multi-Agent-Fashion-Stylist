@@ -61,6 +61,24 @@ server failure/expiration or explicit cancellation clears recovery state.
 
 Every AI-produced field MUST have a confidence value. A field below the configurable default threshold of `0.70` MUST be marked for review.
 
+### Review presentation and reminder cadence
+
+The default review shows the crop, category, specific item type, primary color,
+and inclusion toggle. Additional attributes remain editable in a collapsed details
+section; its summary MUST indicate uncertain additional fields. High-confidence
+percentages and internal identifiers/input-kind enums are not user-facing copy.
+Garment length controls are omitted for footwear/accessories without changing
+their stored metadata. Explicit save is required for every batch.
+
+The optional onboarding hint appears for upload ordinals 1, 2, 14, 26, and so on:
+the first two batches, then every twelve further confirmed batches. The backend
+derives eligibility from confirmed batches owned by the same user, excluding the
+current batch. Failed, expired, pending, and duplicate confirmation retries do not
+advance the count. Repeated review GETs do not mutate cadence. This policy is
+independent of outfit-rating cadence. Current quality failures and uncertain fields
+MUST remain visible regardless of hint eligibility. Provider diagnostics MUST be
+mapped to concise Vietnamese guidance rather than rendered as raw provider text.
+
 ## 5. Search-Intent Extraction
 
 The Context Agent converts a natural-language prompt into a structured `SearchIntent`.

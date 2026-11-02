@@ -69,6 +69,9 @@ Each detection includes nullable `source_media_asset_id`. The compatibility fiel
 `original_media_url` is populated only when exactly one original is available.
 Clients MUST overlay a detection only on its matching source image. Legacy
 multi-photo detections with unknown source retain null rather than guessing.
+Review includes boolean `show_review_hint`, derived without mutation from the
+user's confirmed upload batches according to the ingestion review cadence policy.
+It controls only optional onboarding guidance; current warnings are always actionable.
 
 ### 2.2.1 `PATCH /ingestions/{batch_id}/detections/{detection_id}/crop`
 

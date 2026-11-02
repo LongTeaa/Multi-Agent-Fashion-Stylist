@@ -164,41 +164,16 @@ export function DetectionItemCard({
   const cropUrl = detection.crop_url;
 
   const isLowConfidence = (field: string) => {
+    if (field === 'length' && ['footwear', 'accessory'].includes(attributes.category)) return false;
     const conf = confidences[field];
-    return typeof conf === 'number' && conf < 0.70;
+    return typeof conf === 'number' && conf < 0.70 && attributes[field] === detection.attributes[field];
   };
 
-  const renderConfidenceBadge = (field: string) => {
-    const conf = confidences[field];
-    if (typeof conf !== 'number') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#FAF8F5] text-[#5C564E] border border-[#E8E5DE]">
-          Chưa xác định
-        </span>
-      );
-    }
-    const isLow = conf < 0.70;
-    const percentage = Math.round(conf * 100);
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full ${
-          isLow
-            ? 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold animate-pulse'
-            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-        }`}
-      >
-        {isLow ? (
-          <>
-            <span>⚠️ Cần kiểm tra</span>
-            <span className="font-bold">({percentage}%)</span>
-          </>
-        ) : (
-          <span>✓ {percentage}% (AI nhận diện)</span>
-        )}
-      </span>
-    );
-  };
+  const advancedFields = ['pattern', 'material', 'style', 'fit', 'formality_level', 'comfort_level', 'silhouette_level', 'length'];
+  const advancedNeedsReview = advancedFields.some(isLowConfidence);
+  const renderConfidenceBadge = (field: string) => isLowConfidence(field)
+    ? <span className="text-xs font-medium text-amber-800">Cần kiểm tra</span>
+    : null;
 
   const handleSeasonToggle = (seasonVal: string) => {
     const current = Array.isArray(attributes.season) ? attributes.season : [];
@@ -238,14 +213,13 @@ export function DetectionItemCard({
               {CATEGORIES.find((c) => c.value === attributes.category)?.label.split(' ')[0] || attributes.category || 'Món đồ'} •{' '}
               {attributes.sub_category || 'Chưa phân loại'}
             </h4>
-            <p className="text-xs font-mono text-[#5C564E]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
           </div>
         </div>
 
         {/* Accept / Reject Switch */}
         <label
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2.5 cursor-pointer select-none"
+          className="relative flex items-center gap-2.5 cursor-pointer select-none"
         >
           <input
             type="checkbox"
@@ -267,7 +241,7 @@ export function DetectionItemCard({
             {cropUrl ? (
               <PrivateMediaImage
                 source={cropUrl}
-                alt="Cropped item"
+                alt="Ảnh món đồ đã cắt"
                 className="w-full h-full object-contain p-2"
               />
             ) : (
@@ -322,7 +296,7 @@ export function DetectionItemCard({
             {/* Sub-Category */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại chi tiết (Sub-category)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại món</label>
                 {renderConfidenceBadge('sub_category')}
               </div>
               <input
@@ -386,10 +360,16 @@ export function DetectionItemCard({
               />
             </div>
 
+          </div>
+          <details className="border-t border-[#E8E5DE] pt-4">
+            <summary className="cursor-pointer rounded-lg text-sm font-medium text-[#5C564E] focus-visible:outline-2 focus-visible:outline-[#9C5234]">
+              Chi tiết bổ sung{advancedNeedsReview ? ' · Có thông tin cần kiểm tra' : ''}
+            </summary>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {/* Pattern */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết (Pattern)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết</label>
                 {renderConfidenceBadge('pattern')}
               </div>
               <select
@@ -416,7 +396,7 @@ export function DetectionItemCard({
             {/* Material */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu (Material)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu</label>
                 {renderConfidenceBadge('material')}
               </div>
               <select
@@ -443,7 +423,7 @@ export function DetectionItemCard({
             {/* Style */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách (Style)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách</label>
                 {renderConfidenceBadge('style')}
               </div>
               <select
@@ -470,7 +450,7 @@ export function DetectionItemCard({
             {/* Fit */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng (Fit)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng</label>
                 {renderConfidenceBadge('fit')}
               </div>
               <select
@@ -526,7 +506,7 @@ export function DetectionItemCard({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
-                  Độ thoải mái (Comfort):{' '}
+                  Độ thoải mái:{' '}
                   <span className="font-bold text-[#9C5234] text-sm sm:text-base">
                     {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
                   </span>
@@ -558,7 +538,7 @@ export function DetectionItemCard({
             {/* Silhouette Level (Dáng tổng thể 1-5) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể (Silhouette)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể</label>
                 {renderConfidenceBadge('silhouette_level')}
               </div>
               <select
@@ -579,10 +559,10 @@ export function DetectionItemCard({
               </select>
             </div>
 
-            {/* Length (Độ dài trang phục) */}
-            <div>
+            {/* Length applies to garments, not shoes or accessories. */}
+            {!['footwear', 'accessory'].includes(attributes.category) && <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài (Length)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài</label>
                 {renderConfidenceBadge('length')}
               </div>
               <select
@@ -601,7 +581,7 @@ export function DetectionItemCard({
                   </option>
                 ))}
               </select>
-            </div>
+            </div>}
           </div>
 
           {/* Season suitability */}
@@ -656,6 +636,7 @@ export function DetectionItemCard({
               })}
             </div>
           </div>
+          </details>
         </div>
       </div>
     </div>

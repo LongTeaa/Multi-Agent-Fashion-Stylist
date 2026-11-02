@@ -21,6 +21,45 @@ vi.mock('@/components/ingestion/DetectionItemCard', () => ({
 
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.useRealTimers(); vi.resetAllMocks(); });
 
+it('keeps current quality warnings visible between reminders and hides raw provider text', async () => {
+  sessionStorage.setItem('active_ingestion_batch_id', 'batch');
+  vi.mocked(api.getIngestionBatch).mockResolvedValue({
+    batch_id: 'batch', status: 'needs_review', input_kind: 'cluttered',
+    show_review_hint: false, quality_warnings: ['Internal provider warning in English'],
+    detections: [],
+  });
+  render(<IngestionWorkflow />);
+  await act(async () => {});
+  expect(screen.getByText(/Một số ảnh chưa được nhận diện đầy đủ/)).toBeDefined();
+  expect(screen.queryByText(/Internal provider/)).toBeNull();
+  expect(screen.queryByText(/Chọn những món muốn giữ/)).toBeNull();
+  expect(screen.queryByText(/Ngữ cảnh ảnh/)).toBeNull();
+});
+
+it('shows the optional onboarding hint when the server marks the batch eligible', async () => {
+  sessionStorage.setItem('active_ingestion_batch_id', 'batch');
+  vi.mocked(api.getIngestionBatch).mockResolvedValue({
+    batch_id: 'batch', status: 'needs_review', input_kind: 'single_item',
+    show_review_hint: true, quality_warnings: [], detections: [],
+  });
+  render(<IngestionWorkflow />);
+  await act(async () => {});
+  expect(screen.getByRole('note').textContent).toContain('Chọn những món muốn giữ');
+});
+
+it('does not expose diagnostics or offer polling recovery for an expired batch', async () => {
+  sessionStorage.setItem('active_ingestion_batch_id', 'batch');
+  vi.mocked(api.getIngestionBatch).mockResolvedValue({
+    batch_id: 'batch', status: 'expired', input_kind: 'unknown',
+    quality_warnings: ['Internal provider diagnostic'], detections: [],
+  });
+  render(<IngestionWorkflow />);
+  await act(async () => {});
+  expect(screen.queryByText(/Internal provider/)).toBeNull();
+  expect(screen.queryByText('Tiếp tục kiểm tra kết quả')).toBeNull();
+  expect(sessionStorage.getItem('active_ingestion_batch_id')).toBeNull();
+});
+
 it('retains a processing batch after 45 seconds and scopes review to the selected source', async () => {
   vi.useFakeTimers();
   sessionStorage.setItem('active_ingestion_batch_id', 'batch');

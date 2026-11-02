@@ -8,7 +8,7 @@ from typing import Sequence
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import update
+from sqlalchemy import update, func
 
 from app.core.config import get_settings
 from app.models.entities import (
@@ -596,6 +596,11 @@ def get_batch_review(
             )
         )
 
+    completed_batches = session.exec(select(func.count()).select_from(IngestionBatch).where(
+        IngestionBatch.user_id == user_id,
+        IngestionBatch.status == IngestionStatus.CONFIRMED,
+        IngestionBatch.id != batch_id,
+    )).one()
     return IngestionBatchReviewResponseData(
         batch_id=batch.id,
         input_kind=batch.input_kind.value,
@@ -603,6 +608,7 @@ def get_batch_review(
         detections=detection_items,
         quality_warnings=batch.quality_warnings,
         original_media_url=original_media_url,
+        show_review_hint=completed_batches < 2 or (completed_batches - 2) % 12 == 11,
         source_images=[SourceImageReview(media_asset_id=a.id, media_url=f"/api/v1/media/{a.id}",
                                         width=a.width, height=a.height) for a in originals],
     )

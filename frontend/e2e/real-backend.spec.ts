@@ -83,6 +83,10 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await expect(photos).toHaveCount(2);
   await photos.nth(1).click();
   await expect(photos.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('note')).toContainText('Chọn những món muốn giữ');
+  const details = page.locator('details').first();
+  await expect(details).toHaveJSProperty('open', false);
+  await page.screenshot({ path: 'test-results/confirmation-review-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
   await page.getByRole('button', { name: 'Lấy toàn ảnh', exact: true }).click();
   const patch = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
@@ -91,6 +95,12 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await page.reload();
   await page.getByTestId('btn-add-garment').click();
   await expect(photos).toHaveCount(2);
+  await details.locator('summary').click();
+  const material = details.locator('select').filter({ has: page.locator('option[value="linen"]') });
+  await material.selectOption('linen');
+  await details.locator('summary').click();
+  await expect(details).toHaveJSProperty('open', false);
+
   await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/multi-photo-review.png', fullPage: false });
@@ -98,6 +108,14 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   await page.screenshot({ path: 'test-results/multi-photo-review-mobile.png', fullPage: false });
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: 'test-results/confirmation-review-mobile.png', fullPage: true });
   const review = await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers: { 'X-User-Id': userId } });
   expect((await review.json()).data.detections.some((d: { bounding_box: number[] }) => JSON.stringify(d.bounding_box) === '[0,0,1,1]')).toBe(true);
+  const confirmation = page.waitForResponse(r => r.url().endsWith('/confirm') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: /Lưu vào tủ đồ/ }).click();
+  expect((await confirmation).status()).toBe(200);
+  const wardrobe = await page.request.get(`${apiBase}/api/v1/wardrobe/items`, { headers: { 'X-User-Id': userId } });
+  expect((await wardrobe.json()).data.items.some((item: { material: string }) => item.material === 'linen')).toBe(true);
 });

@@ -28,7 +28,7 @@ export function BoundingBoxOverlay({
         {imageUrl ? (
           <PrivateMediaImage
             source={imageUrl}
-            alt="Original Ingestion Upload"
+            alt="Ảnh gốc đã chọn"
             className="max-h-[500px] xl:max-h-[620px] 2xl:max-h-[700px] w-auto object-contain block mx-auto select-none rounded-xl"
             fallbackText="Không thể tải ảnh gốc"
           />
@@ -50,8 +50,9 @@ export function BoundingBoxOverlay({
           const height = `${Math.max(0.02, yMax - yMin) * 100}%`;
 
           const isSelected = selectedDetectionId === det.detection_id;
-          const categoryConf = det.field_confidence.category || 0.95;
-          const categoryLabel = det.attributes.category || `Món đồ #${idx + 1}`;
+          const labels: Record<string, string> = { top: 'Áo', bottom: 'Quần / Chân váy',
+            dress: 'Đầm', footwear: 'Giày dép', outerwear: 'Áo khoác', accessory: 'Phụ kiện' };
+          const categoryLabel = labels[det.attributes.category] || `Món ${idx + 1}`;
 
           return (
             <div
@@ -73,7 +74,6 @@ export function BoundingBoxOverlay({
                 }`}
               >
                 <span className="capitalize">{categoryLabel}</span>
-                <span className="text-[9px] opacity-80">({Math.round(categoryConf * 100)}%)</span>
               </div>
             </div>
           );

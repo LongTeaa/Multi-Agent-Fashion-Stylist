@@ -110,11 +110,14 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           setStep('review');
           return;
         } else if (review.status === 'failed' || review.status === 'expired') {
+          setBatchReview(review);
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('active_ingestion_batch_id');
           }
           setErrorMessage(
-            review.quality_warnings.join('; ') || 'AI không thể phân tích ảnh này. Vui lòng thử lại.'
+            review.status === 'expired'
+              ? 'Lượt tải ảnh đã hết hạn. Vui lòng tải lại ảnh.'
+              : 'Chưa thể phân tích ảnh. Vui lòng thử lại với ảnh rõ hơn.'
           );
           setStep('failed');
           return;
@@ -313,6 +316,14 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     : (batchReview?.detections ?? []).filter((det) => sources.length === 0 || !det.source_media_asset_id);
   const selectedDetection = visibleDetections.find((det) => det.detection_id === selectedDetectionId);
 
+  const needsReviewCount = (batchReview?.detections ?? []).filter((det) => {
+    if (!acceptedDetections[det.detection_id]) return false;
+    const attrs = editedAttributes[det.detection_id] ?? det.attributes;
+    return !attrs.category || attrs.category === 'unknown' || Object.entries(det.field_confidence).some(
+      ([field, confidence]) => !(field === 'length' && ['footwear', 'accessory'].includes(attrs.category))
+        && confidence < .70 && attrs[field] === det.attributes[field]
+    );
+  }).length;
   const acceptedCount = Object.values(acceptedDetections).filter(Boolean).length;
 
   return (
@@ -421,7 +432,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             </p>
             <div className="mt-6 inline-flex items-center gap-2 text-xs font-mono text-[#736E65] bg-[#FAF8F5] py-1.5 px-4 rounded-full border border-[#E8E5DE]">
               <span className="w-2 h-2 rounded-full bg-[#9C5234] animate-pulse"></span>
-              <span>Mã phiên tải: {batchId?.slice(0, 8)}</span>
+              <span>Đang chuẩn bị ảnh và thông tin món đồ</span>
             </div>
           </div>
         </div>
@@ -434,14 +445,12 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-white rounded-3xl shadow-2xs border border-[#E8E5DE]">
             <div>
               <h2 className="font-serif text-xl font-medium text-[#1A1918] flex items-center gap-2.5">
-                <span>Kết Quả Phát Hiện ({batchReview.detections.length} món đồ)</span>
+                <span>Trang phục tìm thấy ({batchReview.detections.length} món đồ)</span>
                 <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#9C5234]/10 text-[#9C5234] border border-[#9C5234]/20 font-semibold">
-                  Cần kiểm tra
+                  {needsReviewCount > 0 ? `${needsReviewCount} món cần xem lại` : 'Sẵn sàng lưu'}
                 </span>
               </h2>
-              <p className="text-xs font-mono text-[#736E65] mt-1">
-                Ngữ cảnh ảnh: <span className="font-semibold text-[#1A1918]">{batchReview.input_kind}</span> • Hãy kiểm tra các trường trước khi xác nhận lưu.
-              </p>
+
             </div>
 
             <div className="flex items-center gap-2">
@@ -459,6 +468,11 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             </div>
           </div>
 
+          {batchReview.show_review_hint && (
+            <p role="note" className="rounded-2xl bg-[#F5F2EC] px-5 py-4 text-sm text-[#5C564E]">
+              Chọn những món muốn giữ, kiểm tra loại và màu. Bạn có thể sửa vùng cắt hoặc mở Chi tiết bổ sung khi cần.
+            </p>
+          )}
           {/* Quality Warnings Banner */}
           {batchReview.quality_warnings.length > 0 && (
             <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-sm shadow-2xs flex items-start gap-3.5">
@@ -467,11 +481,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               </svg>
               <div>
                 <p className="font-semibold text-xs sm:text-sm font-mono uppercase tracking-wider text-amber-900">Lưu ý chất lượng ảnh:</p>
-                <ul className="list-disc list-inside mt-1.5 text-xs sm:text-sm space-y-1 text-amber-900 font-medium leading-relaxed">
-                  {batchReview.quality_warnings.map((w, i) => (
-                    <li key={i}>{w}</li>
-                  ))}
-                </ul>
+                <p className="mt-1 text-sm">Một số ảnh chưa được nhận diện đầy đủ. Kiểm tra vùng cắt và loại món trước khi lưu.</p>
               </div>
             </div>
           )}
@@ -544,8 +554,8 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             </div>
           </div>
 
-          {/* Sticky Bottom Action Bar */}
-          <div className="sticky bottom-4 z-30 p-4 sm:p-5 bg-[#1A1918]/92 backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 text-[#FBFBF9] flex flex-wrap items-center justify-between gap-4">
+          {/* Save action stays in document flow so crop controls remain unobstructed. */}
+          <div className="relative p-4 sm:p-5 bg-[#1A1918]/92 backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 text-[#FBFBF9] flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-[#9C5234] animate-pulse"></span>
               <span className="text-xs font-mono text-[#D5D1C7]">
@@ -583,7 +593,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                   </>
                 ) : (
                   <>
-                    <span>✓ Xác nhận lưu vào tủ đồ ({acceptedCount})</span>
+                    <span>✓ Lưu vào tủ đồ ({acceptedCount})</span>
                   </>
                 )}
               </button>
@@ -635,7 +645,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               </svg>
             </div>
             <h3 className="font-serif text-2xl font-normal text-[#1A1918]">Không Thể Hoàn Tất Số Hóa</h3>
-            {batchId && <button type="button" className="mt-4 rounded-lg border px-4 py-2 text-sm"
+            {batchId && !batchReview && <button type="button" className="mt-4 rounded-lg border px-4 py-2 text-sm"
               onClick={() => { setErrorMessage(null); setStep('processing'); }}>Tiếp tục kiểm tra kết quả</button>}
             <p className="text-xs sm:text-sm text-[#5C564E] mt-2 leading-relaxed">{errorMessage || 'Có lỗi xảy ra trong quá trình phân tích.'}</p>
             <button

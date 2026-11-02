@@ -42,16 +42,17 @@ describe('DetectionItemCard', () => {
       />
     );
 
-    // High confidence (>= 70%)
-    expect(screen.getByText(/✓ 95% \(AI nhận diện\)/)).toBeDefined();
+    expect(screen.queryByText(/95%/)).toBeNull();
+    expect(screen.queryByText(/45%/)).toBeNull();
+    expect(screen.queryByText(/Mã AI/)).toBeNull();
+    expect(screen.getByText('Cần kiểm tra', { exact: true })).toBeDefined();
+    const summary = screen.getByText(/Chi tiết bổ sung/);
+    expect(summary.textContent).toContain('Có thông tin cần kiểm tra');
+    const details = summary.closest('details')!;
+    expect(details.hasAttribute('open')).toBe(false);
+    fireEvent.click(summary);
+    expect(details.hasAttribute('open')).toBe(true);
 
-    // Low confidence (< 70%)
-    expect(screen.getByText(/⚠️ Cần kiểm tra/)).toBeDefined();
-    expect(screen.getByText(/\(45%\)/)).toBeDefined();
-
-    // Undefined confidence -> "Chưa xác định"
-    const unverifiedBadges = screen.getAllByText('Chưa xác định');
-    expect(unverifiedBadges.length).toBeGreaterThan(0);
   });
 
   it('does not apply speculative default values to dropdown selects', () => {
@@ -110,5 +111,14 @@ describe('DetectionItemCard', () => {
     const categorySelect = screen.getByDisplayValue('Áo (Top)');
     fireEvent.change(categorySelect, { target: { value: 'bottom' } });
     expect(handleUpdate).toHaveBeenCalledWith('category', 'bottom');
+  });
+
+  it('omits garment length controls and their uncertainty for footwear', () => {
+    const attributes = { ...mockDetection.attributes, category: 'footwear' };
+    render(<DetectionItemCard detection={{ ...mockDetection, attributes, field_confidence: { length: .4 } }}
+      attributes={attributes} index={0} isSelected={false} accepted={true}
+      onSelect={vi.fn()} onToggleAccepted={vi.fn()} onUpdateAttribute={vi.fn()} />);
+    expect(screen.queryByText('Độ dài')).toBeNull();
+    expect(screen.queryByText(/Có thông tin cần kiểm tra/)).toBeNull();
   });
 });
