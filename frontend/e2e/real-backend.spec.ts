@@ -81,6 +81,12 @@ test('browser uses real API, persisted outfits, private media, actions, and try-
   expect(chatResponse.request().headers()['x-user-id']).toBe(fixtureUserId);
   const chat = (await chatResponse.json()).data;
   expect(chat.recommendations.length).toBeGreaterThan(0);
+  await expect(page.getByText('Ngữ Cảnh Được AI Nhận Diện', { exact: false })).toHaveCount(0);
+  expect(new Set(chat.recommendations.map((r: { explanation_vi: string }) => r.explanation_vi)).size).toBe(chat.recommendations.length);
+  await page.screenshot({ path: 'test-results/recommendations-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.screenshot({ path: 'test-results/recommendations-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   const outfit = chat.recommendations[0];
   const card = page.getByTestId('outfit-recommendation-card').first();

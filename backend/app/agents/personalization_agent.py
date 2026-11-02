@@ -530,7 +530,26 @@ def rerank_evaluated_outfits(
 
     # Truncate to top 1..3 results (strictly clamped to [1, 3] per contract)
     effective_max_output = max(1, min(3, max_output))
-    top_candidates = scored_candidates[:effective_max_output]
+    from app.agents.outfit_diversity import core_signature, overlap
+
+    # Keep the best-scoring choice. Among close alternatives, prefer a different
+    # core; optional accessories/layers alone do not constitute another outfit.
+    remaining = scored_candidates.copy()
+    top_candidates = []
+    while remaining and len(top_candidates) < effective_max_output:
+        if not top_candidates:
+            chosen = remaining[0]
+        else:
+            eligible = [entry for entry in remaining if entry[0] >= remaining[0][0] - 0.08]
+            chosen = max(eligible, key=lambda entry: (
+                entry[0] - 0.10 * max(overlap(core_signature(entry[3].items), core_signature(prev[3].items))
+                                     for prev in top_candidates),
+                -scored_candidates.index(entry),
+            ))
+        top_candidates.append(chosen)
+        signature = core_signature(chosen[3].items)
+        remaining = [entry for entry in remaining if core_signature(entry[3].items) != signature]
+    top_candidates.sort(key=lambda entry: scored_candidates.index(entry))
     ranked_outfits: list[RankedOutfit] = []
 
     for rank_idx, (comp_score, f_score, p_score, cand, applied_tags) in enumerate(

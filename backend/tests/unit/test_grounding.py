@@ -451,10 +451,7 @@ def test_grounded_explanation_mentions_only_canonical_items():
     assert "Lụa tơ tằm" not in explanation
     assert "Váy" not in explanation
 
-    # Integrates normalized context and preferences
-    assert "cà phê" in explanation
-    assert "buổi tối" in explanation
-    assert "mát mẻ" in explanation
+    # Retains allowlisted preferences without repeating the extracted context
     assert "Bảng màu trung tính theo sở thích" in explanation
     assert "ưu tiên sự thoải mái" in explanation
 
@@ -908,7 +905,7 @@ def test_coordinator_real_pipeline_preferences_integrated_into_explanation(db_se
 
 
 def test_grounded_explanation_low_score_transparency_and_diversity():
-    """LT-04: Verify transparent explanation for low score outfits (< 0.65) and rank-based diversity."""
+    """LT-04: Verify low-score transparency and metadata-based explanations."""
     top = _make_slot("t_red", OutfitSlotRole.TOP, name="Áo Thun Đỏ Ngôi Sao")
     bottom = _make_slot("b_jean", OutfitSlotRole.BOTTOM, name="Quần Jeans Xanh")
     footwear = _make_slot("f_shoe", OutfitSlotRole.FOOTWEAR, name="Giày Sneaker Đen")
@@ -923,19 +920,15 @@ def test_grounded_explanation_low_score_transparency_and_diversity():
     assert "rất phù hợp" not in low_exp
     assert "56%" in low_exp
     assert "vừa phải" in low_exp
-    assert "chưa thật sự tối ưu" in low_exp
     assert "[Áo Thun Đỏ Ngôi Sao]" in low_exp
     assert "[Quần Jeans Xanh]" in low_exp
     assert "[Giày Sneaker Đen]" in low_exp
-    assert "công sở" in low_exp
 
     # 2. Moderate score outfit (70%)
     mid_outfit = _make_ranked_outfit(1, [top, bottom, footwear], composite_score=0.70)
     mid_exp = generate_grounded_explanation_vi(mid_outfit, context)
-    assert "Bộ trang phục phù hợp cho dịp" in mid_exp
-    assert "gọn gàng và thoải mái" in mid_exp
 
-    # 3. High score outfits with rank diversity (Rank 1 vs Rank 2 vs Rank 3)
+    # 3. Rank alone must not invent differences for identical garments
     high_outfit_1 = _make_ranked_outfit(1, [top, bottom, footwear], composite_score=0.88)
     high_outfit_2 = _make_ranked_outfit(2, [top, bottom, footwear], composite_score=0.85)
     high_outfit_3 = _make_ranked_outfit(3, [top, bottom, footwear], composite_score=0.82)
@@ -944,9 +937,8 @@ def test_grounded_explanation_low_score_transparency_and_diversity():
     high_exp_2 = generate_grounded_explanation_vi(high_outfit_2, context)
     high_exp_3 = generate_grounded_explanation_vi(high_outfit_3, context)
 
-    assert high_exp_1 != high_exp_2
-    assert high_exp_2 != high_exp_3
-    assert "Bộ trang phục rất phù hợp" in high_exp_1
-    assert "Lựa chọn phối đồ nổi bật khác" in high_exp_2
-    assert "Thêm một phương án ấn tượng" in high_exp_3
+    # Identical garments do not acquire fabricated differences from their rank.
+    assert high_exp_1 == high_exp_2 == high_exp_3
+    assert "thoáng mát" not in mid_exp
+    assert "mềm mại" not in mid_exp
 

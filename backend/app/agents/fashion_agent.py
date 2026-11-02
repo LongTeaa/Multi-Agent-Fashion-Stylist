@@ -266,7 +266,16 @@ def evaluate_and_rank_combinations(
     )
 
     unique_warnings = list(dict.fromkeys(all_warnings))
-    return evaluated_outfits[:top_k], unique_warnings
+    from app.agents.outfit_diversity import core_signature
+
+    unique_outfits: list[EvaluatedOutfit] = []
+    seen: set[frozenset[str]] = set()
+    for outfit in evaluated_outfits:
+        signature = core_signature(outfit.items)
+        if signature not in seen:
+            seen.add(signature)
+            unique_outfits.append(outfit)
+    return unique_outfits[:top_k], unique_warnings
 
 
 def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:

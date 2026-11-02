@@ -91,6 +91,8 @@ Lookup tables, penalties, and tie-break rules are defined in `../03_domain/FASHI
 ## 6. Personalization Agent
 
 - It MUST rerank no more than five fashion candidates into a top 1–3 result.
+- Fashion shortlisting MUST collapse candidates sharing the same required garment IDs (top/bottom or dress, plus footwear), keeping the highest-ranked variant. Optional layers/accessories alone do not create a distinct recommendation.
+- Personalization MUST retain the best-scoring candidate. For each remaining slot it considers candidates within 0.08 composite points of the best remaining candidate and maximizes `composite - 0.10 * maximum core Jaccard overlap` with already selected outfits. Ties retain deterministic score order. Final display order retains descending original score order; scores are not rewritten. Sparse wardrobes MAY return fewer than three outfits.
 - It MUST use onboarding weights, rating affinity, explicit exclusions, and confirmed wear history.
 - It MUST apply a strong penalty to an exact outfit confirmed as worn within three days.
 - It SHOULD apply a smaller penalty to a major item confirmed as worn within 48 hours.
@@ -110,6 +112,8 @@ The Coordinator MUST execute these steps in order:
 6. Map shared state to the response defined by `../05_api/API_CONTRACT.md`.
 
 If grounding fails, no recommendation MAY be persisted.
+
+Explanations MUST describe the selected canonical garments and recorded colors, compare recorded formality levels with the requested range, and include only allowlisted applied preferences. They MUST NOT infer breathability, softness, protection, or suitability from a context weight profile alone. Rank changes alone MUST NOT produce invented differences. Scores below 0.65 receive a concise limitation note. The chat UI omits the extracted context panel; API context remains available for orchestration and persisted snapshots.
 
 ## 8. Try-On Agent
 

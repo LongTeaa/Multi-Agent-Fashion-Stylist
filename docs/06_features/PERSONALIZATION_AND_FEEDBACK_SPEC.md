@@ -23,6 +23,8 @@ Initial selections MUST map to versioned feature weights through a deterministic
 
 ## 3. Preference Model
 
+After scoring, recommendation diversity follows the bounded selection policy in `../02_architecture/MULTI_AGENT_SPEC.md`. It does not change eligibility, explicit constraints, ownership, learned weights, feedback cadence, or the reported composite scores.
+
 MVP reranking MUST use this transparent baseline:
 
 ```text

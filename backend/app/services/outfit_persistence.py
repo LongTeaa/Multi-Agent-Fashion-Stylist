@@ -20,7 +20,7 @@ from app.models.entities import (
 
 logger = logging.getLogger(__name__)
 
-COORDINATOR_RULE_VERSION = "coordinator-v1.0"
+COORDINATOR_RULE_VERSION = "coordinator-v1.1"
 
 
 class OutfitInvariantError(ValueError):
