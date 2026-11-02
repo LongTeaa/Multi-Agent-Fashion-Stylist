@@ -4,7 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from io import BytesIO
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from app.models.entities import BoundingBox
 
@@ -44,7 +44,8 @@ def crop_item_and_generate_thumbnail(
             "Coordinates must satisfy 0 <= x_min < x_max <= 1 and 0 <= y_min < y_max <= 1."
         )
 
-    with Image.open(BytesIO(image_bytes)) as img:
+    with Image.open(BytesIO(image_bytes)) as source:
+        img = ImageOps.exif_transpose(source)
         img_width, img_height = img.size
 
         left = max(0, min(img_width, int(xmin * img_width)))

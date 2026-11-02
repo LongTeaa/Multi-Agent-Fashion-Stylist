@@ -124,6 +124,8 @@ class GeminiDetector:
             "normalized [x_min, y_min, x_max, y_max] format within [0.0, 1.0]. "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
+            "Treat the matching left and right shoes of one pair as ONE wardrobe item with a box enclosing both. "
+            "Keep different pairs separate. Do not duplicate the same garment region. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
             "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box, label, confidence}), and 'quality_warnings'."
         )

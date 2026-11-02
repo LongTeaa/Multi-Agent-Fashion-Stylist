@@ -11,9 +11,12 @@ import {
   getIngestionBatch,
   confirmIngestionBatch,
   deleteIngestionBatch,
+  updateDetectionCrop,
 } from '@/lib/api';
 import { UploadDropzone } from './UploadDropzone';
 import { BoundingBoxOverlay } from './BoundingBoxOverlay';
+import { CropEditor } from './CropEditor';
+import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { DetectionItemCard } from './DetectionItemCard';
 
 type WorkflowStep = 'upload' | 'processing' | 'review' | 'confirmed' | 'failed';
@@ -32,12 +35,14 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCropSaving, setIsCropSaving] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('active_ingestion_batch_id');
     }
     return null;
   });
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [batchReview, setBatchReview] = useState<IngestionBatchReviewResponse | null>(null);
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | undefined>(undefined);
   const [selectedDetectionId, setSelectedDetectionId] = useState<string | null>(null);
@@ -71,8 +76,8 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
   // Poll for batch status until ready or failed using recursive awaited polling (no overlapping requests)
   const startPollingBatch = useCallback((id: string) => {
-    let attempts = 0;
-    const maxAttempts = 30; // 45 seconds total
+    let consecutiveErrors = 0;
+    // A processing batch remains recoverable until the server reports a terminal state.
     isPollingCancelledRef.current = false;
 
     if (pollingTimerRef.current) {
@@ -82,9 +87,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
     const poll = async () => {
       if (isPollingCancelledRef.current) return;
-      attempts += 1;
       try {
         const review = await getIngestionBatch(id);
+        consecutiveErrors = 0;
         if (isPollingCancelledRef.current) return;
 
         if (review.status === 'needs_review') {
@@ -104,7 +109,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           }
           setStep('review');
           return;
-        } else if (review.status === 'failed') {
+        } else if (review.status === 'failed' || review.status === 'expired') {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('active_ingestion_batch_id');
           }
@@ -119,20 +124,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           }
           setStep('upload');
           return;
-        } else if (attempts >= maxAttempts) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('active_ingestion_batch_id');
-          }
-          setErrorMessage('Quá trình xử lý ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.');
-          setStep('failed');
-          return;
+
         }
       } catch (err: unknown) {
         if (isPollingCancelledRef.current) return;
-        if (attempts >= 5) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('active_ingestion_batch_id');
-          }
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= 5) {
+          // Keep the batch ID so reload can resume after a network failure.
           setErrorMessage((err as Error).message || 'Không thể lấy thông tin kết quả phân tích.');
           setStep('failed');
           return;
@@ -169,9 +167,10 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
       }
+      setSelectedSourceId(null);
       setBatchId(res.batch_id);
       setStep('processing');
-      startPollingBatch(res.batch_id);
+      // The processing-state effect owns the polling loop.
     } catch (err: unknown) {
       setErrorMessage((err as Error).message || 'Tải ảnh lên thất bại.');
       throw err;
@@ -201,7 +200,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   };
 
   const handleConfirmBatch = async () => {
-    if (!batchId || !batchReview || isConfirming || isCancelling) return;
+    if (!batchId || !batchReview || isConfirming || isCancelling || isCropSaving) return;
 
     // Validate that all accepted detections have a valid category selected
     const hasUnsetCategory = batchReview.detections.some((det) => {
@@ -249,7 +248,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   };
 
   const handleCancelBatch = async () => {
-    if (!batchId || isCancelling || isConfirming) {
+    if (!batchId || isCancelling || isConfirming || isCropSaving) {
       if (!batchId) handleReset();
       return;
     }
@@ -296,6 +295,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       URL.revokeObjectURL(uploadedPreviewUrl);
     }
     setStep('upload');
+    setSelectedSourceId(null);
     setBatchId(null);
     setBatchReview(null);
     setUploadedPreviewUrl(undefined);
@@ -305,6 +305,13 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setConfirmedItemIds([]);
     setErrorMessage(null);
   };
+
+  const sources = batchReview?.source_images ?? [];
+  const source = selectedSourceId === 'unassigned' ? undefined : sources.find((entry) => entry.media_asset_id === (selectedSourceId ?? batchReview?.detections.find((det) => det.detection_id === selectedDetectionId)?.source_media_asset_id)) ?? sources[0];
+  const visibleDetections = source
+    ? (batchReview?.detections ?? []).filter((det) => det.source_media_asset_id === source.media_asset_id)
+    : (batchReview?.detections ?? []).filter((det) => sources.length === 0 || !det.source_media_asset_id);
+  const selectedDetection = visibleDetections.find((det) => det.detection_id === selectedDetectionId);
 
   const acceptedCount = Object.values(acceptedDetections).filter(Boolean).length;
 
@@ -441,7 +448,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <button
                 type="button"
                 onClick={handleCancelBatch}
-                disabled={isCancelling || isConfirming}
+                disabled={isCancelling || isConfirming || isCropSaving}
                 className="tactile-btn px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#736E65] hover:text-rose-600 bg-[#FAF8F5] hover:bg-rose-50 border border-[#E8E5DE] rounded-full transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -469,6 +476,27 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             </div>
           )}
 
+          {sources.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto pb-2" aria-label="Ảnh đã tải lên">
+              {batchReview.detections.some((det) => !det.source_media_asset_id) && (
+                <button type="button" aria-pressed={selectedSourceId === 'unassigned'}
+                  onClick={() => { setSelectedSourceId('unassigned'); setSelectedDetectionId(null); }}
+                  className="shrink-0 rounded-xl border p-2 text-sm">Món chưa xác định ảnh</button>
+              )}
+              {sources.map((entry, index) => (
+                <button key={entry.media_asset_id} type="button"
+                  aria-pressed={source?.media_asset_id === entry.media_asset_id}
+                  onClick={() => {
+                    setSelectedSourceId(entry.media_asset_id);
+                    setSelectedDetectionId(batchReview.detections.find(
+                      (det) => det.source_media_asset_id === entry.media_asset_id)?.detection_id ?? null);
+                  }} className="shrink-0 rounded-xl border border-[#D5D1C7] p-2 aria-pressed:border-[#9C5234] aria-pressed:bg-[#F5F2EC]">
+                  <PrivateMediaImage source={entry.media_url} alt={`Ảnh ${index + 1}`} className="h-16 w-20 object-contain" />
+                  <span className="text-xs">Ảnh {index + 1} / {sources.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {/* 2-Column Inspector Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
             {/* Left: Original Photo with Bounding Boxes */}
@@ -478,9 +506,20 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                   <span>Ảnh Gốc & Vị Trí Nhận Diện</span>
                   <span className="text-xs text-[#9C5234] font-normal">Tự động gắn khung</span>
                 </h3>
+                {selectedDetection && source && batchId && (
+                  <CropEditor key={selectedDetection.crop_url} source={source.media_url}
+                    initialBox={selectedDetection.bounding_box}
+                    onSave={async (box) => {
+                      setIsCropSaving(true);
+                      try {
+                        const updated = await updateDetectionCrop(batchId, selectedDetection.detection_id, box);
+                        setBatchReview(updated);
+                      } finally { setIsCropSaving(false); }
+                    }} />
+                )}
                 <BoundingBoxOverlay
-                  imageUrl={batchReview.original_media_url || uploadedPreviewUrl}
-                  detections={batchReview.detections}
+                  imageUrl={source?.media_url || batchReview.original_media_url || uploadedPreviewUrl}
+                  detections={visibleDetections}
                   selectedDetectionId={selectedDetectionId}
                   onSelectDetection={setSelectedDetectionId}
                 />
@@ -489,7 +528,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
             {/* Right: Detected Item Cards */}
             <div className="lg:col-span-7 xl:col-span-7 space-y-5">
-              {batchReview.detections.map((det, idx) => (
+              {visibleDetections.map((det, idx) => (
                 <DetectionItemCard
                   key={det.detection_id}
                   detection={det}
@@ -519,7 +558,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <button
                 type="button"
                 onClick={handleCancelBatch}
-                disabled={isCancelling || isConfirming}
+                disabled={isCancelling || isConfirming || isCropSaving}
                 className="px-4 py-2 text-xs font-mono uppercase tracking-wider text-[#D5D1C7] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy bỏ
@@ -527,9 +566,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               <button
                 type="button"
                 onClick={handleConfirmBatch}
-                disabled={isConfirming || isCancelling || acceptedCount === 0}
+                disabled={isConfirming || isCancelling || isCropSaving || acceptedCount === 0}
                 className={`tactile-btn px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-all flex items-center gap-2 ${
-                  isConfirming || isCancelling || acceptedCount === 0
+                  isConfirming || isCancelling || isCropSaving || acceptedCount === 0
                     ? 'bg-white/15 text-white/40 cursor-not-allowed'
                     : 'bg-[#9C5234] hover:bg-[#854329] active:scale-95'
                 }`}
@@ -596,6 +635,8 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
               </svg>
             </div>
             <h3 className="font-serif text-2xl font-normal text-[#1A1918]">Không Thể Hoàn Tất Số Hóa</h3>
+            {batchId && <button type="button" className="mt-4 rounded-lg border px-4 py-2 text-sm"
+              onClick={() => { setErrorMessage(null); setStep('processing'); }}>Tiếp tục kiểm tra kết quả</button>}
             <p className="text-xs sm:text-sm text-[#5C564E] mt-2 leading-relaxed">{errorMessage || 'Có lỗi xảy ra trong quá trình phân tích.'}</p>
             <button
               type="button"

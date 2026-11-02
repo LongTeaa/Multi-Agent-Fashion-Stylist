@@ -572,3 +572,16 @@ export async function deleteWardrobeItem(
     },
   });
 }
+
+
+export async function updateDetectionCrop(
+  batchId: string, detectionId: string, boundingBox: [number, number, number, number]
+): Promise<IngestionBatchReviewResponse> {
+  return apiFetch<IngestionBatchReviewResponse>(
+    `${API_BASE_URL}/api/v1/ingestions/${encodeURIComponent(batchId)}/detections/${encodeURIComponent(detectionId)}/crop`, {
+      method: 'PATCH',
+      headers: { 'X-User-Id': getStoredUserId(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bounding_box: boundingBox }),
+    }
+  );
+}

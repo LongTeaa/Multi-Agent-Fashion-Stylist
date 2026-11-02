@@ -270,6 +270,7 @@ class IngestionDetection(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True, max_length=36)
     ingestion_batch_id: str = Field(index=True, max_length=36)
     crop_media_asset_id: str | None = Field(default=None, max_length=36)
+    source_media_asset_id: str | None = Field(default=None, foreign_key="media_assets.id", max_length=36)
     bounding_box: BoundingBox = Field(sa_column=Column(JSON, nullable=False))
     proposed_attributes: dict[str, object] = Field(sa_column=Column(JSON, nullable=False))
     field_confidence: dict[str, ConfidenceValue] = Field(

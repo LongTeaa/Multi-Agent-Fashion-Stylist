@@ -63,6 +63,28 @@ Returns current status, quality warnings, and detections for user review:
 `original_media_url` is nullable when an original asset is unavailable. The
 private media endpoint requires the requesting user's identity header.
 
+Review also returns `source_images`, ordered by `created_at, id`, containing
+`media_asset_id`, `media_url`, `width`, and `height` for every available original.
+Each detection includes nullable `source_media_asset_id`. The compatibility field
+`original_media_url` is populated only when exactly one original is available.
+Clients MUST overlay a detection only on its matching source image. Legacy
+multi-photo detections with unknown source retain null rather than guessing.
+
+### 2.2.1 `PATCH /ingestions/{batch_id}/detections/{detection_id}/crop`
+
+Accepts `{"bounding_box":[0.1,0.2,0.8,0.9]}` in normalized source coordinates.
+Bounds MUST satisfy `0 <= left < right <= 1` and `0 <= top < bottom <= 1`.
+The service verifies ownership and batch/source membership, then atomically
+regenerates the private crop and thumbnail while serializing with confirmation
+and expiration cleanup. Only unexpired `needs_review` batches are editable;
+otherwise return HTTP 409 `INGESTION_NOT_READY`. Invalid bounds return HTTP 422.
+Unknown or unowned detections return HTTP 404. Missing legacy sources return
+HTTP 422. Success returns the complete updated review response with HTTP 200.
+Attribute proposals remain available for user correction; their confidence is
+lowered below the review threshold after changing the region. Storage failure
+preserves the prior crop; committed orphan manifests make new failed uploads
+eligible for scheduled cleanup. Old unlinked crops expire normally after 24h.
+
 ### 2.3 `POST /ingestions/{batch_id}/confirm`
 
 Accepts selected detections and user-corrected attributes. It MUST return the created `wardrobe_item_id` values. Repeated submission of the same confirmation MUST be idempotent.

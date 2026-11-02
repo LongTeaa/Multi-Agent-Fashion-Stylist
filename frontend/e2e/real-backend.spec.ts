@@ -61,3 +61,43 @@ test('browser uses real API, persisted outfits, private media, actions, and try-
   await expect(dialog).toContainText('Moodboard dự phòng');
   await expect.poll(() => dialog.locator('img').first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
 });
+
+
+test('multi-photo review switches sources and persists a corrected crop', async ({ page }) => {
+  const userId = crypto.randomUUID();
+  await page.addInitScript((id) => localStorage.setItem('fashion_stylist_user_id', id), userId);
+  await page.goto('/wardrobe');
+  await page.getByTestId('btn-add-garment').click();
+  const image = execFileSync('python', ['-c',
+    'from PIL import Image; from io import BytesIO; import sys; b=BytesIO(); Image.new("RGB",(160,200),"red").save(b,format="PNG"); sys.stdout.buffer.write(b.getvalue())'], { cwd: backendDir });
+  const second = execFileSync('python', ['-c',
+    'from PIL import Image; from io import BytesIO; import sys; b=BytesIO(); Image.new("RGB",(160,200),"blue").save(b,format="PNG"); sys.stdout.buffer.write(b.getvalue())'], { cwd: backendDir });
+  await page.getByLabel('Chọn ảnh trang phục để tải lên').setInputFiles([
+    { name: 'red.png', mimeType: 'image/png', buffer: image },
+    { name: 'blue.png', mimeType: 'image/png', buffer: second },
+  ]);
+  const upload = page.waitForResponse(r => r.url() === `${apiBase}/api/v1/ingestions` && r.request().method() === 'POST');
+  await page.getByRole('button', { name: /Tiến hành phân tích/i }).click();
+  const batch = (await (await upload).json()).data.batch_id;
+  const photos = page.getByRole('button').filter({ has: page.locator('img') });
+  await expect(photos).toHaveCount(2);
+  await photos.nth(1).click();
+  await expect(photos.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Lấy toàn ảnh', exact: true }).click();
+  const patch = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
+  await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).click();
+  expect((await patch).status()).toBe(200);
+  await page.reload();
+  await page.getByTestId('btn-add-garment').click();
+  await expect(photos).toHaveCount(2);
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/multi-photo-review.png', fullPage: false });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  await page.screenshot({ path: 'test-results/multi-photo-review-mobile.png', fullPage: false });
+  const review = await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers: { 'X-User-Id': userId } });
+  expect((await review.json()).data.detections.some((d: { bounding_box: number[] }) => JSON.stringify(d.bounding_box) === '[0,0,1,1]')).toBe(true);
+});

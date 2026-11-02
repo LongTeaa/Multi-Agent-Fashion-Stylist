@@ -33,6 +33,22 @@ upload batch
 
 The system MUST NOT persist a wardrobe item solely from AI output without explicit user confirmation.
 
+Detections MUST retain their original media identifier independently of crop
+identifiers. Multi-photo review MUST offer source selection and show regions only
+on the matching source. Phone EXIF orientation MUST be normalized before storing
+the original and sending it to detection, so displayed and cropped pixels agree.
+Crop edits regenerate both crop and thumbnail through
+ObjectStorage and remain review-only until explicit confirmation. A matching
+pair of footwear is one wardrobe unit; different pairs remain separate. The
+detector prompt MUST express this rule; users can enlarge one region to enclose
+a pair and reject a duplicate proposal. Live pair-detection accuracy requires
+a separate real-image evaluation.
+
+Processing clients MUST retain a recoverable batch identifier while the server
+is processing; elapsed polling time alone is not a failed ingestion. Consecutive
+network failures MAY pause polling, with a resume/reload path. Only terminal
+server failure/expiration or explicit cancellation clears recovery state.
+
 ## 4. Minimum Retrieval Attributes
 
 - `category`, `sub_category`

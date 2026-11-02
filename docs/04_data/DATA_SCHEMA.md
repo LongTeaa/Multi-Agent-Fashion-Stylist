@@ -67,6 +67,7 @@ users
 | `id`, `user_id`, `ingestion_batch_id` | Primary key and foreign keys |
 | `crop_media_asset_id` | Nullable foreign key to `media_assets` until crop creation succeeds |
 | `bounding_box` | JSON array `[x_min, y_min, x_max, y_max]`, normalized to `[0,1]` |
+| `source_media_asset_id` | Nullable foreign key to the original `media_assets.id`; ingestion and crop-edit services MUST validate the same owner and batch. Legacy single-original batches are backfilled; ambiguous multi-original batches remain null. |
 | `proposed_attributes` | Validated JSON object |
 | `field_confidence` | JSON object with values in `[0,1]` |
 | `status` | `proposed`, `accepted`, `rejected` |

@@ -19,6 +19,7 @@ node_modules/
 out/
 coverage/
 *.tsbuildinfo
+frontend/test-results/
 
 # Runtime data
 data/*.db
