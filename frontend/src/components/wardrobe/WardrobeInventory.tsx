@@ -158,7 +158,6 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
       silhouette_level: item.silhouette_level ?? 3,
       length: item.length || 'hip',
       functional_flags: item.functional_flags ? [...item.functional_flags] : [],
-      is_active: item.is_active,
     });
   };
 

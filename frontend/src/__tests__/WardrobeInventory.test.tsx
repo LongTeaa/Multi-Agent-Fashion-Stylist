@@ -202,6 +202,8 @@ describe('WardrobeInventory Component', () => {
       );
     });
 
+    expect(vi.mocked(api.updateWardrobeItem).mock.calls[0][1]).not.toHaveProperty('is_active');
+
     await waitFor(() => {
       expect(screen.getByText('Áo polo xanh navy')).toBeDefined();
     });

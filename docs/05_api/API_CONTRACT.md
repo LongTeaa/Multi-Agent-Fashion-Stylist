@@ -71,6 +71,10 @@ confirmation payload returns the persisted item IDs. A different payload after
 confirmation returns HTTP 409 `IDEMPOTENCY_CONFLICT`, even when the token is reused.
 Confirmation and cancellation MUST claim the batch status atomically before
 creating wardrobe items or deleting media.
+Confirmation of an expired unconfirmed batch MUST return HTTP 409
+`INGESTION_NOT_READY`, including when scheduled cleanup is still retrying.
+Expiration cleanup MUST serialize with confirmation before checking media links
+or deleting objects, and refresh batch status after acquiring that database lock.
 
 ### 2.4 `DELETE /ingestions/{batch_id}`
 
@@ -150,6 +154,13 @@ Response data:
 ```
 
 If `needs_clarification=true`, `recommendations` MUST be empty, `clarification_question` MUST contain a concise Vietnamese user-facing question, and the request MUST NOT increment feedback cadence.
+
+A retry with a persisted idempotency key MUST revalidate active item ownership,
+confirmation, and slot/category consistency. If any item has become inactive,
+deleted, or incompatible, return HTTP 409 `STALE_RECOMMENDATION`; the client must
+submit a new request with a new key. Historical outfit detail remains readable.
+Concurrent persistence for the same user/request MUST return one set of outfit
+identifiers. Session reconciliation applies before cache lookup as well.
 
 ## 5. Profile and Personalization API
 
@@ -393,6 +404,7 @@ All `message` values below are normative user-facing Vietnamese copy.
 | `FORBIDDEN_ASSET` | 403 | `Bạn không có quyền truy cập ảnh này.` |
 | `INGESTION_NOT_READY` | 409 | `Ảnh vẫn đang được xử lý. Vui lòng thử lại sau.` |
 | `IDEMPOTENCY_CONFLICT` | 409 | `Idempotency key đã được sử dụng cho một yêu cầu khác.` |
+| `STALE_RECOMMENDATION` | 409 | `Gợi ý đã thay đổi. Vui lòng gửi yêu cầu phối đồ mới.` |
 | `WARDROBE_EMPTY` | 404 | `Tủ đồ của bạn chưa có trang phục. Hãy thêm quần áo trước nhé.` |
 | `NO_COMPLETE_OUTFIT` | 422 | `Tủ đồ hiện chưa đủ món để tạo một bộ trang phục hoàn chỉnh.` |
 | `ITEM_NOT_FOUND` | 404 | `Không tìm thấy món đồ này.` |

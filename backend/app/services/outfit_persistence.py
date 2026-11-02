@@ -4,6 +4,7 @@ import logging
 from collections import Counter
 from typing import Any, Sequence
 
+from sqlalchemy import update
 from sqlmodel import Session, select
 
 from app.agents.state import OutfitItemSlot, RankedOutfit
@@ -12,6 +13,7 @@ from app.models.entities import (
     OutfitRecommendation,
     OutfitSlotRole,
     WardrobeItem,
+    User,
     new_uuid,
     utc_now,
 )
@@ -119,6 +121,9 @@ def persist_outfit_recommendations(
 
     persisted_ids: list[str] = []
     try:
+        # Acquire SQLite's writer lock before checking for an existing request.
+        # A database lock (rather than a process mutex) also covers other workers.
+        session.execute(update(User).where(User.id == user_id).values(id=User.id))
         existing = session.exec(
             select(OutfitRecommendation)
             .where(

@@ -159,6 +159,15 @@ def cleanup_expired_batches(
     failures: list[str] = []
 
     for batch in expired_batches:
+        # Serialize against confirmation before checking links or deleting bytes.
+        # Refresh the snapshot after acquiring the database writer lock because
+        # confirmation may have won since the expired-batch scan.
+        session.execute(
+            update(IngestionBatch)
+            .where(IngestionBatch.id == batch.id)
+            .values(status=IngestionBatch.status)
+        )
+        session.refresh(batch)
         assets = session.exec(
             select(MediaAsset).where(MediaAsset.ingestion_batch_id == batch.id)
         ).all()

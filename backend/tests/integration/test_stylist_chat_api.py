@@ -941,6 +941,14 @@ def test_stylist_chat_idempotency_retry_prevents_cadence_skew(
         data3 = res3.json()["data"]
         rec_ids3 = [r["outfit_id"] for r in data3["recommendations"]]
         assert rec_ids3 == rec_ids1
+        mismatch = client.post(
+            "/api/v1/stylist/chat",
+            headers={"X-User-Id": user_id, "X-Client-Session-Id": str(uuid4())},
+            json={"query": "retry", "idempotency_key": idempotency_key,
+                  "client_session_id": str(uuid4())},
+        )
+        assert mismatch.status_code == 422
+
 
         # Invariant 4.3: Feedback cadence was NOT incremented on retries
         with Session(engine) as session:

@@ -78,6 +78,10 @@ def main() -> None:
         os.environ["DATABASE_URL"] = database_url
         os.environ["OBJECT_STORAGE_BACKEND"] = "local"
         os.environ["CLEANUP_SCHEDULER_ENABLED"] = "false"
+        os.environ["VISION_PROVIDER"] = "fake"
+        os.environ["CONTEXT_PROVIDER"] = "fallback"
+        os.environ["WEATHER_PROVIDER"] = "disabled"
+        os.environ["IMAGE_PROVIDER"] = "disabled"
         get_settings.cache_clear()
         get_engine.cache_clear()
 

@@ -694,7 +694,9 @@ def confirm_ingestion_batch(
                 IngestionBatch.id == batch_id,
                 IngestionBatch.user_id == user_id,
                 IngestionBatch.status == IngestionStatus.NEEDS_REVIEW,
+                IngestionBatch.expires_at > utc_now(),
             )
+            .execution_options(synchronize_session="fetch")
             .values(
                 status=IngestionStatus.CONFIRMED,
                 confirmation_token=idempotency_token,

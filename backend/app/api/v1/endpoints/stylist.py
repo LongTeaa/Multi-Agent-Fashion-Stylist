@@ -38,6 +38,7 @@ from app.schemas.common import (
     ProviderError,
     SuccessResponse,
     WardrobeEmptyError,
+    AppException,
 )
 from app.schemas.stylist import (
     StylistChatRequest,
@@ -84,6 +85,12 @@ def _reconstruct_idempotent_response(
 
         item_dtos: list[StylistRecommendationItemResponse] = []
         for oi, wi in outfit_items:
+            if (wi.user_id != user_id or not wi.is_active or not wi.is_user_confirmed
+                    or wi.deleted_at is not None or wi.category.value != oi.slot_role.value):
+                raise AppException(
+                    status_code=409, code="STALE_RECOMMENDATION",
+                    message="Gợi ý đã thay đổi. Vui lòng gửi yêu cầu phối đồ mới.",
+                )
             media_id = _primary_media_id(session, wi.id, user_id)
             img_url = f"/api/v1/media/{media_id}" if media_id else None
             item_dtos.append(
@@ -143,6 +150,7 @@ def _map_context(ctx: Any) -> StylistContextResponse:
     response_model=SuccessResponse[StylistChatResponseData],
     status_code=status.HTTP_200_OK,
     responses={
+        status.HTTP_409_CONFLICT: {"model": ErrorResponse},
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
         status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponse},
         status.HTTP_502_BAD_GATEWAY: {"model": ErrorResponse},
@@ -161,6 +169,7 @@ def stylist_chat(
     feedback_service: FeedbackCadenceService = Depends(get_feedback_cadence_service),
 ) -> SuccessResponse[StylistChatResponseData]:
     """Execute the AI stylist recommendation pipeline for the authenticated user."""
+    client_session_id = reconcile_client_session_id(x_client_session_id, payload.client_session_id)
     effective_idempotency_key = (
         x_idempotency_key
         or payload.idempotency_key
@@ -191,7 +200,6 @@ def stylist_chat(
             return SuccessResponse(data=cached_data)
 
     request_id = effective_idempotency_key or new_uuid()
-    client_session_id = reconcile_client_session_id(x_client_session_id, payload.client_session_id)
     initial_state: StylistGraphState = {
         "request_id": request_id,
         "user_id": user_id,

@@ -3,10 +3,10 @@
 | Field | Value |
 | :--- | :--- |
 | Current phase | Phase 7 — Evaluation and Acceptance (follow-up hardening) |
-| Active task | PR #6 fashion-domain integration review hardening verified and merged into `main` (`650c5be`). |
-| Most recently modified files | Context and fashion scoring agents, ingestion taxonomy and migration `0008`, garment-profile tests, wardrobe review UI, data/API/domain specifications, and `CURRENT_STATE.md`. |
-| Latest passing verification command | `py -3.11 -m pytest tests -q` from `backend` (537 passed); `npm run test -- --run` (101 passed), `npm run lint`, `npm run type-check`, and `npm run build` from `frontend` on 2026-09-27. |
-| Next step | Run the formal-versus-hot-weather contrastive demo against the merged application with Gemini, weather, MinIO, and the canonical wardrobe database enabled. |
+| Active task | Completed core hardening: fixed wardrobe edit payload, serialized expiration cleanup with confirmation, rejected stale recommendation replays, serialized concurrent recommendation persistence, and forced browser E2E providers offline. |
+| Most recently modified files | Wardrobe inventory component/types/tests; stylist endpoint; ingestion, cleanup, and outfit persistence services; browser fixture; regression/API tests; API contract; CURRENT_STATE.md. |
+| Latest passing verification command | 2026-11-02: backend targeted suite (test_review_hardening, ingestion cleanup/flow, stylist chat, outfit invariants, grounding, wardrobe API): 101 passed. Latest test_review_hardening run: 7 passed. OpenAPI contract: 12 passed. Frontend npm run test -- --run: 101 passed; npm run type-check and npm run lint passed; npm run test:e2e: 5 passed with providers automatically offline. git diff --check passed. |
+| Next step | Implement source-image linkage and recoverable multi-photo upload/review, then crop/pair handling and concise confirmation UI. Remaining review items are tracked in the review documents. Existing migration/startup changes remain outside this task commit. Previous migration backup: data/fashion_stylist.before_0008_20261005_172128.db. |
 
 ## Update Rules
 

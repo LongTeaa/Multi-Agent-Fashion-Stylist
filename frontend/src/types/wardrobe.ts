@@ -54,7 +54,6 @@ export interface WardrobeItemUpdatePayload {
   weather_suitability?: string[];
   functional_flags?: string[];
   free_text_tags?: string[];
-  is_active?: boolean;
 }
 
 export interface WardrobeItemDeleteResponse {
