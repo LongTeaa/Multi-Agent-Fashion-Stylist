@@ -1,0 +1,287 @@
+{
+  "dataset_version": "vision-real-review-v1",
+  "manifest_sha256": "16f2e25b6fb289776bbb6e8c488bf388b29a414f39453c7d4a6a1853384090d1",
+  "model": "gemini-3.6-flash",
+  "adapter_revision": "9b25db5",
+  "execution_mode": "pooled_selected_successes_across_retries_not_single_run_accuracy",
+  "planned_unique_cases": 7,
+  "unique_cases_with_response": 6,
+  "request_attempts": 12,
+  "successful_requests": 6,
+  "provider_failed_requests": 6,
+  "iou_threshold": 0.5,
+  "min_region_retention": 0.9,
+  "semantic_attribute_accuracy": "not_measured",
+  "cases": [
+    {
+      "id": "worn-trousers",
+      "status": "available",
+      "elapsed_seconds": 7.541,
+      "metrics": {
+        "expected_regions": 2,
+        "predicted_regions": 3,
+        "matched_regions": 0,
+        "coverage": 0.0
+      },
+      "count_pass": null,
+      "boxes": [
+        {
+          "box": [
+            0.292,
+            0.083,
+            0.836,
+            0.946
+          ],
+          "label": "pants"
+        },
+        {
+          "box": [
+            0.297,
+            0.0,
+            0.65,
+            0.095
+          ],
+          "label": "top"
+        },
+        {
+          "box": [
+            0.323,
+            0.924,
+            0.969,
+            1.0
+          ],
+          "label": "shoes"
+        }
+      ]
+    },
+    {
+      "id": "matching-sneaker-pair",
+      "status": "available",
+      "elapsed_seconds": 4.723,
+      "metrics": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "count_pass": true,
+      "boxes": [
+        {
+          "box": [
+            0.088,
+            0.268,
+            0.912,
+            0.858
+          ],
+          "label": "shoes"
+        }
+      ],
+      "crop_digests": [
+        {
+          "sha256": "f52fba07915033688f1c45e253027cb5b9652840fa68cf28004443443fdcc0e0",
+          "width": 457,
+          "height": 327
+        }
+      ]
+    },
+    {
+      "id": "worn-polo",
+      "status": "unavailable",
+      "elapsed_seconds": 5.387
+    },
+    {
+      "id": "single-derby",
+      "status": "available",
+      "elapsed_seconds": 8.886,
+      "metrics": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 0,
+        "coverage": 0.0
+      },
+      "count_pass": true,
+      "boxes": [
+        {
+          "box": [
+            0.092,
+            0.488,
+            0.906,
+            0.73
+          ],
+          "label": "shoes"
+        }
+      ],
+      "crop_digests": [
+        {
+          "sha256": "6e17a105998363f1e51f976ca7ecf48c9d6d4d738192fed9966f986f65dbc0da",
+          "width": 325,
+          "height": 121
+        }
+      ]
+    },
+    {
+      "id": "single-jeans",
+      "status": "available",
+      "elapsed_seconds": 17.522,
+      "metrics": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "count_pass": true,
+      "boxes": [
+        {
+          "box": [
+            0.092,
+            0.092,
+            0.888,
+            0.942
+          ],
+          "label": "jeans"
+        }
+      ],
+      "crop_digests": [
+        {
+          "sha256": "6d775652b452b7f7cdd22943e4fcd72cf743d8929cc6ad1c711e3957f89b69c9",
+          "width": 285,
+          "height": 476
+        }
+      ]
+    },
+    {
+      "id": "blue-tshirt",
+      "status": "available",
+      "elapsed_seconds": 13.004,
+      "metrics": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "count_pass": true,
+      "boxes": [
+        {
+          "box": [
+            0.021,
+            0.127,
+            0.99,
+            0.835
+          ],
+          "label": "top"
+        }
+      ],
+      "crop_digests": [
+        {
+          "sha256": "670991890d203afd55b4042934b8f41544881f22b110d778179f3d8335c1945f",
+          "width": 375,
+          "height": 365
+        }
+      ]
+    },
+    {
+      "id": "red-tshirt",
+      "status": "available",
+      "elapsed_seconds": 5.891,
+      "metrics": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "count_pass": true,
+      "boxes": [
+        {
+          "box": [
+            0.098,
+            0.157,
+            0.904,
+            0.846
+          ],
+          "label": "t-shirt"
+        }
+      ],
+      "crop_digests": [
+        {
+          "sha256": "13e80cff3d895c34066e10fb9782f41b03b3b2fd74b2bbdf0b6d9405d3f6b701",
+          "width": 312,
+          "height": 355
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "run_at": "2026-11-02T10:07:03.587850+00:00",
+      "case_id": "worn-trousers",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:07:03.587850+00:00",
+      "case_id": "matching-sneaker-pair",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    },
+    {
+      "run_at": "2026-11-02T10:07:03.587850+00:00",
+      "case_id": "worn-polo",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    },
+    {
+      "run_at": "2026-11-02T10:08:50.224696+00:00",
+      "case_id": "matching-sneaker-pair",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    },
+    {
+      "run_at": "2026-11-02T10:08:50.224696+00:00",
+      "case_id": "worn-polo",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    },
+    {
+      "run_at": "2026-11-02T10:09:58.457626+00:00",
+      "case_id": "single-derby",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:09:58.457626+00:00",
+      "case_id": "single-jeans",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:09:58.457626+00:00",
+      "case_id": "blue-tshirt",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:09:58.457626+00:00",
+      "case_id": "red-tshirt",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:11:29.874001+00:00",
+      "case_id": "matching-sneaker-pair",
+      "status": "available",
+      "error_type": null
+    },
+    {
+      "run_at": "2026-11-02T10:11:29.874001+00:00",
+      "case_id": "worn-polo",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    },
+    {
+      "run_at": "2026-11-02T10:13:39.850257+00:00",
+      "case_id": "worn-polo",
+      "status": "unavailable",
+      "error_type": "ProviderError"
+    }
+  ]
+}

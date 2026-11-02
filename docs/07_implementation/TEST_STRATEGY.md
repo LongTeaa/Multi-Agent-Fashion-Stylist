@@ -52,6 +52,13 @@ Coarse rectangles are not segmentation ground truth. Semantic attribute accuracy
 is not measured by this runner. Provider failures and skipped cases remain explicit;
 two consecutive failures stop further external calls. Incomplete live runs return
 a nonzero exit code and MUST NOT be reported as passing model-quality evidence.
+Repeat `--case <manifest-id>` to retry a specific subset without calling other
+images. Offline replay still covers all sources; live denominators and selected IDs
+refer only to that subset. Successful live cases save the actual PNG crops, sizes,
+and digests for visual inspection. Each live report pins the adapter contract and
+manifest digest. `complete` denotes response availability, not passing crop quality;
+inspect per-case localization/count metrics separately. Results pooled across
+retries MUST NOT be described as a single successful full-corpus run.
 
 - Default tests MUST inject `FakeVisionProvider` and `FakeDetector` fixtures with stored outputs for single-item, multi-item, worn-outfit, cluttered, low-quality, malformed, and timeout cases.
 - Assertions MUST use fixture bounding boxes, confidence, and normalized attributes rather than comparing generative prose.

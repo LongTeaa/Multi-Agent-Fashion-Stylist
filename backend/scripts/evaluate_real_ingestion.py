@@ -167,8 +167,12 @@ def main() -> int:
     parser.add_argument("--input-dir", type=Path, default=ROOT / "data/private-vision-review")
     parser.add_argument("--manifest", type=Path, default=ROOT / "data/fixtures/vision_real_review_v1.json")
     parser.add_argument("--live", action="store_true", help="Send private images to the configured Gemini detector")
+    parser.add_argument("--case", dest="case_ids", action="append",
+                        help="Evaluate only this case live (repeatable); offline replay still covers all sources")
     args = parser.parse_args()
     dataset = Dataset.model_validate_json(args.manifest.read_text(encoding="utf-8"))
+    if args.case_ids and (not args.live or set(args.case_ids) - {case.id for case in dataset.cases}):
+        parser.error("--case requires --live and case IDs present in the manifest")
     cases = []
     for case in dataset.cases:
         path = (args.input_dir / case.file).resolve()
@@ -191,7 +195,8 @@ def main() -> int:
         detector = GeminiDetector(settings.gemini_api_key, settings.vision_model,
                                   timeout_seconds=30, max_retries=0)
         rows: list[dict[str, object]] = []
-        for case, raw in cases:
+        selected_cases = [(case, raw) for case, raw in cases if not args.case_ids or case.id in args.case_ids]
+        for case_index, (case, raw) in enumerate(selected_cases, 1):
             if failures >= 2:
                 rows.append(dict(id=case.id, status="skipped_after_provider_failures"))
                 continue
@@ -200,7 +205,15 @@ def main() -> int:
                 detected = detector.detect(raw)
                 metrics = region_coverage([r.box for r in case.regions], [b.box for b in detected.boxes],
                                           dataset.iou_threshold, min_retention=0.9)
+                crops = []
+                for index, box in enumerate(detected.boxes, 1):
+                    crop = crop_item_and_generate_thumbnail(raw, box.box)
+                    file = f"live-{case_index:02}-{index:02}.png"
+                    (output / file).write_bytes(crop.crop_bytes)
+                    crops.append(dict(file=file, sha256=crop.crop_sha256,
+                                      width=crop.crop_width, height=crop.crop_height))
                 rows.append(dict(id=case.id, status="available", elapsed_seconds=round(perf_counter()-start, 3),
+                    crops=crops,
                     metrics=metrics, count_pass=(len(detected.boxes) == case.expected_box_count)
                     if case.expected_box_count is not None else None,
                     boxes=[dict(box=b.box, label=b.label) for b in detected.boxes]))
@@ -213,8 +226,10 @@ def main() -> int:
             print(f"{case.id}: {rows[-1]['status']}", flush=True)
         available = [r for r in rows if r["status"] == "available"]
         report["live"] = dict(model=settings.vision_model, results=rows,
-            available_cases=len(available), total_cases=len(cases),
-            status="complete" if len(available) == len(cases) else "incomplete_provider_failures",
+            adapter_contract="gemini-native-yxyx1000-v1", manifest_sha256=sha256(args.manifest.read_bytes()).hexdigest(),
+            selected_case_ids=[case.id for case, _ in selected_cases],
+            available_cases=len(available), total_cases=len(selected_cases),
+            status="complete" if len(available) == len(selected_cases) else "incomplete_provider_failures",
             semantic_attribute_accuracy="not_measured")
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Report: {output / 'report.json'}", flush=True)
