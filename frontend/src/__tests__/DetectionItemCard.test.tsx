@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DetectionItemCard } from '@/components/ingestion/DetectionItemCard';
+import taxonomy from './garment-taxonomy.fixture';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
 
 describe('DetectionItemCard', () => {
@@ -30,7 +31,7 @@ describe('DetectionItemCard', () => {
 
   it('renders confidence badges correctly according to threshold', () => {
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={mockDetection}
         index={0}
         isSelected={false}
@@ -68,7 +69,7 @@ describe('DetectionItemCard', () => {
     };
 
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={{ ...mockDetection, attributes: emptyAttributes }}
         index={0}
         isSelected={false}
@@ -96,7 +97,7 @@ describe('DetectionItemCard', () => {
   it('triggers onUpdateAttribute when user changes selection', () => {
     const handleUpdate = vi.fn();
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={mockDetection}
         index={0}
         isSelected={false}
@@ -108,14 +109,15 @@ describe('DetectionItemCard', () => {
       />
     );
 
-    const categorySelect = screen.getByDisplayValue('Áo (Top)');
-    fireEvent.change(categorySelect, { target: { value: 'bottom' } });
+    const categorySelect = screen.getByDisplayValue('Áo');
+    fireEvent.change(categorySelect, { target: { value: 'skirt' } });
     expect(handleUpdate).toHaveBeenCalledWith('category', 'bottom');
+    expect(handleUpdate).toHaveBeenCalledWith('sub_category', 'skirt');
   });
 
   it('omits garment length controls and their uncertainty for footwear', () => {
     const attributes = { ...mockDetection.attributes, category: 'footwear' };
-    render(<DetectionItemCard detection={{ ...mockDetection, attributes, field_confidence: { length: .4 } }}
+    render(<DetectionItemCard taxonomy={taxonomy} detection={{ ...mockDetection, attributes, field_confidence: { length: .4 } }}
       attributes={attributes} index={0} isSelected={false} accepted={true}
       onSelect={vi.fn()} onToggleAccepted={vi.fn()} onUpdateAttribute={vi.fn()} />);
     expect(screen.queryByText('Độ dài')).toBeNull();

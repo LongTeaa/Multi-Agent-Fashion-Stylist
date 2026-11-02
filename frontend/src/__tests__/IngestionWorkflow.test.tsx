@@ -1,10 +1,11 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { IngestionWorkflow } from '@/components/ingestion/IngestionWorkflow';
 import * as api from '@/lib/api';
 
 vi.mock('@/lib/api', () => ({
+  getGarmentTaxonomy: vi.fn().mockResolvedValue({ groups: [] }),
   getIngestionBatch: vi.fn(), uploadIngestionImages: vi.fn(),
   confirmIngestionBatch: vi.fn(), deleteIngestionBatch: vi.fn(), updateDetectionCrop: vi.fn(),
   ApiError: class extends Error {},
@@ -18,6 +19,8 @@ vi.mock('@/components/ingestion/BoundingBoxOverlay', () => ({
 vi.mock('@/components/ingestion/DetectionItemCard', () => ({
   DetectionItemCard: ({ detection }: { detection: { detection_id: string } }) => <div>{detection.detection_id}</div>,
 }));
+
+beforeEach(() => { vi.mocked(api.getGarmentTaxonomy).mockResolvedValue({ groups: [] }); });
 
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.useRealTimers(); vi.resetAllMocks(); });
 

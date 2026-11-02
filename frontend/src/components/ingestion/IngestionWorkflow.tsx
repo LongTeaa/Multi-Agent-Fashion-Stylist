@@ -13,6 +13,7 @@ import {
   deleteIngestionBatch,
   updateDetectionCrop,
 } from '@/lib/api';
+import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
 import { UploadDropzone } from './UploadDropzone';
 import { BoundingBoxOverlay } from './BoundingBoxOverlay';
 import { CropEditor } from './CropEditor';
@@ -26,6 +27,7 @@ interface IngestionWorkflowProps {
 }
 
 export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
+  const { taxonomy, taxonomyError, retryTaxonomy } = useGarmentTaxonomy();
   const [step, setStep] = useState<WorkflowStep>(() => {
     if (typeof window !== 'undefined' && sessionStorage.getItem('active_ingestion_batch_id')) {
       return 'processing';
@@ -439,6 +441,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       )}
 
       {/* STEP 3: REVIEW */}
+      {step === 'review' && taxonomyError && <p role="alert" className="text-sm text-[#9C5234]">Chưa tải được danh mục. <button type="button" onClick={retryTaxonomy} className="underline">Thử lại</button></p>}
       {step === 'review' && batchReview && (
         <div className="space-y-6">
           {/* Top Review Bar */}
@@ -540,6 +543,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
             <div className="lg:col-span-7 xl:col-span-7 space-y-5">
               {visibleDetections.map((det, idx) => (
                 <DetectionItemCard
+                  taxonomy={taxonomy}
                   key={det.detection_id}
                   detection={det}
                   index={idx}

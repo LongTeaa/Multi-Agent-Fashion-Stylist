@@ -162,6 +162,12 @@ current dataset and MUST remain disabled.
 
 ## 8. Ingestion and Retrieval Invariants
 
+### Inventory display and search
+
+The executable display catalog is `backend/app/services/garment_taxonomy.py`, exposed through the wardrobe taxonomy endpoint. Inventory filters and ingestion choices MUST share it. Display groups distinguish pants, skirts, shoes, and sandals without changing outfit composition roles. Alias resolution is category scoped; unknown custom bottom/footwear subtypes MUST NOT be guessed into a specific group.
+
+Inventory text search uses deterministic longest-phrase alias parsing with case/accent folding, group/type/color constraints, then metadata token/prefix matching. Multiple terms use AND. This search is separate from stylist candidate retrieval and does not introduce semantic indexing. The MVP implementation evaluates text/group matching over the requesting user's SQL-filtered active, confirmed wardrobe, then paginates. Larger wardrobes require a measured normalized index before expanding this approach.
+
 - **INVARIANT:** Every confirmed item is traceable to its ingestion batch and media asset.
 - **INVARIANT:** No unconfirmed detection is visible as an active wardrobe item.
 - **INVARIANT:** Retrieval never returns an item owned by another user.

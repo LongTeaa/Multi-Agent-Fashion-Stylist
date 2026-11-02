@@ -109,13 +109,20 @@ Cancels an unconfirmed batch and schedules its temporary assets for cleanup.
 
 | Method | Endpoint | Purpose |
 | :---: | :--- | :--- |
-| GET | `/wardrobe/items` | Paginated list/filter by category, style, color, and text |
+| GET | `/wardrobe/items` | Paginated list/filter by category, item_group, style, color, and text |
+| GET | `/wardrobe/items/taxonomy` | Shared display groups, subtype labels, aliases, and composition categories |
 | POST | `/wardrobe/items` | Manual item creation from an already uploaded asset |
 | GET | `/wardrobe/items/{item_id}` | Item detail |
 | PATCH | `/wardrobe/items/{item_id}` | Partial update and retrieval-document refresh |
 | DELETE | `/wardrobe/items/{item_id}` | Soft delete and active-index removal |
 
 An item response MUST include a short-lived media URL, normalized metadata, per-field confidence, `is_user_confirmed`, `times_worn`, and `last_worn_at`. Normalized metadata includes `comfort_level` and `silhouette_level` as integers from 1–5, `length` as `cropped | waist | hip | long`, and canonical `functional_flags`. Create, update, and ingestion-confirmation requests use the same bounds and taxonomy.
+
+`item_group` optionally accepts `top | pants | skirt | dress | shoes | sandals | outerwear | accessory`; invalid values return 422. It combines with category/style/color/text using AND. Item responses add computed `item_group` (nullable), `group_label_vi`, and `display_name_vi`. Unrecognized bottom/footwear subtypes have a null group and remain visible in the unfiltered inventory. Custom subtype text is preserved.
+
+The taxonomy endpoint requires the same user header as other wardrobe endpoints. Its data contains `groups`; each group has `value`, `label`, `category`, `aliases`, and `types`. Each type has `value`, `label`, and `aliases`. Clients MUST use this catalog for inventory filters and ingestion subtype suggestions.
+
+`text` is case/accent insensitive and accepts Vietnamese or English aliases. Longest known phrases identify groups, subtypes, and colors; all recognized terms and remaining metadata words/prefixes must match. Examples: `giày`/`giay` finds sneakers and Derby; `giày đen` combines shoes with black; `quần` excludes skirts; `chân váy` excludes dresses; `giày dép` includes both footwear groups. Bare `váy` includes skirts and dresses. Single-character terms match whole words only; `%` and `_` have no wildcard semantics. Text/group filtering occurs before total and pagination, after SQL ownership/active/confirmed filtering. Whitespace-only text acts as no text filter; punctuation-only text returns no matches.
 
 ## 4. Stylist Chat API
 

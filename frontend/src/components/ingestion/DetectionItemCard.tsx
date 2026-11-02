@@ -2,10 +2,12 @@
 
 import React from 'react';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
+import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 interface DetectionItemCardProps {
   detection: DetectionReviewItem;
+  taxonomy?: GarmentTaxonomy;
   index: number;
   isSelected: boolean;
   accepted: boolean;
@@ -14,60 +16,6 @@ interface DetectionItemCardProps {
   onToggleAccepted: (accepted: boolean) => void;
   onUpdateAttribute: (key: string, value: unknown) => void;
 }
-
-const CATEGORIES = [
-  { value: 'top', label: 'Áo (Top)' },
-  { value: 'bottom', label: 'Quần / Chân váy (Bottom)' },
-  { value: 'footwear', label: 'Giày dép (Footwear)' },
-  { value: 'outerwear', label: 'Áo khoác (Outerwear)' },
-  { value: 'dress', label: 'Đầm / Váy liền (Dress)' },
-  { value: 'accessory', label: 'Phụ kiện (Accessory)' },
-];
-
-const SUB_CATEGORY_SUGGESTIONS: Record<string, { value: string; label: string }[]> = {
-  footwear: [
-    { value: 'sneakers', label: 'Sneakers' },
-    { value: 'oxford', label: 'Oxford' },
-    { value: 'loafers', label: 'Loafers (Giày lười)' },
-    { value: 'leather_shoes', label: 'Giày da' },
-    { value: 'sandals', label: 'Sandal' },
-    { value: 'slides', label: 'Dép quai ngang' },
-    { value: 'boots', label: 'Boots' },
-    { value: 'heels', label: 'Giày cao gót' },
-  ],
-  top: [
-    { value: 'tshirt', label: 'Áo thun' },
-    { value: 'polo', label: 'Áo Polo' },
-    { value: 'shirt', label: 'Áo sơ mi' },
-    { value: 'sweater', label: 'Áo len' },
-    { value: 'tanktop', label: 'Áo ba lỗ' },
-  ],
-  bottom: [
-    { value: 'trousers', label: 'Quần tây' },
-    { value: 'chinos', label: 'Quần Chinos' },
-    { value: 'jeans', label: 'Quần Jeans' },
-    { value: 'shorts', label: 'Quần short' },
-    { value: 'skirt', label: 'Chân váy' },
-  ],
-  outerwear: [
-    { value: 'blazer', label: 'Blazer' },
-    { value: 'jacket', label: 'Áo khoác' },
-    { value: 'hoodie', label: 'Hoodie' },
-    { value: 'cardigan', label: 'Cardigan' },
-  ],
-  dress: [
-    { value: 'casual_dress', label: 'Đầm thường ngày' },
-    { value: 'formal_dress', label: 'Đầm dạ hội' },
-    { value: 'shirt_dress', label: 'Đầm sơ mi' },
-  ],
-  accessory: [
-    { value: 'belt', label: 'Thắt lưng' },
-    { value: 'watch', label: 'Đồng hồ' },
-    { value: 'bag', label: 'Túi xách' },
-    { value: 'hat', label: 'Mũ / Nón' },
-    { value: 'glasses', label: 'Kính mắt' },
-  ],
-};
 
 const STYLES = [
   { value: 'casual', label: 'Thường nhật (Casual)' },
@@ -152,6 +100,7 @@ const COMFORT_LABELS: Record<number, string> = {
 
 export function DetectionItemCard({
   detection,
+  taxonomy = { groups: [] },
   index,
   isSelected,
   accepted,
@@ -160,6 +109,13 @@ export function DetectionItemCard({
   onToggleAccepted,
   onUpdateAttribute,
 }: DetectionItemCardProps) {
+  const fold = (value: string) => value.toLowerCase().replaceAll('đ', 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const categoryGroups = taxonomy.groups.filter((group) => group.category === attributes.category);
+  const selectedGroup = categoryGroups.find((group) => [group.value, group.label, ...group.aliases,
+    ...group.types.flatMap((type) => [type.value, type.label, ...type.aliases])]
+    .some((alias) => fold(alias) === fold(attributes.sub_category || '')))
+    || (categoryGroups.length === 1 ? categoryGroups[0] : undefined);
+  const suggestions = selectedGroup?.types || [];
   const confidences = detection.field_confidence || {};
   const cropUrl = detection.crop_url;
 
@@ -210,7 +166,7 @@ export function DetectionItemCard({
           </span>
           <div>
             <h4 className="text-base sm:text-lg font-semibold text-[#1A1918] capitalize">
-              {CATEGORIES.find((c) => c.value === attributes.category)?.label.split(' ')[0] || attributes.category || 'Món đồ'} •{' '}
+              {selectedGroup?.label || 'Món đồ'} •{' '}
               {attributes.sub_category || 'Chưa phân loại'}
             </h4>
           </div>
@@ -266,9 +222,15 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('category')}
               </div>
               <select
-                value={attributes.category || ''}
+                value={selectedGroup?.value || ''}
                 disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('category', e.target.value)}
+                onChange={(e) => {
+                  const group = taxonomy.groups.find((entry) => entry.value === e.target.value);
+                  if (group) {
+                    onUpdateAttribute('category', group.category);
+                    onUpdateAttribute('sub_category', group.value);
+                  }
+                }}
                 className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
                   !attributes.category || attributes.category === 'unknown'
                     ? 'border-rose-400 bg-rose-50/20 focus:ring-2 focus:ring-rose-400 text-[#1A1918]'
@@ -280,7 +242,7 @@ export function DetectionItemCard({
                 <option value="" disabled>
                   -- Chọn danh mục (Bắt buộc) --
                 </option>
-                {CATEGORIES.map((cat) => (
+                {taxonomy.groups.map((cat) => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
                   </option>
@@ -313,15 +275,15 @@ export function DetectionItemCard({
                 }`}
               />
               <datalist id={`sub-suggestions-${index}`}>
-                {(SUB_CATEGORY_SUGGESTIONS[attributes.category] || []).map((s) => (
+                {suggestions.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
                 ))}
               </datalist>
-              {SUB_CATEGORY_SUGGESTIONS[attributes.category] && (
+              {suggestions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {SUB_CATEGORY_SUGGESTIONS[attributes.category].map((s) => (
+                  {suggestions.map((s) => (
                     <button
                       key={s.value}
                       type="button"

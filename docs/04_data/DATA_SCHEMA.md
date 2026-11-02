@@ -2,6 +2,8 @@
 
 ## 1. Principles
 
+Inventory display groups are derived from category and subtype through the shared garment catalog. `item_group`, `display_name_vi`, and `group_label_vi` are response projections, not persisted columns. Pants and skirts retain the `bottom` composition role; shoes and sandals retain `footwear`. Existing custom/legacy subtype values are preserved; no migration is required for the catalog.
+
 - SQLite MUST store relational metadata and relationships. Image bytes MUST reside in ObjectStorage.
 - Entity identifiers MUST use UUID strings.
 - Timestamps MUST be stored in UTC.

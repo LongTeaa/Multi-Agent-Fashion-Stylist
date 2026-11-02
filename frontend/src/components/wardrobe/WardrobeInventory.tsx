@@ -1,28 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { WardrobeCategory, WardrobeItem, WardrobeItemUpdatePayload } from '@/types/wardrobe';
+import type { WardrobeItem, WardrobeItemUpdatePayload } from '@/types/wardrobe';
 import { deleteWardrobeItem, listWardrobeItems, updateWardrobeItem } from '@/lib/api';
+import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
-
-const CATEGORIES: { label: string; value: WardrobeCategory | 'all' }[] = [
-  { label: 'Tất cả', value: 'all' },
-  { label: 'Áo', value: 'top' },
-  { label: 'Quần / Chân váy', value: 'bottom' },
-  { label: 'Đầm / Váy liền', value: 'dress' },
-  { label: 'Giày dép', value: 'footwear' },
-  { label: 'Áo khoác', value: 'outerwear' },
-  { label: 'Phụ kiện', value: 'accessory' },
-];
-
-const CATEGORY_NAMES: Record<WardrobeCategory, string> = {
-  top: 'Áo',
-  bottom: 'Quần / Chân váy',
-  dress: 'Đầm / Váy liền',
-  footwear: 'Giày dép',
-  outerwear: 'Áo khoác',
-  accessory: 'Phụ kiện',
-};
 
 export const SILHOUETTE_NAMES: Record<number, string> = {
   1: 'Rất ôm sát',
@@ -52,41 +34,6 @@ export const FUNCTION_TAG_NAMES: Record<string, string> = {
   heavy: 'Dày ấm',
 };
 
-export function formatItemTitle(category: WardrobeCategory, subCategory?: string | null): string {
-  const genericTokens = new Set(['clothing', 'garment', 'apparel', 'item', 'unknown', 'footwear', 'top', 'bottom']);
-  const subMap: Record<string, string> = {
-    sneakers: 'Sneakers',
-    oxford: 'Giày Oxford',
-    loafers: 'Giày Loafers (Giày lười)',
-    leather_shoes: 'Giày da',
-    sandals: 'Sandal',
-    slides: 'Dép quai ngang',
-    boots: 'Boots',
-    heels: 'Giày cao gót',
-    skirt: 'Chân váy',
-    trousers: 'Quần tây',
-    chinos: 'Quần Chinos',
-    shorts: 'Quần short',
-    jeans: 'Quần Jeans',
-    polo: 'Áo Polo',
-    tshirt: 'Áo thun',
-    shirt: 'Áo sơ mi',
-    blazer: 'Áo Blazer',
-    jacket: 'Áo khoác',
-    hoodie: 'Áo Hoodie',
-    sweater: 'Áo len',
-    dress: 'Đầm / Váy liền',
-  };
-
-  const cleanSub = (subCategory || '').trim().toLowerCase();
-  if (cleanSub && !genericTokens.has(cleanSub)) {
-    if (subMap[cleanSub]) return subMap[cleanSub];
-    return subCategory || cleanSub.replace(/_/g, ' ');
-  }
-
-  return CATEGORY_NAMES[category] || 'Trang phục';
-}
-
 interface WardrobeInventoryProps {
   onSwitchToIngestion?: () => void;
 }
@@ -98,7 +45,9 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
   const [error, setError] = useState<string | null>(null);
   const requestSequence = useRef(0);
 
-  const [selectedCategory, setSelectedCategory] = useState<WardrobeCategory | 'all'>('all');
+  const { taxonomy, taxonomyError, retryTaxonomy } = useGarmentTaxonomy();
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 12;
@@ -118,8 +67,8 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
     setError(null);
     try {
       const res = await listWardrobeItems({
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
-        text: searchQuery.trim() || undefined,
+        item_group: selectedCategory === 'all' ? undefined : selectedCategory,
+        text: submittedQuery || undefined,
         page,
         page_size: pageSize,
       });
@@ -133,7 +82,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [selectedCategory, searchQuery, page]);
+  }, [selectedCategory, submittedQuery, page]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchItems);
@@ -142,7 +91,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchItems();
+    setSubmittedQuery(searchQuery.trim());
   };
 
   const handleOpenEdit = (item: WardrobeItem) => {
@@ -210,7 +159,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               data-testid="wardrobe-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo loại, màu, phong cách..."
+              placeholder="Ví dụ: giày đen, quần jeans..."
               className="px-4 py-2 text-sm rounded-xl border border-[#E8E5DE] bg-white text-[#1A1918] placeholder-[#A8A29E] focus:outline-hidden focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234] min-w-0"
             />
             <button
@@ -235,13 +184,17 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
         </div>
       </div>
 
+      <p className="text-xs text-[#736E65]">Tìm theo loại món, màu hoặc phong cách. Có thể nhập không dấu; nhấn Tìm để áp dụng.</p>
+      {taxonomyError && <p role="alert" className="text-sm text-[#9C5234]">Chưa tải được bộ lọc. <button type="button" onClick={retryTaxonomy} className="underline">Thử lại</button></p>}
+
       {/* Category Filter Pills */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-[#E8E5DE]">
-        {CATEGORIES.map((cat) => {
+        {[{ label: 'Tất cả', value: 'all' }, ...taxonomy.groups].map((cat) => {
           const isActive = selectedCategory === cat.value;
           return (
             <button
               key={cat.value}
+              aria-pressed={isActive}
               data-testid={`category-filter-${cat.value}`}
               onClick={() => {
                 setSelectedCategory(cat.value);
@@ -316,7 +269,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
                   <span className="text-3xl opacity-40">✨</span>
                 )}
                 <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono uppercase tracking-wider bg-black/60 backdrop-blur-xs text-white">
-                  {CATEGORY_NAMES[item.category] || item.category}
+                  {item.group_label_vi || 'Chưa phân loại'}
                 </span>
                 {item.times_worn > 0 && (
                   <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono bg-[#9C5234] text-white">
@@ -329,7 +282,7 @@ export function WardrobeInventory({ onSwitchToIngestion }: WardrobeInventoryProp
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
                   <h4 className="font-serif text-base text-[#1A1918] capitalize mb-1">
-                    {formatItemTitle(item.category, item.sub_category)}
+                    {item.display_name_vi || item.sub_category}
                   </h4>
                   <div className="flex flex-wrap gap-1.5 mb-2.5">
                     <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#F5F4F0] text-[#5C564E] font-mono">

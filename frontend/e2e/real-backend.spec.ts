@@ -10,6 +10,59 @@ const fixtureUserId = execFileSync(
   { cwd: backendDir, encoding: 'utf8' }
 ).trim();
 
+test('inventory separates item groups and searches Vietnamese aliases through the real API', async ({ page }) => {
+  const userId = crypto.randomUUID();
+  const headers = { 'X-User-Id': userId };
+  const image = execFileSync('python', ['-c',
+    'from PIL import Image; from io import BytesIO; import sys; b=BytesIO(); Image.new("RGB",(160,200),"grey").save(b,format="PNG"); sys.stdout.buffer.write(b.getvalue())'], { cwd: backendDir });
+  const specs = [
+    [{ category: 'footwear', sub_category: 'sneakers', primary_color: 'white' },
+      { category: 'footwear', sub_category: 'derby', primary_color: 'black' }],
+    [{ category: 'bottom', sub_category: 'jeans', primary_color: 'blue' },
+      { category: 'bottom', sub_category: 'pleated_skirt', primary_color: 'black' }],
+  ];
+  for (const types of specs) {
+    const upload = await page.request.post(`${apiBase}/api/v1/ingestions`, {
+      headers, multipart: { 'images[]': { name: 'garment.png', mimeType: 'image/png', buffer: image } },
+    });
+    expect(upload.status()).toBe(202);
+    const batch = (await upload.json()).data.batch_id;
+    await expect.poll(async () => (await (await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers })).json()).data.status).toBe('needs_review');
+    const review = (await (await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers })).json()).data;
+    expect(review.detections).toHaveLength(2);
+    const confirmed = await page.request.post(`${apiBase}/api/v1/ingestions/${batch}/confirm`, {
+      headers, data: { confirmations: review.detections.map((d: { detection_id: string }, index: number) => ({
+        detection_id: d.detection_id, accepted: true, custom_attributes: types[index],
+      })) },
+    });
+    expect(confirmed.status()).toBe(200);
+  }
+  await page.addInitScript((id) => localStorage.setItem('fashion_stylist_user_id', id), userId);
+  await page.goto('/wardrobe');
+  const cards = page.locator('[data-testid^="wardrobe-item-card-"]');
+  await expect(cards).toHaveCount(4);
+  await page.getByTestId('category-filter-pants').click();
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('Quần jeans');
+  await page.getByTestId('category-filter-skirt').click();
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('Chân váy xếp ly');
+  await page.getByTestId('category-filter-all').click();
+  const search = page.getByTestId('wardrobe-search-input');
+  await search.fill('giay');
+  await expect(cards).toHaveCount(4);
+  await page.getByRole('button', { name: 'Tìm', exact: true }).click();
+  await expect(cards).toHaveCount(2);
+  await page.screenshot({ path: 'test-results/taxonomy-search-desktop.png', fullPage: true });
+  await search.fill('giày đen');
+  await search.press('Enter');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('Giày Derby');
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.screenshot({ path: 'test-results/taxonomy-search-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test('browser uses real API, persisted outfits, private media, actions, and try-on fallback', async ({ page }) => {
   await page.addInitScript((userId) => {
     localStorage.setItem('fashion_stylist_user_id', userId);

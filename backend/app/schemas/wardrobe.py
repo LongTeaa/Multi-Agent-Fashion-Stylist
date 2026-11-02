@@ -119,6 +119,9 @@ class WardrobeItemResponseData(BaseModel):
     id: str
     category: WardrobeCategory
     sub_category: str
+    item_group: str | None = None
+    display_name_vi: str | None = None
+    group_label_vi: str | None = None
     primary_color: str
     secondary_color: str | None
     pattern: str
