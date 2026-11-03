@@ -6,6 +6,7 @@ import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 interface DetectionItemCardProps {
+  cropEditor?: React.ReactNode;
   detection: DetectionReviewItem;
   taxonomy?: GarmentTaxonomy;
   index: number;
@@ -99,6 +100,7 @@ const COMFORT_LABELS: Record<number, string> = {
 };
 
 export function DetectionItemCard({
+  cropEditor,
   detection,
   taxonomy = { groups: [] },
   index,
@@ -203,11 +205,8 @@ export function DetectionItemCard({
             ) : (
               <span className="text-xs font-mono text-[#736E65]">Không có ảnh</span>
             )}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-mono font-medium">
-              Ảnh cắt chi tiết
-            </div>
           </div>
-          <span className="mt-2 text-xs font-mono text-[#5C564E]">Vùng ảnh phân tích</span>
+          {cropEditor && <div className="mt-3 w-full max-w-sm">{cropEditor}</div>}
         </div>
 
         {/* Attribute Correction Form Fields */}

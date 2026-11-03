@@ -15,7 +15,6 @@ import {
 } from '@/lib/api';
 import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
 import { UploadDropzone } from './UploadDropzone';
-import { BoundingBoxOverlay } from './BoundingBoxOverlay';
 import { CropEditor } from './CropEditor';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { DetectionItemCard } from './DetectionItemCard';
@@ -46,7 +45,6 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   });
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [batchReview, setBatchReview] = useState<IngestionBatchReviewResponse | null>(null);
-  const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string | undefined>(undefined);
   const [selectedDetectionId, setSelectedDetectionId] = useState<string | null>(null);
   const [acceptedDetections, setAcceptedDetections] = useState<Record<string, boolean>>({});
   const [editedAttributes, setEditedAttributes] = useState<Record<string, FashionAttributes>>({});
@@ -71,14 +69,6 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       }
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (uploadedPreviewUrl) {
-        URL.revokeObjectURL(uploadedPreviewUrl);
-      }
-    };
-  }, [uploadedPreviewUrl]);
 
   // Poll for batch status until ready or failed using recursive awaited polling (no overlapping requests)
   const startPollingBatch = useCallback((id: string) => {
@@ -172,11 +162,6 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setIsUploading(true);
     setErrorMessage(null);
     try {
-      // Use a local preview only for a single photo until owned source URLs arrive.
-      setUploadedPreviewUrl(
-        files.length === 1 ? URL.createObjectURL(files[0]) : undefined
-      );
-
       const res = await uploadIngestionImages(files, declaredKind);
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
@@ -309,14 +294,10 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       sessionStorage.removeItem('active_ingestion_batch_id');
       sessionStorage.removeItem('active_ingestion_source_id');
     }
-    if (uploadedPreviewUrl) {
-      URL.revokeObjectURL(uploadedPreviewUrl);
-    }
     setStep('upload');
     setSelectedSourceId(null);
     setBatchId(null);
     setBatchReview(null);
-    setUploadedPreviewUrl(undefined);
     setSelectedDetectionId(null);
     setAcceptedDetections({});
     setEditedAttributes({});
@@ -329,7 +310,6 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const visibleDetections = source
     ? (batchReview?.detections ?? []).filter((det) => det.source_media_asset_id === source.media_asset_id)
     : (batchReview?.detections ?? []).filter((det) => sources.length === 0 || !det.source_media_asset_id);
-  const selectedDetection = visibleDetections.find((det) => det.detection_id === selectedDetectionId);
 
   const needsReviewCount = (batchReview?.detections ?? []).filter((det) => {
     if (!acceptedDetections[det.detection_id]) return false;
@@ -509,7 +489,9 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                   onClick={() => { setSelectedSourceId('unassigned'); setSelectedDetectionId(null); }}
                   className="shrink-0 rounded-xl border p-2 text-sm">Món chưa xác định ảnh</button>
               )}
-              {sources.map((entry, index) => (
+              {sources.map((entry, index) => {
+                const preview = batchReview.detections.find((det) => det.source_media_asset_id === entry.media_asset_id)?.crop_url;
+                return (
                 <button key={entry.media_asset_id} type="button"
                   aria-pressed={source?.media_asset_id === entry.media_asset_id}
                   onClick={() => {
@@ -517,44 +499,17 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                     setSelectedDetectionId(batchReview.detections.find(
                       (det) => det.source_media_asset_id === entry.media_asset_id)?.detection_id ?? null);
                   }} className="shrink-0 rounded-xl border border-[#D5D1C7] p-2 aria-pressed:border-[#9C5234] aria-pressed:bg-[#F5F2EC]">
-                  <PrivateMediaImage source={entry.media_url} alt={`Ảnh ${index + 1}`} className="h-16 w-20 object-contain" />
+                  {preview && (
+                    <PrivateMediaImage source={preview}
+                      alt={`Ảnh ${index + 1}`} className="h-16 w-20 object-contain" />
+                  )}
                   <span className="text-xs">Ảnh {index + 1} / {sources.length}</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
-          {/* 2-Column Inspector Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
-            {/* Left: Original Photo with Bounding Boxes */}
-            <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-24">
-              <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-2xs border border-[#E8E5DE]">
-                <h3 className="text-xs sm:text-sm font-mono uppercase tracking-widest text-[#1A1918] font-semibold mb-3.5 flex items-center justify-between">
-                  <span>Ảnh Gốc & Vị Trí Nhận Diện</span>
-                  <span className="text-xs text-[#9C5234] font-normal">Tự động gắn khung</span>
-                </h3>
-                {selectedDetection && source && batchId && (
-                  <CropEditor key={selectedDetection.crop_url} source={source.media_url}
-                    initialBox={selectedDetection.bounding_box}
-                    rawBox={selectedDetection.raw_bounding_box}
-                    onSave={async (box) => {
-                      setIsCropSaving(true);
-                      try {
-                        const updated = await updateDetectionCrop(batchId, selectedDetection.detection_id, box);
-                        setBatchReview(updated);
-                      } finally { setIsCropSaving(false); }
-                    }} />
-                )}
-                <BoundingBoxOverlay
-                  imageUrl={source?.media_url || batchReview.original_media_url || uploadedPreviewUrl}
-                  detections={visibleDetections}
-                  selectedDetectionId={selectedDetectionId}
-                  onSelectDetection={setSelectedDetectionId}
-                />
-              </div>
-            </div>
-
-            {/* Right: Detected Item Cards */}
-            <div className="lg:col-span-7 xl:col-span-7 space-y-5">
+          <div className="mx-auto max-w-4xl space-y-5">
               {visibleDetections.map((det, idx) => (
                 <DetectionItemCard
                   taxonomy={taxonomy}
@@ -567,9 +522,19 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                   onSelect={() => setSelectedDetectionId(det.detection_id)}
                   onToggleAccepted={(acc) => handleToggleAccepted(det.detection_id, acc)}
                   onUpdateAttribute={(k, v) => handleUpdateAttribute(det.detection_id, k, v)}
+                  cropEditor={source && batchId && det.source_media_asset_id === source.media_asset_id ? (
+                    <CropEditor key={det.crop_url} source={source.media_url}
+                      initialBox={det.bounding_box} rawBox={det.raw_bounding_box}
+                      disabled={isCropSaving || isConfirming || isCancelling}
+                      onSave={async (box) => {
+                        setIsCropSaving(true);
+                        try {
+                          setBatchReview(await updateDetectionCrop(batchId, det.detection_id, box));
+                        } finally { setIsCropSaving(false); }
+                      }} />
+                  ) : undefined}
                 />
               ))}
-            </div>
           </div>
 
           {/* Save action stays in document flow so crop controls remain unobstructed. */}

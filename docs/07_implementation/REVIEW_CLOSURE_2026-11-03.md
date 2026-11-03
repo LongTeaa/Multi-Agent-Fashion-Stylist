@@ -45,6 +45,15 @@ Screenshots use deterministic synthetic inputs and demonstrate control layout, n
 
 Independent human annotation and representative live-provider evaluation remain separate evaluation work before making model-quality claims. No additional software correction from R1–R12 remains assigned by this review.
 
+## Follow-up: automatic crop display
+
+User feedback clarified that manual recropping must not appear to be a required step. Review now shows only the generated item crops by default, including photo-navigation previews. The separate original/overlay inspector is removed. Each source-linked item has an optional inline crop editor; its original image and sliders mount only after the user chooses to edit. Saving an unchanged accepted crop requires no crop PATCH. Required confirmation and actionable recognition warnings remain.
+
+Verification: 109 frontend tests, TypeScript, lint, production build, and 9 browser E2E scenarios passed (50.4 seconds). Browser assertions verify cropped previews, absence of default originals/overlays/sliders, and optional correction save/reload at desktop and 375 px. This UI change does not change detector accuracy or the canonical database.
+
+- [Default desktop review](screenshots/automatic-crop-review-desktop.png)
+- [Default 375 px review](screenshots/automatic-crop-review-mobile.png)
+
 ## Working-tree provenance
 
-The migration-0008 fix and its schema-test changes already existed before this closure task; their contents are preserved outside the task commit. The unrelated lecturer-plan draft and generated `next-env.d.ts` are also excluded. Verification below applies to the full working tree including those existing migration corrections.
+The migration-0008 fix and its schema-test changes already existed before this closure task; their contents are preserved outside the task commit. The unrelated lecturer-plan draft and generated `next-env.d.ts` are also excluded. Verification applies to the full working tree including those existing migration corrections.

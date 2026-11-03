@@ -4,6 +4,8 @@ New detections retain the raw detector rectangle separately from the effective c
 
 ## 1. Objective
 
+Review MUST default to the automatically generated item crops, including source-navigation previews. Original images, detection overlays, and manual crop controls MUST NOT occupy the default review layout. Each source-linked item MAY expose an optional “Chỉnh vùng cắt” action that reveals its original image and crop controls inline; saving regenerates that item's crop. User confirmation remains required, but manual recropping is not a required step. Failed/uncertain detections keep actionable review warnings visible rather than claiming successful automatic isolation.
+
 The ingestion system converts clothing images into structured, reviewable `WardrobeItem` records that can be searched and used in outfit generation. It MUST NOT assume that every image contains exactly one item.
 
 ## 2. Supported Input Cases

@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import type { BoundingBox } from '@/types/ingestion';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
-export function CropEditor({ source, initialBox, rawBox, onSave }: {
+export function CropEditor({ source, initialBox, rawBox, disabled = false, onSave }: {
+  disabled?: boolean;
   source: string;
   initialBox: BoundingBox;
   rawBox?: BoundingBox | null;
@@ -18,13 +19,14 @@ export function CropEditor({ source, initialBox, rawBox, onSave }: {
   const valid = box[0] < box[2] && box[1] < box[3];
 
   return (
-    <div className="mb-4 space-y-3">
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}
+    <div className="space-y-3">
+      <button type="button" aria-expanded={open} disabled={saving || disabled} onClick={() => setOpen(!open)}
         className="rounded-lg border px-4 py-2 text-sm">Chỉnh vùng cắt</button>
-      {open && <>
+      {open && <fieldset disabled={saving || disabled} className="min-w-0 space-y-3">
         <p className="text-sm text-[#5C564E]">Kéo trên ảnh để chọn vùng mới hoặc điều chỉnh các cạnh bên dưới.</p>
         <div className="relative inline-block touch-none select-none"
           onPointerDown={(event) => {
+            if (saving || disabled) return;
             const rect = event.currentTarget.getBoundingClientRect();
             start.current = [(event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height];
             event.currentTarget.setPointerCapture(event.pointerId);
@@ -68,7 +70,7 @@ export function CropEditor({ source, initialBox, rawBox, onSave }: {
               finally { setSaving(false); }
             }}>{saving ? 'Đang lưu…' : 'Lưu vùng cắt'}</button>
         </div>
-      </>}
+      </fieldset>}
     </div>
   );
 }

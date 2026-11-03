@@ -17,7 +17,7 @@ vi.mock('@/components/ingestion/BoundingBoxOverlay', () => ({
   BoundingBoxOverlay: () => null,
 }));
 vi.mock('@/components/ingestion/DetectionItemCard', () => ({
-  DetectionItemCard: ({ detection }: { detection: { detection_id: string } }) => <div>{detection.detection_id}</div>,
+  DetectionItemCard: ({ detection, cropEditor }: { detection: { detection_id: string }; cropEditor?: React.ReactNode }) => <div>{detection.detection_id}{cropEditor}</div>,
 }));
 
 beforeEach(() => { vi.mocked(api.getGarmentTaxonomy).mockResolvedValue({ groups: [] }); });
@@ -89,4 +89,10 @@ it('retains a processing batch after 45 seconds and scopes review to the selecte
   fireEvent.click(screen.getByRole('button', { name: /Ảnh 2/ }));
   expect(screen.getByText('blue-item')).toBeDefined();
   expect(screen.queryByText('red-item')).toBeNull();
+  expect(screen.queryByText('Ảnh gốc để chỉnh vùng cắt')).toBeNull();
+  expect(screen.queryByRole('slider')).toBeNull();
+  expect(api.updateDetectionCrop).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Chỉnh vùng cắt' }));
+  expect(screen.getByText('Ảnh gốc để chỉnh vùng cắt')).toBeDefined();
+  expect(screen.getAllByRole('slider')).toHaveLength(4);
 });

@@ -145,8 +145,12 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await expect(page.getByRole('note')).toContainText('Chọn những món muốn giữ');
   const details = page.locator('details').first();
   await expect(details).toHaveJSProperty('open', false);
+  await expect(page.getByAltText('Ảnh món đồ đã cắt').first()).toBeVisible();
+  await expect(page.getByAltText('Ảnh gốc để chỉnh vùng cắt')).toHaveCount(0);
+  await expect(page.getByRole('slider')).toHaveCount(0);
+  await expect(page.getByText('Ảnh Gốc & Vị Trí Nhận Diện')).toHaveCount(0);
   await page.screenshot({ path: 'test-results/confirmation-review-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).first().click();
   await page.getByRole('button', { name: 'Lấy toàn ảnh', exact: true }).click();
   const patch = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).click();
@@ -161,21 +165,21 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await details.locator('summary').click();
   await expect(details).toHaveJSProperty('open', false);
 
-  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).first().click();
   await page.getByRole('button', { name: 'Khung AI gốc', exact: true }).click();
   const restore = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).click();
   const restored = (await (await restore).json()).data;
   expect(restored.detections.some((d: { bounding_box: number[]; raw_bounding_box: number[] | null }) =>
     d.raw_bounding_box && JSON.stringify(d.bounding_box) === JSON.stringify(d.raw_bounding_box))).toBe(true);
-  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).first().click();
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/review-closure-desktop.png', fullPage: false });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   await page.screenshot({ path: 'test-results/review-closure-mobile.png', fullPage: false });
-  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).first().click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/confirmation-review-mobile.png', fullPage: true });
   const review = await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers: { 'X-User-Id': userId } });
