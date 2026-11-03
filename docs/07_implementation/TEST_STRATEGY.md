@@ -152,6 +152,8 @@ Datasets MUST be versioned. Reports MUST record dataset version, rule version, p
 
 ## 7. Quality Gates
 
+Repository review closure regressions live in `test_review_hardening.py`, `test_review_closure.py`, `test_review_migrations.py`, `test_multi_upload_acceptance.py`, and `test_review_ranking.py`. Cover full response replay and content binding, stale active-item checks, serialized persistence/cleanup, fit and combination-budget behavior, explicit-null validation, preserved UUID references, and source ownership after partial failures. Browser acceptance covers 1/2/10 photos, selected-source reload, crop raw restoration, actual item editing, Vietnamese search, and recommendation display at desktop/mobile widths. Keep these deterministic and independent of live provider availability. See `REVIEW_CLOSURE_2026-11-03.md` for the final execution record.
+
 - **INVARIANT:** Phase completion requires its executable command to pass.
 - **INVARIANT:** Normal CI never requires external API credentials.
 - **INVARIANT:** A test cannot pass by weakening ownership, grounding, or schema assertions.

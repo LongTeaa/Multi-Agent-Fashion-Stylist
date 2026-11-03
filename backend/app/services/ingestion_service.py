@@ -254,6 +254,7 @@ def process_ingestion_batch(
                 object_key=asset.object_key,
             )
 
+            raw_detection_boxes: list[BoundingBoxDetection] = []
             try:
                 detection_res = classify_scene(
                     detector=detector,
@@ -261,6 +262,7 @@ def process_ingestion_batch(
                     declared_input_kind=batch.input_kind,
                 )
                 detected_boxes = review_crop_boxes(detection_res)
+                raw_detection_boxes = list(detection_res.boxes)
                 detected_kinds.append(detection_res.input_kind)
                 for warning in detection_res.quality_warnings:
                     add_warning(warning)
@@ -297,7 +299,7 @@ def process_ingestion_batch(
             total_boxes_count += len(detected_boxes)
 
             # For each candidate detected region, crop and extract attributes
-            for box_det in detected_boxes:
+            for detection_index, box_det in enumerate(detected_boxes):
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
 
@@ -472,6 +474,7 @@ def process_ingestion_batch(
                     crop_media_asset_id=crop_asset_id,
                     source_media_asset_id=asset.id,
                     bounding_box=box_det.box,
+                    raw_bounding_box=raw_detection_boxes[detection_index].box if detection_index < len(raw_detection_boxes) else None,
                     proposed_attributes=norm_attrs,
                     field_confidence=norm_conf,
                     status=DetectionStatus.PROPOSED,
@@ -592,6 +595,7 @@ def get_batch_review(
                 source_media_asset_id=det.source_media_asset_id,
                 crop_url=crop_url,
                 bounding_box=det.bounding_box,
+                raw_bounding_box=det.raw_bounding_box,
                 attributes=det.proposed_attributes,
                 field_confidence=det.field_confidence,
             )

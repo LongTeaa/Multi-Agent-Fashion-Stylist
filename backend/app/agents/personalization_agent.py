@@ -425,6 +425,7 @@ def rerank_evaluated_outfits(
     recent_data = recent_wear_data or {}
 
     styles = preferences.styles if preferences else []
+    preferred_fits = set(preferences.fit_preferences) if preferences else set()
     color_palettes = preferences.color_palettes if preferences else []
     priorities = preferences.priorities if preferences else []
     avoid_colors = preferences.avoid_colors if preferences else []
@@ -462,6 +463,11 @@ def rerank_evaluated_outfits(
     wear_penalties: list[float] = []
 
     for cand, violations in active_pairs:
+        fit_items = [item for item in cand.items if item.slot_role in {
+            OutfitSlotRole.TOP, OutfitSlotRole.BOTTOM, OutfitSlotRole.DRESS, OutfitSlotRole.OUTERWEAR,
+        }]
+        fit_ratio = sum(item.fit in preferred_fits for item in fit_items) / len(fit_items) if fit_items else .5
+        fit_bonus = .05 * (2 * fit_ratio - 1) if preferred_fits and fit_items else 0.0
         style_score, style_tags = calculate_style_preference(cand.items, styles)
         palette_score, palette_tags = calculate_palette_preference(cand.items, color_palettes)
         priority_score, priority_tags = calculate_priority_preference(cand.items, priorities)
@@ -479,6 +485,7 @@ def rerank_evaluated_outfits(
             + 0.25 * palette_score
             + 0.20 * priority_score
             + 0.20 * affinity_score
+            + fit_bonus
             - avoid_penalty
             - wear_penalty
         )

@@ -35,6 +35,7 @@ export interface DetectionReviewItem {
   source_media_asset_id?: string | null;
   crop_url: string;
   bounding_box: BoundingBox;
+  raw_bounding_box?: BoundingBox | null;
   attributes: FashionAttributes;
   field_confidence: Record<string, number>;
 }

@@ -67,6 +67,8 @@ For an underspecified query such as `Mặc gì?`, the agent MAY apply documented
 
 ## 5. Fashion Agent
 
+The 500-combination budget MUST explore core garments through a deterministic balanced product rather than exhausting early garments with depth-first loops. Optional layers rotate across cores; existing dress/top-bottom branch quotas remain bounded. Saved color/style exclusions are applied to the retrieved pool before combination truncation when the clean pool still provides a complete branch and all required structured item constraints. Otherwise retain the existing controlled relaxation policy. This is balanced bounded exploration, not exhaustive enumeration of all wardrobe combinations.
+
 The agent MUST generate these two valid outfit branches:
 
 ```text

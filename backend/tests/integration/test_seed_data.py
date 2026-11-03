@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.core.seed import golden_item_id
+
 import pytest
 from alembic.config import Config
 from sqlalchemy import Engine
@@ -14,7 +16,7 @@ from app.core.seed import (
 from app.models import User, WardrobeCategory, WardrobeItem
 
 EXPECTED_GOLDEN_ITEMS = {
-    "item-top-01": (
+    golden_item_id("item-top-01"): (
         WardrobeCategory.TOP,
         "polo",
         "white",
@@ -24,7 +26,7 @@ EXPECTED_GOLDEN_ITEMS = {
         3,
         ["warm", "cool"],
     ),
-    "item-top-02": (
+    golden_item_id("item-top-02"): (
         WardrobeCategory.TOP,
         "button_down_shirt",
         "black",
@@ -34,7 +36,7 @@ EXPECTED_GOLDEN_ITEMS = {
         3,
         ["warm", "cool", "cold"],
     ),
-    "item-top-03": (
+    golden_item_id("item-top-03"): (
         WardrobeCategory.TOP,
         "tee",
         "grey",
@@ -44,7 +46,7 @@ EXPECTED_GOLDEN_ITEMS = {
         1,
         ["hot", "warm"],
     ),
-    "item-bottom-01": (
+    golden_item_id("item-bottom-01"): (
         WardrobeCategory.BOTTOM,
         "chinos",
         "navy",
@@ -54,7 +56,7 @@ EXPECTED_GOLDEN_ITEMS = {
         3,
         ["warm", "cool"],
     ),
-    "item-bottom-02": (
+    golden_item_id("item-bottom-02"): (
         WardrobeCategory.BOTTOM,
         "trousers",
         "black",
@@ -64,7 +66,7 @@ EXPECTED_GOLDEN_ITEMS = {
         4,
         ["warm", "cool", "cold"],
     ),
-    "item-bottom-03": (
+    golden_item_id("item-bottom-03"): (
         WardrobeCategory.BOTTOM,
         "shorts",
         "unknown",
@@ -74,7 +76,7 @@ EXPECTED_GOLDEN_ITEMS = {
         1,
         ["hot", "warm"],
     ),
-    "item-shoes-01": (
+    golden_item_id("item-shoes-01"): (
         WardrobeCategory.FOOTWEAR,
         "sneakers",
         "white",
@@ -84,7 +86,7 @@ EXPECTED_GOLDEN_ITEMS = {
         2,
         ["hot", "warm", "cool"],
     ),
-    "item-shoes-02": (
+    golden_item_id("item-shoes-02"): (
         WardrobeCategory.FOOTWEAR,
         "oxford_shoes",
         "brown",
@@ -149,7 +151,7 @@ def test_seed_restores_modified_golden_item(
 ) -> None:
     _, engine = migrated_database
     seed_golden_wardrobe(engine)
-    target_id = "item-top-01"
+    target_id = golden_item_id("item-top-01")
 
     with Session(engine) as session:
         item = session.get(WardrobeItem, target_id)
@@ -174,7 +176,7 @@ def test_seed_rolls_back_when_golden_item_belongs_to_another_user(
     migrated_database: tuple[Config, Engine],
 ) -> None:
     _, engine = migrated_database
-    conflicting_id = "item-top-01"
+    conflicting_id = golden_item_id("item-top-01")
     other_user = User()
     conflicting_item = WardrobeItem(
         id=conflicting_id,

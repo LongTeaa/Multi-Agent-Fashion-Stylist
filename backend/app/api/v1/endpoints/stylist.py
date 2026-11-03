@@ -48,6 +48,8 @@ from app.schemas.stylist import (
     StylistRecommendationResponse,
 )
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
+from app.services.garment_taxonomy import group_label
+from app.services.recommendation_replay import bind_request, conflict, deliver_response
 
 router = APIRouter(prefix="/stylist", tags=["stylist"])
 logger = logging.getLogger(__name__)
@@ -62,15 +64,7 @@ def _reconstruct_idempotent_response(
     """Rebuild StylistChatResponseData from persisted database recommendations."""
     first_rec = existing_recs[0]
     ctx_data = first_rec.context_snapshot or {}
-    context = StylistContextResponse(
-        occasion=ctx_data.get("occasion"),
-        time_of_day=ctx_data.get("time_of_day"),
-        event_date=ctx_data.get("event_date"),
-        location_text=ctx_data.get("location_text"),
-        environment=ctx_data.get("environment"),
-        weather_condition=ctx_data.get("weather_condition"),
-        weight_profile=ctx_data.get("weight_profile"),
-    )
+    context = StylistContextResponse.model_validate(ctx_data)
 
     recommendations: list[StylistRecommendationResponse] = []
     for rec in existing_recs:
@@ -98,6 +92,7 @@ def _reconstruct_idempotent_response(
                     slot=oi.slot_role,
                     item_id=wi.id,
                     name=format_localized_item_name(wi),
+                    group_label_vi=group_label(wi.category, wi.sub_category),
                     image_url=img_url,
                 )
             )
@@ -109,7 +104,7 @@ def _reconstruct_idempotent_response(
                 composite_score=rec.composite_score,
                 items=item_dtos,
                 explanation_vi=rec.explanation_vi,
-                applied_preferences=[],
+                applied_preferences=list(rec.context_snapshot.get("_applied_preferences", [])),
             )
         )
 
@@ -121,7 +116,7 @@ def _reconstruct_idempotent_response(
         recommendations=recommendations,
         feedback_prompt_eligible=False,
         feedback_target_outfit_id=None,
-        warnings=[],
+        warnings=list(ctx_data.get("_warnings", [])),
     )
 
 
@@ -176,6 +171,8 @@ def stylist_chat(
         or ""
     ).strip() or None
 
+    request_record = None
+
     if effective_idempotency_key:
         existing_recs = session.exec(
             select(OutfitRecommendation)
@@ -186,6 +183,16 @@ def stylist_chat(
             .order_by(OutfitRecommendation.rank.asc())
         ).all()
         if existing_recs:
+            original = existing_recs[0]
+            if original.user_query != payload.query:
+                raise conflict()
+            if "_request_location" in original.context_snapshot:
+                if original.context_snapshot["_request_location"] != payload.location:
+                    raise conflict()
+            elif payload.location is not None:
+                # Legacy rows cannot prove the original raw location; a new key is safe.
+                raise conflict()
+            request_record = bind_request(session, user_id, effective_idempotency_key, payload)
             logger.info(
                 "Idempotent stylist chat hit for user %s, request_id %s",
                 user_id,
@@ -197,7 +204,10 @@ def stylist_chat(
                 request_id=effective_idempotency_key,
                 existing_recs=list(existing_recs),
             )
-            return SuccessResponse(data=cached_data)
+            return SuccessResponse(data=deliver_response(session, request_record, cached_data,
+                user_id, client_session_id, feedback_service))
+
+        request_record = bind_request(session, user_id, effective_idempotency_key, payload)
 
     request_id = effective_idempotency_key or new_uuid()
     initial_state: StylistGraphState = {
@@ -216,6 +226,8 @@ def stylist_chat(
             llm_provider=llm_provider,
             weather_provider=weather_provider,
         )
+    except AppException:
+        raise
     except Exception as exc:
         logger.exception(
             "Stylist recommendation graph failed unexpectedly for user %s: %s",
@@ -393,6 +405,7 @@ def stylist_chat(
                     slot=item.slot_role,
                     item_id=item.item_id,
                     name=item.name,
+                    group_label_vi=group_label(w_item.category, w_item.sub_category),
                     image_url=img_url,
                 )
             )
@@ -408,23 +421,11 @@ def stylist_chat(
             )
         )
 
-    prompt_eligible, prompt_target_id = feedback_service.process_chat_recommendations(
-        session=session,
-        user_id=user_id,
-        new_outfit_ids=[r.outfit_id for r in recommendations],
-        client_session_id=client_session_id,
-        request_id=request_id,
+    response = StylistChatResponseData(
+        request_id=request_id, needs_clarification=False, clarification_question=None,
+        context=mapped_ctx, recommendations=recommendations,
+        feedback_prompt_eligible=False, feedback_target_outfit_id=None,
+        warnings=list(final_state.get("warnings", [])),
     )
-
-    return SuccessResponse(
-        data=StylistChatResponseData(
-            request_id=request_id,
-            needs_clarification=False,
-            clarification_question=None,
-            context=mapped_ctx,
-            recommendations=recommendations,
-            feedback_prompt_eligible=prompt_eligible,
-            feedback_target_outfit_id=prompt_target_id,
-            warnings=list(final_state.get("warnings", [])),
-        )
-    )
+    return SuccessResponse(data=deliver_response(session, request_record, response,
+        user_id, client_session_id, feedback_service))

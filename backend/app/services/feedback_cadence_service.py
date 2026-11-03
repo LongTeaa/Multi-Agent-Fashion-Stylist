@@ -40,6 +40,7 @@ class FeedbackCadenceService:
         new_outfit_ids: list[str],
         client_session_id: str | None = None,
         request_id: str | None = None,
+        before_commit: Callable[[bool, str | None], None] | None = None,
     ) -> tuple[bool, str | None]:
         """Evaluates feedback prompt eligibility for newly displayed outfits.
 
@@ -56,6 +57,12 @@ class FeedbackCadenceService:
             reseeds next_threshold in [5, 10], commits, and returns (True, target_outfit_id).
           - If no valid unrated target exists: does not return fake eligibility, returns (False, None).
         """
+        def commit_decision(eligible: bool, target: str | None) -> tuple[bool, str | None]:
+            if before_commit is not None:
+                before_commit(eligible, target)
+            session.commit()
+            return eligible, target
+
         # 1. Explicit list deduplication
         seen: set[str] = set()
         deduped_ids = [oid for oid in new_outfit_ids if not (oid in seen or seen.add(oid))]
@@ -130,13 +137,11 @@ class FeedbackCadenceService:
 
                 # 6. Check if cooldown still active
                 if prompt_state.cooldown_remaining > 0:
-                    session.commit()
-                    return False, None
+                    return commit_decision(False, None)
 
                 # 7. Check if threshold reached
                 if prompt_state.eligible_count_since_prompt < prompt_state.next_threshold:
-                    session.commit()
-                    return False, None
+                    return commit_decision(False, None)
 
                 # 8. Threshold reached: check same-session suppression
                 if client_session_id:
@@ -147,8 +152,7 @@ class FeedbackCadenceService:
                         )
                     ).first()
                     if suppressed is not None:
-                        session.commit()
-                        return False, None
+                        return commit_decision(False, None)
 
                 # 9. Select highest-ranked owned, persisted, unrated outfit
                 target_outfit_id: str | None = None
@@ -189,17 +193,14 @@ class FeedbackCadenceService:
 
                 # If no unrated owned outfit exists, do not return fake eligibility
                 if target_outfit_id is None:
-                    session.commit()
-                    return False, None
+                    return commit_decision(False, None)
 
                 # 10. Reset cadence upon triggering prompt
                 prompt_state.eligible_count_since_prompt = 0
                 prompt_state.last_prompted_at = now
                 prompt_state.next_threshold = self._get_threshold()
                 session.add(prompt_state)
-                session.commit()
-
-                return True, target_outfit_id
+                return commit_decision(True, target_outfit_id)
 
             except (IntegrityError, OperationalError):
                 session.rollback()

@@ -131,6 +131,11 @@ COLORS = {
 }
 
 
+def group_label(category: WardrobeCategory, subtype: str) -> str | None:
+    group, _ = classify(category, subtype)
+    return group.label if group else None
+
+
 @lru_cache(maxsize=1)
 def _search_aliases() -> dict[tuple[str, ...], tuple[str, str]]:
     aliases: dict[tuple[str, ...], tuple[str, str]] = {}

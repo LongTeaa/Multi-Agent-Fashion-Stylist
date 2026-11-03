@@ -199,6 +199,12 @@ submit a new request with a new key. Historical outfit detail remains readable.
 Concurrent persistence for the same user/request MUST return one set of outfit
 identifiers. Session reconciliation applies before cache lookup as well.
 
+The effective idempotency key is bound to the validated query and location. Reusing it with different content returns HTTP 409 `IDEMPOTENCY_KEY_REUSED`. Successful persisted recommendation retries retain context, explanations, applied preferences, warnings, and the original feedback decision without incrementing cadence again. A prompt is suppressed if its target has since been rated or the current session is suppressed. Legacy rows without a recoverable original raw location reject non-null location retries; submit a new key. Clarification responses are not cached as successful recommendations.
+
+Review detections also return nullable `raw_bounding_box`, the detector rectangle before margin/manual edits. Historical/fallback detections may return null. Crop PATCH updates only the effective `bounding_box`; restoring the raw rectangle requires the same explicit PATCH/save action.
+
+Wardrobe PATCH rejects explicit null for required attributes with HTTP 422; omitting an attribute leaves it unchanged. `secondary_color` may explicitly be null. Chat recommendation items and outfit-detail items include nullable `group_label_vi`, computed from the shared category/subtype taxonomy for display (for example, Quần, Chân váy, Giày dép).
+
 ## 5. Profile and Personalization API
 
 | Method | Endpoint | Purpose |

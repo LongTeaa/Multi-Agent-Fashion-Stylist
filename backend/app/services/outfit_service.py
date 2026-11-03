@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.services.garment_taxonomy import group_label
+
 import random
 import time
 from collections import defaultdict
@@ -97,6 +99,7 @@ def _build_outfit_item_dto(
             slot_role=oi.slot_role,
             wardrobe_item_id=oi.wardrobe_item_id,
             name=format_localized_item_name(w_item),
+            group_label_vi=group_label(w_item.category, w_item.sub_category),
             category=w_item.category,
             sub_category=w_item.sub_category,
             primary_color=w_item.primary_color,

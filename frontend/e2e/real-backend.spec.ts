@@ -154,6 +154,7 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await page.reload();
   await page.getByTestId('btn-add-garment').click();
   await expect(photos).toHaveCount(2);
+  await expect(photos.nth(1)).toHaveAttribute('aria-pressed', 'true');
   await details.locator('summary').click();
   const material = details.locator('select').filter({ has: page.locator('option[value="linen"]') });
   await material.selectOption('linen');
@@ -161,20 +162,57 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await expect(details).toHaveJSProperty('open', false);
 
   await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
+  await page.getByRole('button', { name: 'Khung AI gốc', exact: true }).click();
+  const restore = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
+  await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).click();
+  const restored = (await (await restore).json()).data;
+  expect(restored.detections.some((d: { bounding_box: number[]; raw_bounding_box: number[] | null }) =>
+    d.raw_bounding_box && JSON.stringify(d.bounding_box) === JSON.stringify(d.raw_bounding_box))).toBe(true);
+  await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: 'test-results/multi-photo-review.png', fullPage: false });
+  await page.screenshot({ path: 'test-results/review-closure-desktop.png', fullPage: false });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
-  await page.screenshot({ path: 'test-results/multi-photo-review-mobile.png', fullPage: false });
+  await page.screenshot({ path: 'test-results/review-closure-mobile.png', fullPage: false });
   await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/confirmation-review-mobile.png', fullPage: true });
   const review = await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`, { headers: { 'X-User-Id': userId } });
-  expect((await review.json()).data.detections.some((d: { bounding_box: number[] }) => JSON.stringify(d.bounding_box) === '[0,0,1,1]')).toBe(true);
+  expect((await review.json()).data.detections.some((d: { raw_bounding_box: number[] | null }) => d.raw_bounding_box !== null)).toBe(true);
   const confirmation = page.waitForResponse(r => r.url().endsWith('/confirm') && r.request().method() === 'POST');
   await page.getByRole('button', { name: /Lưu vào tủ đồ/ }).click();
   expect((await confirmation).status()).toBe(200);
   const wardrobe = await page.request.get(`${apiBase}/api/v1/wardrobe/items`, { headers: { 'X-User-Id': userId } });
   expect((await wardrobe.json()).data.items.some((item: { material: string }) => item.material === 'linen')).toBe(true);
 });
+
+for (const count of [1, 10]) {
+  test(`upload ${count} distinct photos retains every source after reload`, async ({ page }) => {
+    test.setTimeout(60_000);
+    const userId = crypto.randomUUID();
+    await page.addInitScript((id) => localStorage.setItem('fashion_stylist_user_id', id), userId);
+    const encoded = JSON.parse(execFileSync('python', ['-c',
+      'from PIL import Image; from io import BytesIO; import base64,json,sys; output=[]\nfor i in range(int(sys.argv[1])):\n b=BytesIO(); Image.new("RGB",(160,200),(20+i*17,60,120)).save(b,format="PNG"); output.append(base64.b64encode(b.getvalue()).decode())\nprint(json.dumps(output))', String(count)],
+      { cwd: backendDir, encoding: 'utf8' })) as string[];
+    await page.goto('/wardrobe');
+    await page.getByTestId('btn-add-garment').click();
+    await page.getByLabel('Chọn ảnh trang phục để tải lên').setInputFiles(encoded.map((value, i) => ({
+      name: `photo-${i}.png`, mimeType: 'image/png', buffer: Buffer.from(value, 'base64'),
+    })));
+    await page.getByRole('button', { name: /Tiến hành phân tích/i }).click();
+    const photos = page.getByRole('button').filter({ has: page.locator('img') });
+    await expect(photos).toHaveCount(count, { timeout: 30_000 });
+    await photos.nth(count - 1).click();
+    await expect(photos.nth(count - 1)).toHaveAttribute('aria-pressed', 'true');
+    await page.reload();
+    await page.getByTestId('btn-add-garment').click();
+    await expect(photos).toHaveCount(count);
+    await expect(photos.nth(count - 1)).toHaveAttribute('aria-pressed', 'true');
+    const batch = await page.evaluate(() => sessionStorage.getItem('active_ingestion_batch_id'));
+    const review = (await (await page.request.get(`${apiBase}/api/v1/ingestions/${batch}`,
+      { headers: { 'X-User-Id': userId } })).json()).data;
+    expect(new Set(review.source_images.map((source: { media_asset_id: string }) => source.media_asset_id)).size).toBe(count);
+    expect(new Set(review.detections.map((d: { source_media_asset_id: string }) => d.source_media_asset_id)).size).toBe(count);
+  });
+}

@@ -47,6 +47,7 @@ class DetectionReviewItem(BaseModel):
     source_media_asset_id: str | None = None
     crop_url: str
     bounding_box: BoundingBox
+    raw_bounding_box: BoundingBox | None = None
     attributes: dict[str, Any]
     field_confidence: dict[str, ConfidenceValue]
 

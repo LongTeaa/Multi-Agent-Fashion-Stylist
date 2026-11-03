@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.entities import (
     ConfidenceValue,
@@ -67,6 +67,13 @@ class WardrobeItemCreate(WardrobeItemAttributes):
 
 class WardrobeItemUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_nulls(cls, value: object) -> object:
+        if isinstance(value, dict) and any(v is None and key != "secondary_color" for key, v in value.items()):
+            raise ValueError("Required wardrobe attributes cannot be null; omit unchanged fields")
+        return value
 
     category: WardrobeCategory | None = None
     sub_category: str | None = Field(default=None, min_length=1, max_length=100)

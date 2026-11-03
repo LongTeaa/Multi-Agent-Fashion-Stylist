@@ -4,9 +4,10 @@ import { useRef, useState } from 'react';
 import type { BoundingBox } from '@/types/ingestion';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
-export function CropEditor({ source, initialBox, onSave }: {
+export function CropEditor({ source, initialBox, rawBox, onSave }: {
   source: string;
   initialBox: BoundingBox;
+  rawBox?: BoundingBox | null;
   onSave: (box: BoundingBox) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -55,6 +56,8 @@ export function CropEditor({ source, initialBox, onSave }: {
         ))}
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
         <div className="flex flex-wrap gap-2">
+          {rawBox && <button type="button" onClick={() => setBox([...rawBox])} disabled={saving}
+            className="rounded-lg border px-3 py-2 text-sm">Khung AI gốc</button>}
           <button type="button" onClick={() => setBox(initialBox)} disabled={saving} className="rounded-lg border px-3 py-2 text-sm">Đặt lại</button>
           <button type="button" onClick={() => setBox([0, 0, 1, 1])} disabled={saving} className="rounded-lg border px-3 py-2 text-sm">Lấy toàn ảnh</button>
           <button type="button" disabled={!valid || saving} className="rounded-lg bg-[#9C5234] px-3 py-2 text-sm text-white disabled:opacity-50"

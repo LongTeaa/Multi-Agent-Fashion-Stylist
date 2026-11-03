@@ -16,6 +16,7 @@ from app.models.entities import (
     OutfitSlotRole,
     WardrobeCategory,
     WardrobeItem,
+    UserPreference,
 )
 from app.schemas.retrieval import WardrobeRetrievalQuery
 from app.services.retrieval_service import retrieve_wardrobe_items
@@ -311,7 +312,9 @@ def format_localized_item_name(item: WardrobeItem) -> str:
     if sub in GENERIC_SUB_CATEGORY_TOKENS or sub == item.category.value:
         sub_vi = prefix
     else:
-        sub_vi = SUB_CATEGORY_VI_MAP.get(sub)
+        from app.services.garment_taxonomy import classify
+        _, garment_type = classify(item.category, item.sub_category)
+        sub_vi = garment_type.label if garment_type else SUB_CATEGORY_VI_MAP.get(sub)
         if not sub_vi:
             if sub.startswith(prefix.lower()):
                 sub_vi = sub.capitalize()
@@ -653,6 +656,20 @@ def retrieve_candidate_pool(
             f"Đã nới lỏng điều kiện tìm kiếm: {', '.join(unique_relaxations)}."
         )
 
+    # Apply saved exclusions before the bounded combinatorial search. Retain the
+    # original pool only when no complete clean branch can satisfy required items.
+    preferences = session.get(UserPreference, user_id)
+    if preferences and (preferences.avoid_colors or preferences.avoid_styles):
+        from app.agents.personalization_agent import check_outfit_avoid_violations
+        from app.agents.fashion_agent import constraint_matches_item
+        clean = {slot: [item for item in items if not check_outfit_avoid_violations(
+            [item], preferences.avoid_colors, preferences.avoid_styles)]
+            for slot, items in candidate_pool.items()}
+        complete = clean["footwear"] and (clean["dresses"] or (clean["tops"] and clean["bottoms"]))
+        required_available = all(any(constraint_matches_item(constraint, item)
+            for items in clean.values() for item in items) for constraint in context.structured_must_have)
+        if complete and required_available:
+            candidate_pool = clean
     return candidate_pool, errors, warnings
 
 

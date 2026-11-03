@@ -151,7 +151,7 @@ def persist_outfit_recommendations(
                 user_id=user_id,
                 request_id=request_id,
                 user_query=user_query,
-                context_snapshot=context_snapshot,
+                context_snapshot={**context_snapshot, "_applied_preferences": list(outfit.applied_preferences)},
                 explanation_vi=outfit.explanation_vi,
                 fashion_score=outfit.fashion_score or 0.0,
                 personalization_score=outfit.personalization_score or 0.0,

@@ -312,6 +312,8 @@ def persist_recommendations_atomically(
     user_query: str,
     context: StylistContext,
     ranked_outfits: list[RankedOutfit],
+    request_location: str | None = None,
+    warnings: list[str] | None = None,
 ) -> tuple[bool, list[str]]:
     """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction with invariant validation."""
     return persist_outfit_recommendations(
@@ -319,7 +321,7 @@ def persist_recommendations_atomically(
         user_id=user_id,
         request_id=request_id,
         user_query=user_query,
-        context_snapshot=context.model_dump(),
+        context_snapshot={**context.model_dump(), "_request_location": request_location, "_warnings": list(warnings or [])},
         ranked_outfits=ranked_outfits,
     )
 
@@ -431,6 +433,7 @@ def coordinator_node(
             user_query=user_query,
             context=context,
             ranked_outfits=canonical_outfits,
+            request_location=state.get("location"), warnings=existing_warnings,
         )
 
         if not success or not persisted_ids:

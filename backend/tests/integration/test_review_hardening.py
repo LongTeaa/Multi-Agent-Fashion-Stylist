@@ -1,3 +1,4 @@
+from app.core.seed import golden_item_id
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from io import BytesIO
@@ -29,7 +30,7 @@ from app.schemas.common import AppException
 
 def make_ranked(session: Session) -> RankedOutfit:
     items = []
-    for item_id, role in [('item-top-01', 'top'), ('item-bottom-01', 'bottom'), ('item-shoes-01', 'footwear')]:
+    for item_id, role in [(golden_item_id("item-top-01"), 'top'), (golden_item_id("item-bottom-01"), 'bottom'), (golden_item_id("item-shoes-01"), 'footwear')]:
         item = session.get(WardrobeItem, item_id)
         items.append(OutfitItemSlot(item_id=item.id, slot_role=OutfitSlotRole(role),
                                    category=item.category, name=item.sub_category,
@@ -63,7 +64,7 @@ def test_replay_rejects_deleted_item(migrated_database: tuple[object, Engine], c
     with Session(engine) as session:
         persist_outfit_recommendations(session, GOLDEN_USER_ID, 'retry-key', 'query', {},
                                        [make_ranked(session)])
-        item = session.get(WardrobeItem, 'item-top-01')
+        item = session.get(WardrobeItem, golden_item_id("item-top-01"))
         if change == 'inactive':
             item.is_active = False
         elif change == 'deleted':

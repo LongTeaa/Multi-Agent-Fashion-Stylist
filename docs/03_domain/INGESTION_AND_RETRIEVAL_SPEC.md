@@ -1,5 +1,7 @@
 # Clothing Ingestion and Retrieval Specification
 
+New detections retain the raw detector rectangle separately from the effective crop. Automatic margin and manual crop updates MUST NOT overwrite it. Existing detections with no recoverable raw rectangle remain null. Review offers an explicit restore-original-frame action followed by save; it does not change confirmed wardrobe media automatically. Review resumes the valid selected source after reload. Inventory and outfit previews fit the stored image without visually clipping it. These controls do not claim to solve missed-object or face detection.
+
 ## 1. Objective
 
 The ingestion system converts clothing images into structured, reviewable `WardrobeItem` records that can be searched and used in outfit generation. It MUST NOT assume that every image contains exactly one item.

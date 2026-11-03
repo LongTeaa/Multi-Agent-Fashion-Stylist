@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.core.seed import golden_item_id
+
 from typing import Any
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -270,7 +272,7 @@ def test_golden_recommendation_scenario(
         assert scores == sorted(scores, reverse=True)
 
         golden_fixture_ids = {item.id for item in GOLDEN_WARDROBE}
-        golden_target_ids = {"item-top-01", "item-bottom-01", "item-shoes-01"}
+        golden_target_ids = {golden_item_id("item-top-01"), golden_item_id("item-bottom-01"), golden_item_id("item-shoes-01")}
 
         golden_combo_found = False
         all_returned_outfit_ids: list[str] = []

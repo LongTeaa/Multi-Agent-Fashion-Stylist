@@ -1,0 +1,30 @@
+{
+  "from_revision": "0009",
+  "to_revision": "0012",
+  "backup": "data/fashion_stylist.before_0012_20261103_093240.db",
+  "preserved_counts": {
+    "users": 3,
+    "feedback_prompt_state": 1,
+    "ingestion_batches": 18,
+    "user_preferences": 1,
+    "media_assets": 94,
+    "ratings": 0,
+    "ingestion_detections": 33,
+    "tryon_renders": 1,
+    "wardrobe_items": 22,
+    "item_media": 28,
+    "outfit_items": 6,
+    "wardrobe_retrieval_documents": 19,
+    "wear_logs": 0,
+    "feedback_suppressed_sessions": 0,
+    "feedback_delivered_outfits": 2,
+    "outfit_recommendations": 2,
+    "orphan_media_cleanups": 0,
+    "_alembic_tmp_wardrobe_items": 0
+  },
+  "media_unchanged": true,
+  "media_links_preserved": true,
+  "foreign_keys": "clean",
+  "integrity": "ok",
+  "reseeded": false
+}

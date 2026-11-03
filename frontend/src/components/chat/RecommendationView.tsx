@@ -25,9 +25,7 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({
               ? `AI Đã Phối ${data.recommendations.length} Set Đồ Dành Riêng Cho Bạn`
               : 'Không có gợi ý nào'}
           </h2>
-          <span className="text-xs text-[#736E65] font-mono">
-            Mã yêu cầu: {data.request_id?.slice(0, 8) ?? ''}
-          </span>
+
         </div>
 
         <div className="space-y-5">

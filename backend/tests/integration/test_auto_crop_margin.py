@@ -58,6 +58,7 @@ def test_auto_margin_matches_review_pixels_and_manual_edit_is_exact(
         url = f"/api/v1/ingestions/{batch_id}"
         detection = client.get(url, headers=headers).json()["data"]["detections"][0]
         assert detection["bounding_box"] == [.072, .468, .926, .75]
+        assert detection["raw_bounding_box"] == [.092, .488, .906, .73]
         with Image.open(BytesIO(client.get(detection["crop_url"], headers=headers).content)) as crop:
             assert crop.size == (341, 141)
             assert crop.convert("RGB").getpixel((50, 135)) == (0, 0, 0)  # Sole survives.
@@ -66,5 +67,6 @@ def test_auto_margin_matches_review_pixels_and_manual_edit_is_exact(
         assert edited.status_code == 200
         selected = edited.json()["data"]["detections"][0]
         assert selected["bounding_box"] == [.092, .488, .906, .73]
+        assert selected["raw_bounding_box"] == detection["raw_bounding_box"]
         with Image.open(BytesIO(client.get(selected["crop_url"], headers=headers).content)) as crop:
             assert crop.size == (325, 121)  # Explicit user crop gets no hidden margin.

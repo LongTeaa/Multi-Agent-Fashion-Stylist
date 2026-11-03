@@ -8,6 +8,7 @@ export interface StylistChatRequest {
 }
 
 export interface StylistRecommendationItem {
+  group_label_vi?: string | null;
   slot: OutfitSlotRole;
   item_id: string;
   name: string;

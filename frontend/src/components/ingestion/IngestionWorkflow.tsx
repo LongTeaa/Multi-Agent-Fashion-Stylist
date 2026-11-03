@@ -57,6 +57,10 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const isPollingCancelledRef = useRef<boolean>(false);
   const idempotencyTokenRef = useRef<string>(crypto.randomUUID());
 
+  useEffect(() => {
+    if (selectedSourceId) sessionStorage.setItem('active_ingestion_source_id', selectedSourceId);
+  }, [selectedSourceId]);
+
   // Clean up polling timer
   useEffect(() => {
     return () => {
@@ -107,7 +111,11 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           setAcceptedDetections(acceptedMap);
           setEditedAttributes(attrMap);
           if (review.detections.length > 0) {
-            setSelectedDetectionId(review.detections[0].detection_id);
+            const savedSource = sessionStorage.getItem('active_ingestion_source_id');
+            const selected = review.detections.find((detection) => detection.source_media_asset_id === savedSource)
+              || review.detections[0];
+            setSelectedDetectionId(selected.detection_id);
+            setSelectedSourceId(selected.source_media_asset_id || null);
           }
           setStep('review');
           return;
@@ -115,6 +123,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           setBatchReview(review);
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('active_ingestion_batch_id');
+            sessionStorage.removeItem('active_ingestion_source_id');
           }
           setErrorMessage(
             review.status === 'expired'
@@ -126,6 +135,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
         } else if (review.status === 'confirmed') {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('active_ingestion_batch_id');
+            sessionStorage.removeItem('active_ingestion_source_id');
           }
           setStep('upload');
           return;
@@ -162,8 +172,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setIsUploading(true);
     setErrorMessage(null);
     try {
-      // Detections currently do not expose their source image. Only overlay
-      // boxes when the batch has exactly one unambiguous original.
+      // Use a local preview only for a single photo until owned source URLs arrive.
       setUploadedPreviewUrl(
         files.length === 1 ? URL.createObjectURL(files[0]) : undefined
       );
@@ -171,6 +180,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       const res = await uploadIngestionImages(files, declaredKind);
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
+        sessionStorage.removeItem('active_ingestion_source_id');
       }
       setSelectedSourceId(null);
       setBatchId(res.batch_id);
@@ -240,6 +250,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       setConfirmedItemIds(res.wardrobe_item_ids);
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('active_ingestion_batch_id');
+        sessionStorage.removeItem('active_ingestion_source_id');
       }
       setStep('confirmed');
       if (onFinish) {
@@ -269,6 +280,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       await deleteIngestionBatch(batchId);
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('active_ingestion_batch_id');
+        sessionStorage.removeItem('active_ingestion_source_id');
       }
       setIsCancelling(false);
       handleReset();
@@ -295,6 +307,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     idempotencyTokenRef.current = crypto.randomUUID();
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('active_ingestion_batch_id');
+      sessionStorage.removeItem('active_ingestion_source_id');
     }
     if (uploadedPreviewUrl) {
       URL.revokeObjectURL(uploadedPreviewUrl);
@@ -522,6 +535,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                 {selectedDetection && source && batchId && (
                   <CropEditor key={selectedDetection.crop_url} source={source.media_url}
                     initialBox={selectedDetection.bounding_box}
+                    rawBox={selectedDetection.raw_bounding_box}
                     onSave={async (box) => {
                       setIsCropSaving(true);
                       try {

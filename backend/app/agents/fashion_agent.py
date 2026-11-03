@@ -88,70 +88,48 @@ def outfit_satisfies_explicit_constraints(
     return True
 
 
-def _generate_top_bottom_combos(
-    tops: list[OutfitItemSlot],
-    bottoms: list[OutfitItemSlot],
-    footwear: list[OutfitItemSlot],
-    outerwear: list[OutfitItemSlot],
-    accessories: list[OutfitItemSlot],
-    limit: int,
-) -> list[list[OutfitItemSlot]]:
-    """Helper to generate top + bottom + footwear combinations up to limit."""
+def _balanced_product(pools: list[list[OutfitItemSlot]]) -> list[list[OutfitItemSlot]]:
+    """Bijective diagonal enumeration; early budgets visit every category pool."""
+    from math import prod
+    if any(not pool for pool in pools):
+        return []
+    cores: list[list[OutfitItemSlot]] = []
+    for index in range(prod(len(pool) for pool in pools)):
+        remaining, offset, items = index, 0, []
+        for pool in pools:
+            position = (remaining % len(pool) + offset) % len(pool)
+            remaining //= len(pool)
+            offset += position
+            items.append(pool[position])
+        cores.append(items)
+    return cores
+
+
+def _with_balanced_layers(cores: list[list[OutfitItemSlot]], outerwear: list[OutfitItemSlot],
+                          accessories: list[OutfitItemSlot], limit: int) -> list[list[OutfitItemSlot]]:
+    variants = [[]] + [[item] for item in outerwear] + [[item] for item in accessories]
+    variants += [[outer, accessory] for outer in outerwear for accessory in accessories]
     combos: list[list[OutfitItemSlot]] = []
-    for top in tops:
-        for bottom in bottoms:
-            for shoe in footwear:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([top, bottom, shoe])
-
-                for out in outerwear:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([top, bottom, shoe, out])
-
-                    for acc in accessories:
-                        if len(combos) >= limit:
-                            return combos
-                        combos.append([top, bottom, shoe, out, acc])
-
-                for acc in accessories:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([top, bottom, shoe, acc])
+    for round_index in range(len(variants)):
+        for index, core in enumerate(cores):
+            if len(combos) >= limit:
+                return combos
+            combos.append(core + variants[(index + round_index) % len(variants)])
     return combos
+
+
+def _generate_top_bottom_combos(
+    tops: list[OutfitItemSlot], bottoms: list[OutfitItemSlot], footwear: list[OutfitItemSlot],
+    outerwear: list[OutfitItemSlot], accessories: list[OutfitItemSlot], limit: int,
+) -> list[list[OutfitItemSlot]]:
+    return _with_balanced_layers(_balanced_product([tops, bottoms, footwear]), outerwear, accessories, limit)
 
 
 def _generate_dress_combos(
-    dresses: list[OutfitItemSlot],
-    footwear: list[OutfitItemSlot],
-    outerwear: list[OutfitItemSlot],
-    accessories: list[OutfitItemSlot],
-    limit: int,
+    dresses: list[OutfitItemSlot], footwear: list[OutfitItemSlot],
+    outerwear: list[OutfitItemSlot], accessories: list[OutfitItemSlot], limit: int,
 ) -> list[list[OutfitItemSlot]]:
-    """Helper to generate dress + footwear combinations up to limit."""
-    combos: list[list[OutfitItemSlot]] = []
-    for dress in dresses:
-        for shoe in footwear:
-            if len(combos) >= limit:
-                return combos
-            combos.append([dress, shoe])
-
-            for out in outerwear:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([dress, shoe, out])
-
-                for acc in accessories:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([dress, shoe, out, acc])
-
-            for acc in accessories:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([dress, shoe, acc])
-    return combos
+    return _with_balanced_layers(_balanced_product([dresses, footwear]), outerwear, accessories, limit)
 
 
 def generate_outfit_combinations(

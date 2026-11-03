@@ -272,6 +272,7 @@ class IngestionDetection(SQLModel, table=True):
     crop_media_asset_id: str | None = Field(default=None, max_length=36)
     source_media_asset_id: str | None = Field(default=None, foreign_key="media_assets.id", max_length=36)
     bounding_box: BoundingBox = Field(sa_column=Column(JSON, nullable=False))
+    raw_bounding_box: BoundingBox | None = Field(default=None, sa_column=Column(JSON, nullable=True))
     proposed_attributes: dict[str, object] = Field(sa_column=Column(JSON, nullable=False))
     field_confidence: dict[str, ConfidenceValue] = Field(
         sa_column=Column(JSON, nullable=False),
@@ -474,6 +475,16 @@ class OutfitRecommendation(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+
+
+class RecommendationRequest(SQLModel, table=True):
+    __tablename__ = "recommendation_requests"
+
+    user_id: str = Field(foreign_key="users.id", primary_key=True, max_length=36)
+    request_id: str = Field(primary_key=True, max_length=64)
+    fingerprint: str = Field(max_length=64)
+    response_data: dict[str, object] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    created_at: datetime = Field(default_factory=utc_now, sa_column=Column(DateTime(timezone=True), nullable=False))
 
 
 class OutfitItem(SQLModel, table=True):
