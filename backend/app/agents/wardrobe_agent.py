@@ -539,6 +539,12 @@ def retrieve_candidate_pool(
 
         slot_name = CATEGORY_TO_SLOT[cat]
         matches = cat_results.get(cat, [])
+        if cat in {WardrobeCategory.OUTERWEAR, WardrobeCategory.ACCESSORY} and not any(
+            constraint.category == cat for constraint in context.structured_must_have
+        ):
+            # Optional layers should not become available by relaxing the weather:
+            # omitting an unsuitable winter coat is better than adding it for a tag.
+            matches = [match for match in matches if "weather" not in match.relaxed_constraints]
 
         # Post-retrieval filtering for compound exclusions
         if compound_exclusions:

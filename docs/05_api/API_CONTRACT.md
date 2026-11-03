@@ -205,6 +205,8 @@ Review detections also return nullable `raw_bounding_box`, the detector rectangl
 
 Wardrobe PATCH rejects explicit null for required attributes with HTTP 422; omitting an attribute leaves it unchanged. `secondary_color` may explicitly be null. Chat recommendation items and outfit-detail items include nullable `group_label_vi`, computed from the shared category/subtype taxonomy for display (for example, Quần, Chân váy, Giày dép).
 
+Weather enrichment preserves the existing context response schema. `weather_source=api` means a configured forecast adapter successfully resolved the requested city/date/time bucket; it cannot be supplied by the LLM. Explicit query weather/temperature takes precedence. Missing timing/location skips lookup; unknown/ambiguous places, unavailable forecast dates, malformed responses, and provider/network failures preserve user/default context and add a Vietnamese warning. ISO dates, `dd/mm[/yyyy]`, `ngày kia`, numeric hours (mapped to a time-of-day bucket), and Celsius temperatures are recognized. A clothing preference such as `ưu tiên đồ thoáng mát` is not itself weather.
+
 ## 5. Profile and Personalization API
 
 | Method | Endpoint | Purpose |

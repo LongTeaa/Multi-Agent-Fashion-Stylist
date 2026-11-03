@@ -80,14 +80,11 @@ def is_ambiguous_query(text: str) -> bool:
     cleaned = re.sub(r"[?!.,]", "", normalized).strip()
 
     # Check known occasion keywords
-    has_occasion = any(k in cleaned for k in [
-        "cafe", "cà phê", "công sở", "văn phòng", "cưới", "tiệc", "hẹn",
-        "dạo", "phỏng vấn", "date", "party", "interview", "sinh nhật",
+    has_occasion = extract_occasion(cleaned) != "casual" or any(_has_positive_keyword(cleaned, k) for k in [
+        "dạo",
         "đi chơi", "cuối tuần", "chill", "ở nhà",
         "xe máy", "ngoài trời", "thể thao", "vận động", "chạy bộ", "tập gym", "leo núi",
     ])
-    if "đi làm" in cleaned and not any(neg in cleaned for neg in ["nghỉ làm", "không đi làm", "chưa đi làm"]):
-        has_occasion = True
 
     # Check specific garment or style hints
     has_garment_or_style = any(g in cleaned for g in [
@@ -105,14 +102,18 @@ def is_ambiguous_query(text: str) -> bool:
 def extract_occasion(text: str) -> str:
     """Extract normalized occasion from Vietnamese query."""
     t = text.lower()
-    if any(k in t for k in ["phỏng vấn", "xin việc", "interview"]):
+    def has(words: list[str]) -> bool:
+        return any(_has_positive_keyword(t, word) for word in words)
+    if t in {"daily_work", "interview", "wedding", "party", "date", "cafe", "casual"}:
+        return t
+    if has(["phỏng vấn", "xin việc", "interview"]):
         return "interview"
-    if any(k in t for k in ["đám cưới", "tiệc cưới", "lễ cưới", "ăn cưới", "dự cưới", "wedding"]):
+    if has(["đám cưới", "tiệc cưới", "lễ cưới", "ăn cưới", "dự cưới", "wedding"]):
         return "wedding"
     if any(k in t for k in ["đi làm", "công sở", "văn phòng", "công ty", "đi dạy", "họp", "làm việc"]):
         if not any(neg in t for neg in ["nghỉ làm", "không đi làm", "không phải đi làm", "chưa đi làm"]):
             return "daily_work"
-    if any(k in t for k in ["tiệc", "party", "dạ hội", "sinh nhật", "quán bar", "pub", "club"]):
+    if has(["tiệc", "party", "dạ hội", "sinh nhật", "quán bar", "pub", "club"]):
         return "party"
     if any(k in t for k in ["hẹn hò", "date", "người yêu", "buổi hẹn"]):
         return "date"
@@ -123,9 +124,21 @@ def extract_occasion(text: str) -> str:
     return "casual"
 
 
+def _has_positive_keyword(text: str, keyword: str) -> bool:
+    for match in re.finditer(re.escape(keyword), text):
+        prefix = text[max(0, match.start() - 35):match.start()]
+        if not re.search(r"(?:không|chẳng|chưa|đừng|ko)\s+(?:(?:đi|dự|đến|tới|phải|cần|buổi|đám)\s+){0,4}$", prefix):
+            return True
+    return False
+
+
 def extract_time_of_day(text: str, occasion: str) -> str:
     """Extract normalized time of day."""
     t = text.lower()
+    hour = re.search(r"\b([01]?\d|2[0-3])\s*(?:h\b|giờ\b)", t)
+    if hour:
+        value = int(hour[1])
+        return "night" if value < 6 or value >= 22 else "morning" if value < 12 else "afternoon" if value < 18 else "evening"
     if any(k in t for k in ["khuya", "đêm"]):
         return "night"
     if any(k in t for k in ["tối nay", "tối mai", "buổi tối", "tối", "chiều tối"]):
@@ -144,10 +157,30 @@ def extract_time_of_day(text: str, occasion: str) -> str:
 def extract_event_date(text: str, current_date: date) -> str | None:
     """Extract ISO date inferred from temporal words; None if no date specified."""
     t = text.lower()
+    explicit = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", t)
+    calendar = re.search(r"\b(\d{1,2})/(\d{1,2})(?:/(\d{4}))?\b", t)
+    try:
+        if explicit:
+            return date.fromisoformat(explicit[1]).isoformat()
+        if calendar:
+            return date(int(calendar[3] or current_date.year), int(calendar[2]), int(calendar[1])).isoformat()
+    except ValueError:
+        return None
+    if "ngày kia" in t:
+        return (current_date + timedelta(days=2)).isoformat()
     if any(k in t for k in ["ngày mai", "sáng mai", "tối mai", "chiều mai", "trưa mai"]):
         return (current_date + timedelta(days=1)).isoformat()
     if any(k in t for k in ["hôm nay", "tối nay", "sáng nay", "chiều nay", "trưa nay"]):
         return current_date.isoformat()
+    return None
+
+
+def extract_temperature(text: str) -> float | None:
+    match = re.search(r"(?<!\d)(-?\d{1,2}(?:[.,]\d+)?)\s*(?:°\s*c?|độ(?:\s*c)?|c\b)", text.lower())
+    if match:
+        value = float(match[1].replace(",", "."))
+        if -90 <= value <= 60:
+            return value
     return None
 
 
@@ -181,12 +214,19 @@ def extract_environment(text: str, occasion: str) -> str | None:
 def extract_weather(text: str) -> tuple[str, str]:
     """Extract weather condition with rain priority, negation detection, and API contract mapping."""
     t = text.lower()
+    t = re.sub(r"(?:ưu tiên|muốn|cần|thích)\s+(?:(?:đồ|trang phục|mặc|sự|được|thật|thoải mái|và|thoáng)\s+){0,5}(?:mát mẻ|mát)\b", "", t)
+    t = re.sub(r"(?:đồ|áo|quần|trang phục)\s+(?:thoáng\s+)?mát(?:\s+mẻ)?\b", "", t)
 
     # 1. Rainy condition has top priority (critical for footwear/outerwear safety)
     rainy_kws = ["trời mưa", "mưa rào", "mưa phùn", "mưa"]
     for kw in rainy_kws:
         if kw in t and not _is_negated(t, kw) and not _is_negated(t, "mưa"):
             return "rainy", "user"
+
+    temperature = extract_temperature(t)
+    if temperature is not None:
+        from app.services.weather_providers import temperature_condition
+        return temperature_condition(temperature), "user"
 
     # 2. Strong Hot condition (Explicit hot weather phrases: 'nắng nóng', 'oi bức', 'trời nóng', 'nóng nực', etc.)
     # Must precede 'cool_kws' because user queries like "trời nắng nóng... ưu tiên mát mẻ" express hot weather + cool clothing preference!
@@ -218,7 +258,7 @@ def extract_weather(text: str) -> tuple[str, str]:
             return "hot", "user"
 
     # 7. Warm condition
-    warm_kws = ["ấm áp", "ấm"]
+    warm_kws = ["ấm áp", "trời ấm"]
     for kw in warm_kws:
         if kw in t and not _is_negated(t, kw):
             return "warm", "user"
@@ -322,7 +362,7 @@ def extract_weight_profile(
     # 1. Formal intent
     if occasion in ("wedding", "interview"):
         return "formal"
-    if any(k in t for k in ["trang trọng", "hội nghị", "tiệc cưới", "phỏng vấn", "lễ cưới", "gặp đối tác", "sự kiện", "dạ tiệc"]):
+    if any(_has_positive_keyword(t, k) for k in ["trang trọng", "hội nghị", "tiệc cưới", "phỏng vấn", "lễ cưới", "gặp đối tác", "sự kiện", "dạ tiệc"]):
         return "formal"
 
     # 2. Active / Functional intent
@@ -633,7 +673,7 @@ def extract_context(
         location_text=location_text,
         environment=environment,
         weather_condition=weather_condition,
-        temperature_celsius=None,
+        temperature_celsius=extract_temperature(norm_query),
         target_formality_range=target_formality_range,
         style_hints=style_hints,
         vibe_keywords=vibe_keywords,
@@ -685,6 +725,8 @@ def extract_context_with_providers(
             valid_must_have: list[str] = []
             parsed_struct_have: list[GarmentConstraint] = []
             for item_str in context.must_have:
+                if normalize_text(item_str).casefold() not in normalize_text(query).casefold():
+                    continue
                 parsed_c = _parse_single_constraint(item_str)
                 if parsed_c is not None:
                     valid_must_have.append(parsed_c.raw_text or item_str)
@@ -696,6 +738,8 @@ def extract_context_with_providers(
             valid_must_avoid: list[str] = []
             parsed_struct_avoid: list[GarmentConstraint] = []
             for item_str in context.must_avoid:
+                if normalize_text(item_str).casefold() not in normalize_text(query).casefold():
+                    continue
                 parsed_c = _parse_single_constraint(item_str)
                 if parsed_c is not None:
                     valid_must_avoid.append(parsed_c.raw_text or item_str)
@@ -726,10 +770,25 @@ def extract_context_with_providers(
             warnings.append(CONTEXT_FALLBACK_WARNING)
 
     updates: dict[str, Any] = {}
-    if fallback.location_text is not None:
-        updates["location_text"] = fallback.location_text
-    if fallback.event_date is not None:
-        updates["event_date"] = fallback.event_date
+    # Providers may infer missing intent, but cannot replace recognized user facts
+    # or claim that forecast data came from an API they did not call.
+    text = normalize_text(query).lower()
+    if fallback.occasion != "casual" or any(word in text for word in ["đi chơi", "đi dạo", "ở nhà", "dạo phố"]):
+        updates["occasion"] = fallback.occasion
+        updates["target_formality_range"] = fallback.target_formality_range
+    if re.search(r"\b(?:sáng|trưa|chiều|tối|đêm|khuya)\b|\b\d{1,2}\s*(?:h\b|giờ\b)", text):
+        updates["time_of_day"] = fallback.time_of_day
+    if fallback.environment is not None:
+        updates["environment"] = fallback.environment
+    if fallback.style_hints:
+        updates["style_hints"] = fallback.style_hints
+    if fallback.weather_source != "user":
+        updates.update(weather_source="default", weather_condition=fallback.weather_condition,
+                       temperature_celsius=None)
+    # A provider cannot supply a fabricated event date/location to trigger weather.
+    updates["event_date"] = fallback.event_date
+    grounded_location = context.location_text if context.location_text and normalize_text(context.location_text).casefold() in text else None
+    updates["location_text"] = fallback.location_text or grounded_location
     if fallback.must_have:
         updates["must_have"] = fallback.must_have
         updates["structured_must_have"] = fallback.structured_must_have
@@ -740,11 +799,9 @@ def extract_context_with_providers(
         updates["weather_condition"] = fallback.weather_condition
         updates["weather_source"] = "user"
         updates["temperature_celsius"] = fallback.temperature_celsius
-    # Preserve dynamic weight profile and functional tags from deterministic intent analysis
-    if fallback.weight_profile != "balanced" or not getattr(context, "weight_profile", None):
-        updates["weight_profile"] = fallback.weight_profile
-    if fallback.target_functional_tags:
-        updates["target_functional_tags"] = fallback.target_functional_tags
+    updates["weight_profile"] = extract_weight_profile(query, updates.get("occasion", context.occasion),
+        updates.get("weather_condition", context.weather_condition))
+    updates["target_functional_tags"] = fallback.target_functional_tags
     if updates:
         context = context.model_copy(update=updates)
 
@@ -759,6 +816,7 @@ def extract_context_with_providers(
             weather = weather_provider.get_weather(
                 location=context.location_text,
                 event_date=date.fromisoformat(context.event_date),
+                time_of_day=context.time_of_day,
             )
             enriched_functional_tags = list(context.target_functional_tags)
             if weather.condition == "rainy":

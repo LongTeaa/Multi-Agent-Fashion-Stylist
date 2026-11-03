@@ -33,6 +33,10 @@ Shared fixtures MUST include an isolated temporary SQLite database, a temporary 
 
 ### 3.1 LLM and Context Extraction
 
+Non-live backend regression pins `CONTEXT_PROVIDER=fallback` and `WEATHER_PROVIDER=disabled` before reading local settings. Tests can explicitly inject HTTP mocks/fakes or override configuration. This prevents local live-provider setup from silently invoking remote services. Weather integration regressions are `test_weather_integration.py` and `test_weather_recommendations.py`; they cover city resolution, local event-time forecast selection, provider failures, explicit-fact priority, actual weather-driven graph selection/persistence, and faithful replay.
+
+For explicitly opted-in live acceptance, run `backend/scripts/evaluate_weather_context.py --live-weather --live-context --report <output.json>` using the backend venv. The runner migrates/seeds an isolated temporary database, records provider failure types/status codes without secrets, and never modifies the configured wardrobe. Live results are diagnostic and do not replace the fixed context fixture or mock-based regressions.
+
 - Default tests MUST inject `FakeLLMProvider`; they MUST NOT patch SDK internals.
 - The fake MUST support: valid structured response, malformed response, timeout, provider error, and low-confidence/clarification response.
 - Fixed mappings MUST include Vietnamese queries such as `Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?` and `Mặc gì?`.

@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     vision_timeout_seconds: PositiveInt = 30
     context_provider: Literal["fallback", "fake", "gemini"] = "fallback"
     context_timeout_seconds: PositiveInt = 15
-    weather_provider: Literal["disabled", "fake", "openweather"] = "disabled"
+    weather_provider: Literal["disabled", "fake", "openweather", "openmeteo"] = "disabled"
     weather_timeout_seconds: PositiveInt = 5
     image_provider: Literal["disabled", "fake", "gemini"] = "disabled"
     image_timeout_seconds: Literal[8] = 8

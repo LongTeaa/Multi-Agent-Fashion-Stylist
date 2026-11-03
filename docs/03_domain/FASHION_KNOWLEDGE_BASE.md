@@ -82,6 +82,8 @@ graph TD
 * Giới hạn không gian tổ hợp: Tối đa 15 món đồ mỗi nhóm danh mục để kiểm soát ngân sách hiệu năng p95 < 5 giây.
 
 ### 3.2 Tầng 2: Điểm Thẩm mỹ Nội tại (Outfit Aesthetic Score)
+
+Canonical stored styles `athletic`, `street`, and `business` map to the matrix's `sporty`, `streetwear`, and `formal` respectively. This normalization MUST apply before pair/clash checks.
 Điểm thẩm mỹ phản ánh vẻ đẹp tự thân và tính hòa hợp thị giác của bộ trang phục, **hoàn toàn độc lập với thời tiết ngoài trời**:
 
 $$\text{AestheticScore} = 0.40 \cdot \text{ColorHarmony} + 0.35 \cdot \text{ProportionBalance} + 0.25 \cdot \text{StyleCompatibility}$$
@@ -109,6 +111,10 @@ $$\text{AestheticScore} = 0.40 \cdot \text{ColorHarmony} + 0.35 \cdot \text{Prop
      * `formal × streetwear = 0.20`
 
 ### 3.3 Tầng 3: Sự Phù hợp Ngữ cảnh & Cơ chế Trọng số Động (Context Fit & Dynamic Weights)
+
+Fashion shortlisting MUST use these context weights (neutral personal score `0.5`) before the five-candidate cutoff. It MUST NOT shortlist solely by aesthetic score. Personalization then applies actual preferences to those candidates. Optional layers failing the requested weather MUST not be added through automatic retrieval relaxation unless explicitly required.
+
+Functional fit uses recorded `functional_flags`. A name such as sneakers, jacket, or waterproof coat alone is not evidence of a capability. Recorded `water_resistant` also satisfies `rain`; `rain` alone MUST NOT imply water resistance. These are bounded product heuristics, not guarantees of fabric performance or universal aesthetic judgments.
 Điểm tổng kết cuối cùng là tích vô hướng giữa Vector Hồ sơ Trọng số và Vector Điểm Phù hợp Ngữ cảnh:
 
 $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{comfort}} \cdot \text{WeatherComfortFit} + w_{\text{func}} \cdot \text{FunctionalFit} + w_{\text{aest}} \cdot \text{AestheticScore} + w_{\text{pers}} \cdot \text{PersonalPref}$$

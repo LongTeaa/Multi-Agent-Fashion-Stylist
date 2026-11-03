@@ -191,6 +191,9 @@ def get_weather_provider() -> WeatherProviderProtocol | None:
     settings = get_settings()
     if settings.weather_provider == "disabled":
         return None
+    if settings.weather_provider == "openmeteo":
+        from app.services.weather_providers import OpenMeteoProvider
+        return OpenMeteoProvider(timeout_seconds=float(settings.weather_timeout_seconds))
     if settings.weather_provider == "fake":
         from app.services.fakes.context_fakes import FakeWeatherProvider
 

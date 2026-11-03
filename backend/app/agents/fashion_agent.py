@@ -221,6 +221,17 @@ def evaluate_and_rank_combinations(
         all_warnings.extend(warnings)
 
         aesthetic_score = component_scores.get("aesthetic_score", score)
+        if context is not None:
+            from app.agents.context_scoring import (
+                calculate_context_composite_score, calculate_functional_fit, calculate_weather_comfort_fit,
+            )
+            shortlist_score, _ = calculate_context_composite_score(
+                formality_fit=component_scores["formality_score"],
+                weather_comfort_fit=calculate_weather_comfort_fit(combo, context.weather_condition, context.environment),
+                functional_fit=calculate_functional_fit(combo, context.target_functional_tags),
+                aesthetic_score=aesthetic_score, personal_fit=.5, weight_profile=context.weight_profile,
+            )
+            component_scores["context_shortlist_score"] = shortlist_score
         evaluated = EvaluatedOutfit(
             items=combo,
             fashion_score=aesthetic_score,
@@ -233,7 +244,7 @@ def evaluate_and_rank_combinations(
     # (-fashion_score, -weather_score, recent_wear_count, combination_id)
     # recent_wear_count counts items worn within recent_window_hours using last_worn_at
     evaluated_outfits.sort(
-        key=lambda o: outfit_tie_breaker_key(
+        key=lambda o: ((-o.component_scores["context_shortlist_score"],) if context is not None else ()) + outfit_tie_breaker_key(
             o,
             recent_wear_count=count_recently_worn_items(
                 o.items,

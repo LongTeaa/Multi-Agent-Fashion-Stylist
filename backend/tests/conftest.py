@@ -16,6 +16,17 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(autouse=True)
+def offline_context_weather(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Local live-provider configuration must never turn default regression into API calls."""
+    if request.node.get_closest_marker("live_provider") is None:
+        monkeypatch.setenv("CONTEXT_PROVIDER", "fallback")
+        monkeypatch.setenv("WEATHER_PROVIDER", "disabled")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def clean_dependency_overrides() -> Iterator[None]:
     try:
         yield

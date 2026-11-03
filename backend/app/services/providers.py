@@ -122,4 +122,5 @@ class WeatherProviderProtocol(Protocol):
         *,
         location: str,
         event_date: date,
+        time_of_day: str = "afternoon",
     ) -> WeatherContextResult: ...

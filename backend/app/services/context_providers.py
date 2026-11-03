@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 import json
 from typing import Any
 
@@ -9,6 +9,7 @@ from pydantic import SecretStr
 
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.providers import WeatherContextResult
+from app.services.weather_providers import EVENT_HOURS, temperature_condition
 
 
 class GeminiContextProvider:
@@ -42,6 +43,16 @@ class GeminiContextProvider:
             "temperature_celsius, target_formality_range, style_hints, vibe_keywords, must_have, "
             "must_avoid, weather_source, needs_clarification, clarification_question, confidence. "
             "Use weather_source='user' only for weather explicitly stated by the user; otherwise 'default'. "
+            "Allowed occasion: cafe, daily_work, interview, wedding, party, date, casual. "
+            "Allowed time_of_day: morning, afternoon, evening, night. "
+            "Allowed environment: indoor, outdoor, mixed, or null. "
+            "Allowed weather_condition: hot, warm, cool, cold, rainy. "
+            "Do not invent weather, temperature, location, date, or garment requirements. "
+            "When no weather is stated use weather_condition='cool', temperature_celsius=null. "
+            "event_date is YYYY-MM-DD, or null if no event date is stated. "
+            "must_have/must_avoid must quote only garment/color/material phrases actually in the request. "
+            "Cooling clothing preferences are not statements of current weather. "
+            "Ask a concise Vietnamese clarification if occasion/intent is materially ambiguous. "
             f"Current date: {current_date.isoformat()}. Explicit location: {location!r}. Request: {query}"
         )
         payload = {
@@ -90,6 +101,7 @@ class OpenWeatherProvider:
         *,
         location: str,
         event_date: date,
+        time_of_day: str = "afternoon",
     ) -> WeatherContextResult:
         params = {
             "q": location,
@@ -110,39 +122,34 @@ class OpenWeatherProvider:
             if response.status_code == 404:
                 raise LookupError("Unknown weather location.")
             response.raise_for_status()
-            entries = response.json().get("list", [])
+            data = response.json()
+            local_zone = timezone(timedelta(seconds=int(data["city"]["timezone"])))
+            entries = data.get("list", [])
             dated_entries = [
                 entry
                 for entry in entries
-                if datetime.fromtimestamp(entry["dt"], tz=timezone.utc).date() == event_date
+                if datetime.fromtimestamp(entry["dt"], tz=local_zone).date() == event_date
             ]
             if not dated_entries:
                 raise LookupError("No forecast is available for the requested date.")
             entry = min(
                 dated_entries,
                 key=lambda value: abs(
-                    datetime.fromtimestamp(value["dt"], tz=timezone.utc).hour - 12
+                    datetime.fromtimestamp(value["dt"], tz=local_zone).hour - EVENT_HOURS[time_of_day]
                 ),
             )
             temperature = float(entry["main"]["temp"])
+            if abs(datetime.fromtimestamp(entry["dt"], tz=local_zone).hour - EVENT_HOURS[time_of_day]) > 3:
+                raise LookupError("No forecast near the requested time.")
+            condition = temperature_condition(temperature)
             weather_main = str(entry.get("weather", [{}])[0].get("main", "")).lower()
             if weather_main in {"rain", "drizzle", "thunderstorm"}:
                 condition = "rainy"
-            elif temperature < 15:
-                condition = "cold"
-            elif temperature < 22:
-                condition = "cool"
-            elif temperature < 28:
-                condition = "warm"
-            else:
-                condition = "hot"
             return WeatherContextResult(
                 condition=condition,
                 temperature_celsius=temperature,
             )
         except httpx.TimeoutException as exc:
             raise TimeoutError("Weather provider timed out.") from exc
-        except LookupError:
-            raise
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise RuntimeError("Weather provider returned an invalid response.") from exc

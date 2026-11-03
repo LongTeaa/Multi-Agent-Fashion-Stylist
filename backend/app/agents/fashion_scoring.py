@@ -39,6 +39,8 @@ MAJOR_SLOT_ROLES: set[OutfitSlotRole] = {
     OutfitSlotRole.OUTERWEAR,
 }
 
+STYLE_ALIASES = {"athletic": "sporty", "street": "streetwear", "business": "formal"}
+
 STYLE_PAIR_SCORES: dict[tuple[str, str], float] = {
     # High compatibility (0.95 - 1.0)
     ("casual", "casual"): 1.00,
@@ -206,8 +208,8 @@ def calculate_style_score(items: list[OutfitItemSlot]) -> float:
         for j in range(i + 1, n):
             it1 = major_items[i]
             it2 = major_items[j]
-            s1 = it1.style.lower().strip()
-            s2 = it2.style.lower().strip()
+            s1 = STYLE_ALIASES.get(it1.style.lower().strip(), it1.style.lower().strip())
+            s2 = STYLE_ALIASES.get(it2.style.lower().strip(), it2.style.lower().strip())
 
             # Cross-role footwear vs dress / formal suit clash
             sub1 = it1.sub_category.lower().strip()
@@ -450,6 +452,7 @@ def calculate_proportion_score(
             pattern_penalties += 0.20
 
     target_style_lower = target_style.lower().strip() if target_style else ""
+    target_style_lower = STYLE_ALIASES.get(target_style_lower, target_style_lower)
     is_streetwear = (target_style_lower == "streetwear")
     is_sport = (
         target_style_lower in {"sporty", "activewear"}
