@@ -167,7 +167,7 @@ def replay_pipeline(cases: list[tuple[Case, bytes]], output: Path) -> dict[str, 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=ROOT / "data/private-vision-review")
-    parser.add_argument("--manifest", type=Path, default=ROOT / "data/fixtures/vision_real_review_v1.json")
+    parser.add_argument("--manifest", type=Path, default=ROOT / "data/fixtures/vision_real_review_v2.json")
     parser.add_argument("--live", action="store_true", help="Send private images to the configured Gemini detector")
     parser.add_argument("--case", dest="case_ids", action="append",
                         help="Evaluate only this case live (repeatable); offline replay still covers all sources")

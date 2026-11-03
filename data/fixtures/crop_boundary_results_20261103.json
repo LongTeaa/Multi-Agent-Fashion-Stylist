@@ -1,0 +1,393 @@
+{
+  "dataset_version": "crop-boundary-v1",
+  "policy_version": "isolated-footwear-margin-v1",
+  "execution_mode": "offline_real_pixel_and_synthetic_marker_replay_not_ai",
+  "manifest_sha256": "0f050a90b4549fe9c09d095978276515e7646937e3f3d15884999c79a2a244bb",
+  "policy_conforming_cases": 9,
+  "total_cases": 9,
+  "guarded_cases": 6,
+  "guarded_cases_without_added_protected_pixels": 6,
+  "positive_controls": 2,
+  "positive_controls_conforming": 2,
+  "negative_controls_with_protected_leak": 1,
+  "cases": [
+    {
+      "id": "polo-top-near-face",
+      "source_kind": "real_photo",
+      "evidence_kind": "guard",
+      "source_sha256": "8e57b9e6bd54d5dfc4d86fb1d832a0d73f98db4756efa9b8a0426445dfcb8d10",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.298,
+        0.26,
+        0.697,
+        0.73
+      ],
+      "effective_box": [
+        0.298,
+        0.26,
+        0.697,
+        0.73
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-01-raw.png",
+          "sha256": "de0570ffec2f75492003743309f27581cce14cad5aa936e1b416ba1aad504d0f",
+          "size": [
+            359,
+            423
+          ]
+        },
+        {
+          "file": "case-01-effective.png",
+          "sha256": "de0570ffec2f75492003743309f27581cce14cad5aa936e1b416ba1aad504d0f",
+          "size": [
+            359,
+            423
+          ]
+        }
+      ]
+    },
+    {
+      "id": "partial-shoes-next-to-trousers",
+      "source_kind": "real_photo",
+      "evidence_kind": "guard",
+      "source_sha256": "0b965119baafc66c6b3990bd90f5b70fe950e882ac70571a02488c8e6755c098",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.31982942430703626,
+        0.9220183486238532,
+        0.9722814498933902,
+        1.0
+      ],
+      "effective_box": [
+        0.31982942430703626,
+        0.9220183486238532,
+        0.9722814498933902,
+        1.0
+      ],
+      "baseline_protected_pixels": 5082,
+      "effective_protected_pixels": 5082,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-02-raw.png",
+          "sha256": "b32e6e378ea10422578236f96c014c69198828023f3ba94655bfefc10edca583",
+          "size": [
+            306,
+            51
+          ]
+        },
+        {
+          "file": "case-02-effective.png",
+          "sha256": "b32e6e378ea10422578236f96c014c69198828023f3ba94655bfefc10edca583",
+          "size": [
+            306,
+            51
+          ]
+        }
+      ]
+    },
+    {
+      "id": "derby-isolated-margin",
+      "source_kind": "real_photo",
+      "evidence_kind": "positive_control",
+      "source_sha256": "e8fbc371ab3d3abca098f59937af4dbee176ffb336f661deba324c1b700cb142",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.092,
+        0.488,
+        0.906,
+        0.73
+      ],
+      "effective_box": [
+        0.072,
+        0.468,
+        0.926,
+        0.75
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-03-raw.png",
+          "sha256": "6e17a105998363f1e51f976ca7ecf48c9d6d4d738192fed9966f986f65dbc0da",
+          "size": [
+            325,
+            121
+          ]
+        },
+        {
+          "file": "case-03-effective.png",
+          "sha256": "2d39319bd12561e8265de0a918042cd9a8328f31a852ff83add0e98cf10bd290",
+          "size": [
+            341,
+            141
+          ]
+        }
+      ]
+    },
+    {
+      "id": "worn-shoe-near-protected-marker",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "guard",
+      "source_sha256": "2c3d51b4da93b063fe8d454b45bbfe41e93a20a5bee3a68acb29fe9b22107872",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "effective_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-04-raw.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        },
+        {
+          "file": "case-04-effective.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "id": "multiple-candidates-mislabeled-single",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "guard",
+      "source_sha256": "10af062ce97d2ba28992f7216f9c94cabaf1c6cddeb634f95419d01509120277",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "effective_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-05-raw.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        },
+        {
+          "file": "case-05-effective.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-scene-inferred-single",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "guard",
+      "source_sha256": "2c3d51b4da93b063fe8d454b45bbfe41e93a20a5bee3a68acb29fe9b22107872",
+      "input_kind_inferred": true,
+      "raw_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "effective_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-06-raw.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        },
+        {
+          "file": "case-06-effective.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "id": "low-confidence-neighbor",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "guard",
+      "source_sha256": "2c3d51b4da93b063fe8d454b45bbfe41e93a20a5bee3a68acb29fe9b22107872",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "effective_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-07-raw.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        },
+        {
+          "file": "case-07-effective.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "id": "image-edge-clipping",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "positive_control",
+      "source_sha256": "d3d28ccc5b0401f07a288239f5603b43d51cbad7eda85564feb5a03048ac30bc",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.005,
+        0.0,
+        0.995,
+        1.0
+      ],
+      "effective_box": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 0,
+      "added_protected_pixels": 0,
+      "protected_region_guard_passed": true,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-08-raw.png",
+          "sha256": "13b886f504cfc63dde24d95c4b2e26028b63c57f056c5297dcbf959f61b94604",
+          "size": [
+            396,
+            400
+          ]
+        },
+        {
+          "file": "case-08-effective.png",
+          "sha256": "d3d28ccc5b0401f07a288239f5603b43d51cbad7eda85564feb5a03048ac30bc",
+          "size": [
+            400,
+            400
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unreported-neighbor-confident-single",
+      "source_kind": "synthetic_markers",
+      "evidence_kind": "negative_control",
+      "source_sha256": "2c3d51b4da93b063fe8d454b45bbfe41e93a20a5bee3a68acb29fe9b22107872",
+      "input_kind_inferred": false,
+      "raw_box": [
+        0.2,
+        0.4,
+        0.6,
+        0.7
+      ],
+      "effective_box": [
+        0.18,
+        0.38,
+        0.62,
+        0.72
+      ],
+      "baseline_protected_pixels": 0,
+      "effective_protected_pixels": 1680,
+      "added_protected_pixels": 1680,
+      "protected_region_guard_passed": false,
+      "policy_conforms_to_fixture": true,
+      "crops": [
+        {
+          "file": "case-09-raw.png",
+          "sha256": "b0137685b61c1ccc30e002d23431b57e66198808cab924c8175d04623b2804a3",
+          "size": [
+            160,
+            120
+          ]
+        },
+        {
+          "file": "case-09-effective.png",
+          "sha256": "9392ca7ca0e624b7b12e3128212f883799b411a9ef5e54fc0cf2039bbd93bae6",
+          "size": [
+            176,
+            136
+          ]
+        }
+      ]
+    }
+  ]
+}

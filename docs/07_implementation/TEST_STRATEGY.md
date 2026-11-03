@@ -40,8 +40,9 @@ Shared fixtures MUST include an isolated temporary SQLite database, a temporary 
 
 ### 3.2 Vision and Detection
 
-Real-image review uses the digest-pinned `data/fixtures/vision_real_review_v1.json`
-manifest and private source files excluded from Git. Run
+Real-image review retains historical `data/fixtures/vision_real_review_v1.json`
+and current `data/fixtures/vision_real_review_v2.json` digest-pinned manifests.
+Private source files are excluded from Git. Run
 `python backend/scripts/evaluate_real_ingestion.py` for an isolated annotation
 replay over real pixels; this tests source association, exact crop bytes, later-photo
 crop edits, reload, explicit confirmation, and idempotency. It does not measure AI accuracy.
@@ -64,6 +65,22 @@ separately, with scene inference, confidence, and crop-policy version. Changes t
 crop policy can also be tested against frozen provider boxes on private real
 pixels without making new AI accuracy claims. Any scene/confidence assumptions
 missing from archived evidence MUST be declared explicitly in replay results.
+
+The current real-image runner defaults to `vision_real_review_v2.json`; v1 stays
+immutable for historical comparisons. V2 changes only the source-reviewed
+worn-trousers references. Report annotation revisions separately from prediction
+improvements; the same-agent review is not independent human ground truth.
+`test_annotation_versions.py` recomputes frozen-prediction results and ±3-pixel
+reference sensitivity without changing thresholds.
+
+`python backend/scripts/evaluate_crop_boundaries.py` runs the fixed
+`crop_boundary_v1.json` corpus over private real photos and synthetic protected
+pixel markers. Guard conformance and known limitations MUST be separate: six
+protected-region cases add no protected pixels, two positive controls exercise
+margin/edge behavior, while the confidently wrong singleton
+negative control exposes a protected-region leak. A passing conformance command
+does not certify universal scene/face safety. CI tests exercise synthetic source
+pixels without private images or network access.
 
 - Default tests MUST inject `FakeVisionProvider` and `FakeDetector` fixtures with stored outputs for single-item, multi-item, worn-outfit, cluttered, low-quality, malformed, and timeout cases.
 - Assertions MUST use fixture bounding boxes, confidence, and normalized attributes rather than comparing generative prose.
