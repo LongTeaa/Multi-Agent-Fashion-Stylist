@@ -198,6 +198,36 @@ class TestYoloWorldEndToEndInference:
         assert "top" in labels
         assert len(res.quality_warnings) == 0
 
+    def test_detect_cross_class_garment_deduplication_suppresses_synonyms(self) -> None:
+        mock_sess = MagicMock()
+        mock_input = MagicMock()
+        mock_input.name = "images"
+        mock_sess.get_inputs.return_value = [mock_input]
+
+        raw = np.zeros((1, 22, 8400), dtype=np.float32)
+        # Pants box (class 8)
+        raw[0, 0, 0] = 320.0
+        raw[0, 1, 0] = 450.0
+        raw[0, 2, 0] = 160.0
+        raw[0, 3, 0] = 250.0
+        raw[0, 4 + 8, 0] = 0.90
+        # Trousers box (class 9, heavily overlapping at the same spot)
+        raw[0, 0, 1] = 322.0
+        raw[0, 1, 1] = 452.0
+        raw[0, 2, 1] = 158.0
+        raw[0, 3, 1] = 248.0
+        raw[0, 4 + 9, 1] = 0.85
+
+        mock_sess.run.return_value = [raw]
+        detector = YoloWorldDetector(session=mock_sess)
+
+        image_bytes = _create_test_image_bytes(800, 600)
+        res = detector.detect(image_bytes)
+
+        # Cross-class NMS should suppress trousers (0.85) in favor of pants (0.90)
+        assert len(res.boxes) == 1
+        assert res.boxes[0].label == "pants"
+
     def test_detect_no_boxes_generates_quality_warning(self) -> None:
         mock_sess = MagicMock()
         mock_input = MagicMock()

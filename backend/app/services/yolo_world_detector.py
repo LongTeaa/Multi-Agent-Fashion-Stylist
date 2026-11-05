@@ -283,6 +283,25 @@ class YoloWorldDetector:
         if total_classes > len(self.classes) and total_classes <= len(COCO_80_CLASSES):
             active_vocab = COCO_80_CLASSES
 
+        # Cross-class suppression for overlapping garment boxes
+        # Suppress duplicate detections of synonyms (e.g. pants vs trousers, shoes vs sneakers, clothing vs shirt)
+        is_person = np.array([
+            (active_vocab[cls_id].lower() in {'person', 'human', 'model', 'man', 'woman'})
+            if 0 <= cls_id < len(active_vocab) else False
+            for cls_id in kept_classes
+        ], dtype=bool)
+
+        garment_indices = np.where(~is_person)[0]
+        if len(garment_indices) > 1:
+            g_boxes = kept_boxes[garment_indices]
+            g_scores = kept_scores[garment_indices]
+            g_keep_rel = _nms(g_boxes, g_scores, self.iou_threshold)
+            g_keep_indices = set(garment_indices[g_keep_rel])
+            final_keep = [i for i in range(len(kept_boxes)) if is_person[i] or i in g_keep_indices]
+            kept_boxes = kept_boxes[final_keep]
+            kept_scores = kept_scores[final_keep]
+            kept_classes = kept_classes[final_keep]
+
         results: list[BoundingBoxDetection] = []
         for i in range(len(kept_boxes)):
             box = kept_boxes[i]
