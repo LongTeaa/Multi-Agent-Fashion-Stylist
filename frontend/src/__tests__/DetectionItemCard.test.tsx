@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DetectionItemCard } from '@/components/ingestion/DetectionItemCard';
+import taxonomy from './garment-taxonomy.fixture';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
 
 describe('DetectionItemCard', () => {
@@ -30,7 +31,7 @@ describe('DetectionItemCard', () => {
 
   it('renders confidence badges correctly according to threshold', () => {
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={mockDetection}
         index={0}
         isSelected={false}
@@ -42,16 +43,17 @@ describe('DetectionItemCard', () => {
       />
     );
 
-    // High confidence (>= 70%)
-    expect(screen.getByText(/✓ 95% \(AI nhận diện\)/)).toBeDefined();
+    expect(screen.queryByText(/95%/)).toBeNull();
+    expect(screen.queryByText(/45%/)).toBeNull();
+    expect(screen.queryByText(/Mã AI/)).toBeNull();
+    expect(screen.getByText('Cần kiểm tra', { exact: true })).toBeDefined();
+    const summary = screen.getByText(/Chi tiết bổ sung/);
+    expect(summary.textContent).toContain('Có thông tin cần kiểm tra');
+    const details = summary.closest('details')!;
+    expect(details.hasAttribute('open')).toBe(false);
+    fireEvent.click(summary);
+    expect(details.hasAttribute('open')).toBe(true);
 
-    // Low confidence (< 70%)
-    expect(screen.getByText(/⚠️ Cần kiểm tra/)).toBeDefined();
-    expect(screen.getByText(/\(45%\)/)).toBeDefined();
-
-    // Undefined confidence -> "Chưa xác định"
-    const unverifiedBadges = screen.getAllByText('Chưa xác định');
-    expect(unverifiedBadges.length).toBeGreaterThan(0);
   });
 
   it('does not apply speculative default values to dropdown selects', () => {
@@ -67,7 +69,7 @@ describe('DetectionItemCard', () => {
     };
 
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={{ ...mockDetection, attributes: emptyAttributes }}
         index={0}
         isSelected={false}
@@ -95,7 +97,7 @@ describe('DetectionItemCard', () => {
   it('triggers onUpdateAttribute when user changes selection', () => {
     const handleUpdate = vi.fn();
     render(
-      <DetectionItemCard
+      <DetectionItemCard taxonomy={taxonomy}
         detection={mockDetection}
         index={0}
         isSelected={false}
@@ -107,74 +109,18 @@ describe('DetectionItemCard', () => {
       />
     );
 
-    const categorySelect = screen.getByDisplayValue('Áo (Top)');
-    fireEvent.change(categorySelect, { target: { value: 'bottom' } });
+    const categorySelect = screen.getByDisplayValue('Áo');
+    fireEvent.change(categorySelect, { target: { value: 'skirt' } });
     expect(handleUpdate).toHaveBeenCalledWith('category', 'bottom');
+    expect(handleUpdate).toHaveBeenCalledWith('sub_category', 'skirt');
   });
 
-  it('does not render Fit, Silhouette, or Length fields when category is footwear', () => {
-    const footwearDetection: DetectionReviewItem = {
-      ...mockDetection,
-      attributes: {
-        category: 'footwear',
-        sub_category: 'sneakers',
-        primary_color: 'white',
-        pattern: 'solid',
-        material: 'leather',
-        style: 'casual',
-        fit: null,
-        silhouette_level: null,
-        length: null,
-        formality_level: 2,
-        comfort_level: 4,
-        season: ['all_year'],
-      },
-    };
-
-    render(
-      <DetectionItemCard
-        detection={footwearDetection}
-        index={0}
-        isSelected={false}
-        accepted={true}
-        attributes={footwearDetection.attributes}
-        onSelect={vi.fn()}
-        onToggleAccepted={vi.fn()}
-        onUpdateAttribute={vi.fn()}
-      />
-    );
-
-    // Garment-specific fields should NOT be rendered for footwear
-    expect(screen.queryByText('Phom dáng (Fit)')).toBeNull();
-    expect(screen.queryByText('Dáng tổng thể (Silhouette)')).toBeNull();
-    expect(screen.queryByText('Độ dài (Length)')).toBeNull();
-
-    // Universal fields should still be present
-    expect(screen.getByText('Mức độ trang trọng:')).toBeDefined();
-    expect(screen.getByText('Độ thoải mái (Comfort):')).toBeDefined();
-    expect(screen.getByText('Màu sắc chủ đạo')).toBeDefined();
-  });
-
-  it('auto-clears fit, silhouette_level, and length when category is switched to footwear', () => {
-    const handleUpdate = vi.fn();
-    render(
-      <DetectionItemCard
-        detection={mockDetection}
-        index={0}
-        isSelected={false}
-        accepted={true}
-        attributes={mockDetection.attributes}
-        onSelect={vi.fn()}
-        onToggleAccepted={vi.fn()}
-        onUpdateAttribute={handleUpdate}
-      />
-    );
-
-    const categorySelect = screen.getByDisplayValue('Áo (Top)');
-    fireEvent.change(categorySelect, { target: { value: 'footwear' } });
-    expect(handleUpdate).toHaveBeenCalledWith('category', 'footwear');
-    expect(handleUpdate).toHaveBeenCalledWith('fit', null);
-    expect(handleUpdate).toHaveBeenCalledWith('silhouette_level', null);
-    expect(handleUpdate).toHaveBeenCalledWith('length', null);
+  it('omits garment length controls and their uncertainty for footwear', () => {
+    const attributes = { ...mockDetection.attributes, category: 'footwear' };
+    render(<DetectionItemCard taxonomy={taxonomy} detection={{ ...mockDetection, attributes, field_confidence: { length: .4 } }}
+      attributes={attributes} index={0} isSelected={false} accepted={true}
+      onSelect={vi.fn()} onToggleAccepted={vi.fn()} onUpdateAttribute={vi.fn()} />);
+    expect(screen.queryByText('Độ dài')).toBeNull();
+    expect(screen.queryByText(/Có thông tin cần kiểm tra/)).toBeNull();
   });
 });

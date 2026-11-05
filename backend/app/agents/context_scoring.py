@@ -143,23 +143,10 @@ def calculate_weather_comfort_fit(
 # --- 3. FUNCTIONAL FIT ---
 
 def _derive_item_functional_flags(item: OutfitItemSlot) -> set[str]:
-    """Derive implicit functional tags from sub_category and name if missing from explicit flags."""
+    """Use recorded capabilities; a garment name is not proof of protection."""
     flags = set(f.lower().strip() for f in item.functional_flags)
     if "water_resistant" in flags:
         flags.add("rain")
-    if "rain" in flags:
-        flags.add("water_resistant")
-    sub = (item.sub_category or "").lower().strip()
-    name = (item.name or "").lower().strip()
-
-    if any(k in sub or k in name for k in ["sneaker", "running", "sport", "athletic"]):
-        flags.update(["movement", "outdoor", "sport"])
-    if any(k in sub or k in name for k in ["jacket", "khoác", "windbreaker", "hoodie"]):
-        flags.update(["outdoor", "protection"])
-    if any(k in sub or k in name for k in ["nón", "mũ", "cap", "hat", "kính", "sunglasses"]):
-        flags.update(["sun", "outdoor"])
-    if any(k in sub or k in name for k in ["raincoat", "chống nước", "waterproof"]):
-        flags.update(["water_resistant", "rain"])
 
     return flags
 

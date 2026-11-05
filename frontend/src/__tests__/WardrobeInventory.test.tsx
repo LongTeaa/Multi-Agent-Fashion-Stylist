@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WardrobeInventory } from '@/components/wardrobe/WardrobeInventory';
+import taxonomy from './garment-taxonomy.fixture';
 import * as api from '@/lib/api';
 import type { WardrobeItem } from '@/types/wardrobe';
 
@@ -9,6 +10,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();
   return {
     ...actual,
+    getGarmentTaxonomy: vi.fn(),
     listWardrobeItems: vi.fn(),
     updateWardrobeItem: vi.fn(),
     deleteWardrobeItem: vi.fn(),
@@ -69,6 +71,7 @@ describe('WardrobeInventory Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(api.getGarmentTaxonomy).mockResolvedValue(taxonomy);
   });
 
   it('renders loading state initially and displays items after fetch', async () => {
@@ -130,7 +133,7 @@ describe('WardrobeInventory Component', () => {
     await waitFor(() => {
       expect(api.listWardrobeItems).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: 'top',
+          item_group: 'top',
         })
       );
     });
@@ -157,6 +160,25 @@ describe('WardrobeInventory Component', () => {
         })
       );
     });
+  });
+
+  it('applies search on submit, resets paging, and keeps pants and skirts separate', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValue({ items: mockItems, total: 24, page: 1, page_size: 12 });
+    render(<WardrobeInventory />);
+    await screen.findByTestId('category-filter-pants');
+    await screen.findByText('Sau →');
+    fireEvent.click(screen.getByText('Sau →'));
+    await waitFor(() => expect(api.listWardrobeItems).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
+    const calls = vi.mocked(api.listWardrobeItems).mock.calls.length;
+    const input = screen.getByTestId('wardrobe-search-input');
+    fireEvent.change(input, { target: { value: 'giay den' } });
+    expect(api.listWardrobeItems).toHaveBeenCalledTimes(calls);
+    fireEvent.submit(input.closest('form')!);
+    await waitFor(() => expect(api.listWardrobeItems).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'giay den', page: 1 })));
+    fireEvent.click(screen.getByTestId('category-filter-pants'));
+    await waitFor(() => expect(api.listWardrobeItems).toHaveBeenLastCalledWith(expect.objectContaining({ item_group: 'pants' })));
+    fireEvent.click(screen.getByTestId('category-filter-skirt'));
+    await waitFor(() => expect(api.listWardrobeItems).toHaveBeenLastCalledWith(expect.objectContaining({ item_group: 'skirt' })));
   });
 
   it('allows editing an item and saves changes', async () => {
@@ -201,6 +223,8 @@ describe('WardrobeInventory Component', () => {
         })
       );
     });
+
+    expect(vi.mocked(api.updateWardrobeItem).mock.calls[0][1]).not.toHaveProperty('is_active');
 
     await waitFor(() => {
       expect(screen.getByText('Áo polo xanh navy')).toBeDefined();

@@ -23,6 +23,8 @@ Initial selections MUST map to versioned feature weights through a deterministic
 
 ## 3. Preference Model
 
+After scoring, recommendation diversity follows the bounded selection policy in `../02_architecture/MULTI_AGENT_SPEC.md`. It does not change eligibility, explicit constraints, ownership, learned weights, feedback cadence, or the reported composite scores.
+
 MVP reranking MUST use this transparent baseline:
 
 ```text
@@ -31,11 +33,14 @@ preference_score =
   + 0.25 * color_palette_match
   + 0.20 * priority_match
   + 0.20 * learned_rating_affinity
+  + fit_bonus
   - explicit_avoid_penalty
   - recent_wear_penalty
 ```
 
 `learned_rating_affinity` MUST be updated through an exponential moving average for features such as style, color family, pattern, and formality. Ratings map as follows: `1 -> -1.0`, `2 -> -0.5`, `3 -> 0`, `4 -> 0.5`, `5 -> 1.0`.
+
+For saved `fit_preferences`, `fit_bonus = 0.05 * (2 * matching_fit_ratio - 1)`, using top, bottom, dress, and outerwear items; footwear/accessories do not participate. Without fit preferences or eligible garments the bonus is zero. The final preference score remains clamped to `[0,1]`. This bounded signal changes ranking of otherwise equivalent outfits without changing eligibility or inventing body measurements.
 
 Before five ratings exist, onboarding weights MUST remain the primary signal and the UI MUST NOT claim that the system already understands the user's style. One rating MUST NOT cause an unbounded preference change; learned weights MUST be clamped to configured limits.
 

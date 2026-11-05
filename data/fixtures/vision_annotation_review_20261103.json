@@ -1,0 +1,48 @@
+{
+  "execution_mode": "frozen_prediction_reassessment_not_new_ai_accuracy",
+  "thresholds_unchanged": {
+    "iou": 0.5,
+    "min_retention": 0.9
+  },
+  "v1_manifest_sha256": "16f2e25b6fb289776bbb6e8c488bf388b29a414f39453c7d4a6a1853384090d1",
+  "v2_manifest_sha256": "3832e8ac987c05c90ff16724c4e630c4dd5305fa89ec64bbffc0d02e9578258e",
+  "prediction_evidence": "vision_real_review_v1_followup_20261102.json / worn-trousers",
+  "before": {
+    "expected_regions": 2,
+    "predicted_regions": 3,
+    "matched_regions": 0,
+    "coverage": 0.0
+  },
+  "after": {
+    "expected_regions": 2,
+    "predicted_regions": 3,
+    "matched_regions": 2,
+    "coverage": 1.0
+  },
+  "perturbation_pixels": 3,
+  "region_sensitivity": [
+    {
+      "category": "bottom",
+      "variants": 81,
+      "passing_variants": 81,
+      "central_box": [
+        0.2899786780383795,
+        0.0779816513761468,
+        0.835820895522388,
+        0.9541284403669725
+      ]
+    },
+    {
+      "category": "footwear",
+      "variants": 81,
+      "passing_variants": 76,
+      "central_box": [
+        0.31982942430703626,
+        0.9220183486238532,
+        0.9722814498933902,
+        1.0
+      ]
+    }
+  ],
+  "review_limitation": "same-agent source-only re-review, prior predictions known; independent human annotation still required"
+}

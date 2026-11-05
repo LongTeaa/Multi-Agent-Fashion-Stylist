@@ -23,6 +23,7 @@ from app.services.wardrobe_service import (
     list_wardrobe_items,
     update_wardrobe_item,
 )
+from app.services.garment_taxonomy import GarmentTaxonomy, ItemGroup, get_taxonomy
 
 router = APIRouter(prefix="/wardrobe/items", tags=["wardrobe"])
 
@@ -30,6 +31,7 @@ router = APIRouter(prefix="/wardrobe/items", tags=["wardrobe"])
 @router.get("", response_model=SuccessResponse[WardrobeItemListResponseData])
 def list_items(
     category: WardrobeCategory | None = None,
+    item_group: ItemGroup | None = None,
     style: str | None = Query(default=None, min_length=1, max_length=100),
     color: str | None = Query(default=None, min_length=1, max_length=50),
     text: str | None = Query(default=None, min_length=1, max_length=100),
@@ -43,6 +45,7 @@ def list_items(
             session=session,
             user_id=user_id,
             category=category,
+            item_group=item_group,
             style=style,
             color=color,
             text=text,
@@ -61,6 +64,13 @@ def create_item(
     session: Session = Depends(get_db_session),
 ) -> SuccessResponse[WardrobeItemResponseData]:
     return SuccessResponse(data=create_wardrobe_item(session=session, user_id=user_id, payload=payload))
+
+
+@router.get("/taxonomy", response_model=SuccessResponse[GarmentTaxonomy])
+def garment_taxonomy(
+    user_id: str = Depends(get_current_user_id),
+) -> SuccessResponse[GarmentTaxonomy]:
+    return SuccessResponse(data=get_taxonomy())
 
 
 @router.get("/{item_id}", response_model=SuccessResponse[WardrobeItemResponseData])

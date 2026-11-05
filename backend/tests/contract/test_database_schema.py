@@ -12,7 +12,7 @@ from sqlmodel import SQLModel, Session
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
-from app.core.database import create_database_engine
+from app.core.database import create_database_engine, validate_database_schema_revision
 from app.models import (
     DetectionStatus,
     IngestionBatch,
@@ -170,13 +170,14 @@ def test_garment_profile_migration_preserves_existing_items_with_defaults(
     command.downgrade(alembic_config, "0007")
     user_id = str(uuid4())
     now_str = utc_now().isoformat()
+    item_ids = [str(uuid4()) for _ in range(16)]
 
     with engine.begin() as conn:
         conn.execute(
             text("INSERT INTO users (id, created_at, updated_at) VALUES (:id, :now, :now)"),
             {"id": user_id, "now": now_str},
         )
-        for index in range(16):
+        for item_id in item_ids:
             conn.execute(
                 text(
                     "INSERT INTO wardrobe_items ("
@@ -188,8 +189,23 @@ def test_garment_profile_migration_preserves_existing_items_with_defaults(
                     "3, '[]', '[]', '[]', '[]', '{}', 1, 1, 0, :now, :now"
                     ")"
                 ),
-                {"id": str(uuid4()), "user_id": user_id, "now": now_str},
+                {"id": item_id, "user_id": user_id, "now": now_str},
             )
+
+    outfit = _new_outfit(user_id)
+    media = _new_media_asset(user_id)
+    with Session(engine) as session:
+        session.add_all((outfit, media))
+        session.flush()
+        session.add_all((
+            OutfitItem(outfit_id=outfit.id, wardrobe_item_id=item_ids[0],
+                       user_id=user_id, slot_role=OutfitSlotRole.TOP),
+            ItemMedia(wardrobe_item_id=item_ids[0], media_asset_id=media.id,
+                      user_id=user_id, role=ItemMediaRole.PRIMARY),
+            WardrobeRetrievalDocument(wardrobe_item_id=item_ids[0], user_id=user_id,
+                                      searchable_text="white shirt", metadata_snapshot={}),
+        ))
+        session.commit()
 
     command.upgrade(alembic_config, "head")
 
@@ -204,6 +220,16 @@ def test_garment_profile_migration_preserves_existing_items_with_defaults(
 
     assert len(rows) == 16
     assert all(tuple(row) == (3, 3, "hip") for row in rows)
+    with engine.connect() as conn:
+        assert conn.exec_driver_sql("PRAGMA foreign_key_check").all() == []
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM outfit_items").scalar_one() == 1
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM item_media").scalar_one() == 1
+    with Session(engine) as session:
+        document = session.get(WardrobeRetrievalDocument, item_ids[0])
+        assert document is not None
+        assert document.metadata_snapshot["comfort_level"] == 3
+        assert "length_hip" in document.searchable_text
+    validate_database_schema_revision(engine)
 
 
 def test_retrieval_document_rejects_cross_user_item_reference(

@@ -8,7 +8,7 @@ from typing import Sequence
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import update
+from sqlalchemy import update, func
 
 from app.core.config import get_settings
 from app.models.entities import (
@@ -42,11 +42,13 @@ from app.schemas.common import (
 from app.schemas.ingestion import (
     DetectionConfirmationItem,
     DetectionReviewItem,
+    SourceImageReview,
     IngestionBatchReviewResponseData,
 )
 from app.services.classifier import classify_scene
 from app.services.cleanup_service import stage_object_upload
 from app.services.crop_engine import crop_item_and_generate_thumbnail
+from app.services.crop_policy import review_crop_boxes
 from app.services.providers import (
     BoundingBoxDetection,
     DetectorProtocol,
@@ -355,13 +357,15 @@ def process_ingestion_batch(
             )
 
             detection_res: DetectionResult | None = None
+            raw_detection_boxes: list[BoundingBoxDetection] = []
             try:
                 detection_res = classify_scene(
                     detector=detector,
                     image_bytes=image_bytes,
                     declared_input_kind=batch.input_kind,
                 )
-                detected_boxes = list(detection_res.boxes)
+                detected_boxes = review_crop_boxes(detection_res)
+                raw_detection_boxes = list(detection_res.boxes)
                 detected_kinds.append(detection_res.input_kind)
                 for warning in detection_res.quality_warnings:
                     add_warning(warning)
@@ -404,7 +408,7 @@ def process_ingestion_batch(
             )
 
             # For each candidate detected region, crop and extract attributes
-            for box_det in detected_boxes:
+            for detection_index, box_det in enumerate(detected_boxes):
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
 
@@ -542,28 +546,20 @@ def process_ingestion_batch(
 
                 # Normalize proposed fashion domain attributes
                 norm_attrs = dict(extraction.attributes)
-                cat_raw = str(norm_attrs.get("category", "")).strip().lower()
-                is_garment = cat_raw not in ("footwear", "accessory")
-
                 try:
                     c_val = int(norm_attrs.get("comfort_level", 3))
                     norm_attrs["comfort_level"] = max(1, min(5, c_val))
                 except (ValueError, TypeError):
                     norm_attrs["comfort_level"] = 3
 
-                if is_garment:
-                    try:
-                        s_val = int(norm_attrs.get("silhouette_level", 3))
-                        norm_attrs["silhouette_level"] = max(1, min(5, s_val))
-                    except (ValueError, TypeError):
-                        norm_attrs["silhouette_level"] = 3
+                try:
+                    s_val = int(norm_attrs.get("silhouette_level", 3))
+                    norm_attrs["silhouette_level"] = max(1, min(5, s_val))
+                except (ValueError, TypeError):
+                    norm_attrs["silhouette_level"] = 3
 
-                    raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
-                    norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
-                else:
-                    norm_attrs["fit"] = None
-                    norm_attrs["silhouette_level"] = None
-                    norm_attrs["length"] = None
+                raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
+                norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
                 if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
                     norm_attrs["functional_flags"] = [
@@ -576,16 +572,9 @@ def process_ingestion_batch(
                     norm_attrs["functional_flags"] = []
 
                 norm_conf = dict(extraction.field_confidence)
-                if is_garment:
-                    for field_key in ("comfort_level", "silhouette_level", "length"):
-                        if field_key not in norm_conf:
-                            norm_conf[field_key] = 0.50
-                else:
-                    if "comfort_level" not in norm_conf:
-                        norm_conf["comfort_level"] = 0.50
-                    norm_conf.pop("silhouette_level", None)
-                    norm_conf.pop("length", None)
-                    norm_conf.pop("fit", None)
+                for field_key in ("comfort_level", "silhouette_level", "length"):
+                    if field_key not in norm_conf:
+                        norm_conf[field_key] = 0.50
 
                 # Flag fields with confidence < 0.70
                 low_conf_fields = [
@@ -603,7 +592,9 @@ def process_ingestion_batch(
                     user_id=user_id,
                     ingestion_batch_id=batch_id,
                     crop_media_asset_id=crop_asset_id,
+                    source_media_asset_id=asset.id,
                     bounding_box=box_det.box,
+                    raw_bounding_box=raw_detection_boxes[detection_index].box if detection_index < len(raw_detection_boxes) else None,
                     proposed_attributes=norm_attrs,
                     field_confidence=norm_conf,
                     status=DetectionStatus.PROPOSED,
@@ -701,13 +692,15 @@ def get_batch_review(
     if batch.user_id != user_id:
         raise ForbiddenAssetError()
 
-    original_media = session.exec(
+    originals = session.exec(
         select(MediaAsset).where(
             MediaAsset.ingestion_batch_id == batch_id,
             MediaAsset.kind == MediaKind.ORIGINAL,
-        )
-    ).first()
-    original_media_url = f"/api/v1/media/{original_media.id}" if original_media else None
+            MediaAsset.user_id == user_id,
+            MediaAsset.deleted_at.is_(None),
+        ).order_by(MediaAsset.created_at, MediaAsset.id)
+    ).all()
+    original_media_url = f"/api/v1/media/{originals[0].id}" if len(originals) == 1 else None
 
     detections = session.exec(
         select(IngestionDetection).where(IngestionDetection.ingestion_batch_id == batch_id)
@@ -719,13 +712,20 @@ def get_batch_review(
         detection_items.append(
             DetectionReviewItem(
                 detection_id=det.id,
+                source_media_asset_id=det.source_media_asset_id,
                 crop_url=crop_url,
                 bounding_box=det.bounding_box,
+                raw_bounding_box=det.raw_bounding_box,
                 attributes=det.proposed_attributes,
                 field_confidence=det.field_confidence,
             )
         )
 
+    completed_batches = session.exec(select(func.count()).select_from(IngestionBatch).where(
+        IngestionBatch.user_id == user_id,
+        IngestionBatch.status == IngestionStatus.CONFIRMED,
+        IngestionBatch.id != batch_id,
+    )).one()
     return IngestionBatchReviewResponseData(
         batch_id=batch.id,
         input_kind=batch.input_kind.value,
@@ -733,6 +733,9 @@ def get_batch_review(
         detections=detection_items,
         quality_warnings=batch.quality_warnings,
         original_media_url=original_media_url,
+        show_review_hint=completed_batches < 2 or (completed_batches - 2) % 12 == 11,
+        source_images=[SourceImageReview(media_asset_id=a.id, media_url=f"/api/v1/media/{a.id}",
+                                        width=a.width, height=a.height) for a in originals],
     )
 
 
@@ -829,7 +832,9 @@ def confirm_ingestion_batch(
                 IngestionBatch.id == batch_id,
                 IngestionBatch.user_id == user_id,
                 IngestionBatch.status == IngestionStatus.NEEDS_REVIEW,
+                IngestionBatch.expires_at > utc_now(),
             )
+            .execution_options(synchronize_session="fetch")
             .values(
                 status=IngestionStatus.CONFIRMED,
                 confirmation_token=idempotency_token,
@@ -937,36 +942,29 @@ def confirm_ingestion_batch(
                     details={"comfort_level": comfort_raw},
                 )
 
-            is_garment = category_enum not in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY)
-            if is_garment:
-                silhouette_raw = attrs.get("silhouette_level", 3)
-                try:
-                    silhouette_level = int(silhouette_raw)
-                    if not (1 <= silhouette_level <= 5):
-                        raise ValueError()
-                except (ValueError, TypeError):
-                    raise ValidationError(
-                        message="Dáng tổng thể (silhouette_level) phải từ 1 đến 5.",
-                        details={"silhouette_level": silhouette_raw},
-                    )
+            silhouette_raw = attrs.get("silhouette_level", 3)
+            try:
+                silhouette_level = int(silhouette_raw)
+                if not (1 <= silhouette_level <= 5):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                raise ValidationError(
+                    message="Dáng tổng thể (silhouette_level) phải từ 1 đến 5.",
+                    details={"silhouette_level": silhouette_raw},
+                )
 
-                raw_len = attrs.get("length")
-                if raw_len:
-                    norm_len = str(raw_len).strip().lower()
-                    if norm_len not in VALID_LENGTH_VALUES:
-                        allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
-                        raise ValidationError(
-                            message=f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.",
-                            details={"length": raw_len},
-                        )
-                    length_val = norm_len
-                else:
-                    length_val = "hip"
-                fit_val = str(attrs.get("fit") or "regular")
+            raw_len = attrs.get("length")
+            if raw_len:
+                norm_len = str(raw_len).strip().lower()
+                if norm_len not in VALID_LENGTH_VALUES:
+                    allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
+                    raise ValidationError(
+                        message=f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.",
+                        details={"length": raw_len},
+                    )
+                length_val = norm_len
             else:
-                silhouette_level = None
-                length_val = None
-                fit_val = None
+                length_val = "hip"
 
             wardrobe_item = WardrobeItem(
                 id=item_id,
@@ -980,7 +978,7 @@ def confirm_ingestion_batch(
                 pattern=str(attrs.get("pattern") or "unknown"),
                 material=str(attrs.get("material") or "unknown"),
                 style=str(attrs.get("style") or "casual"),
-                fit=fit_val,
+                fit=str(attrs.get("fit") or "regular"),
                 formality_level=formality_level,
                 comfort_level=comfort_level,
                 silhouette_level=silhouette_level,
@@ -1044,3 +1042,73 @@ def confirm_ingestion_batch(
         raise
 
     return created_item_ids
+
+
+def update_detection_crop(
+    *, session: Session, storage: ObjectStorage, user_id: str, batch_id: str,
+    detection_id: str, bounding_box: tuple[float, float, float, float],
+) -> IngestionBatchReviewResponseData:
+    """Replace a review crop while serializing with confirmation and cleanup."""
+    batch = session.get(IngestionBatch, batch_id)
+    detection = session.get(IngestionDetection, detection_id)
+    if batch is None or batch.user_id != user_id or detection is None:
+        raise ItemNotFoundError()
+    if detection.user_id != user_id or detection.ingestion_batch_id != batch_id:
+        raise ItemNotFoundError()
+    source = session.get(MediaAsset, detection.source_media_asset_id) if detection.source_media_asset_id else None
+    if (source is None or source.user_id != user_id or source.ingestion_batch_id != batch_id
+            or source.kind != MediaKind.ORIGINAL or source.deleted_at is not None):
+        raise ValidationError(details={"reason": "source_image_unavailable"})
+    if batch.status != IngestionStatus.NEEDS_REVIEW:
+        raise IngestionNotReadyError()
+    original = storage.get_object(user_id=user_id, bucket=source.bucket, object_key=source.object_key)
+    try:
+        cropped = crop_item_and_generate_thumbnail(original, bounding_box)
+    except ValueError as error:
+        raise ValidationError(details={"reason": "invalid_crop"}) from error
+    settings = get_settings()
+    candidate_id = new_uuid()
+    outputs = [
+        (MediaKind.CROP, settings.minio_bucket_wardrobe,
+         f"users/{user_id}/items/{candidate_id}/crop/v1.png", cropped.crop_bytes,
+         cropped.crop_mime_type, cropped.crop_width, cropped.crop_height, cropped.crop_sha256),
+        (MediaKind.THUMBNAIL, settings.minio_bucket_thumbnails,
+         f"users/{user_id}/items/{candidate_id}/thumbnail/v1.webp", cropped.thumb_bytes,
+         cropped.thumb_mime_type, cropped.thumb_width, cropped.thumb_height, cropped.thumb_sha256),
+    ]
+    manifests = [stage_object_upload(session=session, user_id=user_id, bucket=bucket, object_key=key)
+                 for _, bucket, key, *_ in outputs]
+    try:
+        claimed = session.execute(update(IngestionBatch).where(
+            IngestionBatch.id == batch_id, IngestionBatch.user_id == user_id,
+            IngestionBatch.status == IngestionStatus.NEEDS_REVIEW,
+            IngestionBatch.expires_at > utc_now(),
+        ).values(status=IngestionStatus.NEEDS_REVIEW).execution_options(synchronize_session="fetch"))
+        if claimed.rowcount != 1:
+            raise IngestionNotReadyError()
+        session.refresh(detection)
+        assets: list[MediaAsset] = []
+        for kind, bucket, key, data, mime, width, height, digest in outputs:
+            storage.put_object(user_id=user_id, bucket=bucket, object_key=key,
+                               data=data, content_type=mime)
+            media = MediaAsset(user_id=user_id, ingestion_batch_id=batch_id, kind=kind,
+                               bucket=bucket, object_key=key, mime_type=mime, size_bytes=len(data),
+                               width=width, height=height, sha256=digest)
+            session.add(media)
+            assets.append(media)
+        session.flush()
+        detection.crop_media_asset_id = assets[0].id
+        detection.bounding_box = bounding_box
+        # Attributes are retained for explicit user review, not silently re-inferred.
+        detection.field_confidence = {key: min(value, 0.69)
+                                      for key, value in detection.field_confidence.items()}
+        detection.updated_at = utc_now()
+        session.add(detection)
+        for manifest in manifests:
+            session.delete(manifest)
+        session.commit()
+    except Exception:
+        session.rollback()
+        # Committed manifests ensure failed uploads converge through cleanup.
+        raise
+    return get_batch_review(session=session, batch_id=batch_id, user_id=user_id)

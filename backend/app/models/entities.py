@@ -270,7 +270,9 @@ class IngestionDetection(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True, max_length=36)
     ingestion_batch_id: str = Field(index=True, max_length=36)
     crop_media_asset_id: str | None = Field(default=None, max_length=36)
+    source_media_asset_id: str | None = Field(default=None, foreign_key="media_assets.id", max_length=36)
     bounding_box: BoundingBox = Field(sa_column=Column(JSON, nullable=False))
+    raw_bounding_box: BoundingBox | None = Field(default=None, sa_column=Column(JSON, nullable=True))
     proposed_attributes: dict[str, object] = Field(sa_column=Column(JSON, nullable=False))
     field_confidence: dict[str, ConfidenceValue] = Field(
         sa_column=Column(JSON, nullable=False),
@@ -318,11 +320,11 @@ class WardrobeItem(SQLModel, table=True):
             name="ck_wardrobe_items_comfort_level",
         ),
         CheckConstraint(
-            "silhouette_level IS NULL OR (silhouette_level BETWEEN 1 AND 5)",
+            "silhouette_level BETWEEN 1 AND 5",
             name="ck_wardrobe_items_silhouette_level",
         ),
         CheckConstraint(
-            "length IS NULL OR (length IN ('cropped', 'waist', 'hip', 'long'))",
+            "length IN ('cropped', 'waist', 'hip', 'long')",
             name="ck_wardrobe_items_length",
         ),
         CheckConstraint("times_worn >= 0", name="ck_wardrobe_items_times_worn"),
@@ -341,11 +343,11 @@ class WardrobeItem(SQLModel, table=True):
     pattern: str = Field(max_length=100)
     material: str = Field(max_length=100)
     style: str = Field(max_length=100)
-    fit: str | None = Field(default=None, max_length=100)
+    fit: str = Field(max_length=100)
     formality_level: int = Field(default=3, ge=1, le=5)
     comfort_level: int = Field(default=3, ge=1, le=5)
-    silhouette_level: int | None = Field(default=None, ge=1, le=5)
-    length: str | None = Field(default=None, max_length=50)
+    silhouette_level: int = Field(default=3, ge=1, le=5)
+    length: str = Field(default="hip", max_length=50)
     season: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     weather_suitability: list[str] = Field(
         default_factory=list,
@@ -473,6 +475,16 @@ class OutfitRecommendation(SQLModel, table=True):
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+
+
+class RecommendationRequest(SQLModel, table=True):
+    __tablename__ = "recommendation_requests"
+
+    user_id: str = Field(foreign_key="users.id", primary_key=True, max_length=36)
+    request_id: str = Field(primary_key=True, max_length=64)
+    fingerprint: str = Field(max_length=64)
+    response_data: dict[str, object] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    created_at: datetime = Field(default_factory=utc_now, sa_column=Column(DateTime(timezone=True), nullable=False))
 
 
 class OutfitItem(SQLModel, table=True):

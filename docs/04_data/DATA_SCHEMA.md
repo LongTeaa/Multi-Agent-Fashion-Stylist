@@ -2,6 +2,8 @@
 
 ## 1. Principles
 
+Inventory display groups are derived from category and subtype through the shared garment catalog. `item_group`, `display_name_vi`, and `group_label_vi` are response projections, not persisted columns. Pants and skirts retain the `bottom` composition role; shoes and sandals retain `footwear`. Existing custom/legacy subtype values are preserved; no migration is required for the catalog.
+
 - SQLite MUST store relational metadata and relationships. Image bytes MUST reside in ObjectStorage.
 - Entity identifiers MUST use UUID strings.
 - Timestamps MUST be stored in UTC.
@@ -67,6 +69,8 @@ users
 | `id`, `user_id`, `ingestion_batch_id` | Primary key and foreign keys |
 | `crop_media_asset_id` | Nullable foreign key to `media_assets` until crop creation succeeds |
 | `bounding_box` | JSON array `[x_min, y_min, x_max, y_max]`, normalized to `[0,1]` |
+| `raw_bounding_box` | Nullable original normalized detector rectangle before automatic margin/manual edits; unknown for historical rows and fallback detections |
+| `source_media_asset_id` | Nullable foreign key to the original `media_assets.id`; ingestion and crop-edit services MUST validate the same owner and batch. Legacy single-original batches are backfilled; ambiguous multi-original batches remain null. |
 | `proposed_attributes` | Validated JSON object |
 | `field_confidence` | JSON object with values in `[0,1]` |
 | `status` | `proposed`, `accepted`, `rejected` |
@@ -123,7 +127,16 @@ This derived table stores one deterministic retrieval document per active, user-
 | `rule_version` | Version string |
 | `created_at`, `updated_at` | UTC datetime |
 
+`context_snapshot` also retains internal `_applied_preferences`, `_request_location` (raw request location, including null), and `_warnings` for retry reconstruction. These reserved fields are not additional public context fields.
+
+### 3.8.1 `recommendation_requests`
+
+One row binds `(user_id, request_id)` as a composite primary key to a SHA-256 `fingerprint` of the validated query/location, nullable JSON `response_data`, and UTC `created_at`. `user_id` references `users`; request keys support up to 64 characters. Binding is atomic. The complete successful recommendation response and feedback delivery decision MUST commit together. Failed/clarification attempts may leave a binding without a response; persisted recommendations are replayed only after active ownership and slot validation.
+
+Seed wardrobe identifiers are deterministic UUID v5 values derived from frozen golden-item names. Migration 0011 remaps only the golden owner's legacy identifiers, preserving item media, outfit items, retrieval documents, and structured identifiers inside owned snapshots/replay responses. It MUST reject collisions and MUST NOT rewrite free text or storage keys. It does not reseed or reset attributes, ratings, or wear history.
+
 ### 3.9 `outfit_items`
+
 
 This table links `outfit_id`, `wardrobe_item_id`, ownership key `user_id`, and `slot_role`. Supported roles are `top`, `bottom`, `dress`, `footwear`, `outerwear`, and `accessory`. The `(outfit_id, wardrobe_item_id)` pair MUST be unique. Composite foreign keys MUST enforce that the outfit and wardrobe item have the same `user_id`.
 

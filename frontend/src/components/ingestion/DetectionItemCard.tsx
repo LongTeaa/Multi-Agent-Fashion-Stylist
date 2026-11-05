@@ -2,10 +2,13 @@
 
 import React from 'react';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
+import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 
 interface DetectionItemCardProps {
+  cropEditor?: React.ReactNode;
   detection: DetectionReviewItem;
+  taxonomy?: GarmentTaxonomy;
   index: number;
   isSelected: boolean;
   accepted: boolean;
@@ -14,60 +17,6 @@ interface DetectionItemCardProps {
   onToggleAccepted: (accepted: boolean) => void;
   onUpdateAttribute: (key: string, value: unknown) => void;
 }
-
-const CATEGORIES = [
-  { value: 'top', label: 'Áo (Top)' },
-  { value: 'bottom', label: 'Quần / Chân váy (Bottom)' },
-  { value: 'footwear', label: 'Giày dép (Footwear)' },
-  { value: 'outerwear', label: 'Áo khoác (Outerwear)' },
-  { value: 'dress', label: 'Đầm / Váy liền (Dress)' },
-  { value: 'accessory', label: 'Phụ kiện (Accessory)' },
-];
-
-const SUB_CATEGORY_SUGGESTIONS: Record<string, { value: string; label: string }[]> = {
-  footwear: [
-    { value: 'sneakers', label: 'Sneakers' },
-    { value: 'oxford', label: 'Oxford' },
-    { value: 'loafers', label: 'Loafers (Giày lười)' },
-    { value: 'leather_shoes', label: 'Giày da' },
-    { value: 'sandals', label: 'Sandal' },
-    { value: 'slides', label: 'Dép quai ngang' },
-    { value: 'boots', label: 'Boots' },
-    { value: 'heels', label: 'Giày cao gót' },
-  ],
-  top: [
-    { value: 'tshirt', label: 'Áo thun' },
-    { value: 'polo', label: 'Áo Polo' },
-    { value: 'shirt', label: 'Áo sơ mi' },
-    { value: 'sweater', label: 'Áo len' },
-    { value: 'tanktop', label: 'Áo ba lỗ' },
-  ],
-  bottom: [
-    { value: 'trousers', label: 'Quần tây' },
-    { value: 'chinos', label: 'Quần Chinos' },
-    { value: 'jeans', label: 'Quần Jeans' },
-    { value: 'shorts', label: 'Quần short' },
-    { value: 'skirt', label: 'Chân váy' },
-  ],
-  outerwear: [
-    { value: 'blazer', label: 'Blazer' },
-    { value: 'jacket', label: 'Áo khoác' },
-    { value: 'hoodie', label: 'Hoodie' },
-    { value: 'cardigan', label: 'Cardigan' },
-  ],
-  dress: [
-    { value: 'casual_dress', label: 'Đầm thường ngày' },
-    { value: 'formal_dress', label: 'Đầm dạ hội' },
-    { value: 'shirt_dress', label: 'Đầm sơ mi' },
-  ],
-  accessory: [
-    { value: 'belt', label: 'Thắt lưng' },
-    { value: 'watch', label: 'Đồng hồ' },
-    { value: 'bag', label: 'Túi xách' },
-    { value: 'hat', label: 'Mũ / Nón' },
-    { value: 'glasses', label: 'Kính mắt' },
-  ],
-};
 
 const STYLES = [
   { value: 'casual', label: 'Thường nhật (Casual)' },
@@ -151,7 +100,9 @@ const COMFORT_LABELS: Record<number, string> = {
 };
 
 export function DetectionItemCard({
+  cropEditor,
   detection,
+  taxonomy = { groups: [] },
   index,
   isSelected,
   accepted,
@@ -160,46 +111,27 @@ export function DetectionItemCard({
   onToggleAccepted,
   onUpdateAttribute,
 }: DetectionItemCardProps) {
+  const fold = (value: string) => value.toLowerCase().replaceAll('đ', 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const categoryGroups = taxonomy.groups.filter((group) => group.category === attributes.category);
+  const selectedGroup = categoryGroups.find((group) => [group.value, group.label, ...group.aliases,
+    ...group.types.flatMap((type) => [type.value, type.label, ...type.aliases])]
+    .some((alias) => fold(alias) === fold(attributes.sub_category || '')))
+    || (categoryGroups.length === 1 ? categoryGroups[0] : undefined);
+  const suggestions = selectedGroup?.types || [];
   const confidences = detection.field_confidence || {};
   const cropUrl = detection.crop_url;
-  const isGarment = attributes.category !== 'footwear' && attributes.category !== 'accessory';
 
   const isLowConfidence = (field: string) => {
+    if (field === 'length' && ['footwear', 'accessory'].includes(attributes.category)) return false;
     const conf = confidences[field];
-    return typeof conf === 'number' && conf < 0.70;
+    return typeof conf === 'number' && conf < 0.70 && attributes[field] === detection.attributes[field];
   };
 
-  const renderConfidenceBadge = (field: string) => {
-    const conf = confidences[field];
-    if (typeof conf !== 'number') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#FAF8F5] text-[#5C564E] border border-[#E8E5DE]">
-          Chưa xác định
-        </span>
-      );
-    }
-    const isLow = conf < 0.70;
-    const percentage = Math.round(conf * 100);
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full ${
-          isLow
-            ? 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold animate-pulse'
-            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-        }`}
-      >
-        {isLow ? (
-          <>
-            <span>⚠️ Cần kiểm tra</span>
-            <span className="font-bold">({percentage}%)</span>
-          </>
-        ) : (
-          <span>✓ {percentage}% (AI nhận diện)</span>
-        )}
-      </span>
-    );
-  };
+  const advancedFields = ['pattern', 'material', 'style', 'fit', 'formality_level', 'comfort_level', 'silhouette_level', 'length'];
+  const advancedNeedsReview = advancedFields.some(isLowConfidence);
+  const renderConfidenceBadge = (field: string) => isLowConfidence(field)
+    ? <span className="text-xs font-medium text-amber-800">Cần kiểm tra</span>
+    : null;
 
   const handleSeasonToggle = (seasonVal: string) => {
     const current = Array.isArray(attributes.season) ? attributes.season : [];
@@ -236,17 +168,16 @@ export function DetectionItemCard({
           </span>
           <div>
             <h4 className="text-base sm:text-lg font-semibold text-[#1A1918] capitalize">
-              {CATEGORIES.find((c) => c.value === attributes.category)?.label.split(' ')[0] || attributes.category || 'Món đồ'} •{' '}
+              {selectedGroup?.label || 'Món đồ'} •{' '}
               {attributes.sub_category || 'Chưa phân loại'}
             </h4>
-            <p className="text-xs font-mono text-[#5C564E]">Mã AI: {detection.detection_id.slice(0, 8)}</p>
           </div>
         </div>
 
         {/* Accept / Reject Switch */}
         <label
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2.5 cursor-pointer select-none"
+          className="relative flex items-center gap-2.5 cursor-pointer select-none"
         >
           <input
             type="checkbox"
@@ -268,17 +199,14 @@ export function DetectionItemCard({
             {cropUrl ? (
               <PrivateMediaImage
                 source={cropUrl}
-                alt="Cropped item"
+                alt="Ảnh món đồ đã cắt"
                 className="w-full h-full object-contain p-2"
               />
             ) : (
               <span className="text-xs font-mono text-[#736E65]">Không có ảnh</span>
             )}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-mono font-medium">
-              Ảnh cắt chi tiết
-            </div>
           </div>
-          <span className="mt-2 text-xs font-mono text-[#5C564E]">Vùng ảnh phân tích</span>
+          {cropEditor && <div className="mt-3 w-full max-w-sm">{cropEditor}</div>}
         </div>
 
         {/* Attribute Correction Form Fields */}
@@ -293,15 +221,13 @@ export function DetectionItemCard({
                 {renderConfidenceBadge('category')}
               </div>
               <select
-                value={attributes.category || ''}
+                value={selectedGroup?.value || ''}
                 disabled={!accepted}
                 onChange={(e) => {
-                  const newCat = e.target.value;
-                  onUpdateAttribute('category', newCat);
-                  if (newCat === 'footwear' || newCat === 'accessory') {
-                    onUpdateAttribute('fit', null);
-                    onUpdateAttribute('silhouette_level', null);
-                    onUpdateAttribute('length', null);
+                  const group = taxonomy.groups.find((entry) => entry.value === e.target.value);
+                  if (group) {
+                    onUpdateAttribute('category', group.category);
+                    onUpdateAttribute('sub_category', group.value);
                   }
                 }}
                 className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
@@ -315,7 +241,7 @@ export function DetectionItemCard({
                 <option value="" disabled>
                   -- Chọn danh mục (Bắt buộc) --
                 </option>
-                {CATEGORIES.map((cat) => (
+                {taxonomy.groups.map((cat) => (
                   <option key={cat.value} value={cat.value}>
                     {cat.label}
                   </option>
@@ -331,7 +257,7 @@ export function DetectionItemCard({
             {/* Sub-Category */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại chi tiết (Sub-category)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại món</label>
                 {renderConfidenceBadge('sub_category')}
               </div>
               <input
@@ -348,15 +274,15 @@ export function DetectionItemCard({
                 }`}
               />
               <datalist id={`sub-suggestions-${index}`}>
-                {(SUB_CATEGORY_SUGGESTIONS[attributes.category] || []).map((s) => (
+                {suggestions.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
                 ))}
               </datalist>
-              {SUB_CATEGORY_SUGGESTIONS[attributes.category] && (
+              {suggestions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {SUB_CATEGORY_SUGGESTIONS[attributes.category].map((s) => (
+                  {suggestions.map((s) => (
                     <button
                       key={s.value}
                       type="button"
@@ -395,10 +321,16 @@ export function DetectionItemCard({
               />
             </div>
 
+          </div>
+          <details className="border-t border-[#E8E5DE] pt-4">
+            <summary className="cursor-pointer rounded-lg text-sm font-medium text-[#5C564E] focus-visible:outline-2 focus-visible:outline-[#9C5234]">
+              Chi tiết bổ sung{advancedNeedsReview ? ' · Có thông tin cần kiểm tra' : ''}
+            </summary>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {/* Pattern */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết (Pattern)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết</label>
                 {renderConfidenceBadge('pattern')}
               </div>
               <select
@@ -425,7 +357,7 @@ export function DetectionItemCard({
             {/* Material */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu (Material)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu</label>
                 {renderConfidenceBadge('material')}
               </div>
               <select
@@ -452,7 +384,7 @@ export function DetectionItemCard({
             {/* Style */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách (Style)</label>
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách</label>
                 {renderConfidenceBadge('style')}
               </div>
               <select
@@ -476,34 +408,32 @@ export function DetectionItemCard({
               </select>
             </div>
 
-            {/* Fit (Garments only) */}
-            {isGarment && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng (Fit)</label>
-                  {renderConfidenceBadge('fit')}
-                </div>
-                <select
-                  value={attributes.fit || ''}
-                  disabled={!accepted}
-                  onChange={(e) => onUpdateAttribute('fit', e.target.value)}
-                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                    isLowConfidence('fit')
-                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                  }`}
-                >
-                  <option value="" disabled>
-                    -- Chưa xác định / Vui lòng chọn --
-                  </option>
-                  {FITS.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Fit */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng</label>
+                {renderConfidenceBadge('fit')}
               </div>
-            )}
+              <select
+                value={attributes.fit || ''}
+                disabled={!accepted}
+                onChange={(e) => onUpdateAttribute('fit', e.target.value)}
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                  isLowConfidence('fit')
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                }`}
+              >
+                <option value="" disabled>
+                  -- Chưa xác định / Vui lòng chọn --
+                </option>
+                {FITS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {/* Formality Level */}
             <div>
@@ -537,7 +467,7 @@ export function DetectionItemCard({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
-                  Độ thoải mái (Comfort):{' '}
+                  Độ thoải mái:{' '}
                   <span className="font-bold text-[#9C5234] text-sm sm:text-base">
                     {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
                   </span>
@@ -566,57 +496,53 @@ export function DetectionItemCard({
               </p>
             </div>
 
-            {/* Silhouette Level (Dáng tổng thể 1-5, Garments only) */}
-            {isGarment && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể (Silhouette)</label>
-                  {renderConfidenceBadge('silhouette_level')}
-                </div>
-                <select
-                  value={attributes.silhouette_level || 3}
-                  disabled={!accepted}
-                  onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
-                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                    isLowConfidence('silhouette_level')
-                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                  }`}
-                >
-                  {SILHOUETTES.map((sil) => (
-                    <option key={sil.value} value={sil.value}>
-                      {sil.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Silhouette Level (Dáng tổng thể 1-5) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể</label>
+                {renderConfidenceBadge('silhouette_level')}
               </div>
-            )}
+              <select
+                value={attributes.silhouette_level || 3}
+                disabled={!accepted}
+                onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                  isLowConfidence('silhouette_level')
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                }`}
+              >
+                {SILHOUETTES.map((sil) => (
+                  <option key={sil.value} value={sil.value}>
+                    {sil.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {/* Length (Độ dài trang phục, Garments only) */}
-            {isGarment && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài (Length)</label>
-                  {renderConfidenceBadge('length')}
-                </div>
-                <select
-                  value={attributes.length || 'hip'}
-                  disabled={!accepted}
-                  onChange={(e) => onUpdateAttribute('length', e.target.value)}
-                  className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                    isLowConfidence('length')
-                      ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                      : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                  }`}
-                >
-                  {LENGTHS.map((len) => (
-                    <option key={len.value} value={len.value}>
-                      {len.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Length applies to garments, not shoes or accessories. */}
+            {!['footwear', 'accessory'].includes(attributes.category) && <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài</label>
+                {renderConfidenceBadge('length')}
               </div>
-            )}
+              <select
+                value={attributes.length || 'hip'}
+                disabled={!accepted}
+                onChange={(e) => onUpdateAttribute('length', e.target.value)}
+                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
+                  isLowConfidence('length')
+                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
+                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
+                }`}
+              >
+                {LENGTHS.map((len) => (
+                  <option key={len.value} value={len.value}>
+                    {len.label}
+                  </option>
+                ))}
+              </select>
+            </div>}
           </div>
 
           {/* Season suitability */}
@@ -671,6 +597,7 @@ export function DetectionItemCard({
               })}
             </div>
           </div>
+          </details>
         </div>
       </div>
     </div>

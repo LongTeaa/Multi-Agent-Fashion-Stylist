@@ -97,6 +97,7 @@ class StylistRecommendationItemResponse(BaseModel):
     item_id: str
     name: str
     image_url: str | None = None
+    group_label_vi: str | None = None
 
     @field_validator("image_url")
     @classmethod

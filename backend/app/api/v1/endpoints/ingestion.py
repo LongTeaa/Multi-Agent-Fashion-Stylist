@@ -21,6 +21,7 @@ from app.repositories.object_storage import ObjectStorage
 from app.schemas.common import ErrorResponse, SuccessResponse, ValidationError
 from app.schemas.ingestion import (
     IngestionBatchReviewResponseData,
+    CropUpdateRequest,
     IngestionConfirmRequest,
     IngestionConfirmResponseData,
     IngestionDeleteResponseData,
@@ -32,6 +33,7 @@ from app.services.ingestion_service import (
     create_ingestion_batch,
     get_batch_review,
     process_ingestion_batch,
+    update_detection_crop,
 )
 from app.services.providers import DetectorProtocol, VisionProviderProtocol
 from app.services.upload_validation import MAX_FILE_SIZE_BYTES
@@ -244,3 +246,15 @@ def cancel_ingestion(
             status=cancelled_batch.status.value,
         )
     )
+
+
+@router.patch("/{batch_id}/detections/{detection_id}/crop",
+              response_model=SuccessResponse[IngestionBatchReviewResponseData])
+def edit_detection_crop(
+    batch_id: uuid.UUID, detection_id: uuid.UUID, payload: CropUpdateRequest,
+    user_id: str = Depends(get_current_user_id), session: Session = Depends(get_db_session),
+    storage: ObjectStorage = Depends(get_object_storage),
+) -> SuccessResponse[IngestionBatchReviewResponseData]:
+    return SuccessResponse(data=update_detection_crop(
+        session=session, storage=storage, user_id=user_id, batch_id=str(batch_id),
+        detection_id=str(detection_id), bounding_box=payload.bounding_box))

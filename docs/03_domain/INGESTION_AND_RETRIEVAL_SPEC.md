@@ -1,6 +1,10 @@
 # Clothing Ingestion and Retrieval Specification
 
+New detections retain the raw detector rectangle separately from the effective crop. Automatic margin and manual crop updates MUST NOT overwrite it. Existing detections with no recoverable raw rectangle remain null. Review offers an explicit restore-original-frame action followed by save; it does not change confirmed wardrobe media automatically. Review resumes the valid selected source after reload. Inventory and outfit previews fit the stored image without visually clipping it. These controls do not claim to solve missed-object or face detection.
+
 ## 1. Objective
+
+Review MUST default to the automatically generated item crops, including source-navigation previews. Original images, detection overlays, and manual crop controls MUST NOT occupy the default review layout. Each source-linked item MAY expose an optional “Chỉnh vùng cắt” action that reveals its original image and crop controls inline; saving regenerates that item's crop. User confirmation remains required, but manual recropping is not a required step. Failed/uncertain detections keep actionable review warnings visible rather than claiming successful automatic isolation.
 
 The ingestion system converts clothing images into structured, reviewable `WardrobeItem` records that can be searched and used in outfit generation. It MUST NOT assume that every image contains exactly one item.
 
@@ -33,6 +37,42 @@ upload batch
 
 The system MUST NOT persist a wardrobe item solely from AI output without explicit user confirmation.
 
+Detections MUST retain their original media identifier independently of crop
+identifiers. Multi-photo review MUST offer source selection and show regions only
+on the matching source. Phone EXIF orientation MUST be normalized before storing
+the original and sending it to detection, so displayed and cropped pixels agree.
+Crop edits regenerate both crop and thumbnail through
+ObjectStorage and remain review-only until explicit confirmation. A matching
+pair of footwear is one wardrobe unit; different pairs remain separate. The
+detector prompt MUST express this rule; users can enlarge one region to enclose
+a pair and reject a duplicate proposal. Live pair-detection accuracy requires
+a separate real-image evaluation.
+
+The Gemini adapter MUST request native `box_2d` coordinates in
+`[y_min, x_min, y_max, x_max]` order on the 0–1000 grid and convert them once
+to the domain's `[x_min, y_min, x_max, y_max]` order on 0–1. A response schema
+MUST make the provider format explicit. Ambiguous, out-of-range, reversed,
+or degenerate boxes MUST fail validation before cropping; they MUST NOT be
+silently rescaled or interpreted as domain coordinates. Explicit legacy
+`box` fields remain canonical 0–1 XYXY only. The HTTP/UI contract is unchanged.
+
+Automatic crop policy `isolated-footwear-margin-v1` adds 0.02 of the source
+width/height at each edge only when the detector explicitly classifies the photo
+as `single_item`, returns exactly one recognized footwear candidate, and reports
+confidence >= 0.70. Coordinates are clipped to the source bounds. A matching pair
+remains one unit. Scene kinds inferred from box count or a client hint do not
+qualify. Worn/multi-item/cluttered scenes, unknown labels and low-confidence
+candidates receive no expansion. This conservative guard limits adjacent garment
+or face inclusion; it cannot guarantee that a model classified the scene correctly.
+The stored/reviewed bounding box, crop, thumbnail and extraction input all use the
+same effective rectangle. Explicit crop PATCH coordinates remain exact and never
+receive an automatic margin. Existing persisted crops are not rewritten.
+
+Processing clients MUST retain a recoverable batch identifier while the server
+is processing; elapsed polling time alone is not a failed ingestion. Consecutive
+network failures MAY pause polling, with a resume/reload path. Only terminal
+server failure/expiration or explicit cancellation clears recovery state.
+
 ## 4. Minimum Retrieval Attributes
 
 - `category`, `sub_category`
@@ -44,6 +84,24 @@ The system MUST NOT persist a wardrobe item solely from AI output without explic
 - `is_active`
 
 Every AI-produced field MUST have a confidence value. A field below the configurable default threshold of `0.70` MUST be marked for review.
+
+### Review presentation and reminder cadence
+
+The default review shows the crop, category, specific item type, primary color,
+and inclusion toggle. Additional attributes remain editable in a collapsed details
+section; its summary MUST indicate uncertain additional fields. High-confidence
+percentages and internal identifiers/input-kind enums are not user-facing copy.
+Garment length controls are omitted for footwear/accessories without changing
+their stored metadata. Explicit save is required for every batch.
+
+The optional onboarding hint appears for upload ordinals 1, 2, 14, 26, and so on:
+the first two batches, then every twelve further confirmed batches. The backend
+derives eligibility from confirmed batches owned by the same user, excluding the
+current batch. Failed, expired, pending, and duplicate confirmation retries do not
+advance the count. Repeated review GETs do not mutate cadence. This policy is
+independent of outfit-rating cadence. Current quality failures and uncertain fields
+MUST remain visible regardless of hint eligibility. Provider diagnostics MUST be
+mapped to concise Vietnamese guidance rather than rendered as raw provider text.
 
 ## 5. Search-Intent Extraction
 
@@ -127,6 +185,12 @@ meet the normative sparse-wardrobe targets, semantic indexing is not justified f
 current dataset and MUST remain disabled.
 
 ## 8. Ingestion and Retrieval Invariants
+
+### Inventory display and search
+
+The executable display catalog is `backend/app/services/garment_taxonomy.py`, exposed through the wardrobe taxonomy endpoint. Inventory filters and ingestion choices MUST share it. Display groups distinguish pants, skirts, shoes, and sandals without changing outfit composition roles. Alias resolution is category scoped; unknown custom bottom/footwear subtypes MUST NOT be guessed into a specific group.
+
+Inventory text search uses deterministic longest-phrase alias parsing with case/accent folding, group/type/color constraints, then metadata token/prefix matching. Multiple terms use AND. This search is separate from stylist candidate retrieval and does not introduce semantic indexing. The MVP implementation evaluates text/group matching over the requesting user's SQL-filtered active, confirmed wardrobe, then paginates. Larger wardrobes require a measured normalized index before expanding this approach.
 
 - **INVARIANT:** Every confirmed item is traceable to its ingestion batch and media asset.
 - **INVARIANT:** No unconfirmed detection is visible as an active wardrobe item.

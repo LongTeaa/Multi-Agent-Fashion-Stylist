@@ -30,10 +30,24 @@ class MediaAssetResponseData(BaseModel):
     sha256: str
 
 
+class SourceImageReview(BaseModel):
+    media_asset_id: str
+    media_url: str
+    width: int
+    height: int
+
+
+class CropUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bounding_box: BoundingBox
+
+
 class DetectionReviewItem(BaseModel):
     detection_id: str
+    source_media_asset_id: str | None = None
     crop_url: str
     bounding_box: BoundingBox
+    raw_bounding_box: BoundingBox | None = None
     attributes: dict[str, Any]
     field_confidence: dict[str, ConfidenceValue]
 
@@ -45,6 +59,8 @@ class IngestionBatchReviewResponseData(BaseModel):
     detections: list[DetectionReviewItem] = Field(default_factory=list)
     quality_warnings: list[str] = Field(default_factory=list)
     original_media_url: str | None = None
+    show_review_hint: bool = False
+    source_images: list[SourceImageReview] = Field(default_factory=list)
 
 
 class CustomAttributesUpdate(BaseModel):

@@ -4,6 +4,7 @@ export type RatingSource = 'prompted' | 'manual';
 export type WardrobeCategory = 'top' | 'bottom' | 'dress' | 'footwear' | 'outerwear' | 'accessory';
 
 export interface OutfitItemDetailResponse {
+  group_label_vi?: string | null;
   slot_role: OutfitSlotRole;
   wardrobe_item_id: string;
   name: string;

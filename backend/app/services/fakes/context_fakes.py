@@ -76,8 +76,9 @@ class FakeWeatherProvider:
         *,
         location: str,
         event_date: date,
+        time_of_day: str = "afternoon",
     ) -> WeatherContextResult:
-        del location, event_date
+        del location, event_date, time_of_day
         if self.scenario == "timeout":
             raise TimeoutError("Weather provider timed out.")
         if self.scenario == "unknown_location":

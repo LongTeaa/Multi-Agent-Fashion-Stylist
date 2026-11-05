@@ -63,6 +63,36 @@ Returns current status, quality warnings, and detections for user review:
 `original_media_url` is nullable when an original asset is unavailable. The
 private media endpoint requires the requesting user's identity header.
 
+Review also returns `source_images`, ordered by `created_at, id`, containing
+`media_asset_id`, `media_url`, `width`, and `height` for every available original.
+Each detection includes nullable `source_media_asset_id`. The compatibility field
+`original_media_url` is populated only when exactly one original is available.
+Clients MUST overlay a detection only on its matching source image. Legacy
+multi-photo detections with unknown source retain null rather than guessing.
+Review includes boolean `show_review_hint`, derived without mutation from the
+user's confirmed upload batches according to the ingestion review cadence policy.
+It controls only optional onboarding guidance; current warnings are always actionable.
+
+### 2.2.1 `PATCH /ingestions/{batch_id}/detections/{detection_id}/crop`
+
+Review `bounding_box` describes the effective source rectangle used for the saved
+crop. Initial isolated, confidently detected footwear may include the conservative
+margin defined in the ingestion specification. Manual PATCH requests are applied
+exactly, without an additional margin; the response rectangle and image agree.
+
+Accepts `{"bounding_box":[0.1,0.2,0.8,0.9]}` in normalized source coordinates.
+Bounds MUST satisfy `0 <= left < right <= 1` and `0 <= top < bottom <= 1`.
+The service verifies ownership and batch/source membership, then atomically
+regenerates the private crop and thumbnail while serializing with confirmation
+and expiration cleanup. Only unexpired `needs_review` batches are editable;
+otherwise return HTTP 409 `INGESTION_NOT_READY`. Invalid bounds return HTTP 422.
+Unknown or unowned detections return HTTP 404. Missing legacy sources return
+HTTP 422. Success returns the complete updated review response with HTTP 200.
+Attribute proposals remain available for user correction; their confidence is
+lowered below the review threshold after changing the region. Storage failure
+preserves the prior crop; committed orphan manifests make new failed uploads
+eligible for scheduled cleanup. Old unlinked crops expire normally after 24h.
+
 ### 2.3 `POST /ingestions/{batch_id}/confirm`
 
 Accepts selected detections and user-corrected attributes. It MUST return the created `wardrobe_item_id` values. Repeated submission of the same confirmation MUST be idempotent.
@@ -71,6 +101,10 @@ confirmation payload returns the persisted item IDs. A different payload after
 confirmation returns HTTP 409 `IDEMPOTENCY_CONFLICT`, even when the token is reused.
 Confirmation and cancellation MUST claim the batch status atomically before
 creating wardrobe items or deleting media.
+Confirmation of an expired unconfirmed batch MUST return HTTP 409
+`INGESTION_NOT_READY`, including when scheduled cleanup is still retrying.
+Expiration cleanup MUST serialize with confirmation before checking media links
+or deleting objects, and refresh batch status after acquiring that database lock.
 
 ### 2.4 `DELETE /ingestions/{batch_id}`
 
@@ -80,13 +114,20 @@ Cancels an unconfirmed batch and schedules its temporary assets for cleanup.
 
 | Method | Endpoint | Purpose |
 | :---: | :--- | :--- |
-| GET | `/wardrobe/items` | Paginated list/filter by category, style, color, and text |
+| GET | `/wardrobe/items` | Paginated list/filter by category, item_group, style, color, and text |
+| GET | `/wardrobe/items/taxonomy` | Shared display groups, subtype labels, aliases, and composition categories |
 | POST | `/wardrobe/items` | Manual item creation from an already uploaded asset |
 | GET | `/wardrobe/items/{item_id}` | Item detail |
 | PATCH | `/wardrobe/items/{item_id}` | Partial update and retrieval-document refresh |
 | DELETE | `/wardrobe/items/{item_id}` | Soft delete and active-index removal |
 
 An item response MUST include a short-lived media URL, normalized metadata, per-field confidence, `is_user_confirmed`, `times_worn`, and `last_worn_at`. Normalized metadata includes `comfort_level` and `silhouette_level` as integers from 1–5, `length` as `cropped | waist | hip | long`, and canonical `functional_flags`. Create, update, and ingestion-confirmation requests use the same bounds and taxonomy.
+
+`item_group` optionally accepts `top | pants | skirt | dress | shoes | sandals | outerwear | accessory`; invalid values return 422. It combines with category/style/color/text using AND. Item responses add computed `item_group` (nullable), `group_label_vi`, and `display_name_vi`. Unrecognized bottom/footwear subtypes have a null group and remain visible in the unfiltered inventory. Custom subtype text is preserved.
+
+The taxonomy endpoint requires the same user header as other wardrobe endpoints. Its data contains `groups`; each group has `value`, `label`, `category`, `aliases`, and `types`. Each type has `value`, `label`, and `aliases`. Clients MUST use this catalog for inventory filters and ingestion subtype suggestions.
+
+`text` is case/accent insensitive and accepts Vietnamese or English aliases. Longest known phrases identify groups, subtypes, and colors; all recognized terms and remaining metadata words/prefixes must match. Examples: `giày`/`giay` finds sneakers and Derby; `giày đen` combines shoes with black; `quần` excludes skirts; `chân váy` excludes dresses; `giày dép` includes both footwear groups. Bare `váy` includes skirts and dresses. Single-character terms match whole words only; `%` and `_` have no wildcard semantics. Text/group filtering occurs before total and pagination, after SQL ownership/active/confirmed filtering. Whitespace-only text acts as no text filter; punctuation-only text returns no matches.
 
 ## 4. Stylist Chat API
 
@@ -150,6 +191,21 @@ Response data:
 ```
 
 If `needs_clarification=true`, `recommendations` MUST be empty, `clarification_question` MUST contain a concise Vietnamese user-facing question, and the request MUST NOT increment feedback cadence.
+
+A retry with a persisted idempotency key MUST revalidate active item ownership,
+confirmation, and slot/category consistency. If any item has become inactive,
+deleted, or incompatible, return HTTP 409 `STALE_RECOMMENDATION`; the client must
+submit a new request with a new key. Historical outfit detail remains readable.
+Concurrent persistence for the same user/request MUST return one set of outfit
+identifiers. Session reconciliation applies before cache lookup as well.
+
+The effective idempotency key is bound to the validated query and location. Reusing it with different content returns HTTP 409 `IDEMPOTENCY_KEY_REUSED`. Successful persisted recommendation retries retain context, explanations, applied preferences, warnings, and the original feedback decision without incrementing cadence again. A prompt is suppressed if its target has since been rated or the current session is suppressed. Legacy rows without a recoverable original raw location reject non-null location retries; submit a new key. Clarification responses are not cached as successful recommendations.
+
+Review detections also return nullable `raw_bounding_box`, the detector rectangle before margin/manual edits. Historical/fallback detections may return null. Crop PATCH updates only the effective `bounding_box`; restoring the raw rectangle requires the same explicit PATCH/save action.
+
+Wardrobe PATCH rejects explicit null for required attributes with HTTP 422; omitting an attribute leaves it unchanged. `secondary_color` may explicitly be null. Chat recommendation items and outfit-detail items include nullable `group_label_vi`, computed from the shared category/subtype taxonomy for display (for example, Quần, Chân váy, Giày dép).
+
+Weather enrichment preserves the existing context response schema. `weather_source=api` means a configured forecast adapter successfully resolved the requested city/date/time bucket; it cannot be supplied by the LLM. Explicit query weather/temperature takes precedence. Missing timing/location skips lookup; unknown/ambiguous places, unavailable forecast dates, malformed responses, and provider/network failures preserve user/default context and add a Vietnamese warning. ISO dates, `dd/mm[/yyyy]`, `ngày kia`, numeric hours (mapped to a time-of-day bucket), and Celsius temperatures are recognized. A clothing preference such as `ưu tiên đồ thoáng mát` is not itself weather.
 
 ## 5. Profile and Personalization API
 
@@ -393,6 +449,7 @@ All `message` values below are normative user-facing Vietnamese copy.
 | `FORBIDDEN_ASSET` | 403 | `Bạn không có quyền truy cập ảnh này.` |
 | `INGESTION_NOT_READY` | 409 | `Ảnh vẫn đang được xử lý. Vui lòng thử lại sau.` |
 | `IDEMPOTENCY_CONFLICT` | 409 | `Idempotency key đã được sử dụng cho một yêu cầu khác.` |
+| `STALE_RECOMMENDATION` | 409 | `Gợi ý đã thay đổi. Vui lòng gửi yêu cầu phối đồ mới.` |
 | `WARDROBE_EMPTY` | 404 | `Tủ đồ của bạn chưa có trang phục. Hãy thêm quần áo trước nhé.` |
 | `NO_COMPLETE_OUTFIT` | 422 | `Tủ đồ hiện chưa đủ món để tạo một bộ trang phục hoàn chỉnh.` |
 | `ITEM_NOT_FOUND` | 404 | `Không tìm thấy món đồ này.` |

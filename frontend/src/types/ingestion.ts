@@ -32,8 +32,10 @@ export interface FashionAttributes {
 
 export interface DetectionReviewItem {
   detection_id: string;
+  source_media_asset_id?: string | null;
   crop_url: string;
   bounding_box: BoundingBox;
+  raw_bounding_box?: BoundingBox | null;
   attributes: FashionAttributes;
   field_confidence: Record<string, number>;
 }
@@ -45,6 +47,8 @@ export interface IngestionBatchReviewResponse {
   quality_warnings: string[];
   detections: DetectionReviewItem[];
   original_media_url?: string | null;
+  show_review_hint?: boolean;
+  source_images?: { media_asset_id: string; media_url: string; width: number; height: number }[];
 }
 
 export interface DetectionConfirmationItem {

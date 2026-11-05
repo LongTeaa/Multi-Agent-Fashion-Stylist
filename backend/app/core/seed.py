@@ -41,9 +41,14 @@ class SeedResult:
     items_updated: int
 
 
+def golden_item_id(legacy_name: str) -> str:
+    """Stable fixture UUID; legacy names are migration aliases, never API IDs."""
+    return str(uuid5(NAMESPACE_URL, "multi-agent-fashion-stylist:golden:" + legacy_name))
+
+
 GOLDEN_WARDROBE = (
     GoldenWardrobeItem(
-        id="item-top-01",
+        id=golden_item_id("item-top-01"),
         category=WardrobeCategory.TOP,
         sub_category="polo",
         primary_color="white",
@@ -54,7 +59,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("warm", "cool"),
     ),
     GoldenWardrobeItem(
-        id="item-top-02",
+        id=golden_item_id("item-top-02"),
         category=WardrobeCategory.TOP,
         sub_category="button_down_shirt",
         primary_color="black",
@@ -65,7 +70,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("warm", "cool", "cold"),
     ),
     GoldenWardrobeItem(
-        id="item-top-03",
+        id=golden_item_id("item-top-03"),
         category=WardrobeCategory.TOP,
         sub_category="tee",
         primary_color="grey",
@@ -76,7 +81,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("hot", "warm"),
     ),
     GoldenWardrobeItem(
-        id="item-bottom-01",
+        id=golden_item_id("item-bottom-01"),
         category=WardrobeCategory.BOTTOM,
         sub_category="chinos",
         primary_color="navy",
@@ -87,7 +92,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("warm", "cool"),
     ),
     GoldenWardrobeItem(
-        id="item-bottom-02",
+        id=golden_item_id("item-bottom-02"),
         category=WardrobeCategory.BOTTOM,
         sub_category="trousers",
         primary_color="black",
@@ -98,7 +103,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("warm", "cool", "cold"),
     ),
     GoldenWardrobeItem(
-        id="item-bottom-03",
+        id=golden_item_id("item-bottom-03"),
         category=WardrobeCategory.BOTTOM,
         sub_category="shorts",
         primary_color="unknown",
@@ -109,7 +114,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("hot", "warm"),
     ),
     GoldenWardrobeItem(
-        id="item-shoes-01",
+        id=golden_item_id("item-shoes-01"),
         category=WardrobeCategory.FOOTWEAR,
         sub_category="sneakers",
         primary_color="white",
@@ -120,7 +125,7 @@ GOLDEN_WARDROBE = (
         weather_suitability=("hot", "warm", "cool"),
     ),
     GoldenWardrobeItem(
-        id="item-shoes-02",
+        id=golden_item_id("item-shoes-02"),
         category=WardrobeCategory.FOOTWEAR,
         sub_category="oxford_shoes",
         primary_color="brown",

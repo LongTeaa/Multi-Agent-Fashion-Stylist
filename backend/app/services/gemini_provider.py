@@ -4,10 +4,10 @@ import base64
 import json
 import logging
 import time
-from typing import Any
+from typing import Annotated, Any
 
 import httpx
-from pydantic import BaseModel, Field, SecretStr, ValidationError, field_validator
+from pydantic import BaseModel, Field, SecretStr, ValidationError, model_validator
 
 from app.models.entities import (
     BoundingBox,
@@ -44,48 +44,36 @@ def _detect_image_mime_type(image_bytes: bytes) -> str:
     raise ProviderError("Dữ liệu ảnh gửi đến dịch vụ AI không hợp lệ.")
 
 
-def _normalize_box_coordinates(
-    raw_box: tuple[float, float, float, float] | list[float],
-) -> tuple[float, float, float, float]:
-    """Convert Gemini [ymin, xmin, ymax, xmax] to canonical [xmin, ymin, xmax, ymax] within [0.0, 1.0]."""
-    c1, c2, c3, c4 = (float(v) for v in raw_box)
-    max_val = max(c1, c2, c3, c4)
-    if max_val > 1.0:
-        scale = 1000.0 if max_val <= 1000.0 else max_val
-        c1, c2, c3, c4 = c1 / scale, c2 / scale, c3 / scale, c4 / scale
-
-    # Google Gemini object detection standard returns [ymin, xmin, ymax, xmax].
-    # Canonical application format requires [xmin, ymin, xmax, ymax].
-    ymin = max(0.0, min(1.0, min(c1, c3)))
-    ymax = max(0.0, min(1.0, max(c1, c3)))
-    xmin = max(0.0, min(1.0, min(c2, c4)))
-    xmax = max(0.0, min(1.0, max(c2, c4)))
-
-    if xmax - xmin < 0.005:
-        xmax = min(1.0, xmin + 0.05)
-        if xmax == 1.0:
-            xmin = max(0.0, xmax - 0.05)
-    if ymax - ymin < 0.005:
-        ymax = min(1.0, ymin + 0.05)
-        if ymax == 1.0:
-            ymin = max(0.0, ymax - 0.05)
-
-    return (round(xmin, 4), round(ymin, 4), round(xmax, 4), round(ymax, 4))
-
-
 class GeminiBoxDetection(BaseModel):
     """Pydantic model for validating Gemini bounding box detection output."""
 
-    box: tuple[float, float, float, float]
+    # Native Gemini box_2d is YXYX on a 0..1000 grid. The old explicitly
+    # canonical `box` field remains readable, but is never rescaled/guessed.
+    box: BoundingBox | None = None
+    box_2d: tuple[
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+        Annotated[float, Field(ge=0, le=1000)],
+    ] | None = None
     label: str
     confidence: float = Field(default=0.95, ge=0.0, le=1.0)
 
-    @field_validator("box", mode="before")
-    @classmethod
-    def sanitize_box(cls, val: Any) -> tuple[float, float, float, float]:
-        if isinstance(val, (list, tuple)) and len(val) == 4:
-            return _normalize_box_coordinates(val)
-        return val
+    def canonical_box(self) -> BoundingBox:
+        if self.box_2d is not None:
+            ymin, xmin, ymax, xmax = self.box_2d
+            return xmin / 1000, ymin / 1000, xmax / 1000, ymax / 1000
+        assert self.box is not None
+        return self.box
+
+    @model_validator(mode="after")
+    def validate_coordinate_contract(self) -> GeminiBoxDetection:
+        if (self.box is None) == (self.box_2d is None):
+            raise ValueError("Exactly one explicit coordinate format is required")
+        xmin, ymin, xmax, ymax = self.canonical_box()
+        if xmin >= xmax or ymin >= ymax:
+            raise ValueError("Degenerate or reversed detection box")
+        return self
 
 
 class GeminiDetectorOutput(BaseModel):
@@ -171,13 +159,14 @@ class GeminiDetector:
 
         prompt = (
             "Analyze this fashion image. Detect each distinct clothing/garment/accessory item with precise bounding boxes in "
-            "normalized [x_min, y_min, x_max, y_max] format within [0.0, 1.0]. "
-            "All coordinates must be floats strictly between 0.0 and 1.0 (do not use 0-1000 scale or pixel values). "
+            "native box_2d [y_min, x_min, y_max, x_max] format on a 0 to 1000 grid. "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
             "If the image contains a person wearing clothing, ALSO detect the person with a bounding box labeled 'person' covering the wearer's full visible body. "
+            "Treat the matching left and right shoes of one pair as ONE wardrobe item with a box enclosing both. "
+            "Keep different pairs separate. Do not duplicate the same garment region. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
-            "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box, label, confidence}), and 'quality_warnings'."
+            "Return a JSON object with keys: 'input_kind', 'boxes' (list of {box_2d, label, confidence}), and 'quality_warnings'."
         )
 
         payload = {
@@ -196,6 +185,22 @@ class GeminiDetector:
             ],
             "generationConfig": {
                 "response_mime_type": "application/json",
+                "responseSchema": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "input_kind": {"type": "STRING", "enum": [kind.value for kind in InputKind]},
+                        "boxes": {"type": "ARRAY", "items": {
+                            "type": "OBJECT", "properties": {
+                                "box_2d": {"type": "ARRAY", "items": {"type": "NUMBER", "minimum": 0, "maximum": 1000},
+                                           "minItems": 4, "maxItems": 4,
+                                           "description": "[y_min, x_min, y_max, x_max] on 0..1000 grid"},
+                                "label": {"type": "STRING"},
+                                "confidence": {"type": "NUMBER", "minimum": 0, "maximum": 1},
+                            }, "required": ["box_2d", "label", "confidence"],
+                        }},
+                        "quality_warnings": {"type": "ARRAY", "items": {"type": "STRING"}},
+                    }, "required": ["input_kind", "boxes", "quality_warnings"],
+                },
             },
         }
 
@@ -285,7 +290,7 @@ class GeminiDetector:
                 for b in validated.boxes:
                     domain_boxes.append(
                         BoundingBoxDetection(
-                            box=b.box,
+                            box=b.canonical_box(),
                             label=b.label,
                             confidence=ConfidenceValue(b.confidence),
                         )
@@ -455,19 +460,19 @@ class GeminiVisionProvider:
             "- pattern: pattern type (e.g., solid, striped, plaid, floral, graphic)\n"
             "- material: fabric composition (e.g., cotton, linen, wool, denim, silk, polyester, leather)\n"
             "- style: aesthetic style (e.g., casual, smart_casual, formal, streetwear, athletic, minimalist)\n"
-            "- fit: silhouette fit descriptor (e.g., tight, slim, regular, relaxed, oversized). Note: For footwear and accessory, fit must be null.\n"
+            "- fit: silhouette fit descriptor (e.g., tight, slim, regular, relaxed, oversized)\n"
             "- formality_level: integer from 1 to 5 (1=very casual/loungewear, 3=smart casual, 5=strictly formal/black tie)\n"
             "- comfort_level: integer from 1 to 5 evaluating fabric texture, breathability, softness, stretch and movement freedom:\n"
             "  * 1-2: Stiff, rigid, heavy, unbreathable, restrictive or tight (e.g., rigid raw denim, patent leather, stiff formal corsetry)\n"
             "  * 3: Moderate comfort, standard everyday weave (e.g., classic chino, standard poplin shirt)\n"
             "  * 4-5: Highly comfortable, soft, stretchable, breathable (e.g., soft combed cotton jersey, breathable linen, elastic knitwear, relaxed loungewear)\n"
-            "- silhouette_level: integer from 1 to 5 quantifying cut volume and garment outline. Note: For footwear and accessory, silhouette_level must be null:\n"
+            "- silhouette_level: integer from 1 to 5 quantifying cut volume and garment outline:\n"
             "  * 1: Extra slim / skin-tight / bodycon\n"
             "  * 2: Slim fit / fitted\n"
             "  * 3: Standard regular fit / straight cut\n"
             "  * 4: Relaxed / loose fit / wide leg\n"
             "  * 5: Oversized / baggy / exaggerated silhouette\n"
-            "- length: garment length classification strictly one of: 'cropped' (waist/chest crop, culottes, mini/shorts), 'waist' (hits right at the belt line), 'hip' (standard hip/seat coverage), 'long' (extended, knee/ankle coverage, floor-length). Note: For footwear and accessory, length must be null.\n"
+            "- length: garment length classification strictly one of: 'cropped' (waist/chest crop, culottes, mini/shorts), 'waist' (hits right at the belt line), 'hip' (standard hip/seat coverage), 'long' (extended, knee/ankle coverage, floor-length)\n"
             "- season: list of suitable seasons from [spring, summer, fall, winter, all_year]\n"
             "- weather_suitability: list of weather types from [hot, warm, mild, cool, cold, rainy, sunny]\n"
             "- functional_flags: list of applicable functional tags from [movement, outdoor, sun, rain, work, sport, protection, water_resistant, heavy, light]\n"
@@ -580,28 +585,20 @@ class GeminiVisionProvider:
 
                 # Normalize domain-specific attributes
                 attrs = dict(validated.attributes)
-                cat_raw = str(attrs.get("category", "")).strip().lower()
-                is_garment = cat_raw not in ("footwear", "accessory")
-
                 try:
                     c_val = int(attrs.get("comfort_level", 3))
                     attrs["comfort_level"] = max(1, min(5, c_val))
                 except (ValueError, TypeError):
                     attrs["comfort_level"] = 3
 
-                if is_garment:
-                    try:
-                        s_val = int(attrs.get("silhouette_level", 3))
-                        attrs["silhouette_level"] = max(1, min(5, s_val))
-                    except (ValueError, TypeError):
-                        attrs["silhouette_level"] = 3
+                try:
+                    s_val = int(attrs.get("silhouette_level", 3))
+                    attrs["silhouette_level"] = max(1, min(5, s_val))
+                except (ValueError, TypeError):
+                    attrs["silhouette_level"] = 3
 
-                    raw_len = str(attrs.get("length", "hip")).strip().lower()
-                    attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
-                else:
-                    attrs["fit"] = None
-                    attrs["silhouette_level"] = None
-                    attrs["length"] = None
+                raw_len = str(attrs.get("length", "hip")).strip().lower()
+                attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
                 if "functional_flags" in attrs and isinstance(attrs["functional_flags"], list):
                     attrs["functional_flags"] = [
@@ -618,16 +615,9 @@ class GeminiVisionProvider:
                     k: ConfidenceValue(max(0.0, min(1.0, float(v))))
                     for k, v in validated.field_confidence.items()
                 }
-                if is_garment:
-                    for field_key in ("comfort_level", "silhouette_level", "length"):
-                        if field_key not in bounded_conf:
-                            bounded_conf[field_key] = ConfidenceValue(0.50)
-                else:
-                    if "comfort_level" not in bounded_conf:
-                        bounded_conf["comfort_level"] = ConfidenceValue(0.50)
-                    bounded_conf.pop("silhouette_level", None)
-                    bounded_conf.pop("length", None)
-                    bounded_conf.pop("fit", None)
+                for field_key in ("comfort_level", "silhouette_level", "length"):
+                    if field_key not in bounded_conf:
+                        bounded_conf[field_key] = ConfidenceValue(0.50)
 
                 return VisionExtractionResult(
                     attributes=attrs,

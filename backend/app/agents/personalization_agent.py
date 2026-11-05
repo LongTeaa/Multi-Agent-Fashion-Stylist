@@ -425,6 +425,7 @@ def rerank_evaluated_outfits(
     recent_data = recent_wear_data or {}
 
     styles = preferences.styles if preferences else []
+    preferred_fits = set(preferences.fit_preferences) if preferences else set()
     color_palettes = preferences.color_palettes if preferences else []
     priorities = preferences.priorities if preferences else []
     avoid_colors = preferences.avoid_colors if preferences else []
@@ -462,6 +463,11 @@ def rerank_evaluated_outfits(
     wear_penalties: list[float] = []
 
     for cand, violations in active_pairs:
+        fit_items = [item for item in cand.items if item.slot_role in {
+            OutfitSlotRole.TOP, OutfitSlotRole.BOTTOM, OutfitSlotRole.DRESS, OutfitSlotRole.OUTERWEAR,
+        }]
+        fit_ratio = sum(item.fit in preferred_fits for item in fit_items) / len(fit_items) if fit_items else .5
+        fit_bonus = .05 * (2 * fit_ratio - 1) if preferred_fits and fit_items else 0.0
         style_score, style_tags = calculate_style_preference(cand.items, styles)
         palette_score, palette_tags = calculate_palette_preference(cand.items, color_palettes)
         priority_score, priority_tags = calculate_priority_preference(cand.items, priorities)
@@ -479,6 +485,7 @@ def rerank_evaluated_outfits(
             + 0.25 * palette_score
             + 0.20 * priority_score
             + 0.20 * affinity_score
+            + fit_bonus
             - avoid_penalty
             - wear_penalty
         )
@@ -530,7 +537,26 @@ def rerank_evaluated_outfits(
 
     # Truncate to top 1..3 results (strictly clamped to [1, 3] per contract)
     effective_max_output = max(1, min(3, max_output))
-    top_candidates = scored_candidates[:effective_max_output]
+    from app.agents.outfit_diversity import core_signature, overlap
+
+    # Keep the best-scoring choice. Among close alternatives, prefer a different
+    # core; optional accessories/layers alone do not constitute another outfit.
+    remaining = scored_candidates.copy()
+    top_candidates = []
+    while remaining and len(top_candidates) < effective_max_output:
+        if not top_candidates:
+            chosen = remaining[0]
+        else:
+            eligible = [entry for entry in remaining if entry[0] >= remaining[0][0] - 0.08]
+            chosen = max(eligible, key=lambda entry: (
+                entry[0] - 0.10 * max(overlap(core_signature(entry[3].items), core_signature(prev[3].items))
+                                     for prev in top_candidates),
+                -scored_candidates.index(entry),
+            ))
+        top_candidates.append(chosen)
+        signature = core_signature(chosen[3].items)
+        remaining = [entry for entry in remaining if core_signature(entry[3].items) != signature]
+    top_candidates.sort(key=lambda entry: scored_candidates.index(entry))
     ranked_outfits: list[RankedOutfit] = []
 
     for rank_idx, (comp_score, f_score, p_score, cand, applied_tags) in enumerate(

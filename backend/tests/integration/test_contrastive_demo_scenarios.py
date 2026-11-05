@@ -327,7 +327,8 @@ def test_contrastive_defense_demonstration_scenarios(
 
     # Verify professional explanation
     exp_b = top1_b["explanation_vi"].lower()
-    assert any(term in exp_b for term in ["thoáng mát", "thoải mái", "mềm", "mát mẻ", "dễ chịu"])
+    assert all(item["name"].lower() in exp_b for item in top1_b["items"])
+    assert "mềm mại" not in exp_b  # No material performance claims inferred from the profile.
 
     # =========================================================================
     # MATHEMATICAL CONTRAST VERIFICATION

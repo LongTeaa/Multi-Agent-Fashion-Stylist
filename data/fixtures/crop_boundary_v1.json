@@ -1,0 +1,296 @@
+{
+  "dataset_version": "crop-boundary-v1",
+  "policy_version": "isolated-footwear-margin-v1",
+  "execution_mode": "annotated_real_pixel_and_synthetic_marker_replay_not_ai",
+  "synthetic_size": [
+    400,
+    400
+  ],
+  "annotation_notes": "Protected regions are coarse exclusion rectangles; synthetic red bands represent adjacent face/garment pixels, not real faces. Baseline overlap is permitted but increases are measured. The negative control intentionally documents unsafe expansion under a confidently wrong scene/candidate report.",
+  "cases": [
+    {
+      "id": "polo-top-near-face",
+      "source_kind": "real_photo",
+      "source_file": "source-03.jpg",
+      "source_sha256": "8e57b9e6bd54d5dfc4d86fb1d832a0d73f98db4756efa9b8a0426445dfcb8d10",
+      "scene": "worn_outfit",
+      "candidates": [
+        {
+          "box": [
+            0.298,
+            0.26,
+            0.697,
+            0.73
+          ],
+          "label": "top",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.4177777777777778,
+          0.15,
+          0.5566666666666666,
+          0.25333333333333335
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "partial-shoes-next-to-trousers",
+      "source_kind": "real_photo",
+      "source_file": "source-01.jpg",
+      "source_sha256": "0b965119baafc66c6b3990bd90f5b70fe950e882ac70571a02488c8e6755c098",
+      "scene": "worn_outfit",
+      "candidates": [
+        {
+          "box": [
+            0.31982942430703626,
+            0.9220183486238532,
+            0.9722814498933902,
+            1.0
+          ],
+          "label": "footwear",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2899786780383795,
+          0.0779816513761468,
+          0.835820895522388,
+          0.9541284403669725
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "derby-isolated-margin",
+      "source_kind": "real_photo",
+      "source_file": "source-04.jpg",
+      "source_sha256": "e8fbc371ab3d3abca098f59937af4dbee176ffb336f661deba324c1b700cb142",
+      "scene": "single_item",
+      "candidates": [
+        {
+          "box": [
+            0.092,
+            0.488,
+            0.906,
+            0.73
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [],
+      "expect_expansion": true,
+      "expect_protected_increase": false,
+      "evidence_kind": "positive_control"
+    },
+    {
+      "id": "worn-shoe-near-protected-marker",
+      "source_kind": "synthetic_markers",
+      "scene": "worn_outfit",
+      "candidates": [
+        {
+          "box": [
+            0.2,
+            0.4,
+            0.6,
+            0.7
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2,
+          0.385,
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.4,
+          0.615,
+          0.7
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "multiple-candidates-mislabeled-single",
+      "source_kind": "synthetic_markers",
+      "scene": "single_item",
+      "candidates": [
+        {
+          "box": [
+            0.2,
+            0.4,
+            0.6,
+            0.7
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        },
+        {
+          "box": [
+            0.6,
+            0.4,
+            0.8,
+            0.7
+          ],
+          "label": "pants",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2,
+          0.385,
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.4,
+          0.615,
+          0.7
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "unknown-scene-inferred-single",
+      "source_kind": "synthetic_markers",
+      "scene": "unknown",
+      "candidates": [
+        {
+          "box": [
+            0.2,
+            0.4,
+            0.6,
+            0.7
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2,
+          0.385,
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.4,
+          0.615,
+          0.7
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "low-confidence-neighbor",
+      "source_kind": "synthetic_markers",
+      "scene": "single_item",
+      "candidates": [
+        {
+          "box": [
+            0.2,
+            0.4,
+            0.6,
+            0.7
+          ],
+          "label": "shoes",
+          "confidence": 0.69
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2,
+          0.385,
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.4,
+          0.615,
+          0.7
+        ]
+      ],
+      "expect_expansion": false,
+      "expect_protected_increase": false,
+      "evidence_kind": "guard"
+    },
+    {
+      "id": "image-edge-clipping",
+      "source_kind": "synthetic_markers",
+      "scene": "single_item",
+      "candidates": [
+        {
+          "box": [
+            0.005,
+            0,
+            0.995,
+            1
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [],
+      "expect_expansion": true,
+      "expect_protected_increase": false,
+      "evidence_kind": "positive_control"
+    },
+    {
+      "id": "unreported-neighbor-confident-single",
+      "source_kind": "synthetic_markers",
+      "scene": "single_item",
+      "candidates": [
+        {
+          "box": [
+            0.2,
+            0.4,
+            0.6,
+            0.7
+          ],
+          "label": "shoes",
+          "confidence": 0.95
+        }
+      ],
+      "protected_regions": [
+        [
+          0.2,
+          0.385,
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.4,
+          0.615,
+          0.7
+        ]
+      ],
+      "expect_expansion": true,
+      "expect_protected_increase": true,
+      "evidence_kind": "negative_control"
+    }
+  ]
+}

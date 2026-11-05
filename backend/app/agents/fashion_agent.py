@@ -88,70 +88,48 @@ def outfit_satisfies_explicit_constraints(
     return True
 
 
-def _generate_top_bottom_combos(
-    tops: list[OutfitItemSlot],
-    bottoms: list[OutfitItemSlot],
-    footwear: list[OutfitItemSlot],
-    outerwear: list[OutfitItemSlot],
-    accessories: list[OutfitItemSlot],
-    limit: int,
-) -> list[list[OutfitItemSlot]]:
-    """Helper to generate top + bottom + footwear combinations up to limit."""
+def _balanced_product(pools: list[list[OutfitItemSlot]]) -> list[list[OutfitItemSlot]]:
+    """Bijective diagonal enumeration; early budgets visit every category pool."""
+    from math import prod
+    if any(not pool for pool in pools):
+        return []
+    cores: list[list[OutfitItemSlot]] = []
+    for index in range(prod(len(pool) for pool in pools)):
+        remaining, offset, items = index, 0, []
+        for pool in pools:
+            position = (remaining % len(pool) + offset) % len(pool)
+            remaining //= len(pool)
+            offset += position
+            items.append(pool[position])
+        cores.append(items)
+    return cores
+
+
+def _with_balanced_layers(cores: list[list[OutfitItemSlot]], outerwear: list[OutfitItemSlot],
+                          accessories: list[OutfitItemSlot], limit: int) -> list[list[OutfitItemSlot]]:
+    variants = [[]] + [[item] for item in outerwear] + [[item] for item in accessories]
+    variants += [[outer, accessory] for outer in outerwear for accessory in accessories]
     combos: list[list[OutfitItemSlot]] = []
-    for top in tops:
-        for bottom in bottoms:
-            for shoe in footwear:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([top, bottom, shoe])
-
-                for out in outerwear:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([top, bottom, shoe, out])
-
-                    for acc in accessories:
-                        if len(combos) >= limit:
-                            return combos
-                        combos.append([top, bottom, shoe, out, acc])
-
-                for acc in accessories:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([top, bottom, shoe, acc])
+    for round_index in range(len(variants)):
+        for index, core in enumerate(cores):
+            if len(combos) >= limit:
+                return combos
+            combos.append(core + variants[(index + round_index) % len(variants)])
     return combos
+
+
+def _generate_top_bottom_combos(
+    tops: list[OutfitItemSlot], bottoms: list[OutfitItemSlot], footwear: list[OutfitItemSlot],
+    outerwear: list[OutfitItemSlot], accessories: list[OutfitItemSlot], limit: int,
+) -> list[list[OutfitItemSlot]]:
+    return _with_balanced_layers(_balanced_product([tops, bottoms, footwear]), outerwear, accessories, limit)
 
 
 def _generate_dress_combos(
-    dresses: list[OutfitItemSlot],
-    footwear: list[OutfitItemSlot],
-    outerwear: list[OutfitItemSlot],
-    accessories: list[OutfitItemSlot],
-    limit: int,
+    dresses: list[OutfitItemSlot], footwear: list[OutfitItemSlot],
+    outerwear: list[OutfitItemSlot], accessories: list[OutfitItemSlot], limit: int,
 ) -> list[list[OutfitItemSlot]]:
-    """Helper to generate dress + footwear combinations up to limit."""
-    combos: list[list[OutfitItemSlot]] = []
-    for dress in dresses:
-        for shoe in footwear:
-            if len(combos) >= limit:
-                return combos
-            combos.append([dress, shoe])
-
-            for out in outerwear:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([dress, shoe, out])
-
-                for acc in accessories:
-                    if len(combos) >= limit:
-                        return combos
-                    combos.append([dress, shoe, out, acc])
-
-            for acc in accessories:
-                if len(combos) >= limit:
-                    return combos
-                combos.append([dress, shoe, acc])
-    return combos
+    return _with_balanced_layers(_balanced_product([dresses, footwear]), outerwear, accessories, limit)
 
 
 def generate_outfit_combinations(
@@ -243,6 +221,17 @@ def evaluate_and_rank_combinations(
         all_warnings.extend(warnings)
 
         aesthetic_score = component_scores.get("aesthetic_score", score)
+        if context is not None:
+            from app.agents.context_scoring import (
+                calculate_context_composite_score, calculate_functional_fit, calculate_weather_comfort_fit,
+            )
+            shortlist_score, _ = calculate_context_composite_score(
+                formality_fit=component_scores["formality_score"],
+                weather_comfort_fit=calculate_weather_comfort_fit(combo, context.weather_condition, context.environment),
+                functional_fit=calculate_functional_fit(combo, context.target_functional_tags),
+                aesthetic_score=aesthetic_score, personal_fit=.5, weight_profile=context.weight_profile,
+            )
+            component_scores["context_shortlist_score"] = shortlist_score
         evaluated = EvaluatedOutfit(
             items=combo,
             fashion_score=aesthetic_score,
@@ -255,7 +244,7 @@ def evaluate_and_rank_combinations(
     # (-fashion_score, -weather_score, recent_wear_count, combination_id)
     # recent_wear_count counts items worn within recent_window_hours using last_worn_at
     evaluated_outfits.sort(
-        key=lambda o: outfit_tie_breaker_key(
+        key=lambda o: ((-o.component_scores["context_shortlist_score"],) if context is not None else ()) + outfit_tie_breaker_key(
             o,
             recent_wear_count=count_recently_worn_items(
                 o.items,
@@ -266,7 +255,16 @@ def evaluate_and_rank_combinations(
     )
 
     unique_warnings = list(dict.fromkeys(all_warnings))
-    return evaluated_outfits[:top_k], unique_warnings
+    from app.agents.outfit_diversity import core_signature
+
+    unique_outfits: list[EvaluatedOutfit] = []
+    seen: set[frozenset[str]] = set()
+    for outfit in evaluated_outfits:
+        signature = core_signature(outfit.items)
+        if signature not in seen:
+            seen.add(signature)
+            unique_outfits.append(outfit)
+    return unique_outfits[:top_k], unique_warnings
 
 
 def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:

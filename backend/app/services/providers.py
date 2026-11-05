@@ -24,6 +24,7 @@ class DetectionResult:
     boxes: list[BoundingBoxDetection] = field(default_factory=list)
     quality_warnings: list[str] = field(default_factory=list)
     person_box: BoundingBox | None = None
+    input_kind_inferred: bool = False
 
 
 @dataclass(frozen=True)
@@ -126,4 +127,5 @@ class WeatherProviderProtocol(Protocol):
         *,
         location: str,
         event_date: date,
+        time_of_day: str = "afternoon",
     ) -> WeatherContextResult: ...

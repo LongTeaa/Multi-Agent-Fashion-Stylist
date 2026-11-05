@@ -29,6 +29,7 @@ export interface NormalizedOutfitItem {
   imageUrl?: string | null;
   category?: string;
   subCategory?: string;
+  groupLabel?: string | null;
   primaryColor?: string;
   isActive?: boolean;
 }
@@ -38,6 +39,7 @@ export function normalizeStylistItems(items: StylistRecommendationItem[]): Norma
     id: it.item_id,
     slot: it.slot,
     name: it.name,
+    groupLabel: it.group_label_vi,
     imageUrl: it.image_url,
     isActive: true,
   }));
@@ -48,6 +50,7 @@ export function normalizeDetailItems(items: OutfitItemDetailResponse[]): Normali
     id: it.wardrobe_item_id,
     slot: it.slot_role,
     name: it.name,
+    groupLabel: it.group_label_vi,
     imageUrl: it.image_url,
     category: it.category,
     subCategory: it.sub_category,
@@ -58,9 +61,9 @@ export function normalizeDetailItems(items: OutfitItemDetailResponse[]): Normali
 
 const SLOT_NAMES: Record<string, string> = {
   top: 'Áo',
-  bottom: 'Quần / Chân váy',
+  bottom: 'Thân dưới',
   dress: 'Đầm / Váy liền',
-  footwear: 'Giày / Dép',
+  footwear: 'Giày dép',
   outerwear: 'Áo khoác',
   accessory: 'Phụ kiện',
 };
@@ -363,7 +366,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           {items.map((item) => {
             const imageUrl = item.imageUrl;
-            const slotName = SLOT_NAMES[item.slot] || item.slot;
+            const slotName = item.groupLabel || SLOT_NAMES[item.slot] || item.slot;
 
             return (
               <div
@@ -380,7 +383,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                     <PrivateMediaImage
                       source={imageUrl}
                       alt={`Ảnh của ${item.name} (${slotName})`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-2"
                       loading="lazy"
                     />
                   ) : (

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Final
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.schemas.common import ValidationError
 
@@ -80,6 +80,21 @@ def validate_image_bytes(raw_bytes: bytes) -> ValidatedImage:
         )
 
     mime_type, extension = SUPPORTED_FORMATS[img_format]
+    # Store the same orientation that browsers and Vision display so normalized
+    # crop coordinates address the actual pixels, including phone-camera photos.
+    try:
+        with Image.open(BytesIO(raw_bytes)) as source:
+            if (img_format == "JPEG" or "exif" in source.info) and source.getexif().get(274, 1) != 1:
+                normalized = ImageOps.exif_transpose(source)
+                buffer = BytesIO()
+                normalized.save(buffer, format=img_format)
+                raw_bytes = buffer.getvalue()
+                img_width, img_height = normalized.size
+                size_bytes = len(raw_bytes)
+                if size_bytes > MAX_FILE_SIZE_BYTES:
+                    raise ValidationError(details={"reason": "normalized_image_too_large"})
+    except (OSError, ValueError) as error:
+        raise ValidationError(details={"reason": "invalid_image_orientation"}) from error
     sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
 
     return ValidatedImage(

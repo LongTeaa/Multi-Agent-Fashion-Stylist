@@ -1,0 +1,153 @@
+{
+  "dataset_version": "vision-real-review-v1",
+  "annotation_kind": "manual coarse rectangles; not segmentation ground truth",
+  "iou_threshold": 0.5,
+  "cases": [
+    {
+      "id": "worn-trousers",
+      "file": "source-01.jpg",
+      "sha256": "0b965119baafc66c6b3990bd90f5b70fe950e882ac70571a02488c8e6755c098",
+      "regions": [
+        {
+          "category": "bottom",
+          "box": [
+            0.24,
+            0.08,
+            0.84,
+            0.96
+          ]
+        },
+        {
+          "category": "footwear",
+          "box": [
+            0.31,
+            0.91,
+            0.98,
+            1
+          ]
+        }
+      ],
+      "expected_box_count": null
+    },
+    {
+      "id": "matching-sneaker-pair",
+      "file": "source-02.jpg",
+      "sha256": "07c2d0c4008c94e77ad214a1307df1d5033e989c01a131e0e6a50fe97a55515d",
+      "regions": [
+        {
+          "category": "footwear",
+          "box": [
+            0.085,
+            0.26,
+            0.92,
+            0.86
+          ]
+        }
+      ],
+      "expected_box_count": 1
+    },
+    {
+      "id": "worn-polo",
+      "file": "source-03.jpg",
+      "sha256": "8e57b9e6bd54d5dfc4d86fb1d832a0d73f98db4756efa9b8a0426445dfcb8d10",
+      "regions": [
+        {
+          "category": "top",
+          "box": [
+            0.298,
+            0.26,
+            0.697,
+            0.73
+          ]
+        },
+        {
+          "category": "bottom",
+          "box": [
+            0.345,
+            0.715,
+            0.63,
+            1
+          ]
+        },
+        {
+          "category": "accessory",
+          "box": [
+            0.38,
+            0.07,
+            0.564,
+            0.195
+          ]
+        }
+      ],
+      "expected_box_count": null
+    },
+    {
+      "id": "single-derby",
+      "file": "source-04.jpg",
+      "sha256": "e8fbc371ab3d3abca098f59937af4dbee176ffb336f661deba324c1b700cb142",
+      "regions": [
+        {
+          "category": "footwear",
+          "box": [
+            0.085,
+            0.49,
+            0.93,
+            0.76
+          ]
+        }
+      ],
+      "expected_box_count": 1
+    },
+    {
+      "id": "single-jeans",
+      "file": "source-05.jpg",
+      "sha256": "2d37920cb36699804af30a9d69d907625c937ccbe6763066e3319d76eb696f45",
+      "regions": [
+        {
+          "category": "bottom",
+          "box": [
+            0.085,
+            0.085,
+            0.9,
+            0.95
+          ]
+        }
+      ],
+      "expected_box_count": 1
+    },
+    {
+      "id": "blue-tshirt",
+      "file": "source-06.jpg",
+      "sha256": "9c0961757cea3c9e465d3e87c6a9afeac9fb204f9cb133ae62810eedcd08aea6",
+      "regions": [
+        {
+          "category": "top",
+          "box": [
+            0.02,
+            0.12,
+            0.995,
+            0.84
+          ]
+        }
+      ],
+      "expected_box_count": 1
+    },
+    {
+      "id": "red-tshirt",
+      "file": "source-07.jpg",
+      "sha256": "f36b296b199a7fcc604a78ceddef3a9f6cc0c1eeace7d68d3ca85037293a7544",
+      "regions": [
+        {
+          "category": "top",
+          "box": [
+            0.095,
+            0.15,
+            0.91,
+            0.85
+          ]
+        }
+      ],
+      "expected_box_count": 1
+    }
+  ]
+}

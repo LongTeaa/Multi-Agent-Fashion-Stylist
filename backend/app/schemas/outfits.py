@@ -20,6 +20,7 @@ def _validate_uuid_v4(val: str, field_name: str) -> str:
 
 
 class OutfitItemDetailResponse(BaseModel):
+    group_label_vi: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
     slot_role: OutfitSlotRole

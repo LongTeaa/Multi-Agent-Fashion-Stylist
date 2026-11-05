@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import String, cast, func, or_
+from sqlalchemy import func, or_
 from sqlmodel import Session, col, select
 
 from app.models.entities import (
@@ -21,6 +21,7 @@ from app.schemas.wardrobe import (
     WardrobeItemUpdate,
 )
 from app.services.retrieval_document_service import refresh_retrieval_document
+from app.services.garment_taxonomy import ItemGroup, classify, matches_search, parse_search
 
 
 def _owned_active_item(session: Session, item_id: str, user_id: str) -> WardrobeItem:
@@ -51,8 +52,12 @@ def _primary_media_id(session: Session, item_id: str, user_id: str) -> str | Non
 
 def serialize_item(session: Session, item: WardrobeItem) -> WardrobeItemResponseData:
     media_id = _primary_media_id(session, item.id, item.user_id)
+    group, item_type = classify(item.category, item.sub_category)
     return WardrobeItemResponseData(
         **item.model_dump(),
+        item_group=group.value if group else None,
+        display_name_vi=item_type.label if item_type else item.sub_category,
+        group_label_vi=group.label if group else "Chưa phân loại",
         media_url=f"/api/v1/media/{media_id}" if media_id else None,
     )
 
@@ -67,7 +72,9 @@ def list_wardrobe_items(
     text: str | None,
     page: int,
     page_size: int,
+    item_group: ItemGroup | None = None,
 ) -> WardrobeItemListResponseData:
+    text = text.strip() if text else None
     filters = [
         WardrobeItem.user_id == user_id,
         WardrobeItem.is_active.is_(True),
@@ -86,28 +93,26 @@ def list_wardrobe_items(
                 func.lower(WardrobeItem.secondary_color) == normalized_color,
             )
         )
-    if text:
-        pattern = f"%{text.strip().lower()}%"
-        filters.append(
-            or_(
-                func.lower(WardrobeItem.sub_category).like(pattern),
-                func.lower(WardrobeItem.primary_color).like(pattern),
-                func.lower(WardrobeItem.pattern).like(pattern),
-                func.lower(WardrobeItem.material).like(pattern),
-                func.lower(WardrobeItem.style).like(pattern),
-                func.lower(WardrobeItem.fit).like(pattern),
-                func.lower(cast(WardrobeItem.free_text_tags, String)).like(pattern),
-            )
-        )
-
-    total = session.exec(select(func.count()).select_from(WardrobeItem).where(*filters)).one()
-    items = session.exec(
+    query = (
         select(WardrobeItem)
         .where(*filters)
         .order_by(col(WardrobeItem.updated_at).desc(), col(WardrobeItem.id))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    ).all()
+    )
+    if text or item_group:
+        # MVP wardrobes are small. Apply Vietnamese normalization after SQL ownership
+        # filtering, before counting/paging; SQLite lower() cannot fold Vietnamese.
+        terms = parse_search(text) if text else []
+        matched = [item for item in session.exec(query).all()
+                   if (not text or matches_search(item, terms))
+                   and (not item_group or (
+                       (group := classify(item.category, item.sub_category)[0]) is not None
+                       and group.value == item_group
+                   ))]
+        total = len(matched)
+        items = matched[(page - 1) * page_size:page * page_size]
+    else:
+        total = session.exec(select(func.count()).select_from(WardrobeItem).where(*filters)).one()
+        items = session.exec(query.offset((page - 1) * page_size).limit(page_size)).all()
     return WardrobeItemListResponseData(
         items=[serialize_item(session, item) for item in items],
         page=page,
@@ -171,10 +176,6 @@ def update_wardrobe_item(
         return serialize_item(session, item)
     for field, value in changes.items():
         setattr(item, field, value)
-    if item.category in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY):
-        item.fit = None
-        item.silhouette_level = None
-        item.length = None
     item.updated_at = datetime.now(timezone.utc)
     session.add(item)
     refresh_retrieval_document(session, item)

@@ -4,6 +4,7 @@ import logging
 from collections import Counter
 from typing import Any, Sequence
 
+from sqlalchemy import update
 from sqlmodel import Session, select
 
 from app.agents.state import OutfitItemSlot, RankedOutfit
@@ -12,13 +13,14 @@ from app.models.entities import (
     OutfitRecommendation,
     OutfitSlotRole,
     WardrobeItem,
+    User,
     new_uuid,
     utc_now,
 )
 
 logger = logging.getLogger(__name__)
 
-COORDINATOR_RULE_VERSION = "coordinator-v1.0"
+COORDINATOR_RULE_VERSION = "coordinator-v1.1"
 
 
 class OutfitInvariantError(ValueError):
@@ -119,6 +121,9 @@ def persist_outfit_recommendations(
 
     persisted_ids: list[str] = []
     try:
+        # Acquire SQLite's writer lock before checking for an existing request.
+        # A database lock (rather than a process mutex) also covers other workers.
+        session.execute(update(User).where(User.id == user_id).values(id=User.id))
         existing = session.exec(
             select(OutfitRecommendation)
             .where(
@@ -146,7 +151,7 @@ def persist_outfit_recommendations(
                 user_id=user_id,
                 request_id=request_id,
                 user_query=user_query,
-                context_snapshot=context_snapshot,
+                context_snapshot={**context_snapshot, "_applied_preferences": list(outfit.applied_preferences)},
                 explanation_vi=outfit.explanation_vi,
                 fashion_score=outfit.fashion_score or 0.0,
                 personalization_score=outfit.personalization_score or 0.0,

@@ -22,12 +22,11 @@ from app.models.entities import (
     new_uuid,
     utc_now,
 )
-from app.services.outfit_persistence import persist_outfit_recommendations
+from app.services.outfit_persistence import COORDINATOR_RULE_VERSION, persist_outfit_recommendations
 
 logger = logging.getLogger(__name__)
 
 # Constants & Error Codes
-COORDINATOR_RULE_VERSION = "coordinator-v1.0"
 COORDINATOR_STATE_INVALID = "COORDINATOR_STATE_INVALID"
 GROUNDING_VALIDATION_FAILED = "GROUNDING_VALIDATION_FAILED"
 COORDINATOR_PERSISTENCE_ERROR = "COORDINATOR_PERSISTENCE_ERROR"
@@ -266,143 +265,38 @@ def generate_grounded_explanation_vi(
     Strict Invariants:
     - References ONLY canonical items present in this specific outfit.
     - Never hallucinates external garments, colors, or materials.
-    - Synthesizes normalized context attributes (occasion, weather, time).
+    - Explains formality alignment without inferring material performance.
     - Reflects applied preferences if present.
     """
-    items_by_role: dict[OutfitSlotRole, OutfitItemSlot] = {
-        item.slot_role: item for item in outfit.items
-    }
+    colors = {"white": "trắng", "black": "đen", "grey": "xám", "gray": "xám",
+              "navy": "xanh navy", "navy blue": "xanh navy", "blue": "xanh dương",
+              "brown": "nâu", "beige": "be", "green": "xanh lá", "red": "đỏ"}
+    from app.services.garment_taxonomy import classify, normalize
 
-    # Bilingual context normalization
-    occasion_map = {
-        "cafe": "đi cà phê",
-        "work": "đi làm công sở",
-        "party": "dự tiệc",
-        "date": "hẹn hò",
-        "casual": "dạo phố thường ngày",
-        "formal": "sự kiện trang trọng",
-    }
-    occasion_str = occasion_map.get(
-        context.occasion.lower() if context.occasion else "",
-        context.occasion or "hoạt động thường ngày",
-    )
-
-    weather_map = {
-        "cool": "thời tiết mát mẻ",
-        "warm": "thời tiết ấm áp",
-        "hot": "thời tiết nóng",
-        "cold": "thời tiết se lạnh",
-        "rainy": "thời tiết mưa",
-    }
-    weather_str = weather_map.get(
-        context.weather_condition.lower() if context.weather_condition else "",
-        context.weather_condition or "thời tiết dễ chịu",
-    )
-
-    time_map = {
-        "morning": "buổi sáng",
-        "afternoon": "buổi chiều",
-        "evening": "buổi tối",
-        "night": "buổi đêm",
-    }
-    time_str = time_map.get(
-        context.time_of_day.lower() if context.time_of_day else "",
-        context.time_of_day or "trong ngày",
-    )
-
-    # Core garment phrasing strictly referencing outfit items
-    garment_parts: list[str] = []
-    if OutfitSlotRole.DRESS in items_by_role:
-        dress = items_by_role[OutfitSlotRole.DRESS]
-        garment_parts.append(f"đầm [{dress.name}]")
-    else:
-        top = items_by_role[OutfitSlotRole.TOP]
-        bottom = items_by_role[OutfitSlotRole.BOTTOM]
-        garment_parts.append(f"sự kết hợp giữa [{top.name}] và [{bottom.name}]")
-
-    footwear = items_by_role[OutfitSlotRole.FOOTWEAR]
-    garment_parts.append(f"đi kèm [{footwear.name}]")
-
-    if OutfitSlotRole.OUTERWEAR in items_by_role:
-        outer = items_by_role[OutfitSlotRole.OUTERWEAR]
-        garment_parts.append(f"khoác thêm [{outer.name}]")
-
-    if OutfitSlotRole.ACCESSORY in items_by_role:
-        acc = items_by_role[OutfitSlotRole.ACCESSORY]
-        garment_parts.append(f"phối cùng phụ kiện [{acc.name}]")
-
-    composition_str = ", ".join(garment_parts)
-
-    score = outfit.composite_score
-    score_pct = int(round(score * 100))
-    rank = outfit.rank
-
-    if score >= 0.78:
-        if rank == 1:
-            main_sentence = (
-                f"Bộ trang phục rất phù hợp cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Tổng thể tạo nên từ {composition_str}, mang lại diện mạo hài hòa và tự tin."
-            )
-        elif rank == 2:
-            main_sentence = (
-                f"Lựa chọn phối đồ nổi bật khác cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Sự kết hợp hài hòa từ {composition_str} đem lại phong cách chỉn chu và thanh lịch."
-            )
+    parts: list[str] = []
+    for item in outfit.items:
+        _, garment = classify(item.category, item.name)
+        name = garment.label if garment else item.name
+        color = item.primary_color.strip().lower()
+        color_label = colors.get(color, color)
+        color_in_name = f" {normalize(color_label)} " in f" {normalize(name)} "
+        color_note = f" màu {color_label}" if color and color != "unknown" and not color_in_name else ""
+        parts.append(f"[{name}]{color_note}")
+    explanation = "Phối " + ", ".join(parts) + "."
+    major = [item for item in outfit.items if item.slot_role != OutfitSlotRole.ACCESSORY]
+    levels = [item.formality_level for item in major]
+    target = context.target_formality_range
+    if levels and len(target) == 2:
+        if all(target[0] <= level <= target[1] for level in levels):
+            explanation += " Các món chính đều nằm trong mức trang trọng bạn cần."
         else:
-            main_sentence = (
-                f"Thêm một phương án ấn tượng cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Cách phối từ {composition_str} tạo điểm nhấn tinh tế và cuốn hút."
-            )
-    elif score >= 0.65:
-        if rank == 1:
-            main_sentence = (
-                f"Bộ trang phục phù hợp cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Tổng thể phối hợp từ {composition_str}, đảm bảo sự gọn gàng và thoải mái."
-            )
-        elif rank == 2:
-            main_sentence = (
-                f"Phương án phối đồ thay thế cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Sự kết hợp giữa {composition_str} mang lại cảm giác năng động và dễ ứng dụng."
-            )
-        else:
-            main_sentence = (
-                f"Gợi ý phối đồ linh hoạt cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Cách kết hợp {composition_str} giữ được nét hài hòa cho các hoạt động trong ngày."
-            )
-    else:
-        if rank == 1:
-            main_sentence = (
-                f"Lựa chọn gợi ý từ tủ đồ hiện có cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Độ phù hợp ở mức vừa phải ({score_pct}%) do một số món đồ có phong cách hoặc màu sắc chưa thật sự tối ưu cho ngữ cảnh này, "
-                f"nhưng {composition_str} vẫn đảm bảo tính gọn gàng."
-            )
-        else:
-            main_sentence = (
-                f"Phương án tận dụng thêm từ tủ đồ cho dịp {occasion_str} vào {time_str} trong {weather_str}. "
-                f"Độ phù hợp đạt {score_pct}%, giúp bạn có thêm lựa chọn thay đổi dù {composition_str} "
-                f"chưa hoàn toàn đồng nhất với ngữ cảnh."
-            )
-    # Advisor Phase 5: Integrate dynamic weight profile rationale
-    profile = getattr(context, "weight_profile", "balanced")
-    profile_reasons = {
-        "formal": "Bộ đồ tôn vinh vẻ trang trọng, chỉn chu và phong thái lịch thiệp chuẩn mực cho sự kiện.",
-        "comfort": "Set đồ tối ưu sự thoải mái với chất liệu thoáng mát, mềm mại, giúp bạn tự tin vận động trong ngày.",
-        "active": "Thiết kế ưu tiên tính cơ động và bảo vệ, hỗ trợ tối đa cho việc di chuyển ngoài trời và đi lại.",
-    }
-    if profile in profile_reasons and score >= 0.65:
-        main_sentence += f" {profile_reasons[profile]}"
-
-    explanation = main_sentence
-
-    # Weave in applied preferences if present and strictly in canonical allowlist
-    valid_prefs = [
-        p.strip()
-        for p in outfit.applied_preferences
-        if p.strip() in CANONICAL_PREFERENCE_TAGS
-    ]
+            explanation += " Mức trang trọng giữa các món chưa hoàn toàn đồng đều với nhu cầu."
+    if outfit.composite_score < 0.65:
+        explanation += f" Độ phù hợp ở mức vừa phải ({round(outfit.composite_score * 100)}%); bạn nên cân nhắc theo nhu cầu."
+    valid_prefs = [p.strip() for p in outfit.applied_preferences
+                   if p.strip() in CANONICAL_PREFERENCE_TAGS]
     if valid_prefs:
-        pref_notes = ", ".join(valid_prefs[:2])
-        explanation += f" Phù hợp với sở thích cá nhân ({pref_notes})."
+        explanation += " " + "; ".join(valid_prefs[:2]) + "."
 
     return explanation
 
@@ -418,6 +312,8 @@ def persist_recommendations_atomically(
     user_query: str,
     context: StylistContext,
     ranked_outfits: list[RankedOutfit],
+    request_location: str | None = None,
+    warnings: list[str] | None = None,
 ) -> tuple[bool, list[str]]:
     """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction with invariant validation."""
     return persist_outfit_recommendations(
@@ -425,7 +321,7 @@ def persist_recommendations_atomically(
         user_id=user_id,
         request_id=request_id,
         user_query=user_query,
-        context_snapshot=context.model_dump(),
+        context_snapshot={**context.model_dump(), "_request_location": request_location, "_warnings": list(warnings or [])},
         ranked_outfits=ranked_outfits,
     )
 
@@ -537,6 +433,7 @@ def coordinator_node(
             user_query=user_query,
             context=context,
             ranked_outfits=canonical_outfits,
+            request_location=state.get("location"), warnings=existing_warnings,
         )
 
         if not success or not persisted_ids:

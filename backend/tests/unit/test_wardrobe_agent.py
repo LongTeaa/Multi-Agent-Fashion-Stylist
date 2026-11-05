@@ -354,7 +354,7 @@ def test_wardrobe_agent_bilingual_constraints_and_localized_names(
 
     # Verify localized Vietnamese item name
     white_polo_slot = candidate_pool["tops"][0]
-    assert white_polo_slot.name == "Áo polo trắng"
+    assert white_polo_slot.name == "Áo Polo trắng"
 
 
 def test_wardrobe_agent_missing_mandatory_slots_warning(

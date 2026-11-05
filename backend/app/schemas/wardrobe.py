@@ -20,11 +20,11 @@ class WardrobeItemAttributes(BaseModel):
     pattern: str = Field(min_length=1, max_length=100)
     material: str = Field(min_length=1, max_length=100)
     style: str = Field(min_length=1, max_length=100)
-    fit: str | None = Field(default=None, max_length=100)
+    fit: str = Field(min_length=1, max_length=100)
     formality_level: int = Field(default=3, ge=1, le=5)
     comfort_level: int = Field(default=3, ge=1, le=5)
-    silhouette_level: int | None = Field(default=None, ge=1, le=5)
-    length: str | None = Field(default=None, max_length=50)
+    silhouette_level: int = Field(default=3, ge=1, le=5)
+    length: str = Field(default="hip", min_length=1, max_length=50)
     season: list[str] = Field(default_factory=list, max_length=10)
     weather_suitability: list[str] = Field(default_factory=list, max_length=10)
     functional_flags: list[str] = Field(default_factory=list, max_length=20)
@@ -32,22 +32,12 @@ class WardrobeItemAttributes(BaseModel):
 
     @field_validator("length")
     @classmethod
-    def validate_length_taxonomy(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
+    def validate_length_taxonomy(cls, value: str) -> str:
         norm = value.strip().lower()
         if norm not in VALID_LENGTH_VALUES:
             allowed = ", ".join(sorted(VALID_LENGTH_VALUES))
             raise ValueError(f"Độ dài (length) phải thuộc một trong các giá trị: {allowed}.")
         return norm
-
-    @model_validator(mode="after")
-    def clean_category_specific_attributes(self) -> WardrobeItemAttributes:
-        if self.category in (WardrobeCategory.FOOTWEAR, WardrobeCategory.ACCESSORY):
-            self.fit = None
-            self.silhouette_level = None
-            self.length = None
-        return self
 
     @field_validator("season", "weather_suitability", "free_text_tags")
     @classmethod
@@ -77,6 +67,13 @@ class WardrobeItemCreate(WardrobeItemAttributes):
 
 class WardrobeItemUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_nulls(cls, value: object) -> object:
+        if isinstance(value, dict) and any(v is None and key != "secondary_color" for key, v in value.items()):
+            raise ValueError("Required wardrobe attributes cannot be null; omit unchanged fields")
+        return value
 
     category: WardrobeCategory | None = None
     sub_category: str | None = Field(default=None, min_length=1, max_length=100)
@@ -129,16 +126,19 @@ class WardrobeItemResponseData(BaseModel):
     id: str
     category: WardrobeCategory
     sub_category: str
+    item_group: str | None = None
+    display_name_vi: str | None = None
+    group_label_vi: str | None = None
     primary_color: str
     secondary_color: str | None
     pattern: str
     material: str
     style: str
-    fit: str | None = None
+    fit: str
     formality_level: int
     comfort_level: int = 3
-    silhouette_level: int | None = None
-    length: str | None = None
+    silhouette_level: int = 3
+    length: str = "hip"
     season: list[str]
     weather_suitability: list[str]
     functional_flags: list[str]

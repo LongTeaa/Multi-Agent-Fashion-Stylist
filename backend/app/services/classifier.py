@@ -155,6 +155,7 @@ def classify_scene(
         boxes=final_boxes,
         quality_warnings=result.quality_warnings,
         person_box=detected_person_box,
+        input_kind_inferred=result.input_kind_inferred or result.input_kind == InputKind.UNKNOWN,
     )
 
 

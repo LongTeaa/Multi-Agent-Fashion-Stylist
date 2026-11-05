@@ -33,12 +33,58 @@ Shared fixtures MUST include an isolated temporary SQLite database, a temporary 
 
 ### 3.1 LLM and Context Extraction
 
+Non-live backend regression pins `CONTEXT_PROVIDER=fallback` and `WEATHER_PROVIDER=disabled` before reading local settings. Tests can explicitly inject HTTP mocks/fakes or override configuration. This prevents local live-provider setup from silently invoking remote services. Weather integration regressions are `test_weather_integration.py` and `test_weather_recommendations.py`; they cover city resolution, local event-time forecast selection, provider failures, explicit-fact priority, actual weather-driven graph selection/persistence, and faithful replay.
+
+For explicitly opted-in live acceptance, run `backend/scripts/evaluate_weather_context.py --live-weather --live-context --report <output.json>` using the backend venv. The runner migrates/seeds an isolated temporary database, records provider failure types/status codes without secrets, and never modifies the configured wardrobe. Live results are diagnostic and do not replace the fixed context fixture or mock-based regressions.
+
 - Default tests MUST inject `FakeLLMProvider`; they MUST NOT patch SDK internals.
 - The fake MUST support: valid structured response, malformed response, timeout, provider error, and low-confidence/clarification response.
 - Fixed mappings MUST include Vietnamese queries such as `Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?` and `Mặc gì?`.
 - A small opt-in live smoke test MAY exist under `@pytest.mark.live_provider`; CI and phase verification MUST exclude it.
 
 ### 3.2 Vision and Detection
+
+Real-image review retains historical `data/fixtures/vision_real_review_v1.json`
+and current `data/fixtures/vision_real_review_v2.json` digest-pinned manifests.
+Private source files are excluded from Git. Run
+`python backend/scripts/evaluate_real_ingestion.py` for an isolated annotation
+replay over real pixels; this tests source association, exact crop bytes, later-photo
+crop edits, reload, explicit confirmation, and idempotency. It does not measure AI accuracy.
+Add `--live` to send the same images to the configured Gemini detector. Live
+localization uses one-to-one matching at IoU >= 0.5 and annotated-region retention
+>= 0.9, with a separate exact-count check for isolated items and a footwear pair.
+Coarse rectangles are not segmentation ground truth. Semantic attribute accuracy
+is not measured by this runner. Provider failures and skipped cases remain explicit;
+two consecutive failures stop further external calls. Incomplete live runs return
+a nonzero exit code and MUST NOT be reported as passing model-quality evidence.
+Repeat `--case <manifest-id>` to retry a specific subset without calling other
+images. Offline replay still covers all sources; live denominators and selected IDs
+refer only to that subset. Successful live cases save the actual PNG crops, sizes,
+and digests for visual inspection. Each live report pins the adapter contract and
+manifest digest. `complete` denotes response availability, not passing crop quality;
+inspect per-case localization/count metrics separately. Results pooled across
+retries MUST NOT be described as a single successful full-corpus run.
+Live reports retain raw provider boxes/metrics and effective crop boxes/metrics
+separately, with scene inference, confidence, and crop-policy version. Changes to
+crop policy can also be tested against frozen provider boxes on private real
+pixels without making new AI accuracy claims. Any scene/confidence assumptions
+missing from archived evidence MUST be declared explicitly in replay results.
+
+The current real-image runner defaults to `vision_real_review_v2.json`; v1 stays
+immutable for historical comparisons. V2 changes only the source-reviewed
+worn-trousers references. Report annotation revisions separately from prediction
+improvements; the same-agent review is not independent human ground truth.
+`test_annotation_versions.py` recomputes frozen-prediction results and ±3-pixel
+reference sensitivity without changing thresholds.
+
+`python backend/scripts/evaluate_crop_boundaries.py` runs the fixed
+`crop_boundary_v1.json` corpus over private real photos and synthetic protected
+pixel markers. Guard conformance and known limitations MUST be separate: six
+protected-region cases add no protected pixels, two positive controls exercise
+margin/edge behavior, while the confidently wrong singleton
+negative control exposes a protected-region leak. A passing conformance command
+does not certify universal scene/face safety. CI tests exercise synthetic source
+pixels without private images or network access.
 
 - Default tests MUST inject `FakeVisionProvider` and `FakeDetector` fixtures with stored outputs for single-item, multi-item, worn-outfit, cluttered, low-quality, malformed, and timeout cases.
 - Assertions MUST use fixture bounding boxes, confidence, and normalized attributes rather than comparing generative prose.
@@ -109,6 +155,8 @@ The minimum fixed evaluation set MUST contain:
 Datasets MUST be versioned. Reports MUST record dataset version, rule version, provider/model version for optional live runs, and execution timestamp.
 
 ## 7. Quality Gates
+
+Repository review closure regressions live in `test_review_hardening.py`, `test_review_closure.py`, `test_review_migrations.py`, `test_multi_upload_acceptance.py`, and `test_review_ranking.py`. Cover full response replay and content binding, stale active-item checks, serialized persistence/cleanup, fit and combination-budget behavior, explicit-null validation, preserved UUID references, and source ownership after partial failures. Browser acceptance covers 1/2/10 photos, selected-source reload, crop raw restoration, actual item editing, Vietnamese search, and recommendation display at desktop/mobile widths. Keep these deterministic and independent of live provider availability. See `REVIEW_CLOSURE_2026-11-03.md` for the final execution record.
 
 - **INVARIANT:** Phase completion requires its executable command to pass.
 - **INVARIANT:** Normal CI never requires external API credentials.

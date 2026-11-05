@@ -67,20 +67,20 @@ def test_format_localized_item_name_unknown_color():
 def test_format_localized_item_name_footwear_subtypes():
     """Footwear subtypes like sneakers, loafers, oxford, sandals, slides, boots render natural Vietnamese."""
     assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "sneakers", "white")) == "Giày sneaker trắng"
-    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "loafers", "brown")) == "Giày lười Loafers nâu"
-    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "oxford", "black")) == "Giày tây Oxford đen"
-    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "sandals", "black")) == "Sandal đen"
+    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "loafers", "brown")) == "Giày lười nâu"
+    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "oxford", "black")) == "Giày Oxford đen"
+    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "sandals", "black")) == "Dép sandal đen"
     assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "slides", "black")) == "Dép quai ngang đen"
     assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "boots", "brown")) == "Giày boots nâu"
     assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "heels", "red")) == "Giày cao gót đỏ"
-    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "leather_shoes", "black")) == "Giày tây da đen"
+    assert format_localized_item_name(_make_item(WardrobeCategory.FOOTWEAR, "leather_shoes", "black")) == "Giày da đen"
 
 
 def test_format_localized_item_name_skirt_and_bottoms():
     """LT-10: Skirts render 'Chân váy', distinguishing clearly from dresses."""
     assert format_localized_item_name(_make_item(WardrobeCategory.BOTTOM, "skirt", "black")) == "Chân váy đen"
     assert format_localized_item_name(_make_item(WardrobeCategory.BOTTOM, "pleated_skirt", "grey")) == "Chân váy xếp ly xám"
-    assert format_localized_item_name(_make_item(WardrobeCategory.BOTTOM, "jeans", "blue")) == "Quần jean xanh dương"
+    assert format_localized_item_name(_make_item(WardrobeCategory.BOTTOM, "jeans", "blue")) == "Quần jeans xanh dương"
     assert format_localized_item_name(_make_item(WardrobeCategory.BOTTOM, "trousers", "grey")) == "Quần tây xám"
 
 

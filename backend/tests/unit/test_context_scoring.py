@@ -318,7 +318,7 @@ def test_grounded_explanation_reflects_weight_profile_rationale():
         weight_profile="formal",
     )
     exp_formal = generate_grounded_explanation_vi(outfit, ctx_formal)
-    assert "trang trọng, chỉn chu" in exp_formal
+    assert "mức trang trọng" in exp_formal
 
     # Comfort context
     ctx_comfort = StylistContext(
@@ -328,7 +328,7 @@ def test_grounded_explanation_reflects_weight_profile_rationale():
         weight_profile="comfort",
     )
     exp_comfort = generate_grounded_explanation_vi(outfit, ctx_comfort)
-    assert "tối ưu sự thoải mái" in exp_comfort
+    assert "mềm mại" not in exp_comfort and "thoáng mát" not in exp_comfort
 
     # Active context
     ctx_active = StylistContext(
@@ -338,4 +338,5 @@ def test_grounded_explanation_reflects_weight_profile_rationale():
         weight_profile="active",
     )
     exp_active = generate_grounded_explanation_vi(outfit, ctx_active)
-    assert "cơ động và bảo vệ" in exp_active
+    assert "cơ động và bảo vệ" not in exp_active
+    assert exp_formal == exp_comfort == exp_active  # Profile alone invents no garment properties.

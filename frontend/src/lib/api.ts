@@ -31,6 +31,7 @@ import type {
 import type { TryOnResponseData } from '@/types/tryons';
 import type {
   WardrobeItem,
+  GarmentTaxonomy,
   WardrobeItemListResponse,
   WardrobeItemUpdatePayload,
   WardrobeItemDeleteResponse,
@@ -503,6 +504,7 @@ export async function createTryOn(
  */
 export async function listWardrobeItems(params?: {
   category?: string;
+  item_group?: string;
   style?: string;
   color?: string;
   text?: string;
@@ -512,6 +514,7 @@ export async function listWardrobeItems(params?: {
 }): Promise<WardrobeItemListResponse> {
   const query = new URLSearchParams();
   if (params?.category) query.set('category', params.category);
+  if (params?.item_group) query.set('item_group', params.item_group);
   if (params?.style) query.set('style', params.style);
   if (params?.color) query.set('color', params.color);
   if (params?.text) query.set('text', params.text);
@@ -525,6 +528,12 @@ export async function listWardrobeItems(params?: {
     headers: {
       'X-User-Id': params?.userId || getStoredUserId(),
     },
+  });
+}
+
+export async function getGarmentTaxonomy(): Promise<GarmentTaxonomy> {
+  return apiFetch<GarmentTaxonomy>(`${API_BASE_URL}/api/v1/wardrobe/items/taxonomy`, {
+    method: 'GET', headers: { 'X-User-Id': getStoredUserId() },
   });
 }
 
@@ -571,4 +580,17 @@ export async function deleteWardrobeItem(
       'X-User-Id': userId || getStoredUserId(),
     },
   });
+}
+
+
+export async function updateDetectionCrop(
+  batchId: string, detectionId: string, boundingBox: [number, number, number, number]
+): Promise<IngestionBatchReviewResponse> {
+  return apiFetch<IngestionBatchReviewResponse>(
+    `${API_BASE_URL}/api/v1/ingestions/${encodeURIComponent(batchId)}/detections/${encodeURIComponent(detectionId)}/crop`, {
+      method: 'PATCH',
+      headers: { 'X-User-Id': getStoredUserId(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bounding_box: boundingBox }),
+    }
+  );
 }

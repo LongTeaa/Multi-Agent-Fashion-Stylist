@@ -76,43 +76,38 @@ def _restore_retrieval_documents(
 
 def upgrade() -> None:
     retrieval_documents = _snapshot_retrieval_documents()
-    with op.batch_alter_table("wardrobe_items") as batch:
-        batch.add_column(
-            sa.Column(
-                "comfort_level",
-                sa.Integer(),
-                nullable=False,
-                server_default="3",
-            )
-        )
-        batch.add_column(
-            sa.Column(
-                "silhouette_level",
-                sa.Integer(),
-                nullable=False,
-                server_default="3",
-            )
-        )
-        batch.add_column(
-            sa.Column(
-                "length",
-                sa.String(length=50),
-                nullable=False,
-                server_default="hip",
-            )
-        )
-        batch.create_check_constraint(
-            "ck_wardrobe_items_comfort_level",
-            "comfort_level BETWEEN 1 AND 5",
-        )
-        batch.create_check_constraint(
-            "ck_wardrobe_items_silhouette_level",
-            "silhouette_level BETWEEN 1 AND 5",
-        )
-        batch.create_check_constraint(
-            "ck_wardrobe_items_length",
-            "length IN ('cropped', 'waist', 'hip', 'long')",
-        )
+    # Inline checks allow SQLite ADD COLUMN without rebuilding the referenced
+    # table, preserving child rows while foreign-key enforcement stays enabled.
+    for column in (
+        sa.Column(
+            "comfort_level",
+            sa.Integer(),
+            sa.CheckConstraint(
+                "comfort_level BETWEEN 1 AND 5", name="ck_wardrobe_items_comfort_level"
+            ),
+            nullable=False,
+            server_default="3",
+        ),
+        sa.Column(
+            "silhouette_level",
+            sa.Integer(),
+            sa.CheckConstraint(
+                "silhouette_level BETWEEN 1 AND 5", name="ck_wardrobe_items_silhouette_level"
+            ),
+            nullable=False,
+            server_default="3",
+        ),
+        sa.Column(
+            "length",
+            sa.String(length=50),
+            sa.CheckConstraint(
+                "length IN ('cropped', 'waist', 'hip', 'long')", name="ck_wardrobe_items_length"
+            ),
+            nullable=False,
+            server_default="hip",
+        ),
+    ):
+        op.add_column("wardrobe_items", column)
     _restore_retrieval_documents(
         retrieval_documents,
         include_profile_defaults=True,

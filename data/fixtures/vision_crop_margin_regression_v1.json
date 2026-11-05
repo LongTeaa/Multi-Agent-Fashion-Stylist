@@ -1,0 +1,242 @@
+{
+  "policy_version": "isolated-footwear-margin-v1",
+  "execution_mode": "frozen_detection_replay_on_real_pixels_not_new_model_accuracy",
+  "iou_threshold": 0.5,
+  "min_region_retention": 0.9,
+  "cases": [
+    {
+      "id": "worn-trousers",
+      "scene_assumption": "worn_outfit",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.292,
+          0.083,
+          0.836,
+          0.946
+        ],
+        [
+          0.297,
+          0.0,
+          0.65,
+          0.095
+        ],
+        [
+          0.323,
+          0.924,
+          0.969,
+          1.0
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.292,
+          0.083,
+          0.836,
+          0.946
+        ],
+        [
+          0.297,
+          0.0,
+          0.65,
+          0.095
+        ],
+        [
+          0.323,
+          0.924,
+          0.969,
+          1.0
+        ]
+      ],
+      "before": {
+        "expected_regions": 2,
+        "predicted_regions": 3,
+        "matched_regions": 0,
+        "coverage": 0.0
+      },
+      "after": {
+        "expected_regions": 2,
+        "predicted_regions": 3,
+        "matched_regions": 0,
+        "coverage": 0.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    },
+    {
+      "id": "matching-sneaker-pair",
+      "scene_assumption": "single_item",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.088,
+          0.268,
+          0.912,
+          0.858
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.068,
+          0.248,
+          0.932,
+          0.878
+        ]
+      ],
+      "before": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "after": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    },
+    {
+      "id": "single-derby",
+      "scene_assumption": "single_item",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.092,
+          0.488,
+          0.906,
+          0.73
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.072,
+          0.468,
+          0.926,
+          0.75
+        ]
+      ],
+      "before": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 0,
+        "coverage": 0.0
+      },
+      "after": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    },
+    {
+      "id": "single-jeans",
+      "scene_assumption": "single_item",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.092,
+          0.092,
+          0.888,
+          0.942
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.092,
+          0.092,
+          0.888,
+          0.942
+        ]
+      ],
+      "before": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "after": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    },
+    {
+      "id": "blue-tshirt",
+      "scene_assumption": "single_item",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.021,
+          0.127,
+          0.99,
+          0.835
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.021,
+          0.127,
+          0.99,
+          0.835
+        ]
+      ],
+      "before": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "after": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    },
+    {
+      "id": "red-tshirt",
+      "scene_assumption": "single_item",
+      "scene_origin": "human-declared replay; original live report omitted input_kind",
+      "raw_boxes": [
+        [
+          0.098,
+          0.157,
+          0.904,
+          0.846
+        ]
+      ],
+      "effective_boxes": [
+        [
+          0.098,
+          0.157,
+          0.904,
+          0.846
+        ]
+      ],
+      "before": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "after": {
+        "expected_regions": 1,
+        "predicted_regions": 1,
+        "matched_regions": 1,
+        "coverage": 1.0
+      },
+      "detector_confidence_assumption": 0.95,
+      "confidence_origin": "replay assumption; original live evidence omitted confidence"
+    }
+  ]
+}
