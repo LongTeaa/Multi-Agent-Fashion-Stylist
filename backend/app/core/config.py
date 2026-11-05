@@ -66,6 +66,10 @@ class Settings(BaseSettings):
     @classmethod
     def _sync_gemini_keys_dict(cls, data: Any) -> Any:
         if isinstance(data, dict):
+            if "gemini_api_key" in data and data["gemini_api_key"] is None:
+                data["gemini_api_key"] = None
+                data["gemini_api_keys"] = []
+                return data
             single = data.get("gemini_api_key")
             plural = data.get("gemini_api_keys")
             if not single and plural:

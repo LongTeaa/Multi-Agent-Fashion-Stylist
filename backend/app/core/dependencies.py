@@ -182,6 +182,11 @@ def get_detector() -> DetectorProtocol:
     """Return the vision detector instance based on configured DETECTOR_BACKEND or VISION_PROVIDER."""
     settings = get_settings()
 
+    if settings.detector_backend == "fake" or settings.vision_provider == "fake":
+        from app.services.fakes.vision_fakes import FakeDetector
+
+        return FakeDetector(mode="multi_item")
+
     if settings.detector_backend == "yolo_world":
         validate_detector_configuration(settings)
         from pathlib import Path
@@ -203,11 +208,6 @@ def get_detector() -> DetectorProtocol:
                     key_pool=key_pool,
                 )
         return get_yolo_world_detector(settings)
-
-    if settings.detector_backend == "fake" or settings.vision_provider == "fake":
-        from app.services.fakes.vision_fakes import FakeDetector
-
-        return FakeDetector(mode="multi_item")
 
     if settings.detector_backend == "gemini":
         validate_vision_provider_configuration(settings)

@@ -21,6 +21,10 @@ def offline_context_weather(request: pytest.FixtureRequest, monkeypatch: pytest.
     if request.node.get_closest_marker("live_provider") is None:
         monkeypatch.setenv("CONTEXT_PROVIDER", "fallback")
         monkeypatch.setenv("WEATHER_PROVIDER", "disabled")
+        monkeypatch.setenv("DETECTOR_BACKEND", "gemini")
+        monkeypatch.delenv("DETECTOR_MODEL", raising=False)
+        monkeypatch.delenv("GEMINI_API_KEYS", raising=False)
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -47,9 +51,7 @@ def migrated_database(
     alembic_config = Config(str(BACKEND_ROOT / "alembic.ini"))
     command.upgrade(alembic_config, "head")
     engine = create_database_engine(database_url)
-
     try:
         yield alembic_config, engine
     finally:
         engine.dispose()
-        get_settings.cache_clear()
