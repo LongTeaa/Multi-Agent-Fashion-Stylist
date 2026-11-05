@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable, Iterator
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from app.core.config import (
     Settings,
     get_settings,
     validate_context_provider_configuration,
+    validate_detector_configuration,
     validate_image_provider_configuration,
     validate_vision_provider_configuration,
     validate_weather_provider_configuration,
@@ -116,27 +118,112 @@ def reconcile_client_session_id(
 
 
 
-def get_detector() -> DetectorProtocol:
-    """Return the vision detector instance based on configured VISION_PROVIDER."""
-    settings = get_settings()
+_key_pool_instance: Any = None
+_key_pool_signature: tuple[tuple[str, ...], float] | None = None
 
-    if settings.vision_provider == "fake":
+
+def get_gemini_key_pool(settings: Settings | None = None) -> Any:
+    """Return process-wide singleton GeminiKeyPool instance matching configured keys."""
+    global _key_pool_instance, _key_pool_signature
+    if settings is None:
+        settings = get_settings()
+
+    from app.services.gemini_key_pool import GeminiKeyPool
+
+    active_keys = settings.get_gemini_api_keys() or [SecretStr("placeholder-key")]
+    keys_tuple = tuple(k.get_secret_value() for k in active_keys)
+    cooldown = float(settings.gemini_key_cooldown_seconds)
+    current_sig = (keys_tuple, cooldown)
+
+    if _key_pool_instance is None or _key_pool_signature != current_sig:
+        _key_pool_instance = GeminiKeyPool(
+            api_keys=list(active_keys),
+            cooldown_seconds=cooldown,
+        )
+        _key_pool_signature = current_sig
+
+    return _key_pool_instance
+
+
+logger = logging.getLogger(__name__)
+
+_yolo_world_detector_instance: DetectorProtocol | None = None
+_yolo_world_detector_signature: tuple[str, float, float] | None = None
+
+
+def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtocol:
+    """Return process-wide cached YoloWorldDetector instance matching current configuration."""
+    global _yolo_world_detector_instance, _yolo_world_detector_signature
+    if settings is None:
+        settings = get_settings()
+
+    current_sig = (
+        settings.yolo_world_model_path,
+        float(settings.yolo_world_confidence_threshold),
+        float(settings.yolo_world_iou_threshold),
+    )
+
+    if _yolo_world_detector_instance is None or _yolo_world_detector_signature != current_sig:
+        from app.services.yolo_world_detector import YoloWorldDetector
+
+        _yolo_world_detector_instance = YoloWorldDetector(
+            model_path=settings.yolo_world_model_path,
+            confidence_threshold=settings.yolo_world_confidence_threshold,
+            iou_threshold=settings.yolo_world_iou_threshold,
+        )
+        _yolo_world_detector_signature = current_sig
+
+    return _yolo_world_detector_instance
+
+
+def get_detector() -> DetectorProtocol:
+    """Honor explicit detector selection; auto follows the Vision provider for compatibility."""
+    settings = get_settings()
+    backend = settings.vision_provider if settings.detector_backend == "auto" else settings.detector_backend
+
+    if backend == "fake":
         from app.services.fakes.vision_fakes import FakeDetector
 
         return FakeDetector(mode="multi_item")
 
-    if settings.vision_provider == "gemini":
-        validate_vision_provider_configuration(settings)
+    if backend == "yolo_world":
+        validate_detector_configuration(settings)
+        from pathlib import Path
+
+        model_file = Path(settings.yolo_world_model_path)
+        if not model_file.is_file():
+            if settings.get_gemini_api_keys():
+                logger.warning(
+                    "YOLO-World model '%s' not found on disk. Falling back to GeminiDetector.",
+                    settings.yolo_world_model_path,
+                )
+                from app.services.gemini_provider import GeminiDetector
+
+                key_pool = get_gemini_key_pool(settings)
+                return GeminiDetector(
+                    api_key=key_pool.keys[0],
+                    model=settings.get_detector_model(),
+                    timeout_seconds=float(settings.vision_timeout_seconds),
+                    key_pool=key_pool,
+                )
+        return get_yolo_world_detector(settings)
+
+    if backend == "gemini":
+        if settings.detector_backend == "auto":
+            validate_vision_provider_configuration(settings)
+        validate_detector_configuration(settings)
 
         from app.services.gemini_provider import GeminiDetector
 
+        key_pool = get_gemini_key_pool(settings)
         return GeminiDetector(
-            api_key=settings.gemini_api_key,
-            model=settings.vision_model,
+            api_key=key_pool.keys[0],
+            model=settings.get_detector_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
+            key_pool=key_pool,
         )
 
-    raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
+    raise ValueError(f"Unsupported detector_backend: '{settings.detector_backend}'")
 
 
 def get_vision_provider() -> VisionProviderProtocol:
@@ -153,10 +240,12 @@ def get_vision_provider() -> VisionProviderProtocol:
 
         from app.services.gemini_provider import GeminiVisionProvider
 
+        key_pool = get_gemini_key_pool(settings)
         return GeminiVisionProvider(
-            api_key=settings.gemini_api_key,
-            model=settings.vision_model,
+            api_key=key_pool.keys[0],
+            model=settings.get_vision_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
+            key_pool=key_pool,
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")
@@ -180,7 +269,7 @@ def get_context_llm_provider() -> ContextLLMProviderProtocol | None:
     from app.services.context_providers import GeminiContextProvider
 
     return GeminiContextProvider(
-        api_key=settings.gemini_api_key,
+        api_key=settings.gemini_api_key or settings.get_primary_gemini_api_key(),
         model=settings.llm_model,
         timeout_seconds=float(settings.context_timeout_seconds),
     )
@@ -222,7 +311,7 @@ def get_image_provider() -> ImageProviderProtocol | None:
         from app.services.gemini_image_provider import GeminiImageProvider
 
         return GeminiImageProvider(
-            api_key=settings.gemini_api_key,
+            api_key=settings.gemini_api_key or settings.get_primary_gemini_api_key(),
             model=settings.image_model or "",
             timeout_seconds=float(settings.image_timeout_seconds),
         )

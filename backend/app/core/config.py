@@ -1,8 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import AnyHttpUrl, Field, PositiveInt, SecretStr
+from pydantic import AnyHttpUrl, Field, PositiveInt, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -32,6 +32,10 @@ class Settings(BaseSettings):
 
     vision_provider: Literal["fake", "gemini"] = "fake"
     vision_timeout_seconds: PositiveInt = 30
+    detector_backend: Literal["auto", "fake", "gemini", "yolo_world"] = "auto"
+    yolo_world_model_path: str = "models/yolov8s-worldv2.onnx"
+    yolo_world_confidence_threshold: float = 0.25
+    yolo_world_iou_threshold: float = 0.45
     context_provider: Literal["fallback", "fake", "gemini"] = "fallback"
     context_timeout_seconds: PositiveInt = 15
     weather_provider: Literal["disabled", "fake", "openweather", "openmeteo"] = "disabled"
@@ -40,8 +44,11 @@ class Settings(BaseSettings):
     image_timeout_seconds: Literal[8] = 8
     llm_model: str | None = None
     vision_model: str | None = None
+    detector_model: str | None = None
     image_model: str | None = None
     gemini_api_key: SecretStr | None = None
+    gemini_api_keys: str | list[SecretStr] = Field(default_factory=list)
+    gemini_key_cooldown_seconds: PositiveInt = 60
     weather_api_key: SecretStr | None = None
 
     object_storage_backend: Literal["minio", "local"] = "minio"
@@ -53,6 +60,85 @@ class Settings(BaseSettings):
     minio_bucket_thumbnails: str = "wardrobe-thumbnails"
     minio_bucket_tryon: str = "tryon-private"
     signed_url_ttl_seconds: PositiveInt = 900
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sync_gemini_keys_dict(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "gemini_api_key" in data and data["gemini_api_key"] is None:
+                data["gemini_api_key"] = None
+                data["gemini_api_keys"] = []
+                return data
+            single = data.get("gemini_api_key")
+            plural = data.get("gemini_api_keys")
+            if not single and plural:
+                if isinstance(plural, str):
+                    first = [p.strip() for p in plural.split(",") if p.strip()]
+                    if first:
+                        data["gemini_api_key"] = first[0]
+                elif isinstance(plural, (list, tuple)) and plural:
+                    data["gemini_api_key"] = plural[0]
+        return data
+
+    @field_validator("gemini_api_keys", mode="before")
+    @classmethod
+    def _parse_gemini_api_keys(cls, value: object) -> list[SecretStr]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            trimmed = value.strip()
+            if trimmed.startswith("[") and trimmed.endswith("]"):
+                try:
+                    import json
+                    parsed = json.loads(trimmed)
+                    if isinstance(parsed, list):
+                        return [SecretStr(str(p).strip()) for p in parsed if str(p).strip()]
+                except Exception:
+                    pass
+            parts = [part.strip() for part in trimmed.split(",") if part.strip()]
+            return [SecretStr(p) for p in parts]
+        if isinstance(value, (list, tuple)):
+            result: list[SecretStr] = []
+            for item in value:
+                if isinstance(item, SecretStr):
+                    if item.get_secret_value().strip():
+                        result.append(item)
+                elif isinstance(item, str) and item.strip():
+                    result.append(SecretStr(item.strip()))
+            return result
+        return []
+
+    def get_gemini_api_keys(self) -> list[SecretStr]:
+        """Return non-empty Gemini API keys from gemini_api_keys or gemini_api_key fallback."""
+        raw_keys = self.gemini_api_keys
+        if isinstance(raw_keys, list):
+            active_keys = [k for k in raw_keys if isinstance(k, SecretStr) and k.get_secret_value().strip()]
+        else:
+            active_keys = []
+        if active_keys:
+            return active_keys
+        if self.gemini_api_key and self.gemini_api_key.get_secret_value().strip():
+            return [self.gemini_api_key]
+        return []
+
+    def get_primary_gemini_api_key(self) -> SecretStr | None:
+        """Return the primary Gemini API key (first available key)."""
+        keys = self.get_gemini_api_keys()
+        return keys[0] if keys else None
+
+    def get_detector_model(self) -> str:
+        """Return the model identifier for garment detection, falling back to vision_model."""
+        if self.detector_model and self.detector_model.strip():
+            return self.detector_model.strip()
+        if self.vision_model and self.vision_model.strip():
+            return self.vision_model.strip()
+        return "gemini-1.5-flash"
+
+    def get_vision_model(self) -> str:
+        """Return the model identifier for fashion attribute extraction."""
+        if self.vision_model and self.vision_model.strip():
+            return self.vision_model.strip()
+        return "gemini-1.5-flash"
 
 
 @lru_cache
@@ -66,17 +152,30 @@ def validate_vision_provider_configuration(settings: Settings) -> None:
     """Fail application startup when the selected Vision provider is unusable."""
     if settings.vision_provider != "gemini":
         return
-    if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
+    if not settings.get_gemini_api_keys():
         raise ValueError("VISION_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
     if not settings.vision_model or not settings.vision_model.strip():
         raise ValueError("VISION_PROVIDER is set to 'gemini' but VISION_MODEL is not configured.")
+
+
+def validate_detector_configuration(settings: Settings) -> None:
+    """Fail fast when the selected detector backend configuration is invalid."""
+    backend = settings.vision_provider if settings.detector_backend == "auto" else settings.detector_backend
+    if backend == "gemini":
+        if not settings.get_gemini_api_keys():
+            raise ValueError("DETECTOR_BACKEND is set to 'gemini' but GEMINI_API_KEY is not configured.")
+        if not settings.get_detector_model().strip():
+            raise ValueError("DETECTOR_BACKEND is set to 'gemini' but no detector model is configured.")
+    elif backend == "yolo_world":
+        if not settings.yolo_world_model_path.strip():
+            raise ValueError("DETECTOR_BACKEND is set to 'yolo_world' but YOLO_WORLD_MODEL_PATH is empty.")
 
 
 def validate_context_provider_configuration(settings: Settings) -> None:
     """Fail fast when an explicitly selected context provider is unusable."""
     if settings.context_provider != "gemini":
         return
-    if not settings.gemini_api_key or not settings.gemini_api_key.get_secret_value().strip():
+    if not settings.get_gemini_api_keys():
         raise ValueError("CONTEXT_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")
     if not settings.llm_model or not settings.llm_model.strip():
         raise ValueError("CONTEXT_PROVIDER is set to 'gemini' but LLM_MODEL is not configured.")
@@ -96,8 +195,5 @@ def validate_image_provider_configuration(settings: Settings) -> None:
         return
     if not settings.image_model or not settings.image_model.strip():
         raise ValueError("IMAGE_PROVIDER is enabled but IMAGE_MODEL is not configured.")
-    if settings.image_provider == "gemini" and (
-        not settings.gemini_api_key
-        or not settings.gemini_api_key.get_secret_value().strip()
-    ):
+    if settings.image_provider == "gemini" and not settings.get_gemini_api_keys():
         raise ValueError("IMAGE_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured.")

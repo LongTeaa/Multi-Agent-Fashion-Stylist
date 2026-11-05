@@ -17,6 +17,7 @@ from app.models.entities import (
     VALID_LENGTH_VALUES,
 )
 from app.schemas.common import ProviderError
+from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.providers import (
     BoundingBoxDetection,
     DetectionResult,
@@ -120,15 +121,29 @@ class GeminiDetector:
 
     def __init__(
         self,
-        api_key: SecretStr,
-        model: str,
+        api_key: SecretStr | None = None,
+        model: str | None = None,
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
         max_retries: int = 2,
         initial_backoff_seconds: float = 1.0,
+        *,
+        key_pool: GeminiKeyPool | None = None,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiDetector requires either api_key or key_pool.")
+
+        if not model or not model.strip():
+            from app.core.config import get_settings
+            model = get_settings().get_detector_model()
+
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
@@ -139,7 +154,6 @@ class GeminiDetector:
     def detect(self, image_bytes: bytes) -> DetectionResult:
         """Call Gemini to detect clothing items and determine scene classification."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_image = base64.b64encode(image_bytes).decode("ascii")
         image_mime_type = _detect_image_mime_type(image_bytes)
 
@@ -148,6 +162,7 @@ class GeminiDetector:
             "native box_2d [y_min, x_min, y_max, x_max] format on a 0 to 1000 grid. "
             "For worn outfits or layered clothing, separate each layer into individual garments (e.g. outerwear, inner top, "
             "bottom, shoes/footwear) instead of grouping the entire outfit into a single full-body or full-image box. "
+            "If the image contains a person wearing clothing, ALSO detect the person with a bounding box labeled 'person' covering the wearer's full visible body. "
             "Treat the matching left and right shoes of one pair as ONE wardrobe item with a box enclosing both. "
             "Keep different pairs separate. Do not duplicate the same garment region. "
             "Determine the scene input_kind: 'single_item', 'multi_item', 'worn_outfit', 'cluttered', or 'unknown'. "
@@ -189,8 +204,11 @@ class GeminiDetector:
             },
         }
 
-        for attempt in range(self.max_retries + 1):
+        total_attempts = max(self.max_retries, self.key_pool.total_keys)
+        for attempt in range(total_attempts + 1):
             try:
+                current_key = self.key_pool.get_next_key()
+                headers = {"x-goog-api-key": current_key.get_secret_value()}
                 if self._client is not None:
                     resp = self._client.post(
                         url, headers=headers, json=payload, timeout=self.timeout_seconds
@@ -199,14 +217,50 @@ class GeminiDetector:
                     with httpx.Client(timeout=self.timeout_seconds) as client:
                         resp = client.post(url, headers=headers, json=payload)
 
+                is_rate_limited = (
+                    resp.status_code == 429
+                    or (
+                        resp.status_code in (400, 403, 503)
+                        and any(sig in resp.text for sig in ("RESOURCE_EXHAUSTED", "Quota exceeded", "QUOTA_EXCEEDED"))
+                    )
+                )
+
+                if is_rate_limited:
+                    raw_k = current_key.get_secret_value()
+                    masked = f"{raw_k[:4]}...{raw_k[-4:]}" if len(raw_k) >= 8 else "***"
+                    logger.warning(
+                        "Gemini detector rate limit / 429 on key [%s] (status %d, attempt %d/%d). Marking key into cooldown and rotating...",
+                        masked,
+                        resp.status_code,
+                        attempt + 1,
+                        total_attempts + 1,
+                    )
+                    self.key_pool.mark_rate_limited(current_key)
+                    if attempt < total_attempts:
+                        if self.key_pool.active_keys_count > 0:
+                            time.sleep(0.1)
+                        else:
+                            backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
+                            time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini detector rate limit error %d after %d attempts: %s",
+                        resp.status_code,
+                        total_attempts + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
                 if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
-                    if attempt < self.max_retries:
-                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    if attempt < total_attempts:
+                        backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
                         logger.warning(
                             "Gemini detector HTTP %d on attempt %d/%d; retrying in %.2fs...",
                             resp.status_code,
                             attempt + 1,
-                            self.max_retries + 1,
+                            total_attempts + 1,
                             backoff,
                         )
                         time.sleep(backoff)
@@ -214,7 +268,7 @@ class GeminiDetector:
                     logger.error(
                         "Gemini detector HTTP error %d after %d attempts: %s",
                         resp.status_code,
-                        self.max_retries + 1,
+                        total_attempts + 1,
                         resp.text,
                     )
                     raise ProviderError(
@@ -282,15 +336,29 @@ class GeminiVisionProvider:
 
     def __init__(
         self,
-        api_key: SecretStr,
-        model: str,
+        api_key: SecretStr | None = None,
+        model: str | None = None,
         timeout_seconds: float = 30.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
         max_retries: int = 2,
         initial_backoff_seconds: float = 1.0,
+        *,
+        key_pool: GeminiKeyPool | None = None,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiVisionProvider requires either api_key or key_pool.")
+
+        if not model or not model.strip():
+            from app.core.config import get_settings
+            model = get_settings().get_vision_model()
+
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
@@ -298,12 +366,89 @@ class GeminiVisionProvider:
         self.max_retries = max_retries
         self.initial_backoff_seconds = initial_backoff_seconds
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
+
+        spatial_section = ""
+        if spatial_context:
+            box = spatial_context.get("box", [0.0, 0.0, 1.0, 1.0])
+            ymin, ymax = box[1], box[3]
+            rel_h = spatial_context.get("relative_height_percent", round((ymax - ymin) * 100, 1))
+            rel_w = spatial_context.get("relative_width_percent", 0.0)
+            aspect_ratio = spatial_context.get("aspect_ratio")
+            shape_type = spatial_context.get("shape_type")
+            body_zone = spatial_context.get("estimated_body_zone")
+            scene_kind = spatial_context.get("scene_kind", "unknown")
+            detected_label = spatial_context.get("detected_label", "clothing")
+            person_relative = spatial_context.get("person_relative", False)
+            flat_lay_rank = spatial_context.get("flat_lay_rank")
+
+            extra_lines: list[str] = []
+            if aspect_ratio is not None and shape_type is not None:
+                extra_lines.append(f"- Garment proportion: aspect ratio {aspect_ratio} ({shape_type})")
+
+            if person_relative and "person_relative_y_min" in spatial_context:
+                py_min = spatial_context["person_relative_y_min"]
+                py_max = spatial_context["person_relative_y_max"]
+                py_span = spatial_context.get("person_relative_height_percent", 0.0)
+                extra_lines.append(
+                    f"- Wearer-relative vertical span: from {py_min*100:.1f}% to {py_max*100:.1f}% of person height (spans {py_span}% of wearer body)"
+                )
+                if body_zone and body_zone not in ("unknown", "not_applicable"):
+                    extra_lines.append(f"- Anatomical/body position: {body_zone}")
+                extra_lines.append(
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * LENGTH: Correlate wearer-relative span and anatomy:\n"
+                    "    - Upper body with span < 25% or ending above waist -> 'cropped' (crop-top)\n"
+                    "    - Upper body ending around belt level -> 'waist'\n"
+                    "    - Standard upper body extending to hips -> 'hip'\n"
+                    "    - Lower body ending above knee -> 'cropped' (shorts/mini-skirt)\n"
+                    "    - Lower body extending down to calf/ankle -> 'long' (trousers/maxi-skirt)\n"
+                    "    - Continuous full body spanning from shoulder past knees (> 50% person height) -> dress or long outerwear\n"
+                    "  * SILHOUETTE_LEVEL: Contrast garment width against wearer torso/limbs (1=skin-tight to 5=oversized/baggy)\n"
+                    "  * CATEGORY: Use anatomical placement to resolve ambiguities (e.g. feet_footwear -> footwear, lower_body_legs -> bottom)\n"
+                    "  * VISUAL PRIORITY PRINCIPLE: Use spatial context as structural guidance. If visible clothing construction (waistbands, hems, seams, silhouettes) clearly indicates a specific style or if the wearer is seated/posing dynamically, always prioritize visible clothing construction over bounding box coordinates."
+                )
+            elif body_zone and body_zone not in ("unknown", "not_applicable"):
+                # Fallback worn outfit without person box
+                extra_lines.append(f"- Anatomical/body position: {body_zone}")
+                extra_lines.append(
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * LENGTH: Correlate vertical coverage and span with human body anatomy:\n"
+                    "    - 'cropped': small vertical span ending above normal waist/hip (e.g. crop-top, shorts, mini skirt, culottes)\n"
+                    "    - 'waist': ends right at the waistline/belt level\n"
+                    "    - 'hip': standard length covering hip/seat\n"
+                    "    - 'long': extended vertical span covering thighs down to knees, calves, or ankles/floor\n"
+                    "  * SILHOUETTE_LEVEL: Consider horizontal width relative to body zone (1=skin-tight to 5=baggy/oversized)\n"
+                    "  * CATEGORY: Use anatomical position to resolve ambiguities (e.g. feet_footwear implies footwear, upper implies top/outerwear)\n"
+                    "  * VISUAL PRIORITY PRINCIPLE: Use spatial context as structural guidance. If visible clothing construction (waistbands, hems, seams, silhouettes) clearly indicates a specific style or if the wearer is seated/posing dynamically, always prioritize visible clothing construction over bounding box coordinates."
+                )
+            elif flat_lay_rank:
+                extra_lines.append(f"- Flat-lay arrangement layer: {flat_lay_rank} (items laid flat on surface)")
+                extra_lines.append(
+                    "- SPATIAL REASONING GUIDANCE FOR ATTRIBUTES:\n"
+                    "  * Garment is laid flat: determine category and length from intrinsic garment proportion and geometry rather than wearer anatomy"
+                )
+
+            formatted_extras = "\n".join(extra_lines)
+            if formatted_extras:
+                formatted_extras = "\n" + formatted_extras
+
+            spatial_section = (
+                "\n\nSPATIAL CONTEXT FROM ORIGINAL FULL-FRAME IMAGE:\n"
+                f"- Original frame scene kind: {scene_kind}\n"
+                f"- Initial detected region label: {detected_label}\n"
+                f"- Vertical coordinates on full frame: y_min={ymin:.2f}, y_max={ymax:.2f} (spans {rel_h}% of total frame height)\n"
+                f"- Horizontal width: spans {rel_w}% of frame width"
+                f"{formatted_extras}"
+            )
 
         prompt = (
             "Analyze this cropped clothing item in high detail for a digital fashion stylist wardrobe. "
@@ -331,7 +476,8 @@ class GeminiVisionProvider:
             "- season: list of suitable seasons from [spring, summer, fall, winter, all_year]\n"
             "- weather_suitability: list of weather types from [hot, warm, mild, cool, cold, rainy, sunny]\n"
             "- functional_flags: list of applicable functional tags from [movement, outdoor, sun, rain, work, sport, protection, water_resistant, heavy, light]\n"
-            "- free_text_tags: list of short descriptive tags\n\n"
+            "- free_text_tags: list of short descriptive tags\n"
+            f"{spatial_section}\n"
             "Provide field_confidence: dictionary mapping field names to confidence scores between 0.0 and 1.0.\n"
             "Return a JSON object with keys: 'attributes', 'field_confidence', and 'quality_warnings'."
         )
@@ -355,8 +501,11 @@ class GeminiVisionProvider:
             },
         }
 
-        for attempt in range(self.max_retries + 1):
+        total_attempts = max(self.max_retries, self.key_pool.total_keys)
+        for attempt in range(total_attempts + 1):
             try:
+                current_key = self.key_pool.get_next_key()
+                headers = {"x-goog-api-key": current_key.get_secret_value()}
                 if self._client is not None:
                     resp = self._client.post(
                         url, headers=headers, json=payload, timeout=self.timeout_seconds
@@ -365,14 +514,50 @@ class GeminiVisionProvider:
                     with httpx.Client(timeout=self.timeout_seconds) as client:
                         resp = client.post(url, headers=headers, json=payload)
 
+                is_rate_limited = (
+                    resp.status_code == 429
+                    or (
+                        resp.status_code in (400, 403, 503)
+                        and any(sig in resp.text for sig in ("RESOURCE_EXHAUSTED", "Quota exceeded", "QUOTA_EXCEEDED"))
+                    )
+                )
+
+                if is_rate_limited:
+                    raw_k = current_key.get_secret_value()
+                    masked = f"{raw_k[:4]}...{raw_k[-4:]}" if len(raw_k) >= 8 else "***"
+                    logger.warning(
+                        "Gemini vision provider rate limit / 429 on key [%s] (status %d, attempt %d/%d). Marking key into cooldown and rotating...",
+                        masked,
+                        resp.status_code,
+                        attempt + 1,
+                        total_attempts + 1,
+                    )
+                    self.key_pool.mark_rate_limited(current_key)
+                    if attempt < total_attempts:
+                        if self.key_pool.active_keys_count > 0:
+                            time.sleep(0.1)
+                        else:
+                            backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
+                            time.sleep(backoff)
+                        continue
+                    logger.error(
+                        "Gemini vision provider rate limit error %d after %d attempts: %s",
+                        resp.status_code,
+                        total_attempts + 1,
+                        resp.text,
+                    )
+                    raise ProviderError(
+                        f"Dịch vụ AI trích xuất thuộc tính tạm thời không khả dụng: HTTP {resp.status_code}."
+                    )
+
                 if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
-                    if attempt < self.max_retries:
-                        backoff = self.initial_backoff_seconds * (2 ** attempt)
+                    if attempt < total_attempts:
+                        backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
                         logger.warning(
                             "Gemini vision provider HTTP %d on attempt %d/%d; retrying in %.2fs...",
                             resp.status_code,
                             attempt + 1,
-                            self.max_retries + 1,
+                            total_attempts + 1,
                             backoff,
                         )
                         time.sleep(backoff)
@@ -380,7 +565,7 @@ class GeminiVisionProvider:
                     logger.error(
                         "Gemini vision provider HTTP error %d after %d attempts: %s",
                         resp.status_code,
-                        self.max_retries + 1,
+                        total_attempts + 1,
                         resp.text,
                     )
                     raise ProviderError(

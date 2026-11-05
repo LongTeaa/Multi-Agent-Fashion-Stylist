@@ -37,6 +37,19 @@ upload batch
 
 The system MUST NOT persist a wardrobe item solely from AI output without explicit user confirmation.
 
+`DETECTOR_BACKEND=auto` follows `VISION_PROVIDER` for backward-compatible default
+selection. Explicit `fake`, `gemini`, and `yolo_world` selections take precedence
+independently of the attribute extractor; local detection MAY be combined with
+the fake attribute provider for offline demonstrations. Detectors MUST return
+unexpanded source rectangles. Effective crop margins are applied centrally by the
+policy below, after retaining the raw detector rectangle. YOLO detection does not
+apply an additional blanket padding setting. Duplicate suppression MUST preserve
+distinct overlapping garment layers, such as an inner shirt and outer jacket.
+Person rectangles are spatial references only. When no garment regions are found,
+the batch MUST use the explicitly warned manual-review fallback rather than treat
+the person as a successfully isolated item. Garment aspect ratios used as extraction
+hints MUST account for the source image's pixel width and height.
+
 Detections MUST retain their original media identifier independently of crop
 identifiers. Multi-photo review MUST offer source selection and show regions only
 on the matching source. Phone EXIF orientation MUST be normalized before storing

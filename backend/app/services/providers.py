@@ -23,6 +23,7 @@ class DetectionResult:
     input_kind: InputKind
     boxes: list[BoundingBoxDetection] = field(default_factory=list)
     quality_warnings: list[str] = field(default_factory=list)
+    person_box: BoundingBox | None = None
     input_kind_inferred: bool = False
 
 
@@ -46,7 +47,11 @@ class DetectorProtocol(Protocol):
 class VisionProviderProtocol(Protocol):
     """Protocol for extracting fashion attributes and confidence scores from an item crop."""
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult: ...
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult: ...
 
 
 @dataclass(frozen=True)
