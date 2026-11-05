@@ -67,13 +67,21 @@ def compute_spatial_context(
     detected_label: str | None = None,
     person_box: tuple[float, float, float, float] | None = None,
     all_boxes: list[tuple[float, float, float, float]] | None = None,
+    source_dimensions: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
-    """Compute spatial layout metrics, person-relative body zones, and flat-lay relative geometry."""
+    """Compute layout metrics using source pixels for garment proportions.
+
+    Callers without source dimensions retain the historical square-frame
+    assumption. Image-processing callers must supply the oriented source size.
+    """
     xmin, ymin, xmax, ymax = box
     width = round(max(0.0, xmax - xmin), 4)
     height = round(max(0.0, ymax - ymin), 4)
     center_y = round((ymin + ymax) / 2.0, 4)
-    aspect_ratio = round(width / max(0.001, height), 2)
+    source_width, source_height = source_dimensions or (1, 1)
+    aspect_ratio = round(
+        (width * source_width) / max(0.001, height * source_height), 2
+    )
 
     # Classify garment shape proportion from aspect ratio
     if aspect_ratio >= 1.15:
@@ -497,6 +505,9 @@ def process_ingestion_batch(
                     detected_label=box_det.label,
                     person_box=detection_res.person_box if detection_res is not None else None,
                     all_boxes=all_candidate_boxes,
+                    source_dimensions=(asset.width, asset.height)
+                    if asset.width and asset.height
+                    else None,
                 )
                 try:
                     extraction = vision_provider.extract_attributes(

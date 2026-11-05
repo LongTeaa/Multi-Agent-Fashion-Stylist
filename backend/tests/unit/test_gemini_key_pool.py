@@ -299,4 +299,3 @@ def test_settings_sync_when_only_gemini_api_keys_provided(monkeypatch: pytest.Mo
     assert len(settings.gemini_api_keys) == 2
     assert settings.get_primary_gemini_api_key() is not None
     assert settings.get_primary_gemini_api_key().get_secret_value() == "pool-key-1"
-

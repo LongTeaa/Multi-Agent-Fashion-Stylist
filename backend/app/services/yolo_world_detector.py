@@ -109,7 +109,6 @@ class YoloWorldDetector:
         model_path: str = "models/yolov8s-worldv2.onnx",
         confidence_threshold: float = 0.25,
         iou_threshold: float = 0.45,
-        padding: float = 0.05,
         classes: list[str] | None = None,
         session: ort.InferenceSession | None = None,
         intra_op_num_threads: int = 4,
@@ -117,7 +116,6 @@ class YoloWorldDetector:
         self.model_path = model_path
         self.confidence_threshold = float(confidence_threshold)
         self.iou_threshold = float(iou_threshold)
-        self.padding = float(padding)
         self.classes = list(classes) if classes is not None else list(DEFAULT_FASHION_CLASSES)
 
         if session is not None:
@@ -283,21 +281,24 @@ class YoloWorldDetector:
         if total_classes > len(self.classes) and total_classes <= len(COCO_80_CLASSES):
             active_vocab = COCO_80_CLASSES
 
-        # Cross-class suppression for overlapping garment boxes
-        # Suppress duplicate detections of synonyms (e.g. pants vs trousers, shoes vs sneakers, clothing vs shirt)
-        is_person = np.array([
-            (active_vocab[cls_id].lower() in {'person', 'human', 'model', 'man', 'woman'})
-            if 0 <= cls_id < len(active_vocab) else False
-            for cls_id in kept_classes
-        ], dtype=bool)
-
-        garment_indices = np.where(~is_person)[0]
-        if len(garment_indices) > 1:
-            g_boxes = kept_boxes[garment_indices]
-            g_scores = kept_scores[garment_indices]
-            g_keep_rel = _nms(g_boxes, g_scores, self.iou_threshold)
-            g_keep_indices = set(garment_indices[g_keep_rel])
-            final_keep = [i for i in range(len(kept_boxes)) if is_person[i] or i in g_keep_indices]
+        # Cross-class NMS is limited to genuine aliases. A shirt and jacket,
+        # or a shirt and t-shirt, may be distinct layers with the same outline.
+        # Generic labels such as "clothing" do not identify a safe alias group.
+        synonym_groups = (frozenset({"pants", "trousers"}),)
+        suppressed: set[int] = set()
+        for synonyms in synonym_groups:
+            indices = [
+                i for i, cls_id in enumerate(kept_classes)
+                if 0 <= cls_id < len(active_vocab)
+                and active_vocab[cls_id].lower() in synonyms
+            ]
+            if len(indices) < 2:
+                continue
+            keep_relative = _nms(kept_boxes[indices], kept_scores[indices], self.iou_threshold)
+            keep_group = {indices[i] for i in keep_relative}
+            suppressed.update(set(indices) - keep_group)
+        if suppressed:
+            final_keep = [i for i in range(len(kept_boxes)) if i not in suppressed]
             kept_boxes = kept_boxes[final_keep]
             kept_scores = kept_scores[final_keep]
             kept_classes = kept_classes[final_keep]
@@ -316,16 +317,12 @@ class YoloWorldDetector:
             orig_x2 = (box[2] - pad_x) / scale
             orig_y2 = (box[3] - pad_y) / scale
 
-            # Bounding Box Padding (+5% default)
-            bw = orig_x2 - orig_x1
-            bh = orig_y2 - orig_y1
-            pad_w = bw * self.padding
-            pad_h = bh * self.padding
-
-            px1 = max(0.0, orig_x1 - pad_w)
-            py1 = max(0.0, orig_y1 - pad_h)
-            px2 = min(float(orig_w), orig_x2 + pad_w)
-            py2 = min(float(orig_h), orig_y2 + pad_h)
+            # Return the raw detector rectangle. Crop policy is applied by
+            # ingestion after this rectangle has been retained independently.
+            px1 = max(0.0, orig_x1)
+            py1 = max(0.0, orig_y1)
+            px2 = min(float(orig_w), orig_x2)
+            py2 = min(float(orig_h), orig_y2)
 
             if px2 <= px1 or py2 <= py1:
                 continue
@@ -335,6 +332,8 @@ class YoloWorldDetector:
             norm_y1 = max(0.0, min(1.0, round(py1 / orig_h, 4)))
             norm_x2 = max(norm_x1, min(1.0, round(px2 / orig_w, 4)))
             norm_y2 = max(norm_y1, min(1.0, round(py2 / orig_h, 4)))
+            if norm_x2 <= norm_x1 or norm_y2 <= norm_y1:
+                continue
 
             canonical_box: BoundingBox = (
                 ConfidenceValue(norm_x1),

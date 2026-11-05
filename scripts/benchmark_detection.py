@@ -58,7 +58,6 @@ def run_benchmark(
         model_path=str(model_path),
         confidence_threshold=0.20,
         iou_threshold=0.45,
-        padding=0.05,
     )
     load_time_ms = (time.perf_counter() - t0) * 1000
     print(f"Model loaded successfully in {load_time_ms:.1f}ms\n")

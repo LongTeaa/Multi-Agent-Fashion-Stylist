@@ -14,7 +14,6 @@ EXPECTED_ENV_KEYS = {
     "YOLO_WORLD_MODEL_PATH",
     "YOLO_WORLD_CONFIDENCE_THRESHOLD",
     "YOLO_WORLD_IOU_THRESHOLD",
-    "YOLO_WORLD_PADDING",
     "CONTEXT_PROVIDER",
     "CONTEXT_TIMEOUT_SECONDS",
     "WEATHER_PROVIDER",
@@ -52,11 +51,10 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.object_storage_backend == "minio"
     assert settings.vision_provider == "fake"
     assert settings.vision_timeout_seconds == 30
-    assert settings.detector_backend == "gemini"
+    assert settings.detector_backend == "auto"
     assert settings.yolo_world_model_path == "models/yolov8s-worldv2.onnx"
     assert settings.yolo_world_confidence_threshold == 0.25
     assert settings.yolo_world_iou_threshold == 0.45
-    assert settings.yolo_world_padding == 0.05
     assert settings.context_provider == "fallback"
     assert settings.context_timeout_seconds == 15
     assert settings.weather_provider == "disabled"

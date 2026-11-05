@@ -32,11 +32,10 @@ class Settings(BaseSettings):
 
     vision_provider: Literal["fake", "gemini"] = "fake"
     vision_timeout_seconds: PositiveInt = 30
-    detector_backend: Literal["fake", "gemini", "yolo_world"] = "gemini"
+    detector_backend: Literal["auto", "fake", "gemini", "yolo_world"] = "auto"
     yolo_world_model_path: str = "models/yolov8s-worldv2.onnx"
     yolo_world_confidence_threshold: float = 0.25
     yolo_world_iou_threshold: float = 0.45
-    yolo_world_padding: float = 0.05
     context_provider: Literal["fallback", "fake", "gemini"] = "fallback"
     context_timeout_seconds: PositiveInt = 15
     weather_provider: Literal["disabled", "fake", "openweather", "openmeteo"] = "disabled"
@@ -161,12 +160,13 @@ def validate_vision_provider_configuration(settings: Settings) -> None:
 
 def validate_detector_configuration(settings: Settings) -> None:
     """Fail fast when the selected detector backend configuration is invalid."""
-    if settings.detector_backend == "gemini":
+    backend = settings.vision_provider if settings.detector_backend == "auto" else settings.detector_backend
+    if backend == "gemini":
         if not settings.get_gemini_api_keys():
             raise ValueError("DETECTOR_BACKEND is set to 'gemini' but GEMINI_API_KEY is not configured.")
         if not settings.get_detector_model().strip():
             raise ValueError("DETECTOR_BACKEND is set to 'gemini' but no detector model is configured.")
-    elif settings.detector_backend == "yolo_world":
+    elif backend == "yolo_world":
         if not settings.yolo_world_model_path.strip():
             raise ValueError("DETECTOR_BACKEND is set to 'yolo_world' but YOLO_WORLD_MODEL_PATH is empty.")
 

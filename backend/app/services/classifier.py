@@ -41,7 +41,7 @@ def find_primary_wearer(
     garment_boxes: list[BoundingBoxDetection],
 ) -> tuple[float, float, float, float] | None:
     """Identify the primary wearer from candidate person boxes based on garment containment.
-    
+
     In multi-person or street scenes, bystander boxes may appear larger than the actual wearer.
     The primary wearer is the person containing the highest count of detected garments with
     significant overlap, breaking ties by total overlap ratio and box area.
@@ -146,14 +146,18 @@ def classify_scene(
             else:
                 resolved_kind = InputKind.CLUTTERED
 
-    # 5. Exclude person box from clothing items to crop into wardrobe
-    # (If no garment boxes exist at all, preserve person_boxes as provisional fallback)
-    final_boxes = garment_boxes if garment_boxes else person_boxes
+    # Person boxes are spatial references, never garment candidates. Returning no
+    # garments activates ingestion's explicitly warned manual-review fallback.
+    quality_warnings = list(result.quality_warnings)
+    if detected_person_box is not None and not garment_boxes:
+        warning = "Không thể tách riêng trang phục trên người. Vui lòng chỉnh vùng cắt hoặc tải ảnh rõ hơn."
+        if warning not in quality_warnings:
+            quality_warnings.append(warning)
 
     return DetectionResult(
         input_kind=resolved_kind,
-        boxes=final_boxes,
-        quality_warnings=result.quality_warnings,
+        boxes=garment_boxes,
+        quality_warnings=quality_warnings,
         person_box=detected_person_box,
         input_kind_inferred=result.input_kind_inferred or result.input_kind == InputKind.UNKNOWN,
     )

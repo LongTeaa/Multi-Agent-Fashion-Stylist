@@ -101,8 +101,8 @@ class TestYoloWorldDetectorPreprocessing:
             detector._preprocess(b"corrupted_invalid_data")
 
 
-class TestYoloWorldNmsAndPadding:
-    """Tests for vectorised NMS suppression and Bounding Box Padding."""
+class TestYoloWorldNmsAndRawCoordinates:
+    """Tests for NMS suppression and unexpanded detector rectangles."""
 
     def test_nms_suppresses_high_iou_duplicates(self) -> None:
         # Two boxes heavily overlapping (IoU > 0.8)
@@ -130,12 +130,12 @@ class TestYoloWorldNmsAndPadding:
         keep = _nms(np.empty((0, 4), dtype=np.float32), np.empty((0,), dtype=np.float32), 0.45)
         assert keep == []
 
-    def test_bbox_padding_and_canonical_clamping(self) -> None:
+    def test_raw_bbox_and_canonical_clamping(self) -> None:
         mock_sess = MagicMock()
         mock_input = MagicMock()
         mock_input.name = "images"
         mock_sess.get_inputs.return_value = [mock_input]
-        detector = YoloWorldDetector(session=mock_sess, padding=0.10)
+        detector = YoloWorldDetector(session=mock_sess)
 
         raw = np.zeros((1, 22, 1), dtype=np.float32)
         raw[0, 0, 0] = 55.0   # cx
@@ -159,6 +159,76 @@ class TestYoloWorldNmsAndPadding:
             assert 0.0 <= coord <= 1.0
         assert b.box[0] <= b.box[2]
         assert b.box[1] <= b.box[3]
+        assert b.box == pytest.approx((0.0156, 0.0156, 0.1562, 0.1562))
+
+    @pytest.mark.parametrize(
+        ("source_size", "raw_box", "scale", "pad_x", "pad_y"),
+        [
+            ((400, 800), (240, 160, 400, 320), 0.8, 160.0, 0.0),
+            ((800, 400), (160, 240, 320, 400), 0.8, 0.0, 160.0),
+        ],
+    )
+    def test_raw_source_rectangle_survives_letterbox_mapping(
+        self,
+        source_size: tuple[int, int],
+        raw_box: tuple[int, int, int, int],
+        scale: float,
+        pad_x: float,
+        pad_y: float,
+    ) -> None:
+        session = MagicMock()
+        session.get_inputs.return_value = [MagicMock(name="images")]
+        detector = YoloWorldDetector(session=session)
+        raw = np.array([[*raw_box, 0.95, 3]], dtype=np.float32)
+
+        boxes = detector._postprocess(
+            [raw], scale, pad_x, pad_y, source_size[0], source_size[1]
+        )
+
+        assert len(boxes) == 1
+        expected = (0.25, 0.25, 0.75, 0.5) if source_size[0] == 400 else (0.25, 0.25, 0.5, 0.75)
+        assert boxes[0].box == pytest.approx(expected)
+
+    @pytest.mark.parametrize("class_pair", [(5, 3), (3, 4), (7, 4), (1, 5)])
+    def test_nms_preserves_distinct_overlapping_layers(
+        self, class_pair: tuple[int, int]
+    ) -> None:
+        session = MagicMock()
+        session.get_inputs.return_value = [MagicMock(name="images")]
+        detector = YoloWorldDetector(session=session)
+        raw = np.array([
+            [150, 120, 450, 420, 0.95, class_pair[0]],
+            [160, 130, 440, 410, 0.90, class_pair[1]],
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+
+        assert {b.label for b in boxes} == {DEFAULT_FASHION_CLASSES[i] for i in class_pair}
+        assert len(boxes) == 2
+
+    def test_disjoint_alias_boxes_remain_separate_items(self) -> None:
+        session = MagicMock()
+        session.get_inputs.return_value = [MagicMock(name="images")]
+        detector = YoloWorldDetector(session=session)
+        raw = np.array([
+            [50, 50, 150, 250, 0.95, 8],
+            [350, 50, 450, 250, 0.90, 9],
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+
+        assert [b.label for b in boxes] == ["pants", "trousers"]
+
+    def test_outside_source_boxes_are_clipped_without_expansion(self) -> None:
+        session = MagicMock()
+        session.get_inputs.return_value = [MagicMock(name="images")]
+        detector = YoloWorldDetector(session=session)
+        raw = np.array([[-10, -20, 650, 660, 0.95, 3]], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+
+        assert len(boxes) == 1
+        assert boxes[0].box == (0.0, 0.0, 1.0, 1.0)
 
 
 class TestYoloWorldEndToEndInference:

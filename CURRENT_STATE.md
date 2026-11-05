@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 2 Follow-up — Wardrobe Ingestion Optimization & Main Reconciliation |
-| Active task | Reconcile origin/main into feat/optimize-wardrobe-ingestion; integrate local YOLO-World ONNX detector, Gemini API key rotation pool, person-relative spatial metrics, and upgrade database schema to revision 0012. Lecturer-plan draft and research docs remain untracked and excluded. |
-| Most recently modified files | backend/app/core/config.py, backend/app/core/dependencies.py, backend/app/services/classifier.py, backend/app/services/gemini_provider.py, backend/app/services/ingestion_service.py, backend/app/services/providers.py, backend/app/services/yolo_world_detector.py, backend/tests/conftest.py, backend/tests/unit/test_yolo_world_detector.py, CURRENT_STATE.md. |
-| Latest passing verification command | 2026-11-05: backend .venv/Scripts/python.exe -m pytest tests/unit -q: 495 passed, 18 warnings (237.64s); YOLO-World CPU detection benchmark: ~230ms/image (scripts/benchmark_detection.py); alembic upgrade head: revision 0012 (detection_raw_box). |
-| Next step | Push feat/optimize-wardrobe-ingestion to remote origin and open Pull Request into main. Verify end-to-end multi-photo review workflow on frontend with DETECTOR_BACKEND=yolo_world. |
+| Current phase | Phase 7 — Evaluation and Acceptance (ingestion follow-up hardening) |
+| Active task | Completed and verified all five PR #7 review corrections: independent detector selection, layer-preserving NMS, raw-coordinate preservation, pixel aspect ratios, and warned person-only fallback. Publication and merge are explicitly authorized by the user. No application fixes remain pending. |
+| Most recently modified files | backend/app/core/config.py, backend/app/core/dependencies.py, backend/app/services/classifier.py, backend/app/services/ingestion_service.py, backend/app/services/yolo_world_detector.py; backend regression tests; .env.example; scripts/benchmark_detection.py; docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md; docs/07_implementation/PR_7_REVIEW_2026-11-05.md; CURRENT_STATE.md. |
+| Latest passing verification command | 2026-11-05, PR worktree: full backend python -m pytest tests -q -m "not live_provider" --tb=short --maxfail=1 --basetemp <new short workspace directory>: 750 passed, 32 warnings (85.38s). Frontend npm run test -- --run: 109 passed; npm run test:e2e: 9 passed (39.4s). Focused regressions: 87 passed. Real ONNX inference through explicit YOLO selection with fake extraction passed. Earlier environment failures are superseded by these completed runs. |
+| Next step | Complete the authorized publication/merge using the verified PR head, then verify remote status and synchronize local main. Before deployment, retain the migration caveat in MAIN_RECONCILIATION_2026-11-03.md. Authenticated Gemini extraction and real-image YOLO accuracy remain separate opt-in evaluations; no new accuracy claim is made. Keep lecturer-plan and review runtime artifacts excluded. |
 
 ## Update Rules
 

@@ -13,6 +13,36 @@ from app.services.fakes.vision_fakes import FakeVisionProvider
 from app.services.ingestion_service import compute_spatial_context
 
 
+def test_square_crop_in_portrait_source_uses_pixel_aspect_ratio() -> None:
+    context = compute_spatial_context(
+        box=(0.25, 0.25, 0.75, 0.5),
+        source_dimensions=(400, 800),
+    )
+
+    assert context["aspect_ratio"] == 1.0
+    assert context["shape_type"] == "standard_square"
+
+
+def test_square_crop_in_landscape_source_uses_pixel_aspect_ratio() -> None:
+    context = compute_spatial_context(
+        box=(0.25, 0.25, 0.5, 0.75),
+        source_dimensions=(800, 400),
+    )
+
+    assert context["aspect_ratio"] == 1.0
+    assert context["shape_type"] == "standard_square"
+
+
+def test_portrait_source_preserves_vertical_garment_proportion() -> None:
+    context = compute_spatial_context(
+        box=(0.2188, 0.1875, 0.7812, 0.6562),
+        source_dimensions=(400, 800),
+    )
+
+    assert context["aspect_ratio"] == 0.6
+    assert context["shape_type"] == "tall_vertical"
+
+
 def test_compute_spatial_context_zones_and_metrics() -> None:
     # 1. Upper body (shirt / hat) in worn_outfit
     upper_box = (0.15, 0.05, 0.85, 0.35)
@@ -448,6 +478,8 @@ def test_process_ingestion_batch_passes_detected_kind_to_vision_provider() -> No
 
     asset = MagicMock()
     asset.id = "asset-123"
+    asset.width = 100
+    asset.height = 100
     asset.user_id = "user-123"
     asset.ingestion_batch_id = "batch-123"
     asset.kind = MediaKind.ORIGINAL
@@ -570,6 +602,8 @@ def test_process_ingestion_batch_passes_person_box_and_all_boxes_to_spatial_cont
 
     asset = MagicMock()
     asset.id = "asset-pbox"
+    asset.width = 100
+    asset.height = 100
     asset.user_id = "user-pbox"
     asset.ingestion_batch_id = "batch-pbox"
     asset.kind = MediaKind.ORIGINAL

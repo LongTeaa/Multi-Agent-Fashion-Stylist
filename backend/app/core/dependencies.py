@@ -148,7 +148,7 @@ def get_gemini_key_pool(settings: Settings | None = None) -> Any:
 logger = logging.getLogger(__name__)
 
 _yolo_world_detector_instance: DetectorProtocol | None = None
-_yolo_world_detector_signature: tuple[str, float, float, float] | None = None
+_yolo_world_detector_signature: tuple[str, float, float] | None = None
 
 
 def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtocol:
@@ -161,7 +161,6 @@ def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtoco
         settings.yolo_world_model_path,
         float(settings.yolo_world_confidence_threshold),
         float(settings.yolo_world_iou_threshold),
-        float(settings.yolo_world_padding),
     )
 
     if _yolo_world_detector_instance is None or _yolo_world_detector_signature != current_sig:
@@ -171,7 +170,6 @@ def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtoco
             model_path=settings.yolo_world_model_path,
             confidence_threshold=settings.yolo_world_confidence_threshold,
             iou_threshold=settings.yolo_world_iou_threshold,
-            padding=settings.yolo_world_padding,
         )
         _yolo_world_detector_signature = current_sig
 
@@ -179,15 +177,16 @@ def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtoco
 
 
 def get_detector() -> DetectorProtocol:
-    """Return the vision detector instance based on configured DETECTOR_BACKEND or VISION_PROVIDER."""
+    """Honor explicit detector selection; auto follows the Vision provider for compatibility."""
     settings = get_settings()
+    backend = settings.vision_provider if settings.detector_backend == "auto" else settings.detector_backend
 
-    if settings.detector_backend == "fake" or settings.vision_provider == "fake":
+    if backend == "fake":
         from app.services.fakes.vision_fakes import FakeDetector
 
         return FakeDetector(mode="multi_item")
 
-    if settings.detector_backend == "yolo_world":
+    if backend == "yolo_world":
         validate_detector_configuration(settings)
         from pathlib import Path
 
@@ -209,8 +208,9 @@ def get_detector() -> DetectorProtocol:
                 )
         return get_yolo_world_detector(settings)
 
-    if settings.detector_backend == "gemini":
-        validate_vision_provider_configuration(settings)
+    if backend == "gemini":
+        if settings.detector_backend == "auto":
+            validate_vision_provider_configuration(settings)
         validate_detector_configuration(settings)
 
         from app.services.gemini_provider import GeminiDetector
