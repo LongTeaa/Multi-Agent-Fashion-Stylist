@@ -15,7 +15,7 @@ Business logic MUST persist `object_key` references, not absolute filesystem pat
 | :--- | :--- | :--- |
 | `wardrobe-private` | Original uploads and item crops | Private |
 | `wardrobe-thumbnails` | Optimized thumbnails | Private; short-lived signed URL or media proxy |
-| `tryon-private` | Generated lookbooks and moodboards | Private |
+| `tryon-private` | Generated lookbooks, virtual try-on renders, and user avatar photos | Private |
 
 Normative key convention:
 
@@ -24,6 +24,7 @@ users/{user_id}/ingestions/{batch_id}/original/{asset_id}.{ext}
 users/{user_id}/items/{item_id}/crop/{version}.{ext}
 users/{user_id}/items/{item_id}/thumbnail/{version}.webp
 users/{user_id}/tryons/{tryon_id}/render.webp
+users/{user_id}/avatars/{avatar_id}/source.webp
 ```
 
 An object key MUST NOT contain an email address, real name, or original client filename.

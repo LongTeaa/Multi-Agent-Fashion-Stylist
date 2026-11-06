@@ -25,7 +25,7 @@ independent human/inter-rater review. Rectangles remain coarse rather than masks
 The old trouser left edge was at pixel 112.56 and included substantial background
 and hand area. The revised left edge encloses the visible garment extent. The
 shoe reference is restricted to the visible pair, whose lower boundary is already
-truncated by the original image edge. Reference crops were inspected locally.
+truncated by the original image edge. Reference crops MUST be inspected locally.
 
 Reassessing the **same frozen predictions**, with unchanged IoU >= 0.5 and
 retention >= 0.9, changes matched regions from 0/2 to 2/2. This is an annotation

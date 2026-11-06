@@ -29,7 +29,7 @@ The tested sequence is:
 
 1. Context interprets occasion, time/date, location, environment, explicit constraints and weather provenance. Ambiguous requests can ask for clarification.
 2. Weather uses the requested city and date/time bucket only when the user did not already provide weather. Failure returns a warning and retains user/default data.
-3. Wardrobe retrieves only active, user-confirmed items owned by that user. Weather/formality relaxation is explicit; garment constraints are rechecked on complete outfits.
+3. Wardrobe MUST retrieve only active, user-confirmed items owned by that user. Weather/formality relaxation is explicit; garment constraints are rechecked on complete outfits.
 4. Fashion constructs `top + bottom + footwear` or `dress + footwear`, keeps valid branches, applies the documented color/style/proportion/formality/weather/function rules, and shortlists with context weights.
 5. Personalization uses saved preferences, bounded fit signal, ratings/wear history and diversity. Coordinator validates ownership/completeness again and persists outfit IDs before success.
 

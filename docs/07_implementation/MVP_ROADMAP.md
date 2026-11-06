@@ -164,6 +164,7 @@ Specification files:
 - [x] Measure Vision accuracy, Context F1, Recall@10, grounding, isolation, and latency.
 - [x] Verify 375 px responsive behavior and baseline accessibility.
 - [x] Record dataset, rule-set, and optional live provider/model versions in the thesis results.
+- [x] Integrate 2D Virtual Try-On via FASHN VTON v1.5 with Moodboard fallback and avatar management.
 
 Final verification MUST complete upload -> confirmation -> retrieval -> chat -> persistence -> save/worn -> cadence rating -> try-on/fallback with all MVP quality gates satisfied.
 

@@ -188,7 +188,7 @@ One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`
 
 ### 3.15 `tryon_renders`
 
-Fields: `id`, `user_id`, `outfit_id`, `media_asset_id`, `provider`, `model`, `fallback_used`, `duration_ms`, `status`, and `created_at`.
+Fields: `id`, `user_id`, `outfit_id` (nullable), `media_asset_id` (nullable while processing), `provider`, `model`, `fallback_used`, `duration_ms`, `status` (`ready`, `processing`, `failed`), `avatar_id` (nullable UUID string), `selected_item_ids` (JSON array of item IDs), `cache_key` (nullable string index for try-on caching), `render_mode` (`lookbook`, `vton_personal`, `vton_preset`, `moodboard`), `error_code` (nullable string), and `created_at`.
 
 ### 3.16 `orphan_media_cleanups`
 
@@ -199,10 +199,18 @@ media asset and its owner. A failed upload or failed database commit leaves it
 for scheduled cleanup. Cleanup may start at `not_before` to avoid deleting an
 in-flight upload and MUST keep retrying failed deletions until they succeed.
 
+### 3.17 `tryon_avatars`
+
+Stores user full-body avatar images and preset model configurations. Fields are `id`,
+`user_id`, `media_asset_id` (nullable for built-in preset models), `is_preset` (boolean),
+`is_default` (boolean), `consent_at` (nullable datetime recording user consent),
+`created_at`, and `deleted_at` (nullable datetime for soft deletion).
+
 ## 4. Relational Invariants
 
 - **INVARIANT:** An outfit and every wardrobe item within it have the same `user_id`.
-- **INVARIANT:** A rating, wear log, or try-on render references a persisted outfit owned by the same user.
+- **INVARIANT:** A rating, wear log, or try-on render references a persisted outfit or wardrobe items owned by the same user.
+- **INVARIANT:** A user cannot access, modify, or delete another user's tryon render or avatar.
 - **INVARIANT:** A standard outfit contains `dress` or `top + bottom`, never both branches.
 - **INVARIANT:** Every item used in a recommendation is active at recommendation time.
 - **INVARIANT:** Object ownership is checked through `media_assets.user_id` before URL signing or streaming.

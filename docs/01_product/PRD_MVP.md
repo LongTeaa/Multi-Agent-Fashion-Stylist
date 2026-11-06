@@ -59,11 +59,12 @@ Detailed behavior is defined in `../03_domain/INGESTION_AND_RETRIEVAL_SPEC.md`.
 - The application SHOULD proactively request a rating only after 5–10 eligible outfits, using a non-blocking prompt.
 - The user MAY mark an outfit as worn. Only that explicit action updates wear history.
 
-### 4.4 Try-On Lookbook
+### 4.4 Try-On Lookbook and 2D Virtual Try-On
 
-- The user selects a persisted outfit and requests a lookbook render.
-- The service SHOULD provide item reference images to the configured image-generation provider.
-- After an 8-second provider timeout or provider failure, the service MUST generate a moodboard fallback.
+- The user selects a persisted outfit and requests a lookbook render or virtual try-on.
+- The service SHOULD provide item reference images to the configured image-generation provider or pixel-space try-on pipeline.
+- The application supports either a preset standard model or a user-uploaded full-body avatar (with explicit consent and deletion controls).
+- After an 8-second provider timeout or provider failure in synchronous lookbook mode, or on error/quota exhaustion in asynchronous try-on mode, the service MUST generate a moodboard fallback.
 
 ## 5. User Stories and Acceptance Criteria
 
@@ -78,7 +79,7 @@ Detailed behavior is defined in `../03_domain/INGESTION_AND_RETRIEVAL_SPEC.md`.
 | US-7 | Rate recommendations | Rating is 1–5 only; cadence and cooldown MUST follow the feedback specification |
 | US-8 | Avoid repetition | An exact outfit confirmed as worn within three days receives a strong ranking penalty |
 | US-9 | Save and mark outfits as worn | Recommendation IDs MUST be persisted before subsequent actions are allowed |
-| US-10 | View an illustrative try-on | Generated output or fallback SHOULD complete within 10 seconds and MUST identify its render kind |
+| US-10 | View an illustrative or personalized try-on | Synchronous lookbook/fallback SHOULD complete within 10 seconds; asynchronous VTON runs return 202 processing and poll with timeout; all outputs MUST identify render kind |
 
 ## 6. Golden Scenario
 
@@ -104,6 +105,7 @@ Expected behavior:
 | Cross-user isolation | 100% |
 | Styling response p95 | <= 5 seconds |
 | Generated lookbook or moodboard fallback | <= 10 seconds |
+| Asynchronous 2D Virtual Try-On (per garment pass) | <= 60 seconds |
 
 The evaluation dataset and commands are defined in `../07_implementation/TEST_STRATEGY.md`.
 
