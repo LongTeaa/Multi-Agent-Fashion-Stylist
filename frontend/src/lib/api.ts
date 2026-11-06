@@ -28,7 +28,7 @@ import type {
   DismissPromptRequest,
   DismissPromptResponseData,
 } from '@/types/feedback';
-import type { TryOnResponseData } from '@/types/tryons';
+import type { TryOnAvatar, TryOnResponseData } from '@/types/tryons';
 import type {
   WardrobeItem,
   GarmentTaxonomy,
@@ -486,17 +486,84 @@ export async function dismissFeedbackPrompt(
 
 export async function createTryOn(
   outfitId: string,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal; avatarId?: string; itemIds?: string[] }
 ): Promise<TryOnResponseData> {
+  const payload: Record<string, unknown> = { outfit_id: outfitId };
+  if (options?.avatarId) {
+    payload.avatar_id = options.avatarId;
+  }
+  if (options?.itemIds && options.itemIds.length > 0) {
+    payload.item_ids = options.itemIds;
+  }
   return apiFetch<TryOnResponseData>(`${API_BASE_URL}/api/v1/tryons`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-User-Id': getStoredUserId(),
     },
-    body: JSON.stringify({ outfit_id: outfitId }),
+    body: JSON.stringify(payload),
     signal: options?.signal,
   });
+}
+
+export async function listTryOnAvatars(
+  options?: { signal?: AbortSignal }
+): Promise<TryOnAvatar[]> {
+  return apiFetch<TryOnAvatar[]>(`${API_BASE_URL}/api/v1/tryons/avatars`, {
+    method: 'GET',
+    headers: {
+      'X-User-Id': getStoredUserId(),
+    },
+    signal: options?.signal,
+  });
+}
+
+export async function uploadTryOnAvatar(
+  file: File,
+  name?: string
+): Promise<TryOnAvatar> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (name) {
+    formData.append('name', name);
+  }
+  return apiFetch<TryOnAvatar>(`${API_BASE_URL}/api/v1/tryons/avatars`, {
+    method: 'POST',
+    headers: {
+      'X-User-Id': getStoredUserId(),
+    },
+    body: formData,
+  });
+}
+
+export async function deleteTryOnAvatar(
+  avatarId: string
+): Promise<{ deleted: boolean; avatar_id: string }> {
+  return apiFetch<{ deleted: boolean; avatar_id: string }>(
+    `${API_BASE_URL}/api/v1/tryons/avatars/${encodeURIComponent(avatarId)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'X-User-Id': getStoredUserId(),
+      },
+    }
+  );
+}
+
+export async function getTryOnById(
+  tryonId: string,
+  options?: { signal?: AbortSignal }
+): Promise<TryOnResponseData> {
+  return apiFetch<TryOnResponseData>(
+    `${API_BASE_URL}/api/v1/tryons/${encodeURIComponent(tryonId)}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-User-Id': getStoredUserId(),
+      },
+      signal: options?.signal,
+    }
+  );
 }
 
 /**

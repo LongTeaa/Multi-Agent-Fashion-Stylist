@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 7 — Evaluation and Acceptance (ingestion follow-up hardening) |
-| Active task | Completed and verified all five PR #7 review corrections: independent detector selection, layer-preserving NMS, raw-coordinate preservation, pixel aspect ratios, and warned person-only fallback. Publication and merge are explicitly authorized by the user. No application fixes remain pending. |
-| Most recently modified files | backend/app/core/config.py, backend/app/core/dependencies.py, backend/app/services/classifier.py, backend/app/services/ingestion_service.py, backend/app/services/yolo_world_detector.py; backend regression tests; .env.example; scripts/benchmark_detection.py; docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md; docs/07_implementation/PR_7_REVIEW_2026-11-05.md; CURRENT_STATE.md. |
-| Latest passing verification command | 2026-11-05, PR worktree: full backend python -m pytest tests -q -m "not live_provider" --tb=short --maxfail=1 --basetemp <new short workspace directory>: 750 passed, 32 warnings (85.38s). Frontend npm run test -- --run: 109 passed; npm run test:e2e: 9 passed (39.4s). Focused regressions: 87 passed. Real ONNX inference through explicit YOLO selection with fake extraction passed. Earlier environment failures are superseded by these completed runs. |
-| Next step | Complete the authorized publication/merge using the verified PR head, then verify remote status and synchronize local main. Before deployment, retain the migration caveat in MAIN_RECONCILIATION_2026-11-03.md. Authenticated Gemini extraction and real-image YOLO accuracy remain separate opt-in evaluations; no new accuracy claim is made. Keep lecturer-plan and review runtime artifacts excluded. |
+| Current phase | Phase 7 — Evaluation and Acceptance (Personalized 2D Virtual Try-On feature branch) |
+| Active task | Completed and verified the Personalized 2D Virtual Try-On feature on branch feat/virtual-tryon: FASHN VTON 1.5 adapter, Alembic 0013 tryon avatars and renders migration, multi-pass try-on with avatar selection, personal photo upload with person validation, before/after compare, side-by-side footwear/accessory coordination, and deterministic moodboard fallback on ZeroGPU quota limits. |
+| Most recently modified files | backend/migrations/versions/0013_virtual_tryon_and_avatars.py, backend/app/services/tryon_service.py, backend/app/api/v1/endpoints/tryons.py, backend/app/services/fashn_tryon_provider.py, backend/app/services/fakes/tryon_fakes.py, backend/tests/integration/test_tryon_api.py, frontend/src/components/tryon/TryOnModal.tsx, frontend/src/types/tryons.ts, frontend/src/lib/api.ts, frontend/src/components/TryOnModal.test.tsx. |
+| Latest passing verification command | Backend contract tests: pytest tests/contract/ (55 passed in 7.31s); Try-on integration: pytest tests/integration/test_tryon_api.py (8 passed in 4.92s); Unit tests: pytest tests/unit/test_config.py (13 passed in 0.13s); Frontend suite: npx vitest run (15 files, 111 passed in 14.29s); Docs verification: powershell scripts/verify_documentation.ps1 (passed: 17 required files, 7 roadmap phases). |
+| Next step | Stage and commit remaining frontend and doc changes, review PR readiness, and deliver the final report to the user. |
 
 ## Update Rules
 

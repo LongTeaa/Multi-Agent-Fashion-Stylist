@@ -140,4 +140,99 @@ describe('TryOnModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thử tạo lại' }));
     await waitFor(() => expect(screen.getByText('Ảnh minh họa AI')).toBeDefined());
   });
+
+  it('supports avatar selection and renders virtual try-on with before/after toggle', async () => {
+    vi.mocked(api.createTryOn).mockResolvedValue({
+      tryon_id: 'tryon-vton-1',
+      outfit_id: 'outfit-1',
+      image_url: '/api/v1/media/vton-result',
+      render_kind: 'virtual_tryon',
+      fallback_used: false,
+      duration_ms: 480,
+      status: 'ready',
+    });
+
+    render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={items}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Ảnh mặc thử AI')).toBeDefined();
+    });
+
+    // Check before / after compare buttons
+    expect(screen.getByText('Kết quả mặc thử AI')).toBeDefined();
+    expect(screen.getByText('Ảnh mẫu gốc (Trước khi mặc)')).toBeDefined();
+
+    // Switch to female avatar
+    fireEvent.click(screen.getByText('Nữ mẫu (Chuẩn)'));
+    await waitFor(() => {
+      expect(api.createTryOn).toHaveBeenCalledWith(
+        'outfit-1',
+        expect.objectContaining({ avatarId: 'preset-female' })
+      );
+    });
+  });
+
+  it('handles layering toggle when both top and outerwear exist, plus footwear coordination', async () => {
+    const layeredItems = [
+      { id: 'top-1', slot: 'top', name: 'Áo sơ mi oxford', primaryColor: 'Trắng' },
+      { id: 'outer-1', slot: 'outerwear', name: 'Áo blazer len', primaryColor: 'Xanh navy' },
+      { id: 'bottom-1', slot: 'bottom', name: 'Quần âu', primaryColor: 'Đen' },
+      { id: 'shoe-1', slot: 'footwear', name: 'Giày oxford', primaryColor: 'Nâu' },
+      { id: 'acc-1', slot: 'accessory', name: 'Đồng hồ da', primaryColor: 'Bạc' },
+    ];
+
+    vi.mocked(api.createTryOn).mockResolvedValue({
+      tryon_id: 'tryon-layer-1',
+      outfit_id: 'outfit-layered',
+      image_url: '/api/v1/media/layered-result',
+      render_kind: 'virtual_tryon',
+      fallback_used: false,
+      duration_ms: 510,
+      status: 'ready',
+    });
+
+    render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-layered"
+        items={layeredItems}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Ảnh mặc thử AI')).toBeDefined();
+    });
+
+    // Layering controls visible
+    expect(screen.getByText('Ướm áo khoác ngoài')).toBeDefined();
+    expect(screen.getByText('Ướm áo trong')).toBeDefined();
+
+    // Footwear & accessories section visible
+    expect(screen.getByText('Phối kèm (Giày & Phụ kiện)')).toBeDefined();
+    expect(screen.getByText('Giày oxford')).toBeDefined();
+    expect(screen.getByText('Đồng hồ da')).toBeDefined();
+
+    // Toggle to inner top
+    fireEvent.click(screen.getByText('Ướm áo trong'));
+    await waitFor(() => {
+      expect(api.createTryOn).toHaveBeenCalledWith(
+        'outfit-layered',
+        expect.objectContaining({
+          itemIds: expect.arrayContaining(['top-1', 'bottom-1']),
+        })
+      );
+    });
+  });
 });
