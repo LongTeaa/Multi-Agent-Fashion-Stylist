@@ -21,7 +21,7 @@ TABLES = (
     "item_media",
     "wardrobe_retrieval_documents",
 )
-EXPECTED_REVISION = "0012"
+EXPECTED_REVISION = "0013"
 
 
 def _revision(connection: sqlite3.Connection) -> str | None:

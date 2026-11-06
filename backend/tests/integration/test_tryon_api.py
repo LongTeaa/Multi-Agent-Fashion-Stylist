@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 
 from app.core.dependencies import (
     get_db_session,
+    get_detector,
     get_image_provider,
     get_object_storage,
 )
@@ -342,3 +343,197 @@ def test_tryon_with_five_item_recommendation(
         assert data_mb["fallback_used"] is True
     finally:
         app.dependency_overrides.clear()
+
+
+def test_list_avatars_and_presets(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.commit()
+
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    try:
+        client = TestClient(app)
+        res = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": user_id})
+        assert res.status_code == 200
+        avatars = res.json()["data"]
+        assert len(avatars) >= 2
+        preset_ids = [a["id"] for a in avatars if a["is_preset"]]
+        assert "preset-male" in preset_ids
+        assert "preset-female" in preset_ids
+
+        # Preset image endpoint returns 200 webp
+        res_male = client.get("/api/v1/tryons/presets/male")
+        assert res_male.status_code == 200
+        assert res_male.headers["content-type"].startswith("image/webp")
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_user_avatar_upload_listing_and_deletion(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    _, engine = migrated_database
+    user_id, other_user_id = str(uuid4()), str(uuid4())
+    storage = _storage(tmp_path)
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.add(User(id=other_user_id))
+        session.commit()
+
+    from app.services.fakes.vision_fakes import FakeDetector
+
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="multi_item")
+
+    try:
+        client = TestClient(app)
+        img_bytes = _image_bytes("blue")
+
+        # 1. Upload personal avatar
+        res_upload = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"name": "Ảnh chân dung"},
+            files={"file": ("portrait.jpg", img_bytes, "image/jpeg")},
+        )
+        assert res_upload.status_code == 201
+        avatar_data = res_upload.json()["data"]
+        avatar_id = avatar_data["id"]
+        assert avatar_data["name"] == "Ảnh chân dung"
+        assert avatar_data["is_preset"] is False
+        assert avatar_data["image_url"].startswith("/api/v1/media/")
+
+        # 2. List avatars includes the new upload
+        res_list = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": user_id})
+        assert res_list.status_code == 200
+        avatar_ids = [a["id"] for a in res_list.json()["data"]]
+        assert avatar_id in avatar_ids
+
+        # Cross-user isolation: other user does not see this avatar
+        res_other = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": other_user_id})
+        other_ids = [a["id"] for a in res_other.json()["data"]]
+        assert avatar_id not in other_ids
+
+        # 3. Delete avatar
+        res_del = client.delete(
+            f"/api/v1/tryons/avatars/{avatar_id}",
+            headers={"X-User-Id": user_id},
+        )
+        assert res_del.status_code == 200
+        assert res_del.json()["data"]["deleted"] is True
+
+        # Deleted avatar no longer in list
+        res_after = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": user_id})
+        assert avatar_id not in [a["id"] for a in res_after.json()["data"]]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_virtual_tryon_multi_pass_and_caching(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+
+    from app.core.dependencies import get_tryon_provider
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    fake_vton = FakeTryOnProvider(model="fake-vton-1.5")
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_tryon_provider] = lambda: fake_vton
+
+    try:
+        client = TestClient(app)
+
+        # 1. First run with preset-male avatar -> renders via fake provider (2 passes: tops then bottoms)
+        res1 = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={
+                "outfit_id": outfit_id,
+                "avatar_id": "preset-male",
+            },
+        )
+        assert res1.status_code == 200
+        data1 = res1.json()["data"]
+        assert data1["render_kind"] == "virtual_tryon"
+        assert data1["fallback_used"] is False
+        assert data1["status"] == "ready"
+        assert len(fake_vton.history) == 2  # 1 pass top, 1 pass bottom
+        tryon_id = data1["tryon_id"]
+
+        # 2. Get tryon by ID
+        res_get = client.get(
+            f"/api/v1/tryons/{tryon_id}",
+            headers={"X-User-Id": user_id},
+        )
+        assert res_get.status_code == 200
+        assert res_get.json()["data"]["tryon_id"] == tryon_id
+        assert res_get.json()["data"]["render_kind"] == "virtual_tryon"
+
+        # 3. Second run with same parameters -> Cache hit, 0 duration, history does not grow
+        history_count = len(fake_vton.history)
+        res2 = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={
+                "outfit_id": outfit_id,
+                "avatar_id": "preset-male",
+            },
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()["data"]
+        assert data2["tryon_id"] == tryon_id
+        assert data2["duration_ms"] == 0
+        assert len(fake_vton.history) == history_count
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_virtual_tryon_quota_or_provider_failure_falls_back_to_moodboard(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+
+    from app.core.dependencies import get_tryon_provider
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    # Simulates Hugging Face ZeroGPU quota exceeded
+    failing_vton = FakeTryOnProvider(scenario="quota_exceeded")
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_tryon_provider] = lambda: failing_vton
+
+    try:
+        client = TestClient(app)
+        res = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={
+                "outfit_id": outfit_id,
+                "avatar_id": "preset-female",
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert data["render_kind"] == "moodboard"
+        assert data["fallback_used"] is True
+        assert data["status"] == "ready"
+    finally:
+        app.dependency_overrides.clear()
+

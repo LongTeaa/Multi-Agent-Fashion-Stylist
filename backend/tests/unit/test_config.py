@@ -20,6 +20,10 @@ EXPECTED_ENV_KEYS = {
     "WEATHER_TIMEOUT_SECONDS",
     "IMAGE_PROVIDER",
     "IMAGE_TIMEOUT_SECONDS",
+    "TRYON_PROVIDER",
+    "FASHN_TRYON_SPACE",
+    "HF_TOKEN",
+    "TRYON_TIMEOUT_SECONDS",
     "LLM_MODEL",
     "VISION_MODEL",
     "DETECTOR_MODEL",
@@ -61,6 +65,10 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.weather_timeout_seconds == 5
     assert settings.image_provider == "disabled"
     assert settings.image_timeout_seconds == 8
+    assert settings.tryon_provider == "disabled"
+    assert settings.fashn_tryon_space == "fashn-ai/fashn-vton-1.5"
+    assert settings.hf_token is None
+    assert settings.tryon_timeout_seconds == 90
     assert str(settings.minio_endpoint) == "http://localhost:9000/"
     assert settings.minio_secure is False
     assert settings.minio_bucket_wardrobe == "wardrobe-private"
@@ -100,6 +108,8 @@ def test_environment_values_are_parsed_and_secrets_are_masked(
         ("WEATHER_PROVIDER", "unknown"),
         ("IMAGE_PROVIDER", "unknown"),
         ("IMAGE_TIMEOUT_SECONDS", "9"),
+        ("TRYON_PROVIDER", "unknown"),
+        ("TRYON_TIMEOUT_SECONDS", "0"),
     ],
 )
 def test_invalid_environment_values_are_rejected(
@@ -127,6 +137,7 @@ def test_env_example_contains_the_complete_contract() -> None:
     assert entries["WEATHER_API_KEY"] == "your_weather_api_key"
     assert entries["MINIO_ACCESS_KEY"] == "your_access_key"
     assert entries["MINIO_SECRET_KEY"] == "your_secret_key"
+    assert entries["HF_TOKEN"] == "your_hf_token"
 
 
 def test_validate_detector_configuration() -> None:

@@ -51,6 +51,7 @@ ENTITY_TABLES = {
     "feedback_delivered_outfits",
     "wear_logs",
     "tryon_renders",
+    "tryon_avatars",
 }
 REQUIRED_INDEXES = {
     "wardrobe_items": {
@@ -65,6 +66,8 @@ REQUIRED_INDEXES = {
     },
     "feedback_suppressed_sessions": {"ix_feedback_suppressed_sessions_user"},
     "feedback_delivered_outfits": {"ix_feedback_delivered_outfits_user"},
+    "tryon_avatars": {"ix_tryon_avatars_user"},
+    "tryon_renders": {"ix_tryon_renders_cache"},
 }
 OWNERSHIP_FOREIGN_KEYS = {
     "fk_ingestion_detections_batch_owner",
@@ -77,6 +80,7 @@ OWNERSHIP_FOREIGN_KEYS = {
     "fk_ratings_outfit_owner",
     "fk_tryon_renders_media_owner",
     "fk_tryon_renders_outfit_owner",
+    "fk_tryon_avatars_user",
     "fk_wardrobe_items_batch_owner",
     "fk_wardrobe_items_detection_owner",
     "fk_wardrobe_retrieval_documents_item_owner",

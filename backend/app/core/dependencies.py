@@ -29,7 +29,7 @@ from app.repositories.object_storage import (
 )
 from app.schemas.common import ValidationError
 from app.services.providers import DetectorProtocol, ImageProviderProtocol, VisionProviderProtocol
-from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
+from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol, TryOnProviderProtocol
 
 
 def get_db_session() -> Iterator[Session]:
@@ -317,6 +317,28 @@ def get_image_provider() -> ImageProviderProtocol | None:
         )
 
     raise ValueError(f"Unsupported image_provider: '{settings.image_provider}'")
+
+
+def get_tryon_provider() -> TryOnProviderProtocol | None:
+    """Return the configured virtual try-on provider."""
+    settings = get_settings()
+    if settings.tryon_provider == "disabled":
+        return None
+    if settings.tryon_provider == "fake":
+        from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+        return FakeTryOnProvider()
+    if settings.tryon_provider == "fashn":
+        from app.services.fashn_tryon_provider import FashnTryOnProvider
+
+        hf_token_val = settings.hf_token.get_secret_value() if settings.hf_token else None
+        return FashnTryOnProvider(
+            space_name=settings.fashn_tryon_space,
+            hf_token=hf_token_val,
+            timeout_seconds=int(settings.tryon_timeout_seconds),
+        )
+
+    raise ValueError(f"Unsupported tryon_provider: '{settings.tryon_provider}'")
 
 
 StylistRunner = Callable[..., Any]

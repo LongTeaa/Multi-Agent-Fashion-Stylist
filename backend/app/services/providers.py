@@ -129,3 +129,42 @@ class WeatherProviderProtocol(Protocol):
         event_date: date,
         time_of_day: str = "afternoon",
     ) -> WeatherContextResult: ...
+
+
+@dataclass(frozen=True)
+class TryOnRequest:
+    """Request for virtual try-on inpainting onto a person image."""
+
+    person_image_bytes: bytes
+    person_mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    garment_image_bytes: bytes
+    garment_mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    category: Literal["tops", "bottoms", "one-pieces"]
+    garment_photo_type: Literal["model", "flat-lay"] = "model"
+    num_timesteps: int = 30
+    guidance_scale: float = 1.5
+    seed: int = 42
+    segmentation_free: bool = True
+
+
+@dataclass(frozen=True)
+class TryOnResult:
+    """Normalized virtual try-on render result."""
+
+    image_bytes: bytes
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    provider: str
+    model: str
+
+
+@runtime_checkable
+class TryOnProviderProtocol(Protocol):
+    """Protocol for virtual try-on diffusion inpainting."""
+
+    @property
+    def provider_name(self) -> str: ...
+
+    @property
+    def model(self) -> str: ...
+
+    def try_on(self, request: TryOnRequest) -> TryOnResult: ...

@@ -133,6 +133,7 @@ def storage_harness(request: pytest.FixtureRequest, tmp_path: Path) -> StorageHa
             "users/user-1/items/item-1/thumbnail/v1.webp",
         ),
         (TEST_BUCKETS.tryon, "users/user-1/tryons/tryon-1/render.webp"),
+        (TEST_BUCKETS.tryon, "users/user-1/avatars/avatar-1/source.webp"),
     ],
 )
 def test_adapters_share_round_trip_contract(

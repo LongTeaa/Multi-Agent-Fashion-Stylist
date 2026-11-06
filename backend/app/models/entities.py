@@ -637,6 +637,38 @@ class FeedbackDeliveredOutfit(SQLModel, table=True):
     )
 
 
+class TryOnAvatar(SQLModel, table=True):
+    __tablename__ = "tryon_avatars"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name="fk_tryon_avatars_user",
+        ),
+        Index("ix_tryon_avatars_user", "user_id"),
+    )
+
+    id: str = Field(default_factory=new_uuid, primary_key=True, max_length=36)
+    user_id: str = Field(foreign_key="users.id", max_length=36)
+    media_asset_id: str | None = Field(default=None, max_length=36)
+    name: str = Field(default="Ảnh của tôi", max_length=100)
+    is_preset: bool = Field(default=False)
+    preset_gender: str | None = Field(default=None, max_length=20)
+    is_default: bool = Field(default=False)
+    consent_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    deleted_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+
+
 class TryOnRender(SQLModel, table=True):
     __tablename__ = "tryon_renders"
     __table_args__ = (
@@ -651,17 +683,26 @@ class TryOnRender(SQLModel, table=True):
             name="fk_tryon_renders_media_owner",
         ),
         CheckConstraint("duration_ms >= 0", name="ck_tryon_renders_duration_ms"),
+        Index("ix_tryon_renders_cache", "user_id", "cache_key"),
     )
 
     id: str = Field(default_factory=new_uuid, primary_key=True, max_length=36)
     user_id: str = Field(foreign_key="users.id", index=True, max_length=36)
     outfit_id: str = Field(max_length=36)
     media_asset_id: str = Field(max_length=36)
+    avatar_id: str | None = Field(default=None, max_length=36)
+    selected_item_ids: list[str] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
+    cache_key: str | None = Field(default=None, max_length=255)
+    render_mode: str = Field(default="lookbook", max_length=50)
+    error_code: str | None = Field(default=None, max_length=100)
     provider: str | None = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=200)
     fallback_used: bool = Field(default=False)
-    duration_ms: int = Field(ge=0)
-    status: str = Field(max_length=50)
+    duration_ms: int = Field(default=0, ge=0)
+    status: str = Field(default="ready", max_length=50)
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
