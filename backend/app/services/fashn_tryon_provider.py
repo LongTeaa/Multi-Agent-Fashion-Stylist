@@ -99,3 +99,4 @@ class FashnTryOnProvider:
                 person_path.unlink(missing_ok=True)
             if garment_path.exists():
                 garment_path.unlink(missing_ok=True)
+

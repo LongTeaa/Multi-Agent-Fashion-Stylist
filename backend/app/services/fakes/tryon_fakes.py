@@ -43,3 +43,4 @@ class FakeTryOnProvider:
             provider=self.provider_name,
             model=self.model,
         )
+
