@@ -664,6 +664,7 @@ def _execute_virtual_tryon(
             TryOnRender.user_id == user_id,
             TryOnRender.cache_key == cache_key,
             TryOnRender.status == "ready",
+            TryOnRender.fallback_used == False,
         )
     ).first()
     if cached_render is not None and cached_render.media_asset_id:

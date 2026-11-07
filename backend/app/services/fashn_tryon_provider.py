@@ -32,7 +32,8 @@ class FashnTryOnProvider:
     def _get_client(self):
         if self._client is None:
             from gradio_client import Client
-            self._client = Client(self.space_name, hf_token=self.hf_token)
+            token = self.hf_token.strip() if self.hf_token else None
+            self._client = Client(self.space_name, token=token)
         return self._client
 
     def try_on(self, request: TryOnRequest) -> TryOnResult:

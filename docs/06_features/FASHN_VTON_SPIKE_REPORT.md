@@ -54,3 +54,4 @@ Qua kiểm chứng thực nghiệm, hệ thống đã phát hiện 3 rủi ro/gi
 
 - **Kết luận:** **GO (Chính thức thông qua)**.
 - **Đánh giá phạm vi luận văn:** Mô hình 2D Virtual Try-On dựa trên MMDiT Diffusion đáp ứng xuất sắc nhu cầu trực quan hóa trang phục trong đồ án tốt nghiệp, vượt trội hơn so với phương án 3D Mesh (đòi hỏi quét thể tích phức tạp) hoặc AR webcam thời gian thực (yêu cầu cấu hình máy khách lớn và đường truyền cao).
+
