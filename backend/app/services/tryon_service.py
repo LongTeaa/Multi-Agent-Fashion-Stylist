@@ -14,6 +14,7 @@ from sqlalchemy import and_
 from sqlmodel import Session, select
 
 from app.models.entities import (
+    InputKind,
     ItemMedia,
     ItemMediaRole,
     MediaAsset,
@@ -22,12 +23,13 @@ from app.models.entities import (
     OutfitRecommendation,
     TryOnAvatar,
     TryOnRender,
+    User,
     WardrobeCategory,
     WardrobeItem,
     new_uuid,
     utc_now,
 )
-from app.repositories.object_storage import ObjectStorage
+from app.repositories.object_storage import ObjectNotFoundError, ObjectStorage
 from app.schemas.common import (
     ForbiddenAssetError,
     ItemNotFoundError,
@@ -36,7 +38,8 @@ from app.schemas.common import (
     ValidationError,
 )
 from app.schemas.tryons import TryOnAvatarResponse, TryOnResponseData
-from app.services.cleanup_service import stage_object_upload
+from app.services.classifier import PERSON_LABELS
+from app.services.cleanup_service import record_orphan_cleanup, stage_object_upload
 from app.services.image_generation import render_lookbook_with_fallback
 from app.services.moodboard import MoodboardItem
 from app.services.providers import (
@@ -171,14 +174,16 @@ def create_user_avatar(
     if detector is not None:
         try:
             detection = detector.detect(file_bytes)
+            input_kind_val = getattr(detection.input_kind, "value", str(detection.input_kind))
             has_person = (
                 detection.person_box is not None
-                or getattr(detection.input_kind, "value", str(detection.input_kind))
-                in ("model_lookbook", "model_worn")
-                or any(getattr(b, "label", "") == "person" for b in detection.boxes)
+                or input_kind_val == InputKind.WORN_OUTFIT.value
+                or any(
+                    getattr(b, "label", "").strip().lower() in PERSON_LABELS
+                    for b in detection.boxes
+                )
             )
-            # If detector ran and found items but explicitly no person, or rejected
-            if not has_person and not detection.boxes:
+            if not has_person:
                 raise ValidationError(
                     message="Không phát hiện người hoặc toàn thân trong ảnh. Vui lòng chụp rõ toàn bộ người."
                 )
@@ -187,10 +192,20 @@ def create_user_avatar(
         except Exception as det_err:
             logger.warning("Detector error during avatar person validation: %s", det_err)
 
+    if session.get(User, user_id) is None:
+        session.add(User(id=user_id))
+        session.commit()
+
     avatar_id = new_uuid()
     media_asset_id = new_uuid()
     object_key = f"users/{user_id}/avatars/{avatar_id}/source.webp"
 
+    upload_manifest = stage_object_upload(
+        session=session,
+        user_id=user_id,
+        bucket=tryon_bucket,
+        object_key=object_key,
+    )
     storage.put_object(
         user_id=user_id,
         bucket=tryon_bucket,
@@ -223,10 +238,24 @@ def create_user_avatar(
         created_at=utc_now(),
     )
 
-    session.add(media_asset)
-    session.add(avatar)
-    session.commit()
-    session.refresh(avatar)
+    try:
+        session.add(media_asset)
+        session.flush()
+        session.add(avatar)
+        session.delete(upload_manifest)
+        session.commit()
+        session.refresh(avatar)
+    except Exception:
+        session.rollback()
+        try:
+            storage.delete_object(
+                user_id=user_id,
+                bucket=tryon_bucket,
+                object_key=object_key,
+            )
+        except Exception as delete_error:
+            logger.error("Avatar upload cleanup failed for %s: %s", object_key, delete_error)
+        raise
 
     return TryOnAvatarResponse(
         id=avatar.id,
@@ -244,8 +273,9 @@ def delete_user_avatar(
     session: Session,
     user_id: str,
     avatar_id: str,
+    storage: ObjectStorage | None = None,
 ) -> None:
-    """Soft-delete a user-uploaded avatar and its associated media asset."""
+    """Soft-delete a user-uploaded avatar and remove its underlying media object."""
     avatar = session.exec(
         select(TryOnAvatar).where(
             TryOnAvatar.id == avatar_id,
@@ -262,6 +292,28 @@ def delete_user_avatar(
         asset = session.get(MediaAsset, avatar.media_asset_id)
         if asset is not None and asset.user_id == user_id:
             asset.deleted_at = now
+            if storage is not None:
+                try:
+                    storage.delete_object(
+                        user_id=asset.user_id,
+                        bucket=asset.bucket,
+                        object_key=asset.object_key,
+                    )
+                except ObjectNotFoundError:
+                    pass
+                except Exception as del_err:
+                    logger.warning(
+                        "Failed to delete avatar file %s from storage: %s",
+                        asset.object_key,
+                        del_err,
+                    )
+                    record_orphan_cleanup(
+                        session=session,
+                        user_id=asset.user_id,
+                        bucket=asset.bucket,
+                        object_key=asset.object_key,
+                        last_error=str(del_err),
+                    )
     session.commit()
 
 
@@ -599,6 +651,7 @@ def _execute_virtual_tryon(
         select(WardrobeItem).where(
             WardrobeItem.id.in_(all_item_ids),
             WardrobeItem.user_id == user_id,
+            WardrobeItem.is_user_confirmed.is_(True),
         )
     ).all()
     item_map = {item.id: item for item in wardrobe_items}
@@ -634,6 +687,8 @@ def _execute_virtual_tryon(
 
     for item in wardrobe_items:
         if requested_item_ids is not None and item.id not in requested_item_ids:
+            continue
+        if item.id not in media_map:
             continue
         if item.category == WardrobeCategory.DRESS:
             dress_item = item
@@ -773,6 +828,12 @@ def _execute_virtual_tryon(
 
         tryon_id, media_asset_id = new_uuid(), new_uuid()
         object_key = f"users/{user_id}/tryons/{tryon_id}/render.webp"
+        upload_manifest = stage_object_upload(
+            session=session,
+            user_id=user_id,
+            bucket=tryon_bucket,
+            object_key=object_key,
+        )
         storage.put_object(
             user_id=user_id,
             bucket=tryon_bucket,
@@ -808,9 +869,23 @@ def _execute_virtual_tryon(
             duration_ms=duration_ms,
             status="ready",
         )
-        session.add(media_asset)
-        session.add(render)
-        session.commit()
+        try:
+            session.add(media_asset)
+            session.flush()
+            session.add(render)
+            session.delete(upload_manifest)
+            session.commit()
+        except Exception:
+            session.rollback()
+            try:
+                storage.delete_object(
+                    user_id=user_id,
+                    bucket=tryon_bucket,
+                    object_key=object_key,
+                )
+            except Exception as delete_error:
+                logger.error("Virtual try-on cleanup failed for %s: %s", object_key, delete_error)
+            raise
 
         return TryOnResponseData(
             tryon_id=tryon_id,
@@ -869,6 +944,12 @@ def _fallback_to_moodboard(
 
     tryon_id, media_asset_id = new_uuid(), new_uuid()
     object_key = f"users/{user_id}/tryons/{tryon_id}/render.webp"
+    upload_manifest = stage_object_upload(
+        session=session,
+        user_id=user_id,
+        bucket=tryon_bucket,
+        object_key=object_key,
+    )
     storage.put_object(
         user_id=user_id,
         bucket=tryon_bucket,
@@ -905,9 +986,23 @@ def _fallback_to_moodboard(
         duration_ms=duration_ms,
         status="ready",
     )
-    session.add(media_asset)
-    session.add(render)
-    session.commit()
+    try:
+        session.add(media_asset)
+        session.flush()
+        session.add(render)
+        session.delete(upload_manifest)
+        session.commit()
+    except Exception:
+        session.rollback()
+        try:
+            storage.delete_object(
+                user_id=user_id,
+                bucket=tryon_bucket,
+                object_key=object_key,
+            )
+        except Exception as delete_error:
+            logger.error("Fallback moodboard cleanup failed for %s: %s", object_key, delete_error)
+        raise
 
     return TryOnResponseData(
         tryon_id=tryon_id,

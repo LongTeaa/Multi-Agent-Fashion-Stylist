@@ -23,6 +23,17 @@ const SLOT_NAMES: Record<string, string> = {
   accessory: 'Phụ kiện',
 };
 
+function createWearIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export interface TryOnModalProps {
   isOpen: boolean;
   outfitId: string;
@@ -30,7 +41,7 @@ export interface TryOnModalProps {
   isBookmarked: boolean;
   isWorn?: boolean;
   onBookmarkChange: (outfitId: string, isBookmarked: boolean) => void;
-  onWornChange?: (outfitId: string, isWorn: boolean) => void;
+  onWornChange?: (outfitId: string, isWorn: boolean, timesWorn?: number) => void;
   onClose: () => void;
 }
 
@@ -46,11 +57,11 @@ export function TryOnModal({
 }: TryOnModalProps) {
   const [result, setResult] = useState<TryOnResponseData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatingStep, setGeneratingStep] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [previousIsBookmarked, setPreviousIsBookmarked] = useState(isBookmarked);
   const [saved, setSaved] = useState(isBookmarked);
   const [isSaving, setIsSaving] = useState(false);
+  const [previousIsWorn, setPreviousIsWorn] = useState(isWorn);
   const [worn, setWorn] = useState(isWorn);
   const [isRecordingWorn, setIsRecordingWorn] = useState(false);
 
@@ -77,7 +88,19 @@ export function TryOnModal({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef<number>(0);
+  const wearIdempotencyKeyRef = useRef<string>('');
+  const itemsRef = useRef<TryOnDisplayItem[]>(items);
+  const hasBothTopsRef = useRef<boolean>(hasBothTops);
+  const selectedAvatarIdRef = useRef<string>(selectedAvatarId);
+  const selectedTopSlotRef = useRef<'outerwear' | 'top'>(selectedTopSlot);
   const uploadInputId = useId();
+
+  useEffect(() => {
+    itemsRef.current = items;
+    hasBothTopsRef.current = hasBothTops;
+    selectedAvatarIdRef.current = selectedAvatarId;
+    selectedTopSlotRef.current = selectedTopSlot;
+  }, [hasBothTops, items, selectedAvatarId, selectedTopSlot]);
 
   // Load avatar presets and personal avatars
   const fetchAvatars = useCallback(async () => {
@@ -122,13 +145,15 @@ export function TryOnModal({
       requestIdRef.current += 1;
       const currentRequestId = requestIdRef.current;
 
-      const activeAvatar = avatarIdToUse ?? selectedAvatarId;
-      const activeTopSlot = topSlotToUse ?? selectedTopSlot;
+      const activeAvatar = avatarIdToUse ?? selectedAvatarIdRef.current;
+      const activeTopSlot = topSlotToUse ?? selectedTopSlotRef.current;
+      const currentItems = itemsRef.current;
+      const bothTopsPresent = hasBothTopsRef.current;
 
       // Filter items if layering choice is present
-      const relevantItemIds = items
+      const relevantItemIds = currentItems
         .filter((item) => {
-          if (hasBothTops) {
+          if (bothTopsPresent) {
             if (activeTopSlot === 'outerwear' && item.slot === 'top') return false;
             if (activeTopSlot === 'top' && item.slot === 'outerwear') return false;
           }
@@ -137,16 +162,8 @@ export function TryOnModal({
         .map((i) => i.id);
 
       setIsGenerating(true);
-      setGeneratingStep(1);
       setError(null);
       setShowOriginalAvatar(false);
-
-      const stepTimer1 = window.setTimeout(() => {
-        if (requestIdRef.current === currentRequestId) setGeneratingStep(2);
-      }, 1500);
-      const stepTimer2 = window.setTimeout(() => {
-        if (requestIdRef.current === currentRequestId) setGeneratingStep(3);
-      }, 4000);
 
       try {
         const res = await createTryOn(outfitId, {
@@ -172,19 +189,22 @@ export function TryOnModal({
           );
         }
       } finally {
-        window.clearTimeout(stepTimer1);
-        window.clearTimeout(stepTimer2);
         if (requestIdRef.current === currentRequestId) {
           setIsGenerating(false);
         }
       }
     },
-    [hasBothTops, items, outfitId, selectedAvatarId, selectedTopSlot]
+    [outfitId]
   );
 
   if (isBookmarked !== previousIsBookmarked) {
     setPreviousIsBookmarked(isBookmarked);
     setSaved(isBookmarked);
+  }
+
+  if (isWorn !== previousIsWorn) {
+    setPreviousIsWorn(isWorn);
+    setWorn(isWorn);
   }
 
   useEffect(() => {
@@ -244,16 +264,18 @@ export function TryOnModal({
 
   const handleRecordWorn = async () => {
     if (isRecordingWorn || worn) return;
+    if (!wearIdempotencyKeyRef.current) {
+      wearIdempotencyKeyRef.current = createWearIdempotencyKey();
+    }
     setIsRecordingWorn(true);
     setError(null);
     try {
-      const idempotencyKey =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `worn-${Date.now()}`;
-      await recordOutfitWorn(outfitId, { idempotency_key: idempotencyKey });
+      const res = await recordOutfitWorn(outfitId, {
+        idempotency_key: wearIdempotencyKeyRef.current,
+      });
+      wearIdempotencyKeyRef.current = createWearIdempotencyKey();
       setWorn(true);
-      onWornChange?.(outfitId, true);
+      onWornChange?.(outfitId, true, res.times_worn);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError

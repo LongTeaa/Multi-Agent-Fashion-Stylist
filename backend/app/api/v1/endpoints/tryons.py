@@ -87,8 +87,9 @@ def remove_user_avatar(
     avatar_id: str,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
+    storage: ObjectStorage = Depends(get_object_storage),
 ) -> SuccessResponse[dict[str, object]]:
-    delete_user_avatar(session=session, user_id=user_id, avatar_id=avatar_id)
+    delete_user_avatar(session=session, user_id=user_id, avatar_id=avatar_id, storage=storage)
     return SuccessResponse(data={"deleted": True, "avatar_id": avatar_id})
 
 

@@ -569,9 +569,15 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       outfitId={outfitId}
       items={items}
       isBookmarked={isBookmarked}
+      isWorn={timesWorn > 0}
       onBookmarkChange={(changedOutfitId, nextBookmarked) => {
         setIsBookmarked(nextBookmarked);
         onBookmarkChange?.(changedOutfitId, nextBookmarked);
+      }}
+      onWornChange={(changedOutfitId, _nextWorn, nextTimesWorn) => {
+        const updatedTimesWorn = nextTimesWorn ?? timesWorn + 1;
+        setTimesWorn(updatedTimesWorn);
+        onWearSuccess?.(changedOutfitId, updatedTimesWorn);
       }}
       onClose={() => setIsTryOnOpen(false)}
     />

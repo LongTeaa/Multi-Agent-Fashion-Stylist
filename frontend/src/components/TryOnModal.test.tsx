@@ -171,7 +171,7 @@ describe('TryOnModal', () => {
     expect(screen.getByText('Kết quả mặc thử AI')).toBeDefined();
     expect(screen.getByText('Ảnh mẫu gốc (Trước khi mặc)')).toBeDefined();
 
-    // Switch to female avatar
+    // Switch to female avatar -> should trigger exactly 1 new createTryOn call (total 2), not duplicate
     fireEvent.click(screen.getByText('Nữ mẫu (Chuẩn)'));
     await waitFor(() => {
       expect(api.createTryOn).toHaveBeenCalledWith(
@@ -179,6 +179,49 @@ describe('TryOnModal', () => {
         expect.objectContaining({ avatarId: 'preset-female' })
       );
     });
+    expect(api.createTryOn).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not abort or re-trigger generation when parent re-renders with a new items array reference', async () => {
+    vi.mocked(api.createTryOn).mockResolvedValue({
+      tryon_id: 'tryon-vton-stable',
+      outfit_id: 'outfit-1',
+      image_url: '/api/v1/media/vton-stable',
+      render_kind: 'virtual_tryon',
+      fallback_used: false,
+      duration_ms: 350,
+      status: 'ready',
+    });
+
+    const { rerender } = render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={[...items]}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Ảnh mặc thử AI')).toBeDefined();
+    });
+    expect(api.createTryOn).toHaveBeenCalledTimes(1);
+
+    // Simulate parent re-render after bookmark toggle with freshly allocated items array
+    rerender(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={items.map((item) => ({ ...item }))}
+        isBookmarked={true}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(api.createTryOn).toHaveBeenCalledTimes(1);
   });
 
   it('handles layering toggle when both top and outerwear exist, plus footwear coordination', async () => {

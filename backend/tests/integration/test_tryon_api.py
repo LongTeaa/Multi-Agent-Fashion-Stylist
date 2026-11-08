@@ -390,7 +390,7 @@ def test_user_avatar_upload_listing_and_deletion(
 
     app.dependency_overrides[get_db_session] = _override_session(engine)
     app.dependency_overrides[get_object_storage] = lambda: storage
-    app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="multi_item")
+    app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="worn_outfit")
 
     try:
         client = TestClient(app)
@@ -432,6 +432,17 @@ def test_user_avatar_upload_listing_and_deletion(
         # Deleted avatar no longer in list
         res_after = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": user_id})
         assert avatar_id not in [a["id"] for a in res_after.json()["data"]]
+
+        # 4. Reject upload when detector detects only a garment (no person)
+        app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="single_item")
+        res_no_person = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"name": "Ảnh chiếc giày"},
+            files={"file": ("shoe.jpg", img_bytes, "image/jpeg")},
+        )
+        assert res_no_person.status_code == 422
+        assert res_no_person.json()["error"]["code"] == "VALIDATION_ERROR"
     finally:
         app.dependency_overrides.clear()
 
