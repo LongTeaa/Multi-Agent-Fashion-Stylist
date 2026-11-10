@@ -116,7 +116,7 @@ export function DetectionItemCard({
   const selectedGroup = categoryGroups.find((group) => [group.value, group.label, ...group.aliases,
     ...group.types.flatMap((type) => [type.value, type.label, ...type.aliases])]
     .some((alias) => fold(alias) === fold(attributes.sub_category || '')))
-    || (categoryGroups.length === 1 ? categoryGroups[0] : undefined);
+    || categoryGroups[0];
   const suggestions = selectedGroup?.types || [];
   const confidences = detection.field_confidence || {};
   const cropUrl = detection.crop_url;

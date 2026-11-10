@@ -146,6 +146,26 @@ class TestConfirmationSchemaValidation:
         req = IngestionConfirmRequest.model_validate(payload)
         assert req.confirmations[0].custom_attributes.category == WardrobeCategory.FOOTWEAR
 
+    def test_rejected_detection_with_unknown_category_in_custom_attributes_succeeds(self) -> None:
+        payload = {
+            "confirmations": [
+                {
+                    "detection_id": "det-valid",
+                    "accepted": True,
+                    "custom_attributes": {"category": "footwear"},
+                },
+                {
+                    "detection_id": "det-duplicate-timeout",
+                    "accepted": False,
+                    "custom_attributes": {"category": "unknown", "style": "casual"},
+                },
+            ]
+        }
+        req = IngestionConfirmRequest.model_validate(payload)
+        assert req.confirmations[0].accepted is True
+        assert req.confirmations[1].accepted is False
+        assert req.confirmations[1].custom_attributes is None
+
 
 class TestConfirmIngestionBatchServiceValidation:
     """Service-level validation tests for confirm_ingestion_batch."""
