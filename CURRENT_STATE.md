@@ -2,11 +2,11 @@
 
 | Field | Value |
 | :--- | :--- |
-| Current phase | Phase 7 — Evaluation and Acceptance (ingestion follow-up hardening) |
-| Active task | Completed and verified all five PR #7 review corrections: independent detector selection, layer-preserving NMS, raw-coordinate preservation, pixel aspect ratios, and warned person-only fallback. Publication and merge are explicitly authorized by the user. No application fixes remain pending. |
-| Most recently modified files | backend/app/core/config.py, backend/app/core/dependencies.py, backend/app/services/classifier.py, backend/app/services/ingestion_service.py, backend/app/services/yolo_world_detector.py; backend regression tests; .env.example; scripts/benchmark_detection.py; docs/03_domain/INGESTION_AND_RETRIEVAL_SPEC.md; docs/07_implementation/PR_7_REVIEW_2026-11-05.md; CURRENT_STATE.md. |
-| Latest passing verification command | 2026-11-05, PR worktree: full backend python -m pytest tests -q -m "not live_provider" --tb=short --maxfail=1 --basetemp <new short workspace directory>: 750 passed, 32 warnings (85.38s). Frontend npm run test -- --run: 109 passed; npm run test:e2e: 9 passed (39.4s). Focused regressions: 87 passed. Real ONNX inference through explicit YOLO selection with fake extraction passed. Earlier environment failures are superseded by these completed runs. |
-| Next step | Complete the authorized publication/merge using the verified PR head, then verify remote status and synchronize local main. Before deployment, retain the migration caveat in MAIN_RECONCILIATION_2026-11-03.md. Authenticated Gemini extraction and real-image YOLO accuracy remain separate opt-in evaluations; no new accuracy claim is made. Keep lecturer-plan and review runtime artifacts excluded. |
+| Current phase | Phase 7 — Evaluation and Acceptance (Personalized 2D Virtual Try-On feature branch) |
+| Active task | Documented Step 0 Spike findings in docs/06_features/FASHN_VTON_SPIKE_REPORT.md, completing all planned milestones for the Personalized 2D Virtual Try-On feature on branch feat/virtual-tryon. The branch is 100% code-complete, verified across backend and frontend test suites, and ready for Pull Request creation. |
+| Most recently modified files | docs/06_features/FASHN_VTON_SPIKE_REPORT.md, CURRENT_STATE.md, frontend/src/components/tryon/TryOnModal.tsx, backend/app/services/tryon_service.py, backend/migrations/versions/0013_virtual_tryon_and_avatars.py. |
+| Latest passing verification command | Backend contract tests: pytest tests/contract/ (55 passed in 7.31s); Try-on integration: pytest tests/integration/test_tryon_api.py (8 passed in 4.92s); Unit tests: pytest tests/unit/test_config.py (13 passed in 0.13s); Frontend suite: npx vitest run (15 files, 111 passed in 14.29s); Docs verification: powershell scripts/verify_documentation.ps1 (passed: 17 required files, 7 roadmap phases). |
+| Next step | Stage and commit the Step 0 spike report and state update, draft comprehensive PR description, and assist user with PR review and merge. |
 
 ## Update Rules
 

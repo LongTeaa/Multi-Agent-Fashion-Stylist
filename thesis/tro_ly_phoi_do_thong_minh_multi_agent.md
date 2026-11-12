@@ -143,7 +143,7 @@ Kiến thức của giảng viên và sinh viên ngành Thời trang được d�
   *Ví dụ:* **Outfit 1:** Áo polo trắng + quần chinos xanh navy + sneaker. Phù hợp với không khí thoải mái của buổi cafe và thời tiết mát vào buổi tối.
 
 * **Bước 5 – Thử đồ trực tuyến:**  
-  Người dùng chọn outfit được gợi ý để xem ảnh lookbook minh họa trên người mẫu chuẩn hoặc moodboard dự phòng. Hình ảnh này hỗ trợ hình dung tổng thể nhưng không cam kết chính xác về kích thước hay phom cơ thể. Người dùng có thể lưu outfit; lời mời đánh giá chỉ xuất hiện theo chu kỳ 5–10 outfit hoặc khi người dùng chủ động mở.
+  Người dùng chọn outfit được gợi ý để xem ảnh mặc thử ảo (hỗ trợ thử trên ảnh toàn thân của người dùng hoặc ảnh người mẫu chuẩn có sẵn; tự động kích hoạt Moodboard dự phòng khi ngoại tuyến hoặc gặp sự cố dịch vụ). Hình ảnh này hỗ trợ hình dung tổng thể phong cách và sự hòa hợp trang phục trước khi quyết định chọn mặc nhưng không cam kết mô phỏng độ co giãn hay số đo vật lý chính xác. Người dùng có thể lưu outfit hoặc đánh dấu đã mặc hôm nay; lời mời đánh giá chỉ xuất hiện theo chu kỳ 5–10 outfit hoặc khi người dùng chủ động mở.
 
 ```mermaid
 flowchart TD
@@ -189,4 +189,4 @@ Các số liệu trên là kết quả offline có tính tái lập. Vision dùn
 ### 6.2. Định hướng phát triển
 * Hỗ trợ giảng viên và sinh viên ngành Thời trang trong nghiên cứu, giảng dạy và thử nghiệm các nguyên tắc phối đồ.
 * Mở rộng sang các bài toán mua sắm và đề xuất sản phẩm khi phạm vi tủ đồ cá nhân đã hoàn thiện.
-* Nâng cấp hình ảnh phòng thử đồ trực tuyến để người mẫu ảo hiển thị chân thực, đúng phom dáng hơn với từng người dùng.
+* Mở rộng pipeline phòng thử đồ ảo 2D Virtual Try-On pixel-space (FASHN VTON) cho phép người dùng ướm thử trang phục đề xuất lên ảnh của chính mình hoặc người mẫu chuẩn với cơ chế xử lý bất đồng bộ và bộ nhớ đệm thông minh.

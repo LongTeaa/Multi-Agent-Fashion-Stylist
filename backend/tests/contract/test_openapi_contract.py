@@ -206,7 +206,11 @@ class TestOpenAPIContract:
             assert status_code in operation.get("responses", {})
 
         schemas = openapi_schema.get("components", {}).get("schemas", {})
-        assert set(schemas["TryOnRequest"].get("properties", {})) == {"outfit_id"}
+        assert set(schemas["TryOnRequest"].get("properties", {})) == {
+            "outfit_id",
+            "avatar_id",
+            "item_ids",
+        }
         response_properties = schemas["TryOnResponseData"].get("properties", {})
         assert set(response_properties) == {
             "tryon_id",
@@ -216,9 +220,15 @@ class TestOpenAPIContract:
             "fallback_used",
             "duration_ms",
             "status",
+            "error_code",
         }
         assert "object_key" not in response_properties
         assert "bucket" not in response_properties
+
+        # Avatars endpoint contract
+        assert "/api/v1/tryons/avatars" in paths
+        avatars_op = paths["/api/v1/tryons/avatars"].get("get")
+        assert avatars_op is not None
 
     def test_outfit_actions_request_and_response_schemas(self, openapi_schema: dict) -> None:
         schemas = openapi_schema.get("components", {}).get("schemas", {})

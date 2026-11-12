@@ -83,6 +83,15 @@ class CustomAttributesUpdate(BaseModel):
     functional_flags: list[str] | None = None
     free_text_tags: list[str] | None = None
 
+    @field_validator("category", mode="before")
+    @classmethod
+    def normalize_unset_category(cls, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str) and value.strip().lower() in ("", "unknown", "none"):
+            return None
+        return value
+
     @field_validator("length")
     @classmethod
     def validate_length_taxonomy(cls, value: str | None) -> str | None:
@@ -113,6 +122,15 @@ class DetectionConfirmationItem(BaseModel):
     detection_id: str
     accepted: bool = True
     custom_attributes: CustomAttributesUpdate | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def drop_custom_attributes_when_rejected(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("accepted") is False:
+            cleaned = dict(data)
+            cleaned["custom_attributes"] = None
+            return cleaned
+        return data
 
 
 class IngestionConfirmRequest(BaseModel):

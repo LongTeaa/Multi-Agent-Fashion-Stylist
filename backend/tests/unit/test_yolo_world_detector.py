@@ -298,6 +298,35 @@ class TestYoloWorldEndToEndInference:
         assert len(res.boxes) == 1
         assert res.boxes[0].label == "pants"
 
+    def test_detect_cross_class_footwear_synonyms_and_near_identical_contours(self) -> None:
+        mock_sess = MagicMock()
+        mock_input = MagicMock()
+        mock_input.name = "images"
+        mock_sess.get_inputs.return_value = [mock_input]
+
+        raw = np.zeros((1, 22, 8400), dtype=np.float32)
+        # Shoes box (class 13)
+        raw[0, 0, 0] = 320.0
+        raw[0, 1, 0] = 320.0
+        raw[0, 2, 0] = 300.0
+        raw[0, 3, 0] = 200.0
+        raw[0, 4 + 13, 0] = 0.72
+        # Boots box (class 15, overlapping pair of shoes)
+        raw[0, 0, 1] = 321.0
+        raw[0, 1, 1] = 321.0
+        raw[0, 2, 1] = 298.0
+        raw[0, 3, 1] = 198.0
+        raw[0, 4 + 15, 1] = 0.58
+
+        mock_sess.run.return_value = [raw]
+        detector = YoloWorldDetector(session=mock_sess)
+
+        image_bytes = _create_test_image_bytes(800, 600)
+        res = detector.detect(image_bytes)
+
+        assert len(res.boxes) == 1
+        assert res.boxes[0].label == "shoes"
+
     def test_detect_no_boxes_generates_quality_warning(self) -> None:
         mock_sess = MagicMock()
         mock_input = MagicMock()

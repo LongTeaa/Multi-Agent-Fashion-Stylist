@@ -94,8 +94,23 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           // Initialize accepted states & edited attributes map
           const acceptedMap: Record<string, boolean> = {};
           const attrMap: Record<string, FashionAttributes> = {};
+          const sourcesWithValidCategory = new Set(
+            review.detections
+              .filter(
+                (det) =>
+                  det.source_media_asset_id &&
+                  det.attributes?.category &&
+                  det.attributes.category !== 'unknown'
+              )
+              .map((det) => det.source_media_asset_id)
+          );
           for (const det of review.detections) {
-            acceptedMap[det.detection_id] = true;
+            const isUnknownCat =
+              !det.attributes?.category || det.attributes.category === 'unknown';
+            const hasValidSiblingOnSameSource =
+              !!det.source_media_asset_id &&
+              sourcesWithValidCategory.has(det.source_media_asset_id);
+            acceptedMap[det.detection_id] = !(isUnknownCat && hasValidSiblingOnSameSource);
             attrMap[det.detection_id] = { ...det.attributes };
           }
           setAcceptedDetections(acceptedMap);
@@ -203,14 +218,21 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     if (!batchId || !batchReview || isConfirming || isCancelling || isCropSaving) return;
 
     // Validate that all accepted detections have a valid category selected
-    const hasUnsetCategory = batchReview.detections.some((det) => {
+    const invalidDetection = batchReview.detections.find((det) => {
       const isAccepted = !!acceptedDetections[det.detection_id];
       if (!isAccepted) return false;
       const attrs = editedAttributes[det.detection_id] || det.attributes;
       return !attrs?.category || attrs.category === 'unknown';
     });
 
-    if (hasUnsetCategory) {
+    if (invalidDetection) {
+      if (
+        invalidDetection.source_media_asset_id &&
+        invalidDetection.source_media_asset_id !== selectedSourceId
+      ) {
+        setSelectedSourceId(invalidDetection.source_media_asset_id);
+      }
+      setSelectedDetectionId(invalidDetection.detection_id);
       setErrorMessage(
         'Vui lòng chọn danh mục chính hợp lệ cho tất cả các món đồ được chọn lưu trước khi xác nhận.'
       );
@@ -220,11 +242,16 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     setIsConfirming(true);
     setErrorMessage(null);
 
-    const confirmations = batchReview.detections.map((det) => ({
-      detection_id: det.detection_id,
-      accepted: !!acceptedDetections[det.detection_id],
-      custom_attributes: editedAttributes[det.detection_id] || det.attributes,
-    }));
+    const confirmations = batchReview.detections.map((det) => {
+      const isAccepted = !!acceptedDetections[det.detection_id];
+      return {
+        detection_id: det.detection_id,
+        accepted: isAccepted,
+        custom_attributes: isAccepted
+          ? editedAttributes[det.detection_id] || det.attributes
+          : undefined,
+      };
+    });
 
     try {
       const res = await confirmIngestionBatch(batchId, {

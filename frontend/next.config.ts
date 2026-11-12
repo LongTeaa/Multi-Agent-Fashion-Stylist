@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
     ?.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  async redirects() {
+    return [
+      {
+        source: '/outfit',
+        destination: '/saved',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

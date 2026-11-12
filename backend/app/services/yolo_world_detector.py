@@ -284,7 +284,11 @@ class YoloWorldDetector:
         # Cross-class NMS is limited to genuine aliases. A shirt and jacket,
         # or a shirt and t-shirt, may be distinct layers with the same outline.
         # Generic labels such as "clothing" do not identify a safe alias group.
-        synonym_groups = (frozenset({"pants", "trousers"}),)
+        synonym_groups = (
+            frozenset({"pants", "trousers"}),
+            frozenset({"shoes", "sneakers", "boots"}),
+            frozenset({"coat", "jacket"}),
+        )
         suppressed: set[int] = set()
         for synonyms in synonym_groups:
             indices = [
@@ -302,6 +306,24 @@ class YoloWorldDetector:
             kept_boxes = kept_boxes[final_keep]
             kept_scores = kept_scores[final_keep]
             kept_classes = kept_classes[final_keep]
+
+        # Suppress near-identical duplicate anchor boxes (IoU >= 0.92) across
+        # non-person garment classes on the exact same contour while preserving
+        # genuine overlapping garment layers (which have lower IoU).
+        garment_indices = [
+            i for i, cls_id in enumerate(kept_classes)
+            if 0 <= cls_id < len(active_vocab)
+            and active_vocab[cls_id].lower() not in {"person", "human"}
+        ]
+        if len(garment_indices) >= 2:
+            keep_garments = _nms(kept_boxes[garment_indices], kept_scores[garment_indices], 0.92)
+            keep_garment_set = {garment_indices[i] for i in keep_garments}
+            contour_suppressed = set(garment_indices) - keep_garment_set
+            if contour_suppressed:
+                final_keep = [i for i in range(len(kept_boxes)) if i not in contour_suppressed]
+                kept_boxes = kept_boxes[final_keep]
+                kept_scores = kept_scores[final_keep]
+                kept_classes = kept_classes[final_keep]
 
         results: list[BoundingBoxDetection] = []
         for i in range(len(kept_boxes)):

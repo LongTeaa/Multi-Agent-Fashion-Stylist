@@ -412,23 +412,82 @@ Response `data`:
 
 ### 8.1 `POST /tryons`
 
-Request: `{"outfit_id":"uuid"}`.
+Request:
 
-The operation MUST return HTTP `200` when image generation completes or when the moodboard fallback succeeds:
+```json
+{
+  "outfit_id": "uuid",
+  "avatar_id": "uuid (optional)",
+  "item_ids": ["uuid"]
+}
+```
+
+The operation MUST return HTTP `200` on a cache hit or when synchronous lookbook/moodboard completes:
 
 ```json
 {
   "tryon_id": "uuid",
   "outfit_id": "uuid",
   "image_url": "/api/v1/media/uuid",
-  "render_kind": "generated_lookbook",
+  "render_kind": "virtual_tryon",
   "fallback_used": false,
   "duration_ms": 4200,
   "status": "ready"
 }
 ```
 
-`render_kind` MUST be `generated_lookbook` or `moodboard`. The API MUST return `504 TRYON_FAILED` only when both the external provider and the fallback fail.
+For asynchronous virtual try-on pipelines, the operation returns HTTP `202 Accepted`:
+
+```json
+{
+  "tryon_id": "uuid",
+  "outfit_id": "uuid",
+  "status": "processing"
+}
+```
+
+`render_kind` MUST be `virtual_tryon`, `generated_lookbook`, or `moodboard`. The API MUST return `504 TRYON_FAILED` only when both the external provider and the fallback fail.
+
+### 8.2 `GET /tryons/{tryon_id}`
+
+Retrieves the current execution status of a try-on render:
+
+```json
+{
+  "tryon_id": "uuid",
+  "status": "processing",
+  "image_url": null,
+  "render_kind": null,
+  "fallback_used": false
+}
+```
+
+When completed (`status: "ready"`), `image_url` points to the rendered media asset.
+
+### 8.3 `GET /tryons/avatars`
+
+Lists available try-on avatars for the authenticated user, including built-in preset models and uploaded personal avatars:
+
+```json
+[
+  {
+    "id": "preset-male",
+    "name": "Người mẫu nam chuẩn",
+    "is_preset": true,
+    "gender": "male",
+    "image_url": "/api/v1/tryons/presets/male.webp",
+    "is_default": true
+  }
+]
+```
+
+### 8.4 `POST /tryons/avatars`
+
+Multipart form upload (`file`) of a user full-body photo. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
+
+### 8.5 `DELETE /tryons/avatars/{avatar_id}`
+
+Soft-deletes a user's uploaded avatar. Returns HTTP `204 No Content`. Users MUST NOT be able to delete built-in presets or other users' avatars.
 
 ## 9. Media API
 

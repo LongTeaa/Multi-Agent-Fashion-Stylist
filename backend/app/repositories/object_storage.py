@@ -126,6 +126,8 @@ def _validate_location(
         )
     elif family == "tryons":
         valid = bucket == buckets.tryon and len(parts) == 5 and parts[4] == "render.webp"
+    elif family == "avatars":
+        valid = bucket == buckets.tryon and len(parts) == 5 and parts[4] == "source.webp"
     else:
         valid = False
 
