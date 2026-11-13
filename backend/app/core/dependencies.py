@@ -242,11 +242,17 @@ def get_vision_provider() -> VisionProviderProtocol:
         from app.services.gemini_provider import GeminiVisionProvider
 
         key_pool = get_gemini_key_pool(settings)
+        fallback_model = (
+            settings.vision_fallback_model.strip()
+            if settings.vision_fallback_model and settings.vision_fallback_model.strip()
+            else None
+        )
         return GeminiVisionProvider(
             api_key=key_pool.keys[0],
             model=settings.get_vision_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
             key_pool=key_pool,
+            fallback_model=fallback_model,
         )
 
     raise ValueError(f"Unsupported vision_provider: '{settings.vision_provider}'")

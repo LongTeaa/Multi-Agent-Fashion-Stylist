@@ -272,3 +272,80 @@ def test_resolve_yolo_model_path_from_repo_root_and_backend_dir(
     resolved_from_backend = resolve_yolo_model_path("models/yolov8s-worldv2.onnx")
     assert resolved_from_backend.is_file()
     assert resolved_from_backend.resolve() == fake_model.resolve()
+
+
+@pytest.mark.parametrize("failure_mode", ["503_high_demand", "timeout"])
+def test_vision_provider_falls_back_to_lite_model_on_503_and_timeout(
+    failure_mode: str,
+) -> None:
+    """When primary gemini-3.6-flash returns 503 or times out, immediately fallback to gemini-3.5-flash-lite."""
+    called_urls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url_str = str(request.url)
+        called_urls.append(url_str)
+        if "gemini-3.6-flash:generateContent" in url_str:
+            if failure_mode == "timeout":
+                raise httpx.ReadTimeout("Primary model timed out")
+            return httpx.Response(
+                status_code=503,
+                json={
+                    "error": {
+                        "code": 503,
+                        "message": "This model is currently experiencing high demand.",
+                        "status": "UNAVAILABLE",
+                    }
+                },
+            )
+        if "gemini-3.5-flash-lite:generateContent" in url_str:
+            return httpx.Response(
+                status_code=200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "text": json.dumps(
+                                            {
+                                                "attributes": {
+                                                    "category": "top",
+                                                    "sub_category": "t-shirt",
+                                                    "primary_color": "white",
+                                                    "material": "cotton",
+                                                    "style": "casual",
+                                                    "comfort_level": 4,
+                                                    "silhouette_level": 3,
+                                                    "length": "hip",
+                                                    "functional_flags": ["movement"],
+                                                },
+                                                "field_confidence": {
+                                                    "category": 0.96,
+                                                    "primary_color": 0.95,
+                                                },
+                                                "quality_warnings": [],
+                                            }
+                                        )
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+        return httpx.Response(status_code=404)
+
+    provider = GeminiVisionProvider(
+        api_key=SecretStr("test-key"),
+        model="gemini-3.6-flash",
+        fallback_model="gemini-3.5-flash-lite",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    res = provider.extract_attributes(_create_test_image(64, 64))
+    assert res.attributes["category"] == "top"
+    assert res.attributes["primary_color"] == "white"
+    assert len(called_urls) == 2
+    assert "gemini-3.6-flash:generateContent" in called_urls[0]
+    assert "gemini-3.5-flash-lite:generateContent" in called_urls[1]
+

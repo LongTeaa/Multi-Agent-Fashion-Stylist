@@ -348,6 +348,8 @@ class GeminiVisionProvider:
         initial_backoff_seconds: float = 1.0,
         *,
         key_pool: GeminiKeyPool | None = None,
+        fallback_model: str | None = None,
+        primary_timeout_seconds: float = 8.0,
     ) -> None:
         if key_pool is not None:
             self.key_pool = key_pool
@@ -363,6 +365,13 @@ class GeminiVisionProvider:
             model = get_settings().get_vision_model()
 
         self.model = model
+        cleaned_fallback = (
+            fallback_model.strip() if fallback_model and fallback_model.strip() else None
+        )
+        self.fallback_model: str | None = (
+            cleaned_fallback if cleaned_fallback and cleaned_fallback != self.model else None
+        )
+        self.primary_timeout_seconds = float(primary_timeout_seconds)
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
         self._client: httpx.Client = client or httpx.Client(
@@ -378,7 +387,6 @@ class GeminiVisionProvider:
         spatial_context: dict[str, Any] | None = None,
     ) -> VisionExtractionResult:
         """Call Gemini to extract structured fashion attributes and per-field confidence scores."""
-        url = f"{self.base_url}/models/{self.model}:generateContent"
         encoded_crop = base64.b64encode(crop_bytes).decode("ascii")
         crop_mime_type = _detect_image_mime_type(crop_bytes)
 
@@ -508,16 +516,24 @@ class GeminiVisionProvider:
         }
 
         total_attempts = max(self.max_retries, self.key_pool.total_keys)
+        active_model = self.model
+        used_fallback = False
         for attempt in range(total_attempts + 1):
             try:
+                url = f"{self.base_url}/models/{active_model}:generateContent"
+                req_timeout = (
+                    min(self.timeout_seconds, self.primary_timeout_seconds)
+                    if self.fallback_model and not used_fallback
+                    else self.timeout_seconds
+                )
                 current_key = self.key_pool.get_next_key()
                 headers = {"x-goog-api-key": current_key.get_secret_value()}
                 if self._client is not None:
                     resp = self._client.post(
-                        url, headers=headers, json=payload, timeout=self.timeout_seconds
+                        url, headers=headers, json=payload, timeout=req_timeout
                     )
                 else:
-                    with httpx.Client(timeout=self.timeout_seconds) as client:
+                    with httpx.Client(timeout=req_timeout) as client:
                         resp = client.post(url, headers=headers, json=payload)
 
                 is_rate_limited = (
@@ -539,6 +555,15 @@ class GeminiVisionProvider:
                         total_attempts + 1,
                     )
                     self.key_pool.mark_rate_limited(current_key)
+                    if self.fallback_model and not used_fallback and attempt < total_attempts:
+                        logger.warning(
+                            "Primary vision model '%s' rate-limited/overloaded; falling back immediately to '%s'...",
+                            active_model,
+                            self.fallback_model,
+                        )
+                        active_model = self.fallback_model
+                        used_fallback = True
+                        continue
                     if attempt < total_attempts:
                         if self.key_pool.active_keys_count > 0:
                             time.sleep(0.1)
@@ -557,6 +582,16 @@ class GeminiVisionProvider:
                     )
 
                 if resp.status_code in TRANSIENT_HTTP_STATUS_CODES:
+                    if self.fallback_model and not used_fallback and attempt < total_attempts:
+                        logger.warning(
+                            "Primary vision model '%s' returned HTTP %d (high demand/unavailable); falling back immediately to '%s'...",
+                            active_model,
+                            resp.status_code,
+                            self.fallback_model,
+                        )
+                        active_model = self.fallback_model
+                        used_fallback = True
+                        continue
                     if attempt < total_attempts:
                         backoff = self.initial_backoff_seconds * (2 ** min(attempt, 3))
                         logger.warning(
@@ -632,6 +667,16 @@ class GeminiVisionProvider:
                 )
 
             except httpx.TimeoutException as err:
+                if self.fallback_model and not used_fallback and attempt < total_attempts:
+                    logger.warning(
+                        "Primary vision model '%s' timed out (%s); falling back immediately to '%s'...",
+                        active_model,
+                        err,
+                        self.fallback_model,
+                    )
+                    active_model = self.fallback_model
+                    used_fallback = True
+                    continue
                 logger.warning("Gemini vision provider request timed out: %s", err)
                 raise TimeoutError("AI vision provider timed out.") from err
             except httpx.TransportError as err:
