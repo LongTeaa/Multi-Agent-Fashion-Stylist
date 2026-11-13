@@ -164,10 +164,11 @@ def get_yolo_world_detector(settings: Settings | None = None) -> DetectorProtoco
     )
 
     if _yolo_world_detector_instance is None or _yolo_world_detector_signature != current_sig:
-        from app.services.yolo_world_detector import YoloWorldDetector
+        from app.services.yolo_world_detector import YoloWorldDetector, resolve_yolo_model_path
 
+        resolved_path = resolve_yolo_model_path(settings.yolo_world_model_path)
         _yolo_world_detector_instance = YoloWorldDetector(
-            model_path=settings.yolo_world_model_path,
+            model_path=str(resolved_path),
             confidence_threshold=settings.yolo_world_confidence_threshold,
             iou_threshold=settings.yolo_world_iou_threshold,
         )
@@ -188,9 +189,9 @@ def get_detector() -> DetectorProtocol:
 
     if backend == "yolo_world":
         validate_detector_configuration(settings)
-        from pathlib import Path
+        from app.services.yolo_world_detector import resolve_yolo_model_path
 
-        model_file = Path(settings.yolo_world_model_path)
+        model_file = resolve_yolo_model_path(settings.yolo_world_model_path)
         if not model_file.is_file():
             if settings.get_gemini_api_keys():
                 logger.warning(

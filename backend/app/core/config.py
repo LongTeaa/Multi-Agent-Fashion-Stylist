@@ -32,6 +32,12 @@ class Settings(BaseSettings):
 
     vision_provider: Literal["fake", "gemini"] = "fake"
     vision_timeout_seconds: PositiveInt = 30
+    ingestion_max_concurrency: int = Field(
+        default=6,
+        ge=1,
+        le=16,
+        description="Maximum concurrent Gemini Vision attribute extraction requests per ingestion batch.",
+    )
     detector_backend: Literal["auto", "fake", "gemini", "yolo_world"] = "auto"
     yolo_world_model_path: str = "models/yolov8s-worldv2.onnx"
     yolo_world_confidence_threshold: float = 0.25

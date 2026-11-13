@@ -147,7 +147,10 @@ class GeminiDetector:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
-        self._client = client
+        self._client: httpx.Client = client or httpx.Client(
+            timeout=self.timeout_seconds,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
         self.max_retries = max_retries
         self.initial_backoff_seconds = initial_backoff_seconds
 
@@ -362,7 +365,10 @@ class GeminiVisionProvider:
         self.model = model
         self.timeout_seconds = timeout_seconds
         self.base_url = base_url
-        self._client = client
+        self._client: httpx.Client = client or httpx.Client(
+            timeout=self.timeout_seconds,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
         self.max_retries = max_retries
         self.initial_backoff_seconds = initial_backoff_seconds
 

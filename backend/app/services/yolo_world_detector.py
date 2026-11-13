@@ -15,6 +15,19 @@ from app.models.entities import BoundingBox, ConfidenceValue, InputKind
 from app.services.providers import BoundingBoxDetection, DetectionResult, DetectorProtocol
 
 logger = logging.getLogger(__name__)
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+
+def resolve_yolo_model_path(model_path: str | Path) -> Path:
+    """Resolve relative YOLO-World ONNX paths from either cwd or the backend/ directory."""
+    candidate = Path(model_path)
+    if candidate.is_file():
+        return candidate
+    if not candidate.is_absolute():
+        backend_candidate = BACKEND_DIR / candidate
+        if backend_candidate.is_file():
+            return backend_candidate
+    return candidate
 
 DEFAULT_FASHION_CLASSES: list[str] = [
     "person",
@@ -120,8 +133,10 @@ class YoloWorldDetector:
 
         if session is not None:
             self._session = session
+            resolved_model_path = Path(model_path)
         else:
-            p = Path(model_path)
+            p = resolve_yolo_model_path(model_path)
+            resolved_model_path = p
             if not p.is_file():
                 raise FileNotFoundError(
                     f"YOLO-World ONNX model not found at '{model_path}'. "
@@ -146,8 +161,9 @@ class YoloWorldDetector:
         self._txt_feats: np.ndarray | None = None
         if self._needs_txt_feats:
             possible_paths = [
-                Path(model_path).parent / "fashion_clip_features.npy",
+                resolved_model_path.parent / "fashion_clip_features.npy",
                 Path("models/fashion_clip_features.npy"),
+                BACKEND_DIR / "models/fashion_clip_features.npy",
                 Path("backend/models/fashion_clip_features.npy"),
             ]
             for feat_p in possible_paths:
