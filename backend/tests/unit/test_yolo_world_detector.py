@@ -345,6 +345,69 @@ class TestYoloWorldEndToEndInference:
         assert "No garments" in res.quality_warnings[0]
 
 
+class TestYoloWorldAdaptiveFilteringAndDeduplication:
+    """Tests person-anchored rescue, false-positive guardrails, and cross-category merging."""
+
+    def _make_detector(self, confidence_threshold: float = 0.25) -> YoloWorldDetector:
+        session = MagicMock()
+        session.get_inputs.return_value = [MagicMock(name="images")]
+        return YoloWorldDetector(session=session, confidence_threshold=confidence_threshold)
+
+    def test_rescues_anatomical_wearer_top_and_shoes_while_rejecting_background_noise(self) -> None:
+        detector = self._make_detector()
+        # Labels: 0=person, 4=t-shirt, 8=pants, 13=shoes
+        raw = np.array([
+            [160, 20, 440, 620, 0.55, 0],    # strong person [x1,y1,x2,y2]
+            [240, 110, 410, 230, 0.14, 4],   # worn t-shirt on upper torso -> KEEP
+            [240, 520, 410, 610, 0.24, 13],  # worn shoes at bottom feet -> KEEP
+            [20, 100, 110, 250, 0.18, 4],    # background noise outside person -> DROP
+            [250, 150, 350, 220, 0.19, 13],  # mislocated shoes at chest inside person -> DROP
+            [240, 210, 410, 580, 0.42, 8],   # high-conf pants -> KEEP
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+        labels = [b.label for b in boxes]
+        assert sorted(labels) == ["pants", "person", "shoes", "t-shirt"]
+
+    def test_rejects_low_confidence_candidates_without_strong_person(self) -> None:
+        detector = self._make_detector()
+        raw = np.array([
+            [160, 20, 440, 620, 0.16, 0],    # weak ghost person (< 0.25)
+            [240, 110, 410, 230, 0.18, 4],   # low-conf t-shirt
+            [240, 520, 410, 610, 0.22, 13],  # low-conf shoes
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+        assert boxes == []
+
+    def test_merges_lower_contour_duplicates_and_lower_scored_clothing(self) -> None:
+        detector = self._make_detector()
+        # Labels: 1=clothing, 8=pants, 12=dress
+        raw = np.array([
+            [248, 216, 403, 587, 0.42, 8],   # pants (highest score)
+            [245, 220, 417, 562, 0.38, 12],  # dress overlap IoU ~0.84 -> suppress
+            [245, 223, 416, 569, 0.37, 1],   # generic clothing catch-all -> suppress
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+        assert [b.label for b in boxes] == ["pants"]
+
+    def test_suppresses_enclosed_single_shoe_subboxes_and_weak_torso_duplicate(self) -> None:
+        detector = self._make_detector()
+        # Labels: 0=person, 3=shirt, 4=t-shirt, 13=shoes
+        raw = np.array([
+            [160, 20, 440, 620, 0.60, 0],    # strong person
+            [220, 110, 400, 280, 0.65, 3],   # confident shirt
+            [225, 115, 395, 275, 0.15, 4],   # weak t-shirt duplicate -> suppress
+            [248, 520, 408, 608, 0.24, 13],  # pair of shoes -> keep
+            [250, 558, 313, 608, 0.15, 13],  # left shoe sub-box inside pair -> suppress
+            [338, 522, 406, 592, 0.14, 13],  # right shoe sub-box inside pair -> suppress
+        ], dtype=np.float32)
+
+        boxes = detector._postprocess([raw], 1.0, 0.0, 0.0, 640, 640)
+        assert sorted(b.label for b in boxes) == ["person", "shirt", "shoes"]
+
+
 class TestYoloWorldPipelineAndClassifierIntegration:
     """Tests integration of YoloWorldDetector with classify_scene scene resolver."""
 
