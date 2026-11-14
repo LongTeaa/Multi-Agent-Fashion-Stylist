@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   ApiError,
@@ -364,7 +365,7 @@ export function TryOnModal({
   const garmentItems = items.filter((i) => ['top', 'bottom', 'dress', 'outerwear'].includes(i.slot));
   const coordinateItems = items.filter((i) => ['footwear', 'accessory'].includes(i.slot));
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-[#1A1918]/65 px-0 backdrop-blur-sm sm:items-center sm:px-5"
       onMouseDown={(event) => {
@@ -793,4 +794,6 @@ export function TryOnModal({
       </section>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
