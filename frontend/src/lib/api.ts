@@ -486,7 +486,7 @@ export async function dismissFeedbackPrompt(
 
 export async function createTryOn(
   outfitId: string,
-  options?: { signal?: AbortSignal; avatarId?: string; itemIds?: string[] }
+  options?: { signal?: AbortSignal; avatarId?: string; itemIds?: string[]; forceRefresh?: boolean }
 ): Promise<TryOnResponseData> {
   const payload: Record<string, unknown> = { outfit_id: outfitId };
   if (options?.avatarId) {
@@ -494,6 +494,9 @@ export async function createTryOn(
   }
   if (options?.itemIds && options.itemIds.length > 0) {
     payload.item_ids = options.itemIds;
+  }
+  if (options?.forceRefresh) {
+    payload.force_refresh = true;
   }
   return apiFetch<TryOnResponseData>(`${API_BASE_URL}/api/v1/tryons`, {
     method: 'POST',

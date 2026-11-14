@@ -100,7 +100,13 @@ describe('TryOnModal', () => {
 
     await waitFor(() => expect(screen.getByText('Moodboard dự phòng')).toBeDefined());
     fireEvent.click(screen.getByRole('button', { name: 'Tạo lại ảnh minh họa' }));
-    await waitFor(() => expect(api.createTryOn).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      expect(api.createTryOn).toHaveBeenCalledTimes(2);
+      expect(api.createTryOn).toHaveBeenLastCalledWith(
+        'outfit-1',
+        expect.objectContaining({ forceRefresh: true })
+      );
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Lưu bộ đồ' }));
     await waitFor(() => {
@@ -267,15 +273,113 @@ describe('TryOnModal', () => {
     expect(screen.getByText('Giày oxford')).toBeDefined();
     expect(screen.getByText('Đồng hồ da')).toBeDefined();
 
-    // Toggle to inner top
-    fireEvent.click(screen.getByText('Ướm áo trong'));
+    // Defaults to inner top ('top') with active/inactive badges
+    expect(api.createTryOn).toHaveBeenNthCalledWith(
+      1,
+      'outfit-layered',
+      expect.objectContaining({
+        itemIds: ['top-1', 'bottom-1', 'shoe-1', 'acc-1'],
+      })
+    );
+    expect(screen.getByText('Đang ướm')).toBeDefined();
+    expect(screen.getByText('Bấm chọn ở trên để ướm')).toBeDefined();
+
+    // Toggle to outerwear
+    fireEvent.click(screen.getByText('Ướm áo khoác ngoài'));
     await waitFor(() => {
       expect(api.createTryOn).toHaveBeenCalledWith(
         'outfit-layered',
         expect.objectContaining({
-          itemIds: expect.arrayContaining(['top-1', 'bottom-1']),
+          itemIds: ['outer-1', 'bottom-1', 'shoe-1', 'acc-1'],
         })
       );
+    });
+
+    // Toggle back to inner top
+    fireEvent.click(screen.getByText('Ướm áo trong'));
+    await waitFor(() => {
+      expect(api.createTryOn).toHaveBeenLastCalledWith(
+        'outfit-layered',
+        expect.objectContaining({
+          itemIds: ['top-1', 'bottom-1', 'shoe-1', 'acc-1'],
+        })
+      );
+    });
+  });
+
+  it('resets stale result and regenerates when switching to a different outfitId', async () => {
+    let resolveSecondTryOn: (value: Awaited<ReturnType<typeof api.createTryOn>>) => void =
+      () => undefined;
+
+    vi.mocked(api.createTryOn)
+      .mockResolvedValueOnce({
+        tryon_id: 'tryon-outfit-1',
+        outfit_id: 'outfit-1',
+        image_url: '/api/v1/media/render-outfit-1',
+        render_kind: 'virtual_tryon',
+        fallback_used: false,
+        duration_ms: 420,
+        status: 'ready',
+      })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSecondTryOn = resolve;
+        })
+      );
+
+    const { rerender } = render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={items}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Ảnh mặc thử AI cho bộ trang phục')).toBeDefined();
+    });
+
+    const outfit2Items = [
+      { id: 'top-2', slot: 'top', name: 'Áo thun đen Matrix', primaryColor: 'Đen' },
+      { id: 'bottom-1', slot: 'bottom', name: 'Quần chinos navy', primaryColor: 'Navy' },
+    ];
+
+    rerender(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-2"
+        items={outfit2Items}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toContain('Đang tạo ảnh minh họa');
+      expect(screen.queryByAltText('Ảnh mặc thử AI cho bộ trang phục')).toBeNull();
+    });
+
+    resolveSecondTryOn({
+      tryon_id: 'tryon-outfit-2',
+      outfit_id: 'outfit-2',
+      image_url: '/api/v1/media/render-outfit-2',
+      render_kind: 'virtual_tryon',
+      fallback_used: false,
+      duration_ms: 510,
+      status: 'ready',
+    });
+
+    await waitFor(() => {
+      expect(api.createTryOn).toHaveBeenNthCalledWith(
+        2,
+        'outfit-2',
+        expect.objectContaining({ itemIds: ['top-2', 'bottom-1'] })
+      );
+      expect(screen.getByAltText('Ảnh mặc thử AI cho bộ trang phục')).toBeDefined();
     });
   });
 });

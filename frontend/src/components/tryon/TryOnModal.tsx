@@ -55,6 +55,7 @@ export function TryOnModal({
   onWornChange,
   onClose,
 }: TryOnModalProps) {
+  const [previousOutfitId, setPreviousOutfitId] = useState(outfitId);
   const [result, setResult] = useState<TryOnResponseData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function TryOnModal({
   const hasTop = items.some((i) => i.slot === 'top');
   const hasOuterwear = items.some((i) => i.slot === 'outerwear');
   const hasBothTops = hasTop && hasOuterwear;
-  const [selectedTopSlot, setSelectedTopSlot] = useState<'outerwear' | 'top'>('outerwear');
+  const [selectedTopSlot, setSelectedTopSlot] = useState<'outerwear' | 'top'>('top');
 
   // Avatar upload sub-dialog
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -135,7 +136,11 @@ export function TryOnModal({
   }, []);
 
   const generate = useCallback(
-    async (avatarIdToUse?: string, topSlotToUse?: 'outerwear' | 'top') => {
+    async (
+      avatarIdToUse?: string,
+      topSlotToUse?: 'outerwear' | 'top',
+      forceRefresh = false
+    ) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -170,6 +175,7 @@ export function TryOnModal({
           signal: controller.signal,
           avatarId: activeAvatar,
           itemIds: relevantItemIds,
+          ...(forceRefresh ? { forceRefresh: true } : {}),
         });
         if (requestIdRef.current === currentRequestId) {
           setResult(res);
@@ -196,6 +202,14 @@ export function TryOnModal({
     },
     [outfitId]
   );
+
+  if (outfitId !== previousOutfitId) {
+    setPreviousOutfitId(outfitId);
+    setResult(null);
+    setError(null);
+    setShowOriginalAvatar(false);
+    setSelectedTopSlot('top');
+  }
 
   if (isBookmarked !== previousIsBookmarked) {
     setPreviousIsBookmarked(isBookmarked);
@@ -578,7 +592,7 @@ export function TryOnModal({
                     <p role="alert" className="text-sm leading-relaxed text-rose-800">{error}</p>
                     <button
                       type="button"
-                      onClick={() => void generate()}
+                      onClick={() => void generate(undefined, undefined, true)}
                       className="mt-5 rounded-full bg-[#1A1918] px-5 py-2.5 text-sm font-semibold text-[#FBFBF9] transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#302B27] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9C5234]"
                     >
                       Thử tạo lại
@@ -642,29 +656,52 @@ export function TryOnModal({
                 Trang phục ướm trên người
               </h3>
               <div className="mt-2 space-y-2">
-                {garmentItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-[2.75rem_1fr] items-center gap-3 rounded-2xl bg-[#F7F5F1] p-2"
-                  >
-                    <div className="h-11 w-11 overflow-hidden rounded-xl bg-[#E8E5DE]">
-                      {item.imageUrl && (
-                        <PrivateMediaImage
-                          source={item.imageUrl}
-                          alt={`Ảnh ${item.name}`}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
+                {garmentItems.map((item) => {
+                  const isLayeredUpperItem =
+                    hasBothTops && (item.slot === 'top' || item.slot === 'outerwear');
+                  const isActiveUpperLayer =
+                    isLayeredUpperItem && item.slot === selectedTopSlot;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`grid grid-cols-[2.75rem_1fr] items-center gap-3 rounded-2xl p-2 ${
+                        isLayeredUpperItem && !isActiveUpperLayer
+                          ? 'bg-[#F7F5F1]/60 opacity-75'
+                          : 'bg-[#F7F5F1]'
+                      }`}
+                    >
+                      <div className="h-11 w-11 overflow-hidden rounded-xl bg-[#E8E5DE]">
+                        {item.imageUrl && (
+                          <PrivateMediaImage
+                            source={item.imageUrl}
+                            alt={`Ảnh ${item.name}`}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <p className="truncate text-xs font-medium text-[#1A1918]">{item.name}</p>
+                          {isLayeredUpperItem && (
+                            <span
+                              className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                                isActiveUpperLayer
+                                  ? 'bg-[#1A1918] text-white'
+                                  : 'bg-[#EBE6DC] text-[#5C564E]'
+                              }`}
+                            >
+                              {isActiveUpperLayer ? 'Đang ướm' : 'Bấm chọn ở trên để ướm'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-[#736E65]">
+                          {SLOT_NAMES[item.slot] ?? item.slot}
+                          {item.primaryColor ? `, ${item.primaryColor}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-[#1A1918]">{item.name}</p>
-                      <p className="mt-0.5 text-[11px] text-[#736E65]">
-                        {SLOT_NAMES[item.slot] ?? item.slot}
-                        {item.primaryColor ? `, ${item.primaryColor}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Coordinate Items (Footwear & Accessories) */}
@@ -716,7 +753,7 @@ export function TryOnModal({
               <div className="mt-auto grid grid-cols-1 gap-2 pt-4">
                 <button
                   type="button"
-                  onClick={() => void generate()}
+                  onClick={() => void generate(undefined, undefined, true)}
                   disabled={isGenerating}
                   aria-label="Tạo lại ảnh minh họa"
                   className="rounded-full bg-[#1A1918] px-4 py-2.5 text-xs font-semibold text-[#FBFBF9] transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#302B27] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9C5234]"
