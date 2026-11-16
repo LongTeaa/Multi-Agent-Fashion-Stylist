@@ -91,7 +91,7 @@ describe('WardrobeInventory Component', () => {
       expect(screen.getByText('Quần jeans xanh')).toBeDefined();
     });
 
-    expect(screen.getByText(/Quản lý 2 món trang phục/)).toBeDefined();
+    expect(screen.getByText(/2 món đồ sẵn sàng để phối/)).toBeDefined();
   });
 
   it('renders empty state when no items are returned', async () => {
@@ -109,7 +109,7 @@ describe('WardrobeInventory Component', () => {
       expect(screen.getByText('Chưa có trang phục nào')).toBeDefined();
     });
 
-    const switchBtn = screen.getByText('+ Số Hóa Trang Phục Ngay');
+    const switchBtn = screen.getByRole('button', { name: /Thêm món đồ đầu tiên/ });
     fireEvent.click(switchBtn);
     expect(onSwitch).toHaveBeenCalledTimes(1);
   });
@@ -166,8 +166,8 @@ describe('WardrobeInventory Component', () => {
     vi.mocked(api.listWardrobeItems).mockResolvedValue({ items: mockItems, total: 24, page: 1, page_size: 12 });
     render(<WardrobeInventory />);
     await screen.findByTestId('category-filter-pants');
-    await screen.findByText('Sau →');
-    fireEvent.click(screen.getByText('Sau →'));
+    await screen.findByRole('button', { name: /^Sau$/ });
+    fireEvent.click(screen.getByRole('button', { name: /^Sau$/ }));
     await waitFor(() => expect(api.listWardrobeItems).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
     const calls = vi.mocked(api.listWardrobeItems).mock.calls.length;
     const input = screen.getByTestId('wardrobe-search-input');
@@ -204,7 +204,7 @@ describe('WardrobeInventory Component', () => {
 
     fireEvent.click(screen.getByTestId('edit-item-item-1'));
 
-    expect(screen.getByText('Chỉnh Sửa Trang Phục')).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'Chỉnh sửa món đồ' })).toBeDefined();
 
     const nameInput = screen.getByTestId('edit-sub-category');
     fireEvent.change(nameInput, { target: { value: 'Áo polo xanh navy' } });
@@ -251,7 +251,7 @@ describe('WardrobeInventory Component', () => {
 
     fireEvent.click(screen.getByTestId('delete-item-item-1'));
 
-    expect(screen.getByRole('heading', { name: 'Xác Nhận Xóa' })).toBeDefined();
+    expect(screen.getByRole('alertdialog', { name: /^Xóa/ })).toBeDefined();
 
     fireEvent.click(screen.getByTestId('confirm-delete-btn'));
 
@@ -300,8 +300,8 @@ describe('WardrobeInventory Component', () => {
     expect(screen.getByTestId('badge-comfort-item-1').textContent).toContain('Thoải mái 4/5');
     expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Tiêu chuẩn');
     expect(screen.getByTestId('badge-silhouette-item-1').textContent).toContain('Ngang hông');
-    expect(screen.getByText('#Vận động')).toBeDefined();
-    expect(screen.getByText('#Chống nắng')).toBeDefined();
+    expect(screen.getByText('Vận động')).toBeDefined();
+    expect(screen.getByText('Chống nắng')).toBeDefined();
   });
 
   it('allows editing fashion domain attributes (comfort, silhouette, length, functional flags)', async () => {

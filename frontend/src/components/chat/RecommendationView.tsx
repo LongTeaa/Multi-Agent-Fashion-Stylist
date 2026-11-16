@@ -10,43 +10,36 @@ export interface RecommendationViewProps {
   onRatingChange?: (outfitId: string, rating: number) => void;
 }
 
-export const RecommendationView: React.FC<RecommendationViewProps> = ({
-  data,
-  ratingsMap,
-  onRatingChange,
-}) => {
+export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, ratingsMap, onRatingChange }) => {
+  const count = data.recommendations.length;
+
   return (
-    <div className="w-full space-y-6 animate-fadeIn">
-      {/* Recommendations section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-xl sm:text-2xl font-normal text-[#1A1918] tracking-tight">
-            {data.recommendations.length > 0
-              ? `AI Đã Phối ${data.recommendations.length} Set Đồ Dành Riêng Cho Bạn`
-              : 'Không có gợi ý nào'}
-          </h2>
-
-        </div>
-
-        <div className="space-y-5">
-          {data.recommendations.map((rec) => (
-            <OutfitCard
-              key={rec.outfit_id}
-              outfitId={rec.outfit_id}
-              testId="outfit-recommendation-card"
-              rank={rec.rank}
-              compositeScore={rec.composite_score}
-              explanationVi={rec.explanation_vi}
-              appliedPreferences={rec.applied_preferences}
-              items={normalizeStylistItems(rec.items)}
-              initialIsBookmarked={false}
-              initialTimesWorn={0}
-              initialRating={ratingsMap?.[rec.outfit_id] ?? null}
-              onRatingChange={onRatingChange}
-            />
-          ))}
-        </div>
+    <section aria-labelledby="recommendations-heading" className="animate-rise space-y-5 pt-2">
+      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
+        <h2 id="recommendations-heading" className="display text-2xl">
+          {count > 0 ? `${count} bộ phối cho bạn` : 'Chưa có bộ phối phù hợp'}
+        </h2>
+        {count > 1 && <span className="text-sm text-muted">Xếp theo độ phù hợp</span>}
       </div>
-    </div>
+
+      <div className="space-y-5">
+        {data.recommendations.map((rec) => (
+          <OutfitCard
+            key={rec.outfit_id}
+            outfitId={rec.outfit_id}
+            testId="outfit-recommendation-card"
+            rank={rec.rank}
+            compositeScore={rec.composite_score}
+            explanationVi={rec.explanation_vi}
+            appliedPreferences={rec.applied_preferences}
+            items={normalizeStylistItems(rec.items)}
+            initialIsBookmarked={false}
+            initialTimesWorn={0}
+            initialRating={ratingsMap?.[rec.outfit_id] ?? null}
+            onRatingChange={onRatingChange}
+          />
+        ))}
+      </div>
+    </section>
   );
 };

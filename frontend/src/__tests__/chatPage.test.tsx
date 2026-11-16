@@ -68,20 +68,20 @@ describe('Chat Page & Components Integration', () => {
   it('renders chat page header, title, and initial composer', () => {
     render(<ChatPage />);
 
-    expect(screen.getByText('Trợ Lý Phối Đồ Stylist AI')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1, name: 'Hôm nay bạn đi đâu?' })).toBeDefined();
     expect(screen.getByRole('form', { name: /Khung gửi câu hỏi tư vấn phối đồ/i })).toBeDefined();
 
     const submitBtn = screen.getByRole('button', { name: /Phối Đồ/i });
     expect(submitBtn).toBeDefined();
     expect(submitBtn.hasAttribute('disabled')).toBe(true);
 
-    expect(screen.getByText(/Gợi ý bối cảnh thường gặp:/i)).toBeDefined();
+    expect(screen.getByText(/Thử nhanh:/i)).toBeDefined();
   });
 
   it('fills composer with suggested prompt when pill is clicked', () => {
     render(<ChatPage />);
 
-    const pill = screen.getByText(/Đi cafe ngoài trời ở Đà Lạt/i);
+    const pill = screen.getByRole('button', { name: 'Cafe ở Đà Lạt' });
     fireEvent.click(pill);
 
     const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i) as HTMLTextAreaElement;
@@ -104,7 +104,7 @@ describe('Chat Page & Components Integration', () => {
 
     // Wait for recommendation card to appear
     await waitFor(() => {
-      expect(screen.getByText(/Gợi Ý Phối Đồ Số 1/i)).toBeDefined();
+      expect(screen.getByText('Look 01')).toBeDefined();
     });
 
     expect(screen.getByText('Áo sơ mi linen trắng')).toBeDefined();
@@ -146,13 +146,13 @@ describe('Chat Page & Components Integration', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByRole('region', { name: /Yêu cầu làm rõ từ Stylist AI/i })).toBeDefined();
+      expect(screen.getByRole('region', { name: /Câu hỏi làm rõ từ stylist/i })).toBeDefined();
     });
 
     expect(screen.getByText('Bạn muốn dự tiệc ngoài trời hay trong nhà?')).toBeDefined();
 
-    // Click "Trả lời câu hỏi" button
-    const answerBtn = screen.getByRole('button', { name: /Trả lời câu hỏi/i });
+    // Click "Trả lời" button
+    const answerBtn = screen.getByRole('button', { name: /^Trả lời$/i });
     fireEvent.click(answerBtn);
 
     // Verify textarea has focus
@@ -175,8 +175,8 @@ describe('Chat Page & Components Integration', () => {
       expect(screen.getByRole('alert')).toBeDefined();
     });
 
-    expect(screen.getByText('Tủ Đồ Chưa Có Trang Phục')).toBeDefined();
-    expect(screen.getByRole('link', { name: /Số Hóa Tủ Đồ Ngay/i })).toBeDefined();
+    expect(screen.getByText('Tủ đồ đang trống')).toBeDefined();
+    expect(screen.getByRole('link', { name: /Thêm món đồ/i }).getAttribute('href')).toBe('/wardrobe?add=1');
   });
 
   it('renders domain error NO_COMPLETE_OUTFIT with contextual guidance', async () => {
@@ -195,7 +195,7 @@ describe('Chat Page & Components Integration', () => {
       expect(screen.getByRole('alert')).toBeDefined();
     });
 
-    expect(screen.getByText('Không Thể Tạo Bộ Phối Hoàn Chỉnh')).toBeDefined();
+    expect(screen.getByText('Chưa đủ đồ để phối trọn bộ')).toBeDefined();
   });
 
   it('strictly enforces maxLength constraints on query (1000) and location (200) inputs', () => {
@@ -206,11 +206,11 @@ describe('Chat Page & Components Integration', () => {
     const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i) as HTMLTextAreaElement;
     expect(textarea.getAttribute('maxlength')).toBe('1000');
 
-    // Click "+ Thêm địa điểm"
-    const addLocationBtn = screen.getByRole('button', { name: /\+ Thêm địa điểm/i });
+    // Click "Thêm địa điểm"
+    const addLocationBtn = screen.getByRole('button', { name: /Thêm địa điểm/i });
     fireEvent.click(addLocationBtn);
 
-    const locationInput = screen.getByPlaceholderText(/Ví dụ: Hà Nội, Đà Lạt/i) as HTMLInputElement;
+    const locationInput = screen.getByPlaceholderText(/Hà Nội, Đà Lạt/i) as HTMLInputElement;
     expect(locationInput.getAttribute('maxlength')).toBe('200');
 
     // Attempting to submit via Enter when text is somehow over limit
@@ -241,7 +241,7 @@ describe('Chat Page & Components Integration', () => {
     });
 
     expect(screen.getByText('Bạn chấm gợi ý vừa rồi mấy sao?')).toBeDefined();
-    expect(screen.getByText('Set #1')).toBeDefined();
+    expect(screen.getByText('Look 01', { selector: '.hang-tag' })).toBeDefined();
   });
 
   it('dismisses only the current prompt and allows a later eligible response to prompt again', async () => {
@@ -356,10 +356,26 @@ describe('Chat Page & Components Integration', () => {
     fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Gợi Ý Phối Đồ Số 1/i)).toBeDefined();
+      expect(screen.getByText('Look 01')).toBeDefined();
     });
 
     expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
   });
-});
 
+  it('sends a request handed off from the home page via ?q= exactly once and cleans the URL', async () => {
+    const spy = vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValue(mockSuccessData);
+    window.history.pushState(null, '', '/chat?q=' + encodeURIComponent('Đi cafe sáng cuối tuần'));
+
+    render(<ChatPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Look 01')).toBeDefined();
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].query).toBe('Đi cafe sáng cuối tuần');
+    expect((screen.getByLabelText(/Nhu cầu phối đồ của bạn/i) as HTMLTextAreaElement).value).toBe(
+      'Đi cafe sáng cuối tuần'
+    );
+    expect(window.location.search).toBe('');
+  });
+});

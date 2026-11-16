@@ -6,6 +6,9 @@ import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { StylistRecommendationItem } from '@/types/chat';
 import type { OutfitItemDetailResponse } from '@/types/outfits';
 import { TryOnModal } from '@/components/tryon/TryOnModal';
+import { BookmarkIcon, CheckIcon, CloseIcon, Spinner, StarIcon } from '@/components/ui/icons';
+import { formatLookNumber } from '@/lib/looks';
+import { attributeLabel } from '@/lib/preferenceLabels';
 
 /**
  * Standard RFC 4122 Version 4 UUID generator with fallback
@@ -61,9 +64,9 @@ export function normalizeDetailItems(items: OutfitItemDetailResponse[]): Normali
 
 const SLOT_NAMES: Record<string, string> = {
   top: 'Áo',
-  bottom: 'Thân dưới',
-  dress: 'Đầm / Váy liền',
-  footwear: 'Giày dép',
+  bottom: 'Quần / Váy',
+  dress: 'Đầm',
+  footwear: 'Giày',
   outerwear: 'Áo khoác',
   accessory: 'Phụ kiện',
 };
@@ -71,6 +74,10 @@ const SLOT_NAMES: Record<string, string> = {
 export interface OutfitCardProps {
   outfitId: string;
   rank?: number;
+  /** Overrides the default "Look NN" title. */
+  title?: string;
+  /** The original request this look answered, shown under the title. */
+  context?: string | null;
   compositeScore?: number;
   explanationVi: string;
   appliedPreferences?: string[];
@@ -89,6 +96,8 @@ export interface OutfitCardProps {
 export const OutfitCard: React.FC<OutfitCardProps> = ({
   outfitId,
   rank,
+  title,
+  context,
   compositeScore,
   explanationVi,
   appliedPreferences = [],
@@ -263,244 +272,148 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     }
   };
 
+  const displayTitle = title ?? (rank !== undefined ? formatLookNumber(rank) : 'Bộ phối');
+  const worn = timesWorn > 0;
+
   return (
     <>
-    <article
-      data-testid={testId}
-      data-outfit-id={outfitId}
-      className={`w-full bg-white rounded-3xl border border-[#E8E5DE] shadow-xs overflow-hidden transition-all hover:shadow-md ${className}`}
-    >
-      {/* Card Header */}
-      <div className="px-5 sm:px-6 py-4 border-b border-[#E8E5DE] bg-white flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {rank !== undefined && (
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-mono font-semibold shrink-0 ${
-                rank === 1
-                  ? 'bg-[#1A1918] text-[#FBFBF9] shadow-2xs'
-                  : rank === 2
-                  ? 'bg-[#FAF8F5] text-[#1A1918] border border-[#D5D1C7]'
-                  : 'bg-[#FAF8F5] text-[#736E65] border border-[#E8E5DE]'
-              }`}
-            >
-              #{rank}
-            </span>
-          )}
+      <article
+        data-testid={testId}
+        data-outfit-id={outfitId}
+        className={`card overflow-hidden animate-rise ${className}`}
+      >
+        {/* Header: look number, match, save */}
+        <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-4 sm:px-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 className="display text-[1.375rem] italic">{displayTitle}</h3>
+              {matchPercentage !== null && (
+                <span className="text-sm text-accent">
+                  <span className="font-semibold tabular-nums">{matchPercentage}%</span>{' '}
+                  <span>phù hợp</span>
+                </span>
+              )}
+            </div>
+            {context && <p className="mt-1 line-clamp-1 text-sm text-muted">Cho: “{context}”</p>}
+            {worn && (
+              <p className="mt-1 text-xs text-muted" suppressHydrationWarning>
+                Đã mặc {timesWorn} lần
+                {lastWornAt ? ` · gần nhất ${new Date(lastWornAt).toLocaleDateString('vi-VN')}` : ''}
+              </p>
+            )}
+          </div>
 
-          <h3 className="font-serif text-base sm:text-lg font-medium text-[#1A1918] truncate">
-            {rank !== undefined ? `Gợi Ý Phối Đồ Số ${rank}` : 'Bộ Trang Phục Phối Sẵn'}
-          </h3>
-
-          {matchPercentage !== null && (
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-[#9C5234]/10 text-[#9C5234] border border-[#9C5234]/25 shrink-0">
-              <span>{matchPercentage}%</span>{' '}
-              <span className="font-normal text-[11px] opacity-85">phù hợp</span>
-            </span>
-          )}
-        </div>
-
-        {/* Header Actions: Bookmark & Wear Badge */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono text-[#736E65]">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{timesWorn > 0 ? `Đã mặc ${timesWorn} lần` : 'Chưa mặc'}</span>
-          </span>
-
-          {/* Bookmark Button (Optimistic) */}
           <button
             type="button"
             onClick={handleToggleBookmark}
             disabled={isBookmarkPending}
             aria-label={isBookmarked ? 'Bỏ lưu bộ đồ này' : 'Lưu bộ đồ này'}
             aria-pressed={isBookmarked}
-            className={`p-2 rounded-xl border transition-all ${
-              isBookmarked
-                ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs'
-                : 'bg-[#FAF8F5] border-[#E8E5DE] text-[#736E65] hover:text-[#1A1918] hover:border-[#D5D1C7]'
-            }`}
+            className={`btn btn-sm shrink-0 ${isBookmarked ? 'bg-accent-soft text-accent' : 'btn-secondary'}`}
           >
-            <svg
-              className={`w-4 h-4 transition-transform ${isBookmarkPending ? 'scale-90 opacity-60' : 'scale-100'}`}
-              fill={isBookmarked ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-              />
-            </svg>
+            <BookmarkIcon size={15} filled={isBookmarked} />
+            <span>{isBookmarked ? 'Đã lưu' : 'Lưu'}</span>
           </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Card Body */}
-      <div className="p-5 sm:p-6">
-        {/* Error notification for bookmark */}
         {bookmarkError && (
-          <div
-            role="alert"
-            className="mb-4 px-3.5 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between"
-          >
-            <span>{bookmarkError}</span>
+          <div role="alert" className="notice notice-danger mx-5 mb-3 sm:mx-6">
+            <span className="flex-1">{bookmarkError}</span>
             <button
               type="button"
               onClick={() => setBookmarkError(null)}
-              className="text-rose-500 hover:text-rose-700 font-bold ml-2"
+              aria-label="Đóng thông báo lỗi"
+              className="shrink-0 opacity-70 hover:opacity-100"
             >
-              ✕
+              <CloseIcon size={14} />
             </button>
           </div>
         )}
 
-        {/* Stylist Explanation */}
-        <p className="font-serif text-base text-[#1A1918] italic leading-relaxed border-l-2 border-[#9C5234] pl-4 my-5 bg-[#FAF8F5]/60 py-3.5 px-4 rounded-r-2xl">
-          &ldquo;{explanationVi}&rdquo;
-        </p>
-
-        {/* Garment Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* The look: garments laid out like a flat-lay */}
+        <ul className="grid grid-cols-3 gap-2.5 px-5 sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] sm:gap-3 sm:px-6">
           {items.map((item) => {
-            const imageUrl = item.imageUrl;
             const slotName = item.groupLabel || SLOT_NAMES[item.slot] || item.slot;
-
+            const removed = item.isActive === false;
             return (
-              <div
-                key={item.id}
-                className={`flex sm:flex-col items-center sm:items-start gap-3 p-3.5 rounded-2xl border transition-all ${
-                  item.isActive === false
-                    ? 'bg-[#FAF8F5]/70 border-dashed border-rose-300 opacity-85'
-                    : 'bg-[#FAF8F5] border-[#E8E5DE] hover:border-[#D5D1C7]'
-                }`}
-              >
-                {/* Thumbnail with Alt Text */}
-                <div className="w-16 h-16 sm:w-full sm:h-36 rounded-xl bg-white border border-[#E8E5DE] overflow-hidden relative shrink-0 flex items-center justify-center">
-                  {imageUrl ? (
+              <li key={item.id} className="min-w-0">
+                <div
+                  className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl ${
+                    removed ? 'border border-dashed border-danger/50 bg-surface' : 'bg-sunken'
+                  }`}
+                >
+                  {item.imageUrl ? (
                     <PrivateMediaImage
-                      source={imageUrl}
+                      source={item.imageUrl}
                       alt={`Ảnh của ${item.name} (${slotName})`}
-                      className="w-full h-full object-contain p-2"
+                      className={`h-full w-full object-contain p-2 ${removed ? 'opacity-50' : ''}`}
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-1.5 p-2 text-center">
-                      <svg className="w-6 h-6 text-[#D5D1C7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                      </svg>
-                      <span className="text-[#736E65] text-xs font-mono">Không có ảnh</span>
-                    </div>
+                    <span className="px-2 text-center text-xs text-muted">Không có ảnh</span>
                   )}
-                  <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-[#1A1918]/85 text-[#FBFBF9] backdrop-blur-xs">
-                    {slotName}
-                  </span>
-
-                  {item.isActive === false && (
-                    <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-600 text-white shadow-xs">
+                  {removed && (
+                    <span className="absolute inset-x-1.5 bottom-1.5 rounded-md bg-danger px-1.5 py-0.5 text-center text-[0.625rem] font-semibold text-white">
                       Đã xóa khỏi tủ
                     </span>
                   )}
                 </div>
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-xs sm:text-sm font-semibold text-[#1A1918] truncate">
-                    {item.name}
-                  </h4>
-                  <span className="text-[11px] font-mono text-[#736E65] capitalize block mt-0.5">
-                    Vị trí: {slotName}
-                  </span>
-                  {item.primaryColor && (
-                    <span className="text-[10px] font-mono text-[#736E65] block truncate mt-0.5">
-                      Màu: {item.primaryColor}
-                    </span>
-                  )}
-                </div>
-              </div>
+                <span className="hang-tag mt-2 max-w-full overflow-hidden text-ellipsis">{slotName}</span>
+                <p className="mt-1 line-clamp-2 text-[0.8125rem] font-medium leading-snug text-ink">{item.name}</p>
+                {attributeLabel(item.primaryColor) && (
+                  <p className="truncate text-xs text-muted first-letter:uppercase">{attributeLabel(item.primaryColor)}</p>
+                )}
+              </li>
             );
           })}
+        </ul>
+
+        {/* Why it works */}
+        <div className="mx-5 mt-5 rounded-xl bg-paper px-4 py-3.5 sm:mx-6">
+          <p className="text-xs font-semibold text-accent">Vì sao hợp</p>
+          <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-2">{explanationVi}</p>
+          {appliedPreferences.length > 0 && (
+            <p className="mt-2 text-xs text-muted">
+              Theo gu của bạn: <span className="text-ink-2">{appliedPreferences.join(' · ')}</span>
+            </p>
+          )}
         </div>
 
-        {/* Applied Preferences */}
-        {appliedPreferences.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-[#E8E5DE] flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-[#736E65]">Đã áp dụng gu thời trang:</span>
-            {appliedPreferences.map((pref, idx) => (
-              <span
-                key={idx}
-                className="px-3 py-1 rounded-full text-xs font-mono bg-[#FAF8F5] text-[#1A1918] border border-[#E8E5DE]"
-              >
-                ✓ {pref}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Card Footer: Wear Log Action Button & Rating Controls */}
-        <div className="mt-5 pt-4 border-t border-[#E8E5DE] flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
+        {/* Actions: one primary, the rest quiet */}
+        <footer className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line px-5 py-3.5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setIsTryOnOpen(true)}
-              aria-label="Xem ảnh minh họa bộ trang phục"
-              className="tactile-btn rounded-full bg-[#9C5234] px-4 py-2 text-xs font-mono uppercase tracking-wider text-white transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#82452E] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9C5234]"
+              aria-label="Mặc thử: xem ảnh minh họa bộ trang phục"
+              className="btn btn-primary btn-sm"
             >
-              Xem minh họa
+              Mặc thử
             </button>
             <button
               type="button"
               onClick={handleRecordWorn}
               disabled={isWearPending}
               aria-label="Xác nhận đã mặc bộ trang phục này hôm nay"
-              className="tactile-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider bg-white border border-[#D5D1C7] text-[#1A1918] hover:bg-[#1A1918] hover:text-[#FBFBF9] hover:border-[#1A1918] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-2xs"
+              className="btn btn-ghost btn-sm"
             >
-              {isWearPending ? (
-                <>
-                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Đang ghi nhận...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5 text-[#9C5234]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Đã Mặc Hôm Nay</span>
-                </>
-              )}
+              {isWearPending ? <Spinner size={14} /> : <CheckIcon size={15} />}
+              <span>{isWearPending ? 'Đang ghi nhận…' : 'Đã mặc hôm nay'}</span>
             </button>
-
-            {/* Mobile times worn indicator */}
-            <span className="sm:hidden text-[11px] text-slate-400">
-              Đã mặc {timesWorn} lần
-            </span>
-
             {wearSuccessMsg && (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn flex items-center gap-1">
+              <span className="animate-rise text-xs font-semibold text-success">
                 ✓ {wearSuccessMsg}
               </span>
             )}
-
             {wearError && (
-              <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 animate-fadeIn flex items-center gap-1">
+              <span className="animate-rise text-xs font-semibold text-danger">
                 ✕ {wearError}
               </span>
             )}
           </div>
 
-          {/* Manual Star Rating Control (1-5 stars) */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-mono text-[#736E65]">Đánh giá:</span>
-            <div
-              className="flex items-center"
-              role="group"
-              aria-label="Đánh giá bộ trang phục từ 1 đến 5 sao"
-            >
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center" role="group" aria-label="Đánh giá bộ trang phục từ 1 đến 5 sao">
               {[1, 2, 3, 4, 5].map((star) => {
                 const isFilled = (hoverRating ?? userRating ?? 0) >= star;
                 return (
@@ -514,73 +427,40 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                     onBlur={() => setHoverRating(null)}
                     disabled={isRatingPending}
                     aria-label={`Đánh giá ${star} sao`}
-                    className="p-1 text-[#D5D1C7] hover:text-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden"
+                    className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isFilled ? 'text-accent' : 'text-line-strong hover:text-accent'
+                    }`}
                   >
-                    <svg
-                      className={`w-4 h-4 transition-transform ${
-                        isFilled
-                          ? 'text-amber-500 fill-amber-500 scale-105'
-                          : 'text-[#D5D1C7] fill-none'
-                      }`}
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                      />
-                    </svg>
+                    <StarIcon size={17} filled={isFilled} />
                   </button>
                 );
               })}
             </div>
-
-            {userRating && (
-              <span className="text-xs font-mono font-bold text-amber-600 ml-0.5">
-                {userRating}/5★
-              </span>
-            )}
-
+            {userRating && <span className="text-xs font-semibold tabular-nums text-ink-2">{userRating}/5★</span>}
             {ratingSuccessMsg && (
-              <span className="text-xs font-mono font-semibold text-emerald-600 animate-fadeIn ml-1">
-                ✓ {ratingSuccessMsg}
-              </span>
+              <span className="animate-rise text-xs font-semibold text-success">✓ {ratingSuccessMsg}</span>
             )}
-
-            {ratingError && (
-              <span className="text-xs font-mono font-semibold text-rose-600 animate-fadeIn ml-1">
-                ✕ {ratingError}
-              </span>
-            )}
-
-            {lastWornAt && !wearSuccessMsg && (
-              <span className="text-[11px] font-mono text-[#736E65] ml-2 hidden sm:inline" suppressHydrationWarning>
-                Mặc gần nhất: {new Date(lastWornAt).toLocaleDateString('vi-VN')}
-              </span>
-            )}
+            {ratingError && <span className="animate-rise text-xs font-semibold text-danger">✕ {ratingError}</span>}
           </div>
-        </div>
-      </div>
-    </article>
-    <TryOnModal
-      isOpen={isTryOnOpen}
-      outfitId={outfitId}
-      items={items}
-      isBookmarked={isBookmarked}
-      isWorn={timesWorn > 0}
-      onBookmarkChange={(changedOutfitId, nextBookmarked) => {
-        setIsBookmarked(nextBookmarked);
-        onBookmarkChange?.(changedOutfitId, nextBookmarked);
-      }}
-      onWornChange={(changedOutfitId, _nextWorn, nextTimesWorn) => {
-        const updatedTimesWorn = nextTimesWorn ?? timesWorn + 1;
-        setTimesWorn(updatedTimesWorn);
-        onWearSuccess?.(changedOutfitId, updatedTimesWorn);
-      }}
-      onClose={() => setIsTryOnOpen(false)}
-    />
+        </footer>
+      </article>
+      <TryOnModal
+        isOpen={isTryOnOpen}
+        outfitId={outfitId}
+        items={items}
+        isBookmarked={isBookmarked}
+        isWorn={worn}
+        onBookmarkChange={(changedOutfitId, nextBookmarked) => {
+          setIsBookmarked(nextBookmarked);
+          onBookmarkChange?.(changedOutfitId, nextBookmarked);
+        }}
+        onWornChange={(changedOutfitId, _nextWorn, nextTimesWorn) => {
+          const updatedTimesWorn = nextTimesWorn ?? timesWorn + 1;
+          setTimesWorn(updatedTimesWorn);
+          onWearSuccess?.(changedOutfitId, updatedTimesWorn);
+        }}
+        onClose={() => setIsTryOnOpen(false)}
+      />
     </>
   );
 };

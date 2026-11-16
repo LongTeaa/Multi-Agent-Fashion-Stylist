@@ -20,7 +20,7 @@ async function expectBaselineAccessibility(page: Page): Promise<void> {
   expect(unlabeledInputs).toBe(0);
 }
 
-for (const path of ['/', '/chat', '/wardrobe']) {
+for (const path of ['/', '/chat', '/wardrobe', '/saved', '/profile']) {
   test(`${path} remains usable at 375 px`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(path);

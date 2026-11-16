@@ -33,7 +33,7 @@ describe('RatingPrompt Component', () => {
 
     // Copy check
     expect(screen.getByText('Bạn chấm gợi ý vừa rồi mấy sao?')).toBeDefined();
-    expect(screen.getByText('Set #1')).toBeDefined();
+    expect(screen.getByText('Look 01')).toBeDefined();
 
     // 5 stars buttons
     for (let s = 1; s <= 5; s++) {
@@ -116,11 +116,10 @@ describe('RatingPrompt Component', () => {
     const star4Btn = screen.getByRole('button', { name: 'Đánh giá 4 sao' });
     fireEvent.focus(star4Btn);
 
-    const star4Svg = star4Btn.querySelector('svg');
-    expect(star4Svg?.getAttribute('class')).toContain('fill-amber-400');
+    expect(star4Btn.querySelector('svg')?.getAttribute('fill')).toBe('currentColor');
 
     fireEvent.blur(star4Btn);
-    expect(star4Svg?.getAttribute('class')).toContain('fill-none');
+    expect(star4Btn.querySelector('svg')?.getAttribute('fill')).toBe('none');
   });
 
   it('handles dismiss via "Để sau" button: calls dismissFeedbackPrompt and onDismiss', async () => {

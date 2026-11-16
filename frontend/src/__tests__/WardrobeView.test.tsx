@@ -69,4 +69,15 @@ describe('WardrobeView Component', () => {
     expect(screen.getByTestId('mock-inventory')).toBeDefined();
     expect(screen.queryByTestId('mock-ingestion')).toBeNull();
   });
+
+  it('opens the add flow directly from ?add=1 and drops the flag when going back', () => {
+    window.history.pushState(null, '', '/wardrobe?add=1');
+    render(<WardrobeView />);
+
+    expect(screen.getByTestId('mock-ingestion')).toBeDefined();
+
+    fireEvent.click(screen.getByTestId('btn-back-to-inventory'));
+    expect(screen.getByTestId('mock-inventory')).toBeDefined();
+    expect(window.location.search).toBe('');
+  });
 });

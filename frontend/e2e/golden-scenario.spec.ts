@@ -146,7 +146,7 @@ test('golden journey reaches persisted actions, cadence rating, and try-on fallb
   await prompt.getByRole('button', { name: 'Đánh giá 5 sao' }).click();
   await expect(prompt).toContainText('Cảm ơn bạn đã phản hồi!');
 
-  await card.getByRole('button', { name: 'Xem ảnh minh họa bộ trang phục' }).click();
+  await card.getByRole('button', { name: /Mặc thử/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Xem trước bộ trang phục' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('Moodboard dự phòng');

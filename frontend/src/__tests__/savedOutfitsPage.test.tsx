@@ -118,7 +118,7 @@ describe('SavedOutfitsPage Integration', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('status')).toBeNull();
-      expect(screen.getByText('Bộ Trang Phục Đã Lưu')).toBeDefined();
+      expect(screen.getByRole('heading', { level: 1, name: 'Bộ đã lưu' })).toBeDefined();
     });
   });
 
@@ -134,10 +134,10 @@ describe('SavedOutfitsPage Integration', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('saved-outfits-empty')).toBeDefined();
-      expect(screen.getByText('Bạn Chưa Lưu Bộ Trang Phục Nào')).toBeDefined();
+      expect(screen.getByText('Chưa có bộ nào được lưu')).toBeDefined();
     });
 
-    const ctaLink = screen.getByRole('link', { name: /Nhờ Stylist Gợi Ý Ngay/i });
+    const ctaLink = screen.getByRole('link', { name: /Bắt đầu phối đồ/i });
     expect(ctaLink.getAttribute('href')).toBe('/chat');
   });
 
@@ -171,7 +171,7 @@ describe('SavedOutfitsPage Integration', () => {
     render(<SavedOutfitsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tổng cộng 25 bộ đồ')).toBeDefined();
+      expect(screen.getByText('25 bộ đồ')).toBeDefined();
       expect(screen.getByText(/Set đồ thanh lịch đi làm/i)).toBeDefined();
       expect(screen.getByText(/Set đồ năng động dạo phố/i)).toBeDefined();
     });
@@ -236,7 +236,7 @@ describe('SavedOutfitsPage Integration', () => {
     await waitFor(() => {
       expect(api.setOutfitBookmark).toHaveBeenCalledWith('outfit-1', false);
       expect(screen.queryByText(/Set đồ thanh lịch đi làm/i)).toBeNull();
-      expect(screen.getByText('Tổng cộng 24 bộ đồ')).toBeDefined();
+      expect(screen.getByText('24 bộ đồ')).toBeDefined();
     });
   });
 
@@ -247,7 +247,7 @@ describe('SavedOutfitsPage Integration', () => {
     render(<SavedOutfitsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tổng cộng 25 bộ đồ')).toBeDefined();
+      expect(screen.getByText('25 bộ đồ')).toBeDefined();
     });
 
     // Simulate page 2 returns 0 items while total is still 10
