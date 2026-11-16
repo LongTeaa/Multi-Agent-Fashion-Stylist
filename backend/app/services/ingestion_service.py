@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import json
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from hashlib import sha256
 from datetime import timedelta
-from typing import Sequence
+from typing import Any, Sequence
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
@@ -290,6 +292,75 @@ def create_ingestion_batch(
         ) from exc
 
 
+@dataclass(frozen=True)
+class _PreparedCropTask:
+    """Data prepared on the main thread for a single cropped garment before Vision extraction."""
+
+    global_index: int
+    source_asset_id: str
+    box_det: BoundingBoxDetection
+    raw_bounding_box: tuple[float, float, float, float] | None
+    crop_asset_id: str
+    crop_bytes: bytes
+    spatial_ctx: dict[str, Any]
+
+
+def _extract_single_crop_safe(
+    vision_provider: VisionProviderProtocol,
+    batch_id: str,
+    task: _PreparedCropTask,
+) -> VisionExtractionResult:
+    """Pure network/compute worker executed inside ThreadPoolExecutor.
+
+    MUST NOT access SQLAlchemy Session, SQLite, or ObjectStorage.
+    """
+    try:
+        return vision_provider.extract_attributes(
+            task.crop_bytes,
+            spatial_context=task.spatial_ctx,
+        )
+    except TimeoutError:
+        logger.warning("Vision provider timed out for batch %s crop", batch_id)
+        return VisionExtractionResult(
+            attributes={
+                "category": "unknown",
+                "style": "casual",
+                "comfort_level": 3,
+                "silhouette_level": 3,
+                "length": "hip",
+                "functional_flags": [],
+            },
+            field_confidence={
+                "category": 0.5,
+                "style": 0.5,
+                "comfort_level": 0.5,
+                "silhouette_level": 0.5,
+                "length": 0.5,
+            },
+            quality_warnings=["AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."],
+        )
+    except (ProviderError, Exception) as p_err:
+        logger.warning("Vision provider error for batch %s crop: %s", batch_id, p_err)
+        return VisionExtractionResult(
+            attributes={
+                "category": "unknown",
+                "style": "casual",
+                "comfort_level": 3,
+                "silhouette_level": 3,
+                "length": "hip",
+                "functional_flags": [],
+            },
+            field_confidence={
+                "category": 0.5,
+                "style": 0.5,
+                "comfort_level": 0.5,
+                "silhouette_level": 0.5,
+                "length": 0.5,
+            },
+            quality_warnings=["AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."],
+        )
+
+
 def process_ingestion_batch(
     *,
     session: Session,
@@ -352,6 +423,7 @@ def process_ingestion_batch(
 
     detected_kinds: list[InputKind] = []
     total_boxes_count = 0
+    prepared_tasks: list[_PreparedCropTask] = []
 
     try:
         for asset in original_assets:
@@ -497,7 +569,7 @@ def process_ingestion_batch(
                 )
                 pending_media.append(thumb_media_asset)
 
-                # Extract structured attributes
+                # Prepare spatial context and queue crop for Phase 2 parallel extraction
                 all_candidate_boxes = [d.box for d in detected_boxes]
                 spatial_ctx = compute_spatial_context(
                     box=box_det.box,
@@ -509,108 +581,108 @@ def process_ingestion_batch(
                     if asset.width and asset.height
                     else None,
                 )
-                try:
-                    extraction = vision_provider.extract_attributes(
-                        cropped.crop_bytes,
-                        spatial_context=spatial_ctx,
-                    )
-                except TimeoutError:
-                    logger.warning("Vision provider timed out for batch %s crop", batch_id)
-                    extraction = VisionExtractionResult(
-                        attributes={
-                            "category": "unknown",
-                            "style": "casual",
-                            "comfort_level": 3,
-                            "silhouette_level": 3,
-                            "length": "hip",
-                            "functional_flags": [],
-                        },
-                        field_confidence={
-                            "category": 0.5,
-                            "style": 0.5,
-                            "comfort_level": 0.5,
-                            "silhouette_level": 0.5,
-                            "length": 0.5,
-                        },
-                        quality_warnings=["AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."],
-                    )
-                except (ProviderError, Exception) as p_err:
-                    logger.warning("Vision provider error for batch %s crop: %s", batch_id, p_err)
-                    extraction = VisionExtractionResult(
-                        attributes={
-                            "category": "unknown",
-                            "style": "casual",
-                            "comfort_level": 3,
-                            "silhouette_level": 3,
-                            "length": "hip",
-                            "functional_flags": [],
-                        },
-                        field_confidence={
-                            "category": 0.5,
-                            "style": 0.5,
-                            "comfort_level": 0.5,
-                            "silhouette_level": 0.5,
-                            "length": 0.5,
-                        },
-                        quality_warnings=["AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."],
-                    )
-
-                # Normalize proposed fashion domain attributes
-                norm_attrs = dict(extraction.attributes)
-                try:
-                    c_val = int(norm_attrs.get("comfort_level", 3))
-                    norm_attrs["comfort_level"] = max(1, min(5, c_val))
-                except (ValueError, TypeError):
-                    norm_attrs["comfort_level"] = 3
-
-                try:
-                    s_val = int(norm_attrs.get("silhouette_level", 3))
-                    norm_attrs["silhouette_level"] = max(1, min(5, s_val))
-                except (ValueError, TypeError):
-                    norm_attrs["silhouette_level"] = 3
-
-                raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
-                norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
-
-                if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
-                    norm_attrs["functional_flags"] = [
-                        normalized
-                        for flag in norm_attrs["functional_flags"]
-                        if (normalized := str(flag).strip().lower())
-                        and normalized in VALID_FUNCTIONAL_FLAGS
-                    ]
-                else:
-                    norm_attrs["functional_flags"] = []
-
-                norm_conf = dict(extraction.field_confidence)
-                for field_key in ("comfort_level", "silhouette_level", "length"):
-                    if field_key not in norm_conf:
-                        norm_conf[field_key] = 0.50
-
-                # Flag fields with confidence < 0.70
-                low_conf_fields = [
-                    field for field, conf in norm_conf.items() if conf < 0.70
-                ]
-                if low_conf_fields:
-                    add_warning(f"Một số trường có độ tin cậy thấp (< 70%): {', '.join(low_conf_fields)}.")
-
-                for warning in extraction.quality_warnings:
-                    add_warning(warning)
-
-                detection_id = new_uuid()
-                detection = IngestionDetection(
-                    id=detection_id,
-                    user_id=user_id,
-                    ingestion_batch_id=batch_id,
-                    crop_media_asset_id=crop_asset_id,
-                    source_media_asset_id=asset.id,
-                    bounding_box=box_det.box,
-                    raw_bounding_box=raw_detection_boxes[detection_index].box if detection_index < len(raw_detection_boxes) else None,
-                    proposed_attributes=norm_attrs,
-                    field_confidence=norm_conf,
-                    status=DetectionStatus.PROPOSED,
+                raw_bbox = (
+                    raw_detection_boxes[detection_index].box
+                    if detection_index < len(raw_detection_boxes)
+                    else None
                 )
-                pending_detections.append(detection)
+                prepared_tasks.append(
+                    _PreparedCropTask(
+                        global_index=len(prepared_tasks),
+                        source_asset_id=asset.id,
+                        box_det=box_det,
+                        raw_bounding_box=raw_bbox,
+                        crop_asset_id=crop_asset_id,
+                        crop_bytes=cropped.crop_bytes,
+                        spatial_ctx=spatial_ctx,
+                    )
+                )
+
+        # Phase 2: Extract structured attributes in parallel across worker threads
+        if check_cancelled_and_abort():
+            return session.get(IngestionBatch, batch_id) or batch
+
+        max_concurrency = max(1, int(getattr(settings, "ingestion_max_concurrency", 6)))
+        if not prepared_tasks:
+            extraction_results: list[VisionExtractionResult] = []
+        elif len(prepared_tasks) == 1 or max_concurrency == 1:
+            extraction_results = [
+                _extract_single_crop_safe(vision_provider, batch_id, task)
+                for task in prepared_tasks
+            ]
+        else:
+            worker_count = min(len(prepared_tasks), max_concurrency)
+            with ThreadPoolExecutor(
+                max_workers=worker_count,
+                thread_name_prefix="ingestion-vision",
+            ) as executor:
+                futures = [
+                    executor.submit(_extract_single_crop_safe, vision_provider, batch_id, task)
+                    for task in prepared_tasks
+                ]
+                extraction_results = [future.result() for future in futures]
+
+        # Phase 3: Normalize attributes, accumulate warnings, and stage detections in deterministic order
+        if check_cancelled_and_abort():
+            return session.get(IngestionBatch, batch_id) or batch
+
+        for task, extraction in zip(prepared_tasks, extraction_results, strict=True):
+            # Normalize proposed fashion domain attributes
+            norm_attrs = dict(extraction.attributes)
+            try:
+                c_val = int(norm_attrs.get("comfort_level", 3))
+                norm_attrs["comfort_level"] = max(1, min(5, c_val))
+            except (ValueError, TypeError):
+                norm_attrs["comfort_level"] = 3
+
+            try:
+                s_val = int(norm_attrs.get("silhouette_level", 3))
+                norm_attrs["silhouette_level"] = max(1, min(5, s_val))
+            except (ValueError, TypeError):
+                norm_attrs["silhouette_level"] = 3
+
+            raw_len = str(norm_attrs.get("length", "hip")).strip().lower()
+            norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
+
+            if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
+                norm_attrs["functional_flags"] = [
+                    normalized
+                    for flag in norm_attrs["functional_flags"]
+                    if (normalized := str(flag).strip().lower())
+                    and normalized in VALID_FUNCTIONAL_FLAGS
+                ]
+            else:
+                norm_attrs["functional_flags"] = []
+
+            norm_conf = dict(extraction.field_confidence)
+            for field_key in ("comfort_level", "silhouette_level", "length"):
+                if field_key not in norm_conf:
+                    norm_conf[field_key] = 0.50
+
+            # Flag fields with confidence < 0.70
+            low_conf_fields = [
+                field for field, conf in norm_conf.items() if conf < 0.70
+            ]
+            if low_conf_fields:
+                add_warning(f"Một số trường có độ tin cậy thấp (< 70%): {', '.join(low_conf_fields)}.")
+
+            for warning in extraction.quality_warnings:
+                add_warning(warning)
+
+            detection_id = new_uuid()
+            detection = IngestionDetection(
+                id=detection_id,
+                user_id=user_id,
+                ingestion_batch_id=batch_id,
+                crop_media_asset_id=task.crop_asset_id,
+                source_media_asset_id=task.source_asset_id,
+                bounding_box=task.box_det.box,
+                raw_bounding_box=task.raw_bounding_box,
+                proposed_attributes=norm_attrs,
+                field_confidence=norm_conf,
+                status=DetectionStatus.PROPOSED,
+            )
+            pending_detections.append(detection)
 
         # Final check before committing NEEDS_REVIEW
         if check_cancelled_and_abort():

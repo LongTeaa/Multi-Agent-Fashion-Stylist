@@ -32,6 +32,12 @@ class Settings(BaseSettings):
 
     vision_provider: Literal["fake", "gemini"] = "fake"
     vision_timeout_seconds: PositiveInt = 30
+    ingestion_max_concurrency: int = Field(
+        default=6,
+        ge=1,
+        le=16,
+        description="Maximum concurrent Gemini Vision attribute extraction requests per ingestion batch.",
+    )
     detector_backend: Literal["auto", "fake", "gemini", "yolo_world"] = "auto"
     yolo_world_model_path: str = "models/yolov8s-worldv2.onnx"
     yolo_world_confidence_threshold: float = 0.25
@@ -48,6 +54,7 @@ class Settings(BaseSettings):
     tryon_timeout_seconds: PositiveInt = 90
     llm_model: str | None = None
     vision_model: str | None = None
+    vision_fallback_model: str | None = "gemini-3.5-flash-lite"
     detector_model: str | None = None
     image_model: str | None = None
     gemini_api_key: SecretStr | None = None
@@ -137,6 +144,12 @@ class Settings(BaseSettings):
         if self.vision_model and self.vision_model.strip():
             return self.vision_model.strip()
         return "gemini-1.5-flash"
+
+    def get_vision_fallback_model(self) -> str | None:
+        """Return the fallback vision model identifier when the primary vision model is overloaded."""
+        if self.vision_fallback_model and self.vision_fallback_model.strip():
+            return self.vision_fallback_model.strip()
+        return None
 
     def get_vision_model(self) -> str:
         """Return the model identifier for fashion attribute extraction."""

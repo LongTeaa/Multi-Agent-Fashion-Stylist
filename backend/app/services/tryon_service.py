@@ -478,6 +478,7 @@ def create_tryon(
     tryon_bucket: str,
     avatar_id: str | None = None,
     item_ids: list[str] | None = None,
+    force_refresh: bool = False,
     timeout_seconds: float = 8,
     performance_clock: Callable[[], float] = monotonic,
 ) -> TryOnResponseData:
@@ -505,6 +506,7 @@ def create_tryon(
             user_id=user_id,
             avatar_id=avatar_id,
             requested_item_ids=item_ids,
+            force_refresh=force_refresh,
             tryon_bucket=tryon_bucket,
             moodboard_items=moodboard_items,
             started_at=started_at,
@@ -603,6 +605,7 @@ def _execute_virtual_tryon(
     user_id: str,
     avatar_id: str,
     requested_item_ids: list[str] | None,
+    force_refresh: bool = False,
     tryon_bucket: str,
     moodboard_items: tuple[MoodboardItem, ...],
     started_at: float,
@@ -714,18 +717,24 @@ def _execute_virtual_tryon(
 
     # 4. Cache check: sha256(user_id:avatar_id:sorted_item_ids)
     cache_key = sha256(f"{user_id}:{avatar_id}:{','.join(selected_ids)}".encode()).hexdigest()
-    cached_render = session.exec(
-        select(TryOnRender).where(
-            TryOnRender.user_id == user_id,
-            TryOnRender.cache_key == cache_key,
-            TryOnRender.status == "ready",
-            TryOnRender.fallback_used == False,
-        )
-    ).first()
+    cached_render = (
+        session.exec(
+            select(TryOnRender)
+            .where(
+                TryOnRender.user_id == user_id,
+                TryOnRender.cache_key == cache_key,
+                TryOnRender.status == "ready",
+                TryOnRender.fallback_used == False,
+            )
+            .order_by(TryOnRender.created_at.desc(), TryOnRender.id.desc())
+        ).first()
+        if not force_refresh
+        else None
+    )
     if cached_render is not None and cached_render.media_asset_id:
         return TryOnResponseData(
             tryon_id=cached_render.id,
-            outfit_id=cached_render.outfit_id,
+            outfit_id=outfit_id,
             image_url=f"/api/v1/media/{cached_render.media_asset_id}",
             render_kind="virtual_tryon" if cached_render.render_mode == "virtual_tryon" else "moodboard",
             fallback_used=cached_render.fallback_used,

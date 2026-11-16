@@ -508,6 +508,37 @@ def test_virtual_tryon_multi_pass_and_caching(
         assert data2["tryon_id"] == tryon_id
         assert data2["duration_ms"] == 0
         assert len(fake_vton.history) == history_count
+
+        # 4. Third run with force_refresh=True -> Bypasses cache and creates a newer render
+        res3 = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={
+                "outfit_id": outfit_id,
+                "avatar_id": "preset-male",
+                "force_refresh": True,
+            },
+        )
+        assert res3.status_code == 200
+        data3 = res3.json()["data"]
+        assert data3["tryon_id"] != tryon_id
+        assert data3["render_kind"] == "virtual_tryon"
+        assert len(fake_vton.history) == history_count + 2
+
+        # 5. Subsequent normal run hits the newest render rather than the old one
+        res4 = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={
+                "outfit_id": outfit_id,
+                "avatar_id": "preset-male",
+            },
+        )
+        assert res4.status_code == 200
+        data4 = res4.json()["data"]
+        assert data4["tryon_id"] == data3["tryon_id"]
+        assert data4["duration_ms"] == 0
+        assert len(fake_vton.history) == history_count + 2
     finally:
         app.dependency_overrides.clear()
 

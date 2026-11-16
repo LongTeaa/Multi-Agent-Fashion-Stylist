@@ -137,6 +137,7 @@ def generate_tryon(
         user_id=user_id,
         avatar_id=payload.avatar_id,
         item_ids=payload.item_ids,
+        force_refresh=payload.force_refresh,
         tryon_bucket=settings.minio_bucket_tryon,
         timeout_seconds=float(settings.image_timeout_seconds),
     )

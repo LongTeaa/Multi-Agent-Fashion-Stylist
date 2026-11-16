@@ -12,6 +12,7 @@ class TryOnRequest(BaseModel):
     outfit_id: str | None = Field(default=None, max_length=36)
     avatar_id: str | None = Field(default=None, max_length=36)
     item_ids: list[str] | None = None
+    force_refresh: bool = False
 
 
 class TryOnResponseData(BaseModel):
