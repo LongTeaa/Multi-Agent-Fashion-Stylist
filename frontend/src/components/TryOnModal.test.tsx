@@ -59,7 +59,7 @@ describe('TryOnModal', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toContain('Đang tạo ảnh minh họa');
+      expect(screen.getByRole('status').textContent).toContain('Đang tạo ảnh');
     });
     resolveTryOn(response);
     await waitFor(() => {
@@ -174,8 +174,9 @@ describe('TryOnModal', () => {
     });
 
     // Check before / after compare buttons
-    expect(screen.getByText('Kết quả mặc thử AI')).toBeDefined();
-    expect(screen.getByText('Ảnh mẫu gốc (Trước khi mặc)')).toBeDefined();
+    // Avatars load asynchronously; the compare toggle appears once both result and avatar exist.
+    expect(await screen.findByRole('button', { name: 'Sau khi mặc' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Trước khi mặc' })).toBeDefined();
 
     // Switch to female avatar -> should trigger exactly 1 new createTryOn call (total 2), not duplicate
     fireEvent.click(screen.getByText('Nữ mẫu (Chuẩn)'));
@@ -359,7 +360,7 @@ describe('TryOnModal', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('status').textContent).toContain('Đang tạo ảnh minh họa');
+      expect(screen.getByRole('status').textContent).toContain('Đang tạo ảnh');
       expect(screen.queryByAltText('Ảnh mặc thử AI cho bộ trang phục')).toBeNull();
     });
 

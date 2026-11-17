@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AppHeader } from '@/components/navigation/AppHeader';
+import { AppShell, PageHeader } from '@/components/layout/AppShell';
+import { ArrowLeftIcon, ArrowRightIcon, BookmarkIcon, RefreshIcon } from '@/components/ui/icons';
 import { getSavedOutfits, ApiError } from '@/lib/api';
 import type { SavedOutfitsResponseData } from '@/types/outfits';
 import { OutfitCard, normalizeDetailItems } from '@/components/outfits/OutfitCard';
@@ -102,13 +103,13 @@ export default function SavedOutfitsPage() {
     });
   };
 
-  const handleWearSuccess = (outfitId: string, timesWorn: number) => {
+  const handleWearSuccess = (outfitId: string, timesWorn: number, lastWornAt: string) => {
     setData((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         items: prev.items.map((item) =>
-          item.id === outfitId ? { ...item, times_worn: timesWorn } : item
+          item.id === outfitId ? { ...item, times_worn: timesWorn, last_worn_at: lastWornAt } : item
         ),
       };
     });
@@ -127,178 +128,124 @@ export default function SavedOutfitsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFBF9] text-[#1A1918]">
-      <AppHeader />
+    <AppShell width="narrow">
+      <PageHeader
+        title="Bộ đã lưu"
+        description="Những bộ phối bạn muốn mặc lại. Ghi nhận mỗi lần mặc để các gợi ý sau đa dạng hơn."
+        actions={
+          totalItems > 0 ? (
+            <span className="text-sm font-semibold tabular-nums text-muted">{totalItems} bộ đồ</span>
+          ) : undefined
+        }
+      />
 
-      {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 space-y-8">
-        {/* Page Title & Count */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#9C5234] block">
-              Curated Wardrobe
-            </span>
-            <h1 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-[#1A1918]">
-              Bộ Trang Phục Đã Lưu
-            </h1>
-            <p className="text-sm text-[#5C564E] mt-1 leading-relaxed">
-              Danh sách các set đồ bạn đã đánh dấu lưu lại từ các phiên tư vấn phối đồ của AI Stylist.
-            </p>
-          </div>
+      {loading && (
+        <div role="status" aria-live="polite" className="space-y-5">
+          <span className="sr-only">Đang tải bộ đã lưu…</span>
+          {[1, 2].map((idx) => (
+            <div key={idx} className="card space-y-4 p-6">
+              <div className="h-6 w-1/4 animate-pulse rounded bg-sunken" />
+              <div className="grid grid-cols-3 gap-3">
+                {[0, 1, 2].map((key) => (
+                  <div key={key} className="aspect-square animate-pulse rounded-xl bg-sunken" />
+                ))}
+              </div>
+              <div className="h-12 animate-pulse rounded-xl bg-sunken" />
+            </div>
+          ))}
+        </div>
+      )}
 
-          {totalItems > 0 && (
-            <span className="px-3.5 py-1.5 rounded-full text-xs font-mono tracking-wider uppercase bg-[#F5F4F0] text-[#736E65] border border-[#E8E5DE]">
-              Tổng cộng {totalItems} bộ đồ
-            </span>
+      {!loading && error && (
+        <div role="alert" className="card p-8 text-center">
+          <p className="text-[0.9375rem] text-ink-2">
+            {error.message || 'Đã xảy ra lỗi khi tải danh sách bộ đồ đã lưu.'}
+          </p>
+          <button type="button" onClick={handleRetry} className="btn btn-secondary mt-4">
+            <RefreshIcon size={16} />
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && data && data.total === 0 && (
+        <div data-testid="saved-outfits-empty" className="card px-6 py-14 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-sunken text-accent">
+            <BookmarkIcon size={22} />
+          </span>
+          <h2 className="display mt-5 text-2xl">Chưa có bộ nào được lưu</h2>
+          <p className="mx-auto mt-2 max-w-sm text-[0.9375rem] leading-relaxed text-ink-2">
+            Khi thấy một bộ phối ưng ý, nhấn Lưu để giữ lại ở đây.
+          </p>
+          <Link href="/chat" className="btn btn-primary mt-6">
+            Bắt đầu phối đồ
+            <ArrowRightIcon size={16} />
+          </Link>
+        </div>
+      )}
+
+      {/* Page drift recovery (total > 0 but this page has no items) */}
+      {!loading && !error && data && data.total > 0 && data.items.length === 0 && (
+        <div className="card p-8 text-center">
+          <p className="text-[0.9375rem] text-ink-2">Trang này không còn bộ đồ nào.</p>
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, Math.ceil(data.total / pageSize)))}
+            className="btn btn-secondary mt-4"
+          >
+            <ArrowLeftIcon size={16} />
+            Quay lại trang trước
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && data && data.items.length > 0 && (
+        <div className="space-y-5">
+          {data.items.map((outfit) => (
+            <OutfitCard
+              key={outfit.id}
+              outfitId={outfit.id}
+              rank={outfit.rank}
+              context={outfit.user_query}
+              compositeScore={outfit.composite_score}
+              explanationVi={outfit.explanation_vi}
+              items={normalizeDetailItems(outfit.items)}
+              initialIsBookmarked={outfit.is_bookmarked}
+              initialTimesWorn={outfit.times_worn}
+              initialRating={outfit.user_rating}
+              lastWornAt={outfit.last_worn_at}
+              onBookmarkChange={handleBookmarkChange}
+              onWearSuccess={handleWearSuccess}
+              onRatingChange={handleRatingChange}
+            />
+          ))}
+
+          {totalPages > 1 && (
+            <nav
+              role="navigation"
+              aria-label="Phân trang danh sách bộ đồ đã lưu"
+              className="flex items-center justify-between border-t border-line pt-6"
+            >
+              <button type="button" onClick={handlePrevPage} disabled={page <= 1} className="btn btn-secondary btn-sm">
+                <ArrowLeftIcon size={15} />
+                Trang trước
+              </button>
+              <span className="text-sm tabular-nums text-muted">
+                Trang {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={page >= totalPages}
+                className="btn btn-secondary btn-sm"
+              >
+                Trang sau
+                <ArrowRightIcon size={15} />
+              </button>
+            </nav>
           )}
         </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="space-y-6 animate-pulse"
-          >
-            {[1, 2].map((idx) => (
-              <div
-                key={idx}
-                className="w-full bg-white rounded-3xl border border-[#E8E5DE] p-6 sm:p-8 space-y-5 shadow-xs"
-              >
-                <div className="h-6 bg-[#EAE8E1] rounded w-1/3"></div>
-                <div className="h-14 bg-[#F5F4F0] rounded-2xl"></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
-                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
-                  <div className="h-32 bg-[#F5F4F0] rounded-2xl"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Error State */}
-        {!loading && error && (
-          <div
-            role="alert"
-            className="w-full bg-rose-50 border border-rose-200 rounded-3xl p-8 text-center space-y-4"
-          >
-            <p className="text-sm font-medium text-rose-800">
-              {error.message || 'Đã xảy ra lỗi khi tải danh sách bộ đồ đã lưu.'}
-            </p>
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="tactile-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider text-white bg-rose-700 hover:bg-rose-800 shadow-xs"
-            >
-              <span>Thử lại</span>
-            </button>
-          </div>
-        )}
-
-        {/* True Empty State (Total = 0) */}
-        {!loading && !error && data && data.total === 0 && (
-          <div
-            data-testid="saved-outfits-empty"
-            className="w-full bg-white rounded-3xl border border-[#E8E5DE] p-8 sm:p-14 text-center space-y-5 shadow-xs"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-[#F5F4F0] text-[#9C5234] flex items-center justify-center mx-auto shadow-2xs">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            </div>
-
-            <div className="space-y-2 max-w-md mx-auto">
-              <h2 className="font-serif text-2xl font-normal text-[#1A1918]">
-                Bạn Chưa Lưu Bộ Trang Phục Nào
-              </h2>
-              <p className="text-sm text-[#5C564E] leading-relaxed">
-                Khi trò chuyện với AI Stylist, bạn có thể nhấn biểu tượng lưu để gom các set đồ ưng ý vào tủ đồ phối sẵn này.
-              </p>
-            </div>
-
-            <div className="pt-3">
-              <Link
-                href="/chat"
-                className="tactile-btn inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-xs font-mono uppercase tracking-wider text-[#FBFBF9] bg-[#1A1918] hover:bg-[#2D2420] shadow-sm"
-              >
-                <span>Nhờ Stylist Gợi Ý Ngay</span>
-                <span>→</span>
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Page Drift Recovery (Total > 0 but this page has 0 items) */}
-        {!loading && !error && data && data.total > 0 && data.items.length === 0 && (
-          <div className="w-full bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-8 text-center space-y-3 shadow-sm">
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Trang hiện tại không còn bộ đồ nào. Đang quay lại trang hợp lệ...
-            </p>
-            <button
-              type="button"
-              onClick={() => setPage(Math.max(1, Math.ceil(data.total / pageSize)))}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition shadow-xs"
-            >
-              ← Quay lại trang trước
-            </button>
-          </div>
-        )}
-
-        {/* Saved List */}
-        {!loading && !error && data && data.items.length > 0 && (
-          <div className="space-y-5">
-            {data.items.map((outfit) => (
-              <OutfitCard
-                key={outfit.id}
-                outfitId={outfit.id}
-                rank={outfit.rank}
-                compositeScore={outfit.composite_score}
-                explanationVi={outfit.explanation_vi}
-                items={normalizeDetailItems(outfit.items)}
-                initialIsBookmarked={outfit.is_bookmarked}
-                initialTimesWorn={outfit.times_worn}
-                initialRating={outfit.user_rating}
-                lastWornAt={outfit.last_worn_at}
-                onBookmarkChange={handleBookmarkChange}
-                onWearSuccess={handleWearSuccess}
-                onRatingChange={handleRatingChange}
-              />
-            ))}
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <nav
-                role="navigation"
-                aria-label="Phân trang danh sách bộ đồ đã lưu"
-                className="pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between"
-              >
-                <button
-                  type="button"
-                  onClick={handlePrevPage}
-                  disabled={page <= 1}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition"
-                >
-                  <span>← Trang trước</span>
-                </button>
-
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Trang {page} / {totalPages}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={handleNextPage}
-                  disabled={page >= totalPages}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition"
-                >
-                  <span>Trang sau →</span>
-                </button>
-              </nav>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+      )}
+    </AppShell>
   );
 }

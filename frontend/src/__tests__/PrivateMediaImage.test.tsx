@@ -75,3 +75,22 @@ it('passes blob URLs directly without fetching via private media API', () => {
   expect(img.getAttribute('src')).toBe('blob:http://localhost:3000/temp-blob');
   expect(fetchMedia).not.toHaveBeenCalled();
 });
+
+it('renders a compact error without a retry button when retry is disabled', async () => {
+  setStoredUserId('550e8400-e29b-41d4-a716-446655440000');
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Network error')));
+
+  render(
+    <PrivateMediaImage
+      source="/api/v1/media/asset-tile"
+      alt="Ô ảnh"
+      fallbackText="Lỗi ảnh"
+      showRetryButton={false}
+    />
+  );
+
+  const fallback = await screen.findByTestId('private-media-error');
+  expect(screen.getByText('Lỗi ảnh')).toBeDefined();
+  expect(screen.queryByRole('button')).toBeNull();
+  expect(fallback.className).not.toContain('min-h-[120px]');
+});

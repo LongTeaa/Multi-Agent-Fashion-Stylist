@@ -1,36 +1,74 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { IngestionWorkflow } from '@/components/ingestion/IngestionWorkflow';
 import { WardrobeInventory } from '@/components/wardrobe/WardrobeInventory';
+import { ArrowLeftIcon } from '@/components/ui/icons';
+import { ACTIVE_INGESTION_BATCH_KEY, removeUrlParam } from '@/lib/browserState';
+
+const ADD_PARAM = 'add';
+
+const noopSubscribe = () => () => {};
+const readWantsAdd = () => new URLSearchParams(window.location.search).has(ADD_PARAM);
+const readHasPendingBatch = () => {
+  try {
+    return Boolean(window.sessionStorage.getItem(ACTIVE_INGESTION_BATCH_KEY));
+  } catch {
+    return false;
+  }
+};
+const serverFalse = () => false;
 
 export function WardrobeView() {
-  const [viewMode, setViewMode] = useState<'inventory' | 'ingestion'>('inventory');
+  // `?add=1` (from the home page or an error banner) opens the add flow directly.
+  const wantsAdd = useSyncExternalStore(noopSubscribe, readWantsAdd, serverFalse);
+  const hasPendingBatch = useSyncExternalStore(noopSubscribe, readHasPendingBatch, serverFalse);
+  const [chosenMode, setChosenMode] = useState<'inventory' | 'ingestion' | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const viewMode = chosenMode ?? (wantsAdd ? 'ingestion' : 'inventory');
+
+  const openIngestion = () => {
+    setNotice(null);
+    setChosenMode('ingestion');
+  };
+
+  const backToInventory = () => {
+    removeUrlParam(ADD_PARAM);
+    setChosenMode('inventory');
+  };
+
+  if (viewMode === 'ingestion') {
+    return (
+      <div>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            data-testid="btn-back-to-inventory"
+            onClick={backToInventory}
+            className="btn btn-ghost btn-sm -ml-2"
+          >
+            <ArrowLeftIcon size={16} />
+            <span>Quay lại tủ đồ</span>
+          </button>
+        </div>
+        <IngestionWorkflow
+          onFinish={(createdItemIds) => {
+            const count = createdItemIds?.length ?? 0;
+            setNotice(count > 0 ? `Đã thêm ${count} món vào tủ đồ.` : null);
+            backToInventory();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {viewMode === 'inventory' ? (
-        <WardrobeInventory onSwitchToIngestion={() => setViewMode('ingestion')} />
-      ) : (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-[#E8E5DE]">
-            <button
-              type="button"
-              data-testid="btn-back-to-inventory"
-              onClick={() => setViewMode('inventory')}
-              className="tactile-btn inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8E5DE] bg-white text-xs font-mono uppercase tracking-wider text-[#1A1918] hover:bg-[#F5F4F0] hover:border-[#D5D1C7] transition-all shadow-2xs"
-            >
-              <span aria-hidden="true">←</span>
-              <span>Quay lại tủ đồ</span>
-            </button>
-            <span className="text-xs font-mono uppercase tracking-wider text-[#736E65]">
-              Số Hóa & Nhận Diện AI
-            </span>
-          </div>
-          <IngestionWorkflow onFinish={() => setViewMode('inventory')} />
-        </div>
-      )}
-    </div>
+    <WardrobeInventory
+      onSwitchToIngestion={openIngestion}
+      notice={notice}
+      onDismissNotice={() => setNotice(null)}
+      hasPendingBatch={hasPendingBatch}
+    />
   );
 }
-

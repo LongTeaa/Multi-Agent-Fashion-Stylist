@@ -119,7 +119,7 @@ describe('OutfitCard Component', () => {
     );
 
     // Verify Rank and Score
-    expect(screen.getByText('#1')).toBeDefined();
+    expect(screen.getByText('Look 01')).toBeDefined();
     expect(screen.getByText('94%')).toBeDefined();
     expect(screen.getByText('phù hợp')).toBeDefined();
 
@@ -132,13 +132,13 @@ describe('OutfitCard Component', () => {
     expect(screen.getByText('Áo sơ mi Oxford xanh pastel')).toBeDefined();
     expect(screen.getByText('Quần tây xếp ly ghi sáng')).toBeDefined();
     expect(screen.getByText('Giày Penny Loafer da nâu')).toBeDefined();
-    expect(screen.getAllByText('Giày dép').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Giày').length).toBeGreaterThan(0);
 
     // Verify Alt Text for items with images
     const topImg = screen.getByAltText('Ảnh của Áo sơ mi Oxford xanh pastel (Áo)');
     expect(topImg).toBeDefined();
     expect(topImg.getAttribute('src')).toContain('/media/items/top1.jpg');
-    expect(screen.getByAltText('Ảnh của Giày Penny Loafer da nâu (Giày dép)')).toBeDefined();
+    expect(screen.getByAltText('Ảnh của Giày Penny Loafer da nâu (Giày)')).toBeDefined();
 
     // Verify fallback when no image
     expect(screen.getByText('Không có ảnh')).toBeDefined();
@@ -147,8 +147,7 @@ describe('OutfitCard Component', () => {
     expect(screen.getByText('Đã xóa khỏi tủ')).toBeDefined();
 
     // Verify applied preferences
-    expect(screen.getByText('✓ Thanh lịch')).toBeDefined();
-    expect(screen.getByText('✓ Gam màu dịu')).toBeDefined();
+    expect(screen.getByText('Thanh lịch · Gam màu dịu')).toBeDefined();
 
     // Verify times worn header/footer badges
     expect(screen.getAllByText(/Đã mặc 2 lần/i).length).toBeGreaterThanOrEqual(1);
@@ -270,7 +269,7 @@ describe('OutfitCard Component', () => {
 
     // Check loading state: button disabled
     expect(wearBtn.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByText('Đang ghi nhận...')).toBeDefined();
+    expect(screen.getByText('Đang ghi nhận…')).toBeDefined();
 
     // Verify first API call had compliant UUID v4 idempotency key
     expect(api.recordOutfitWorn).toHaveBeenCalledTimes(1);
@@ -297,7 +296,38 @@ describe('OutfitCard Component', () => {
 
     expect(wearBtn.hasAttribute('disabled')).toBe(false);
     expect(screen.getAllByText(/Đã mặc 1 lần/i).length).toBeGreaterThanOrEqual(1);
-    expect(onWearSuccess).toHaveBeenCalledWith('outfit-101', 1);
+    expect(onWearSuccess).toHaveBeenCalledWith('outfit-101', 1, '2026-09-15T08:30:00Z');
+  });
+
+  it('shows the new last-worn date right after recording a wear', async () => {
+    vi.mocked(api.recordOutfitWorn).mockResolvedValue({
+      wear_log_id: 'wear-log-2',
+      outfit_id: 'outfit-101',
+      times_worn: 3,
+      already_processed: false,
+      worn_at: '2026-11-15T08:30:00Z',
+    });
+
+    render(
+      <OutfitCard
+        outfitId="outfit-101"
+        rank={1}
+        explanationVi="Phối đồ thanh lịch"
+        items={mockItems}
+        initialTimesWorn={2}
+        lastWornAt="2026-11-01T08:30:00Z"
+      />
+    );
+
+    const before = new Date('2026-11-01T08:30:00Z').toLocaleDateString('vi-VN');
+    const after = new Date('2026-11-15T08:30:00Z').toLocaleDateString('vi-VN');
+    expect(screen.getByText(new RegExp(`Đã mặc 2 lần · gần nhất ${before}`))).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đã mặc bộ trang phục này hôm nay/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(`Đã mặc 3 lần · gần nhất ${after}`))).toBeDefined();
+    });
   });
 
   it('preserves same idempotency key on network failure for safe retry', async () => {
@@ -394,8 +424,8 @@ describe('OutfitCard Component', () => {
 
     expect(screen.getByText('Áo khoác dạ dáng dài')).toBeDefined();
     expect(screen.getByText('Khăn len cashmere')).toBeDefined();
-    expect(screen.getByText('Vị trí: Áo khoác')).toBeDefined();
-    expect(screen.getByText('Vị trí: Phụ kiện')).toBeDefined();
+    expect(screen.getByText('Áo khoác')).toBeDefined();
+    expect(screen.getByText('Phụ kiện')).toBeDefined();
   });
 
   it('synchronizes internal state when parent updates initialIsBookmarked and initialTimesWorn props', () => {

@@ -1,29 +1,29 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Fraunces } from "next/font/google";
 
 import "./globals.css";
 
-const playfair = Playfair_Display({
+const beVietnam = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-serif",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-be-vietnam",
   display: "swap",
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
+const fraunces = Fraunces({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
+  axes: ["SOFT", "opsz"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Multi-Agent Fashion Stylist | Trợ Lý Phối Đồ Cá Nhân Hóa",
-  description: "Trợ lý thời trang đa tác nhân thông minh với khả năng số hóa tủ đồ từ ảnh chụp thực tế và gợi ý trang phục chuẩn quy luật thẩm mỹ.",
+  title: {
+    default: "Fashion Stylist — Phối đồ từ tủ đồ của bạn",
+    template: "%s · Fashion Stylist",
+  },
+  description:
+    "Chụp ảnh quần áo bạn đang có, mô tả dịp và thời tiết, nhận bộ phối phù hợp từ chính tủ đồ của bạn.",
 };
 
 export default function RootLayout({
@@ -32,13 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="vi"
-      className={`${playfair.variable} ${plusJakarta.variable} ${geistMono.variable}`}
-    >
-      <body className="min-h-screen bg-[#FBFBF9] text-[#1A1918] font-sans antialiased selection:bg-[#E8DFD8] selection:text-[#1A1918]">
-        {children}
-      </body>
+    <html lang="vi" className={`${beVietnam.variable} ${fraunces.variable}`}>
+      <body className="min-h-screen bg-paper font-sans text-ink antialiased">{children}</body>
     </html>
   );
 }

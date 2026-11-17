@@ -114,7 +114,7 @@ test('browser uses real API, persisted outfits, private media, actions, and try-
   expect(updatedOutfit.times_worn).toBe(1);
   expect(updatedOutfit.user_rating).toBe(5);
 
-  await card.getByRole('button', { name: 'Xem ảnh minh họa bộ trang phục' }).click();
+  await card.getByRole('button', { name: /Mặc thử/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Xem trước bộ trang phục' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('Moodboard dự phòng');
@@ -136,7 +136,7 @@ test('multi-photo review switches sources and persists a corrected crop', async 
     { name: 'blue.png', mimeType: 'image/png', buffer: second },
   ]);
   const upload = page.waitForResponse(r => r.url() === `${apiBase}/api/v1/ingestions` && r.request().method() === 'POST');
-  await page.getByRole('button', { name: /Tiến hành phân tích/i }).click();
+  await page.getByRole('button', { name: /Nhận diện \d+ ảnh/i }).click();
   const batch = (await (await upload).json()).data.batch_id;
   const photos = page.getByRole('button').filter({ has: page.locator('img') });
   await expect(photos).toHaveCount(2);
@@ -166,7 +166,7 @@ test('multi-photo review switches sources and persists a corrected crop', async 
   await expect(details).toHaveJSProperty('open', false);
 
   await page.getByRole('button', { name: 'Chỉnh vùng cắt', exact: true }).first().click();
-  await page.getByRole('button', { name: 'Khung AI gốc', exact: true }).click();
+  await page.getByRole('button', { name: 'Khung nhận diện gốc', exact: true }).click();
   const restore = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith('/crop'));
   await page.getByRole('button', { name: 'Lưu vùng cắt', exact: true }).click();
   const restored = (await (await restore).json()).data;
@@ -204,7 +204,7 @@ for (const count of [1, 10]) {
     await page.getByLabel('Chọn ảnh trang phục để tải lên').setInputFiles(encoded.map((value, i) => ({
       name: `photo-${i}.png`, mimeType: 'image/png', buffer: Buffer.from(value, 'base64'),
     })));
-    await page.getByRole('button', { name: /Tiến hành phân tích/i }).click();
+    await page.getByRole('button', { name: /Nhận diện \d+ ảnh/i }).click();
     const photos = page.getByRole('button').filter({ has: page.locator('img') });
     await expect(photos).toHaveCount(count, { timeout: 30_000 });
     await photos.nth(count - 1).click();

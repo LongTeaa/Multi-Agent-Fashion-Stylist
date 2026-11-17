@@ -42,7 +42,7 @@ export interface TryOnModalProps {
   isBookmarked: boolean;
   isWorn?: boolean;
   onBookmarkChange: (outfitId: string, isBookmarked: boolean) => void;
-  onWornChange?: (outfitId: string, isWorn: boolean, timesWorn?: number) => void;
+  onWornChange?: (outfitId: string, isWorn: boolean, timesWorn?: number, wornAt?: string) => void;
   onClose: () => void;
 }
 
@@ -290,7 +290,7 @@ export function TryOnModal({
       });
       wearIdempotencyKeyRef.current = createWearIdempotencyKey();
       setWorn(true);
-      onWornChange?.(outfitId, true, res.times_worn);
+      onWornChange?.(outfitId, true, res.times_worn, res.worn_at);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
@@ -383,15 +383,10 @@ export function TryOnModal({
           <header className="flex items-start justify-between gap-5 pb-4">
             <div className="max-w-xl">
               <div className="flex items-center gap-2.5">
-                <h2 className="font-serif text-2xl tracking-tight text-[#1A1918] sm:text-3xl">
-                  Xem trước bộ trang phục
-                </h2>
-                <span className="rounded-full bg-[#EFECE6] px-2.5 py-0.5 text-xs font-semibold text-[#8B4513]">
-                  2D Virtual Try-On
-                </span>
+                <h2 className="display text-2xl text-ink sm:text-3xl">Mặc thử</h2>
               </div>
               <p className="mt-1 text-sm leading-relaxed text-[#5C564E]">
-                Thử đồ trực quan trên người mẫu hoặc ảnh toàn thân của bạn. Không thay thế bảng size vật lý.
+                Xem bộ đồ trên người mẫu hoặc ảnh toàn thân của bạn. Ảnh chỉ để hình dung, không mô phỏng chính xác kích thước hoặc độ vừa vặn.
               </p>
             </div>
             <button
@@ -407,9 +402,7 @@ export function TryOnModal({
           {/* Avatar Selector Strip */}
           <div className="mb-4 rounded-2xl bg-[#F6F4EE] p-3 border border-[#E8E4DA]">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold text-[#1A1918] uppercase tracking-wider">
-                Chọn người mẫu thử đồ:
-              </span>
+              <span className="text-sm font-semibold text-ink">Người mẫu</span>
               <button
                 type="button"
                 onClick={() => setIsUploadOpen(!isUploadOpen)}
@@ -461,7 +454,7 @@ export function TryOnModal({
                     className="h-3.5 w-3.5 rounded border-[#C8C2B7] text-[#9C5234] focus:ring-[#9C5234]"
                   />
                   <label htmlFor="consent_checkbox" className="text-xs text-[#736E65]">
-                    Tôi đồng ý sử dụng ảnh chân dung để AI ghép đồ thử nghiệm và bảo mật trong tài khoản của tôi.
+                    Tôi đồng ý dùng ảnh này để tạo ảnh mặc thử. Ảnh chỉ được lưu trong tài khoản của tôi.
                   </label>
                 </div>
                 {uploadError && <p className="text-xs text-rose-700">{uploadError}</p>}
@@ -478,7 +471,7 @@ export function TryOnModal({
                     disabled={isUploading}
                     className="rounded-full bg-[#1A1918] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#302B27] disabled:opacity-50"
                   >
-                    {isUploading ? 'Đang phân tích...' : 'Lưu & Mặc thử'}
+                    {isUploading ? 'Đang tải lên…' : 'Lưu và mặc thử'}
                   </button>
                 </div>
               </form>
@@ -499,12 +492,12 @@ export function TryOnModal({
                         : 'bg-white text-[#4A453E] border border-[#DDD8CD] hover:border-[#B5AEA1]'
                     }`}
                   >
-                    <span className="text-sm">{avatar.is_preset ? (avatar.preset_gender === 'female' ? '👩' : '👨') : '👤'}</span>
                     <span>{avatar.name}</span>
                     {!avatar.is_preset && (
                       <span
                         role="button"
-                        title="Xóa avatar này"
+                        title="Xóa ảnh này"
+                        aria-label={`Xóa ảnh ${avatar.name}`}
                         onClick={(e) => handleDeleteAvatar(avatar.id, e)}
                         className="ml-1 text-xs opacity-60 hover:opacity-100 hover:text-rose-400"
                       >
@@ -534,7 +527,7 @@ export function TryOnModal({
                           : 'bg-white/70 text-[#5C564E] hover:bg-white'
                       }`}
                     >
-                      Kết quả mặc thử AI
+                      Sau khi mặc
                     </button>
                     <button
                       type="button"
@@ -545,7 +538,7 @@ export function TryOnModal({
                           : 'bg-white/70 text-[#5C564E] hover:bg-white'
                       }`}
                     >
-                      Ảnh mẫu gốc (Trước khi mặc)
+                      Trước khi mặc
                     </button>
                   </div>
                   <span className="text-xs text-[#736E65] font-mono">
@@ -558,7 +551,7 @@ export function TryOnModal({
                 {isGenerating && (
                   <div role="status" className="w-full space-y-4 px-8 text-center max-w-sm">
                     <div className="mx-auto aspect-[3/4] w-full max-w-xs animate-pulse rounded-2xl bg-[#DDD7CD]" />
-                    <p className="text-sm font-medium text-[#5C564E]">Đang tạo ảnh minh họa...</p>
+                    <p className="text-sm font-medium text-[#5C564E]">Đang tạo ảnh, thường mất 10–30 giây…</p>
                   </div>
                 )}
 
@@ -571,7 +564,7 @@ export function TryOnModal({
                     />
                     {result.fallback_used && (
                       <div className="mt-2 max-w-md text-center rounded-xl bg-amber-50 p-2 text-xs text-amber-800 border border-amber-200">
-                        AI khuếch tán đang bận hoặc quá hạn mức thử đồ trong ngày. Hệ thống hiển thị bảng phối đồ Moodboard dự phòng để bạn xem tổng thể.
+                        Chưa tạo được ảnh mặc thử lúc này, nên đang hiển thị bảng phối để bạn xem tổng thể bộ đồ.
                       </div>
                     )}
                   </div>
@@ -584,7 +577,7 @@ export function TryOnModal({
                       alt={`Ảnh mẫu gốc ${currentAvatar.name}`}
                       className="max-h-[64dvh] w-full object-contain rounded-xl"
                     />
-                    <span className="mt-2 text-xs text-[#736E65]">Người mẫu trước khi ướm đồ</span>
+                    <span className="mt-2 text-xs text-[#736E65]">Trước khi mặc thử</span>
                   </div>
                 )}
 

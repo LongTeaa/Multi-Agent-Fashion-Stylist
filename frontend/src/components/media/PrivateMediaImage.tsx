@@ -69,11 +69,13 @@ export function PrivateMediaImage({
     return (
       <div
         data-testid="private-media-error"
-        className={`flex flex-col items-center justify-center p-3 text-center bg-[#242220] rounded-xl text-[#A8A29E] border border-[#3D3A37] min-h-[120px] ${
+        className={`flex flex-col items-center justify-center gap-1 p-3 text-center bg-sunken rounded-xl text-muted ${
+          showRetryButton ? 'min-h-[120px]' : ''
+        } ${
           imageProps.className || ''
         }`}
       >
-        <svg className="w-8 h-8 mb-1.5 text-amber-500/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-line-strong" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -81,7 +83,7 @@ export function PrivateMediaImage({
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <span className="text-xs font-mono text-[#D6D1C7] mb-1">{fallbackText}</span>
+        <span className="text-xs text-muted">{fallbackText}</span>
         {showRetryButton && (
           <button
             type="button"
@@ -89,7 +91,7 @@ export function PrivateMediaImage({
               setFailedSource(null);
               setRetryKey((k) => k + 1);
             }}
-            className="mt-1 px-3 py-1 text-xs font-medium rounded-lg bg-[#3D3A37] hover:bg-[#4E4A46] text-white border border-[#524E49] transition shadow-xs cursor-pointer"
+            className="btn btn-secondary btn-sm mt-1"
           >
             Thử tải lại ảnh
           </button>

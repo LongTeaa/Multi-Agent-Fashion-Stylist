@@ -4,6 +4,8 @@ import React from 'react';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
 import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
+import { SegmentedScale } from '@/components/ui/SegmentedScale';
+import { FUNCTIONAL_FLAG_VALUES, type FunctionalFlag } from '@/lib/garmentAttributes';
 
 interface DetectionItemCardProps {
   cropEditor?: React.ReactNode;
@@ -79,17 +81,23 @@ const LENGTHS = [
   { value: 'long', label: 'Dáng dài (Long - Phủ chân/Dài qua gối)' },
 ];
 
-const FUNCTIONAL_FLAGS = [
-  { value: 'movement', label: 'Vận động / Co giãn' },
-  { value: 'outdoor', label: 'Dã ngoại / Ngoài trời' },
-  { value: 'sun', label: 'Chống nắng' },
-  { value: 'water_resistant', label: 'Chống mưa / Nước' },
-  { value: 'work', label: 'Đi làm / Công sở' },
-  { value: 'sport', label: 'Thể thao' },
-  { value: 'protection', label: 'Bảo hộ / Giữ nhiệt' },
-  { value: 'light', label: 'Siêu nhẹ / Thoáng' },
-  { value: 'heavy', label: 'Dày ấm / Nặng' },
-];
+// Longer, explanatory labels for the review step; the flag set itself is shared.
+const FUNCTIONAL_FLAG_REVIEW_LABELS: Record<FunctionalFlag, string> = {
+  movement: 'Vận động / Co giãn',
+  outdoor: 'Dã ngoại / Ngoài trời',
+  sun: 'Chống nắng',
+  water_resistant: 'Chống mưa / Nước',
+  work: 'Đi làm / Công sở',
+  sport: 'Thể thao',
+  protection: 'Bảo hộ / Giữ nhiệt',
+  light: 'Siêu nhẹ / Thoáng',
+  heavy: 'Dày ấm / Nặng',
+};
+
+const FUNCTIONAL_FLAGS = FUNCTIONAL_FLAG_VALUES.map((value) => ({
+  value,
+  label: FUNCTIONAL_FLAG_REVIEW_LABELS[value],
+}));
 
 const COMFORT_LABELS: Record<number, string> = {
   1: 'Gò bó / Thô cứng (1)',
@@ -130,7 +138,7 @@ export function DetectionItemCard({
   const advancedFields = ['pattern', 'material', 'style', 'fit', 'formality_level', 'comfort_level', 'silhouette_level', 'length'];
   const advancedNeedsReview = advancedFields.some(isLowConfidence);
   const renderConfidenceBadge = (field: string) => isLowConfidence(field)
-    ? <span className="text-xs font-medium text-amber-800">Cần kiểm tra</span>
+    ? <span className="text-xs font-semibold text-warning">Cần kiểm tra</span>
     : null;
 
   const handleSeasonToggle = (seasonVal: string) => {
@@ -151,72 +159,59 @@ export function DetectionItemCard({
     }
   };
 
+  const isMissingCategory = !attributes.category || attributes.category === 'unknown';
+  const fieldClass = (field: string, missing = false) =>
+    `field ${missing ? 'border-danger bg-danger-soft/40' : isLowConfidence(field) ? 'border-warning bg-warning-soft/50' : ''}`;
+
   return (
     <div
       onClick={onSelect}
-      className={`rounded-3xl border transition-all duration-200 overflow-hidden ${
-        isSelected
-          ? 'border-[#1A1918] ring-2 ring-[#1A1918]/15 shadow-md bg-white'
-          : 'border-[#E8E5DE] bg-white hover:border-[#D5D1C7] shadow-2xs'
-      } ${!accepted ? 'opacity-60 bg-[#FAF8F5]' : ''}`}
+      className={`card overflow-hidden transition-[border-color,box-shadow,opacity] ${
+        isSelected ? 'border-ink shadow-[0_10px_30px_-18px_rgb(28_25_22/0.35)]' : ''
+      } ${!accepted ? 'opacity-60' : ''}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#E8E5DE] bg-[#FAF8F5]/80">
-        <div className="flex items-center gap-3.5">
-          <span className="w-8 h-8 rounded-full bg-[#1A1918] text-[#FBFBF9] font-mono font-semibold text-xs flex items-center justify-center shadow-2xs">
-            {index + 1}
-          </span>
-          <div>
-            <h4 className="text-base sm:text-lg font-semibold text-[#1A1918] capitalize">
-              {selectedGroup?.label || 'Món đồ'} •{' '}
-              {attributes.sub_category || 'Chưa phân loại'}
-            </h4>
-          </div>
+      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="hang-tag">{String(index + 1).padStart(2, '0')}</span>
+          <h4 className="truncate text-[1rem] font-semibold capitalize text-ink">
+            {selectedGroup?.label || 'Món đồ'} · {attributes.sub_category || 'Chưa phân loại'}
+          </h4>
         </div>
 
-        {/* Accept / Reject Switch */}
-        <label
-          onClick={(e) => e.stopPropagation()}
-          className="relative flex items-center gap-2.5 cursor-pointer select-none"
-        >
+        <label onClick={(e) => e.stopPropagation()} className="relative flex shrink-0 cursor-pointer select-none items-center gap-2.5">
           <input
             type="checkbox"
             checked={accepted}
             onChange={(e) => onToggleAccepted(e.target.checked)}
-            className="sr-only peer"
+            className="peer sr-only"
           />
-          <div className="w-11 h-6 bg-[#E8E5DE] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D5D1C7] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#9C5234]"></div>
-          <span className="text-xs sm:text-sm font-mono text-[#1A1918] font-medium">
-            {accepted ? 'Lưu món này' : 'Bỏ qua'}
-          </span>
+          <span className="relative h-6 w-11 rounded-full bg-line-strong transition-colors after:absolute after:left-[3px] after:top-[3px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-surface after:shadow-sm after:transition-transform peer-checked:bg-ink peer-checked:after:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent" />
+          <span className="text-sm font-semibold text-ink">{accepted ? 'Lưu món này' : 'Bỏ qua'}</span>
         </label>
       </div>
 
-      <div className="p-5 sm:p-6 flex flex-col md:flex-row gap-6 lg:gap-8">
-        {/* Crop Preview Column */}
-        <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-36 h-36 sm:w-44 sm:h-44 xl:w-48 xl:h-48 rounded-2xl border border-[#E8E5DE] overflow-hidden bg-[#FAF8F5] flex items-center justify-center shadow-2xs relative group">
+      <div className="flex flex-col gap-6 p-5 md:flex-row">
+        {/* Crop preview */}
+        <div className="flex shrink-0 flex-col items-center md:items-start">
+          <div className="flex h-40 w-40 items-center justify-center overflow-hidden rounded-2xl bg-sunken sm:h-44 sm:w-44">
             {cropUrl ? (
-              <PrivateMediaImage
-                source={cropUrl}
-                alt="Ảnh món đồ đã cắt"
-                className="w-full h-full object-contain p-2"
-              />
+              <PrivateMediaImage source={cropUrl} alt="Ảnh món đồ đã cắt" className="h-full w-full object-contain p-2" />
             ) : (
-              <span className="text-xs font-mono text-[#736E65]">Không có ảnh</span>
+              <span className="text-xs text-muted">Không có ảnh</span>
             )}
           </div>
           {cropEditor && <div className="mt-3 w-full max-w-sm">{cropEditor}</div>}
         </div>
 
-        {/* Attribute Correction Form Fields */}
-        <div className="flex-1 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        {/* Attribute correction */}
+        <div className="min-w-0 flex-1 space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Category */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
-                  Danh mục chính <span className="text-rose-600">*</span>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="field-label mb-0">
+                  Danh mục chính <span className="text-danger">*</span>
                 </label>
                 {renderConfidenceBadge('category')}
               </div>
@@ -230,13 +225,7 @@ export function DetectionItemCard({
                     onUpdateAttribute('sub_category', group.value);
                   }
                 }}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  !attributes.category || attributes.category === 'unknown'
-                    ? 'border-rose-400 bg-rose-50/20 focus:ring-2 focus:ring-rose-400 text-[#1A1918]'
-                    : isLowConfidence('category')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
+                className={fieldClass('category', isMissingCategory)}
               >
                 <option value="" disabled>
                   -- Chọn danh mục (Bắt buộc) --
@@ -247,17 +236,15 @@ export function DetectionItemCard({
                   </option>
                 ))}
               </select>
-              {(!attributes.category || attributes.category === 'unknown') && accepted && (
-                <p className="text-xs text-rose-600 mt-1.5 font-medium">
-                  Vui lòng chọn danh mục chính để lưu món đồ này.
-                </p>
+              {isMissingCategory && accepted && (
+                <p className="mt-1.5 text-xs font-medium text-danger">Vui lòng chọn danh mục chính để lưu món đồ này.</p>
               )}
             </div>
 
-            {/* Sub-Category */}
+            {/* Sub-category */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Loại món</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="field-label mb-0">Loại món</label>
                 {renderConfidenceBadge('sub_category')}
               </div>
               <input
@@ -265,13 +252,9 @@ export function DetectionItemCard({
                 list={`sub-suggestions-${index}`}
                 value={attributes.sub_category || ''}
                 disabled={!accepted}
-                placeholder="VD: sneakers, loafers, oxford, polo, chinos..."
+                placeholder="VD: sneakers, loafers, polo, chinos…"
                 onChange={(e) => onUpdateAttribute('sub_category', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('sub_category')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
+                className={fieldClass('sub_category')}
               />
               <datalist id={`sub-suggestions-${index}`}>
                 {suggestions.map((s) => (
@@ -281,18 +264,15 @@ export function DetectionItemCard({
                 ))}
               </datalist>
               {suggestions.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {suggestions.map((s) => (
                     <button
                       key={s.value}
                       type="button"
                       disabled={!accepted}
+                      aria-pressed={attributes.sub_category?.toLowerCase() === s.value.toLowerCase()}
                       onClick={() => onUpdateAttribute('sub_category', s.value)}
-                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
-                        attributes.sub_category?.toLowerCase() === s.value.toLowerCase()
-                          ? 'bg-[#1A1918] text-white border-[#1A1918] font-medium'
-                          : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
-                      }`}
+                      className="chip min-h-7 px-2.5 text-xs"
                     >
                       {s.label}
                     </button>
@@ -301,302 +281,261 @@ export function DetectionItemCard({
               )}
             </div>
 
-            {/* Primary Color */}
+            {/* Primary color */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Màu sắc chủ đạo</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="field-label mb-0">Màu sắc chủ đạo</label>
                 {renderConfidenceBadge('primary_color')}
               </div>
               <input
                 type="text"
                 value={attributes.primary_color || ''}
                 disabled={!accepted}
-                placeholder="VD: trắng, đen, navy, be..."
+                placeholder="VD: trắng, đen, navy, be…"
                 onChange={(e) => onUpdateAttribute('primary_color', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('primary_color')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
+                className={fieldClass('primary_color')}
               />
             </div>
-
           </div>
-          <details className="border-t border-[#E8E5DE] pt-4">
-            <summary className="cursor-pointer rounded-lg text-sm font-medium text-[#5C564E] focus-visible:outline-2 focus-visible:outline-[#9C5234]">
+
+          <details className="group border-t border-line pt-4">
+            <summary className="cursor-pointer list-none rounded-lg text-sm font-semibold text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+              <span className="inline-block transition-transform group-open:rotate-90" aria-hidden="true">
+                ›
+              </span>{' '}
               Chi tiết bổ sung{advancedNeedsReview ? ' · Có thông tin cần kiểm tra' : ''}
             </summary>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            {/* Pattern */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Họa tiết</label>
-                {renderConfidenceBadge('pattern')}
-              </div>
-              <select
-                value={attributes.pattern || ''}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('pattern', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('pattern')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                <option value="" disabled>
-                  -- Chưa xác định / Vui lòng chọn --
-                </option>
-                {PATTERNS.map((pat) => (
-                  <option key={pat.value} value={pat.value}>
-                    {pat.label}
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Pattern */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Họa tiết</label>
+                  {renderConfidenceBadge('pattern')}
+                </div>
+                <select
+                  value={attributes.pattern || ''}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('pattern', e.target.value)}
+                  className={fieldClass('pattern')}
+                >
+                  <option value="" disabled>
+                    -- Chưa xác định / Vui lòng chọn --
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Material */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Chất liệu</label>
-                {renderConfidenceBadge('material')}
+                  {PATTERNS.map((pat) => (
+                    <option key={pat.value} value={pat.value}>
+                      {pat.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={attributes.material || ''}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('material', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('material')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                <option value="" disabled>
-                  -- Chưa xác định / Vui lòng chọn --
-                </option>
-                {MATERIALS.map((mat) => (
-                  <option key={mat.value} value={mat.value}>
-                    {mat.label}
+
+              {/* Material */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Chất liệu</label>
+                  {renderConfidenceBadge('material')}
+                </div>
+                <select
+                  value={attributes.material || ''}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('material', e.target.value)}
+                  className={fieldClass('material')}
+                >
+                  <option value="" disabled>
+                    -- Chưa xác định / Vui lòng chọn --
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Style */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phong cách</label>
-                {renderConfidenceBadge('style')}
+                  {MATERIALS.map((mat) => (
+                    <option key={mat.value} value={mat.value}>
+                      {mat.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={attributes.style || ''}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('style', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('style')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                <option value="" disabled>
-                  -- Chưa xác định / Vui lòng chọn --
-                </option>
-                {STYLES.map((st) => (
-                  <option key={st.value} value={st.value}>
-                    {st.label}
+
+              {/* Style */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Phong cách</label>
+                  {renderConfidenceBadge('style')}
+                </div>
+                <select
+                  value={attributes.style || ''}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('style', e.target.value)}
+                  className={fieldClass('style')}
+                >
+                  <option value="" disabled>
+                    -- Chưa xác định / Vui lòng chọn --
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Fit */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Phom dáng</label>
-                {renderConfidenceBadge('fit')}
+                  {STYLES.map((st) => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={attributes.fit || ''}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('fit', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('fit')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                <option value="" disabled>
-                  -- Chưa xác định / Vui lòng chọn --
-                </option>
-                {FITS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
+
+              {/* Fit */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Phom dáng</label>
+                  {renderConfidenceBadge('fit')}
+                </div>
+                <select
+                  value={attributes.fit || ''}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('fit', e.target.value)}
+                  className={fieldClass('fit')}
+                >
+                  <option value="" disabled>
+                    -- Chưa xác định / Vui lòng chọn --
                   </option>
-                ))}
-              </select>
-            </div>
+                  {FITS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Formality Level */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
-                  Mức độ trang trọng:{' '}
-                  <span className="font-bold text-[#9C5234] text-sm sm:text-base">
-                    {attributes.formality_level ? `${attributes.formality_level}/5` : 'Chưa xác định'}
-                  </span>
-                </label>
-                {renderConfidenceBadge('formality_level')}
+              {/* Formality */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">
+                    Mức độ trang trọng:{' '}
+                    <span className="text-accent">
+                      {attributes.formality_level ? `${attributes.formality_level}/5` : 'Chưa xác định'}
+                    </span>
+                  </label>
+                  {renderConfidenceBadge('formality_level')}
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={attributes.formality_level || 3}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('formality_level', parseInt(e.target.value, 10))}
+                  className="h-2 w-full cursor-pointer accent-[var(--color-ink)]"
+                  aria-label="Mức độ trang trọng"
+                />
+                <div className="mt-1 flex justify-between text-xs text-muted">
+                  <span>Thường ngày</span>
+                  <span>Bán trang trọng</span>
+                  <span>Dạ tiệc</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                step={1}
-                value={attributes.formality_level || 3}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('formality_level', parseInt(e.target.value, 10))}
-                className="w-full accent-[#9C5234] cursor-pointer h-2"
-              />
-              <div className="flex justify-between text-xs font-mono text-[#5C564E] mt-1">
-                <span>Thường ngày (1)</span>
-                <span>Bán trang trọng (3)</span>
-                <span>Dạ tiệc (5)</span>
-              </div>
-            </div>
 
-            {/* Comfort Level (1-5 Sao) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">
-                  Độ thoải mái:{' '}
-                  <span className="font-bold text-[#9C5234] text-sm sm:text-base">
-                    {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
-                  </span>
-                </label>
-                {renderConfidenceBadge('comfort_level')}
+              {/* Comfort */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">
+                    Độ thoải mái:{' '}
+                    <span className="text-accent">
+                      {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
+                    </span>
+                  </label>
+                  {renderConfidenceBadge('comfort_level')}
+                </div>
+                <SegmentedScale
+                  label="Độ thoải mái"
+                  value={attributes.comfort_level || 3}
+                  onChange={(level) => onUpdateAttribute('comfort_level', level)}
+                  disabled={!accepted}
+                />
+                <p className="mt-1 text-xs text-muted">
+                  {COMFORT_LABELS[attributes.comfort_level || 3] || 'Tiêu chuẩn (3)'}
+                </p>
               </div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
+
+              {/* Silhouette */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="field-label mb-0">Dáng tổng thể</label>
+                  {renderConfidenceBadge('silhouette_level')}
+                </div>
+                <select
+                  value={attributes.silhouette_level || 3}
+                  disabled={!accepted}
+                  onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
+                  className={fieldClass('silhouette_level')}
+                >
+                  {SILHOUETTES.map((sil) => (
+                    <option key={sil.value} value={sil.value}>
+                      {sil.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Length applies to garments, not shoes or accessories. */}
+              {!['footwear', 'accessory'].includes(attributes.category) && (
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="field-label mb-0">Độ dài</label>
+                    {renderConfidenceBadge('length')}
+                  </div>
+                  <select
+                    value={attributes.length || 'hip'}
                     disabled={!accepted}
-                    onClick={() => onUpdateAttribute('comfort_level', star)}
-                    className={`flex-1 py-1.5 rounded-lg border text-sm transition font-mono ${
-                      (attributes.comfort_level || 3) >= star
-                        ? 'bg-[#9C5234] text-white border-[#9C5234] shadow-2xs font-semibold'
-                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7]'
-                    }`}
+                    onChange={(e) => onUpdateAttribute('length', e.target.value)}
+                    className={fieldClass('length')}
                   >
-                    {star}
-                  </button>
-                ))}
+                    {LENGTHS.map((len) => (
+                      <option key={len.value} value={len.value}>
+                        {len.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Seasons */}
+            <div className="mt-5">
+              <span className="field-label">Mùa thích hợp</span>
+              <div className="flex flex-wrap gap-2">
+                {SEASONS.map((s) => {
+                  const isSeasonActive = Array.isArray(attributes.season) && attributes.season.includes(s.value);
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      disabled={!accepted}
+                      aria-pressed={isSeasonActive}
+                      onClick={() => handleSeasonToggle(s.value)}
+                      className="chip"
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-xs font-mono text-[#5C564E]">
-                {COMFORT_LABELS[attributes.comfort_level || 3] || 'Tiêu chuẩn (3)'}
-              </p>
             </div>
 
-            {/* Silhouette Level (Dáng tổng thể 1-5) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Dáng tổng thể</label>
-                {renderConfidenceBadge('silhouette_level')}
+            {/* Functional flags */}
+            <div className="mt-5">
+              <span className="field-label">Công dụng</span>
+              <div className="flex flex-wrap gap-2">
+                {FUNCTIONAL_FLAGS.map((f) => {
+                  const isFlagActive =
+                    Array.isArray(attributes.functional_flags) && attributes.functional_flags.includes(f.value);
+                  return (
+                    <button
+                      key={f.value}
+                      type="button"
+                      disabled={!accepted}
+                      aria-pressed={isFlagActive}
+                      onClick={() => handleFunctionalFlagToggle(f.value)}
+                      className="chip"
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
               </div>
-              <select
-                value={attributes.silhouette_level || 3}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('silhouette_level')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                {SILHOUETTES.map((sil) => (
-                  <option key={sil.value} value={sil.value}>
-                    {sil.label}
-                  </option>
-                ))}
-              </select>
             </div>
-
-            {/* Length applies to garments, not shoes or accessories. */}
-            {!['footwear', 'accessory'].includes(attributes.category) && <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[#1A1918]">Độ dài</label>
-                {renderConfidenceBadge('length')}
-              </div>
-              <select
-                value={attributes.length || 'hip'}
-                disabled={!accepted}
-                onChange={(e) => onUpdateAttribute('length', e.target.value)}
-                className={`w-full px-3.5 py-2.5 text-sm sm:text-base rounded-xl border focus:outline-none transition ${
-                  isLowConfidence('length')
-                    ? 'border-amber-400 bg-amber-50/20 focus:ring-2 focus:ring-amber-400 text-[#1A1918]'
-                    : 'border-[#D5D1C7] bg-white text-[#1A1918] focus:ring-2 focus:ring-[#9C5234]/30 focus:border-[#9C5234]'
-                }`}
-              >
-                {LENGTHS.map((len) => (
-                  <option key={len.value} value={len.value}>
-                    {len.label}
-                  </option>
-                ))}
-              </select>
-            </div>}
-          </div>
-
-          {/* Season suitability */}
-          <div>
-            <label className="text-xs sm:text-sm font-semibold text-[#1A1918] block mb-2">Mùa thích hợp</label>
-            <div className="flex flex-wrap gap-2">
-              {SEASONS.map((s) => {
-                const isSeasonActive = Array.isArray(attributes.season) && attributes.season.includes(s.value);
-                return (
-                  <button
-                    key={s.value}
-                    type="button"
-                    disabled={!accepted}
-                    onClick={() => handleSeasonToggle(s.value)}
-                    className={`text-xs sm:text-sm px-4 py-1.5 rounded-full border transition font-mono ${
-                      isSeasonActive
-                        ? 'bg-[#1A1918] text-[#FBFBF9] border-[#1A1918] font-medium shadow-2xs'
-                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Functional flags */}
-          <div>
-            <label className="text-xs sm:text-sm font-semibold text-[#1A1918] block mb-2">
-              Tính năng & Mục đích sử dụng (Thẻ chức năng)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {FUNCTIONAL_FLAGS.map((f) => {
-                const isFlagActive =
-                  Array.isArray(attributes.functional_flags) && attributes.functional_flags.includes(f.value);
-                return (
-                  <button
-                    key={f.value}
-                    type="button"
-                    disabled={!accepted}
-                    onClick={() => handleFunctionalFlagToggle(f.value)}
-                    className={`text-xs sm:text-sm px-3.5 py-1.5 rounded-full border transition font-mono ${
-                      isFlagActive
-                        ? 'bg-[#9C5234] text-[#FBFBF9] border-[#9C5234] font-medium shadow-2xs'
-                        : 'bg-[#FAF8F5] text-[#5C564E] border-[#E8E5DE] hover:border-[#D5D1C7] hover:text-[#1A1918]'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           </details>
         </div>
       </div>

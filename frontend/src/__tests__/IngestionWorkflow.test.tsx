@@ -73,7 +73,7 @@ it('retains a processing batch after 45 seconds and scopes review to the selecte
     await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
   }
   expect(sessionStorage.getItem('active_ingestion_batch_id')).toBe('batch');
-  expect(screen.queryByText(/Không Thể Hoàn Tất/)).toBeNull();
+  expect(screen.queryByText(/Chưa thể hoàn tất/)).toBeNull();
   vi.mocked(api.getIngestionBatch).mockResolvedValue({
     ...processing, status: 'needs_review', source_images: [
       { media_asset_id: 'a', media_url: '/api/v1/media/a', width: 100, height: 100 },
