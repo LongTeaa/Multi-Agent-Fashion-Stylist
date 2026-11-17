@@ -95,6 +95,36 @@ def test_unknown_functional_flags_are_rejected() -> None:
         CustomAttributesUpdate(functional_flags=["teleportation"])
 
 
+def test_functional_flag_aliases_map_onto_the_taxonomy() -> None:
+    update = WardrobeItemUpdate(functional_flags=["Waterproof", "breathable", "water_resistant", "sun"])
+    assert update.functional_flags == ["water_resistant", "light", "sun"]
+
+
+def test_garment_profile_length_and_silhouette_rules() -> None:
+    from app.agents.garment_profile import (
+        default_length,
+        effective_length,
+        infer_silhouette_level,
+        normalize_functional_flags,
+    )
+
+    assert default_length("bottom", "shorts") == "cropped"
+    assert default_length("bottom", "trousers") == "long"
+    assert default_length("dress", "mini_dress") == "cropped"
+    assert default_length("outerwear", "trench_coat") == "long"
+    assert default_length("top", "crop_top") == "cropped"
+    assert default_length("top", "t-shirt") == "hip"
+    # Torso lengths are kept for tops; bottoms only read short vs. full length.
+    assert effective_length("top", "waist") == "waist"
+    assert effective_length("bottom", "hip", "jeans") == "long"
+    assert effective_length("bottom", "cropped", "jeans") == "cropped"
+    assert effective_length("footwear", "hip") is None
+    assert infer_silhouette_level("oversized") == 5
+    assert infer_silhouette_level("slim") == 2
+    assert infer_silhouette_level("regular", "polo") == 3
+    assert normalize_functional_flags(["lace-up", "uv", "sun"]) == (["sun"], ["lace-up"])
+
+
 # ============================================================================
 # 2. REAL SQLITE DATABASE CONSTRAINTS (CheckConstraint enforcement)
 # ============================================================================

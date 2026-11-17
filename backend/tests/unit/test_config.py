@@ -6,6 +6,8 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 EXPECTED_ENV_KEYS = {
+    "INGESTION_MAX_CONCURRENCY",
+    "VISION_FALLBACK_MODEL",
     "DATABASE_URL",
     "FRONTEND_URL",
     "VISION_PROVIDER",

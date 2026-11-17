@@ -404,11 +404,18 @@ def rerank_evaluated_outfits(
           + 0.25 * color_palette_match
           + 0.20 * priority_match
           + 0.20 * learned_rating_affinity
-          - explicit_avoid_penalty
-          - recent_wear_penalty
-      ) clamped to [0.0, 1.0].
+          + fit_preference_bonus
+      ) clamped to [0.0, 1.0]   (pure taste affinity)
 
-      composite_score = round(0.60 * fashion_score + 0.40 * preference_score, 4).
+      behavior_penalty = recent_wear_penalty + relaxed_avoid_penalty
+
+      With context (Tier 3): composite = dynamic-weight score of formality,
+      weather/comfort, function, aesthetic and preference, minus behavior_penalty.
+      Without context: composite = 0.60 * fashion_score + 0.40 * preference_score
+      - behavior_penalty. Both are clamped to [0.0, 1.0].
+
+      The penalty sits outside the weights so anti-repetition holds even for
+      profiles that give the preference term no weight.
 
     Invariants:
       - Explicit exclusions win: If any clean (non-violating) candidate exists,
@@ -486,10 +493,11 @@ def rerank_evaluated_outfits(
             + 0.20 * priority_score
             + 0.20 * affinity_score
             + fit_bonus
-            - avoid_penalty
-            - wear_penalty
         )
         pref_score = round(max(0.0, min(1.0, raw_preference)), 4)
+        behavior_penalty = avoid_penalty + wear_penalty
+        cand.component_scores["recent_wear_penalty"] = wear_penalty
+        cand.component_scores["avoid_penalty"] = avoid_penalty
 
         if context is not None:
             # Tier-3 Dynamic Context Weighting (Advisor Architecture)
@@ -511,12 +519,13 @@ def rerank_evaluated_outfits(
                 aesthetic_score=aesthetic_score,
                 personal_fit=pref_score,
                 weight_profile=weight_profile,
+                behavior_penalty=behavior_penalty,
             )
             cand.component_scores.update(breakdown)
         else:
             # Default backward-compatible fallback when context is omitted
             composite = round(
-                max(0.0, min(1.0, 0.60 * cand.fashion_score + 0.40 * pref_score)), 4
+                max(0.0, min(1.0, 0.60 * cand.fashion_score + 0.40 * pref_score - behavior_penalty)), 4
             )
 
         applied_prefs = style_tags + palette_tags + priority_tags

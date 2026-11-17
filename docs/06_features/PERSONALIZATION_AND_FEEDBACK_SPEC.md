@@ -34,9 +34,11 @@ preference_score =
   + 0.20 * priority_match
   + 0.20 * learned_rating_affinity
   + fit_bonus
-  - explicit_avoid_penalty
-  - recent_wear_penalty
+
+behavior_penalty = recent_wear_penalty + relaxed_avoid_penalty
 ```
+
+`preference_score` measures taste affinity only and is reported as `personalization_score`. `behavior_penalty` is subtracted from the final composite after the context weight profile is applied (see `../03_domain/FASHION_KNOWLEDGE_BASE.md` §3.3), so anti-repetition and relaxed-avoid penalties apply even when a profile gives the preference term zero weight. `recent_wear_penalty` is `0.40` for an exact outfit worn within 72 hours plus `0.15` per major item worn within 48 hours (at most `0.30`); `relaxed_avoid_penalty` is `0.10` per violation and only exists under controlled relaxation.
 
 `learned_rating_affinity` MUST be updated through an exponential moving average for features such as style, color family, pattern, and formality. Ratings map as follows: `1 -> -1.0`, `2 -> -0.5`, `3 -> 0`, `4 -> 0.5`, `5 -> 1.0`.
 

@@ -236,6 +236,72 @@ def test_garment_profile_migration_preserves_existing_items_with_defaults(
     validate_database_schema_revision(engine)
 
 
+def test_garment_profile_normalization_migration_repairs_legacy_profiles(
+    migrated_database: tuple[Config, Engine],
+) -> None:
+    alembic_config, engine = migrated_database
+    command.downgrade(alembic_config, "0013")
+    user_id = str(uuid4())
+    now_str = utc_now().isoformat()
+    rows = {
+        # id: (category, sub_category, fit, silhouette, length, functional_flags)
+        "legacy-top": ("top", "hoodie", "oversized", 3, "hip", '["lace-up", "waterproof", "sun"]'),
+        "legacy-pants": ("bottom", "trousers", "regular", 3, "hip", "[]"),
+        "legacy-shorts": ("bottom", "shorts", "relaxed", 3, "waist", "[]"),
+        "chosen-top": ("top", "shirt", "slim", 4, "cropped", '["work"]'),
+    }
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO users (id, created_at, updated_at) VALUES (:id, :now, :now)"),
+            {"id": user_id, "now": now_str},
+        )
+        for item_id, (category, sub, fit, silhouette, length, flags) in rows.items():
+            conn.execute(
+                text(
+                    "INSERT INTO wardrobe_items ("
+                    "id, user_id, category, sub_category, primary_color, pattern, material, style, fit, "
+                    "formality_level, comfort_level, silhouette_level, length, season, weather_suitability, "
+                    "functional_flags, free_text_tags, field_confidence, is_active, is_user_confirmed, "
+                    "times_worn, created_at, updated_at"
+                    ") VALUES ("
+                    ":id, :user_id, :category, :sub, 'black', 'solid', 'cotton', 'casual', :fit, "
+                    "3, 3, :silhouette, :length, '[]', '[]', :flags, '[\"street\"]', '{}', 1, 1, 0, :now, :now"
+                    ")"
+                ),
+                {"id": item_id, "user_id": user_id, "category": category, "sub": sub, "fit": fit,
+                 "silhouette": silhouette, "length": length, "flags": flags, "now": now_str},
+            )
+        conn.execute(
+            text(
+                "INSERT INTO wardrobe_retrieval_documents "
+                "(wardrobe_item_id, user_id, searchable_text, metadata_snapshot, updated_at) "
+                "VALUES ('legacy-pants', :user_id, 'trousers length_hip', :meta, :now)"
+            ),
+            {"user_id": user_id, "meta": '{"length": "hip", "silhouette_level": 3}', "now": now_str},
+        )
+
+    command.upgrade(alembic_config, "head")
+
+    with Session(engine) as session:
+        items = {item_id: session.get(WardrobeItem, item_id) for item_id in rows}
+        top, pants, shorts, chosen = (items[key] for key in rows)
+        assert top is not None and pants is not None and shorts is not None and chosen is not None
+        assert top.functional_flags == ["water_resistant", "sun"]
+        assert top.free_text_tags == ["street", "lace-up"]
+        assert top.silhouette_level == 5
+        assert top.length == "hip"
+        assert (pants.silhouette_level, pants.length) == (3, "long")
+        assert (shorts.silhouette_level, shorts.length) == (4, "cropped")
+        # A non-default profile is left untouched.
+        assert (chosen.silhouette_level, chosen.length, chosen.functional_flags) == (4, "cropped", ["work"])
+
+        document = session.get(WardrobeRetrievalDocument, "legacy-pants")
+        assert document is not None
+        assert document.metadata_snapshot["length"] == "long"
+        assert "length_long" in document.searchable_text
+    validate_database_schema_revision(engine)
+
+
 def test_retrieval_document_rejects_cross_user_item_reference(
     migrated_database: tuple[Config, Engine],
 ) -> None:

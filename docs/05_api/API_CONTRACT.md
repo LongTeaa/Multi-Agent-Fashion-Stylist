@@ -418,9 +418,12 @@ Request:
 {
   "outfit_id": "uuid",
   "avatar_id": "uuid (optional)",
-  "item_ids": ["uuid"]
+  "item_ids": ["uuid"],
+  "force_refresh": false
 }
 ```
+
+`force_refresh` (optional, default `false`) bypasses the render cache for the same outfit, avatar and item selection and produces a new render.
 
 The operation MUST return HTTP `200` on a cache hit or when synchronous lookbook/moodboard completes:
 

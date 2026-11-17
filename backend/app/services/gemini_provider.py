@@ -13,9 +13,9 @@ from app.models.entities import (
     BoundingBox,
     ConfidenceValue,
     InputKind,
-    VALID_FUNCTIONAL_FLAGS,
     VALID_LENGTH_VALUES,
 )
+from app.agents.garment_profile import normalize_functional_flags
 from app.schemas.common import ProviderError
 from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.providers import (
@@ -642,12 +642,7 @@ class GeminiVisionProvider:
                 attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
                 if "functional_flags" in attrs and isinstance(attrs["functional_flags"], list):
-                    attrs["functional_flags"] = [
-                        normalized
-                        for flag in attrs["functional_flags"]
-                        if (normalized := str(flag).strip().lower())
-                        and normalized in VALID_FUNCTIONAL_FLAGS
-                    ]
+                    attrs["functional_flags"] = normalize_functional_flags(attrs["functional_flags"])[0]
                 else:
                     attrs["functional_flags"] = []
 

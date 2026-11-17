@@ -12,6 +12,12 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import update, func
 
+from app.agents.garment_profile import (
+    FULL_LENGTH_CATEGORIES,
+    FULL_LENGTH_VALUES,
+    default_length,
+    normalize_functional_flags,
+)
 from app.core.config import get_settings
 from app.models.entities import (
     DetectionStatus,
@@ -25,7 +31,6 @@ from app.models.entities import (
     MediaKind,
     OrphanMediaCleanup,
     User,
-    VALID_FUNCTIONAL_FLAGS,
     VALID_LENGTH_VALUES,
     WardrobeCategory,
     WardrobeItem,
@@ -645,12 +650,7 @@ def process_ingestion_batch(
             norm_attrs["length"] = raw_len if raw_len in VALID_LENGTH_VALUES else "hip"
 
             if "functional_flags" in norm_attrs and isinstance(norm_attrs["functional_flags"], list):
-                norm_attrs["functional_flags"] = [
-                    normalized
-                    for flag in norm_attrs["functional_flags"]
-                    if (normalized := str(flag).strip().lower())
-                    and normalized in VALID_FUNCTIONAL_FLAGS
-                ]
+                norm_attrs["functional_flags"] = normalize_functional_flags(norm_attrs["functional_flags"])[0]
             else:
                 norm_attrs["functional_flags"] = []
 
@@ -1047,7 +1047,10 @@ def confirm_ingestion_batch(
                     )
                 length_val = norm_len
             else:
-                length_val = "hip"
+                length_val = default_length(category_enum.value, sub_category)
+            # Bottoms/dresses only distinguish short vs. full length.
+            if category_enum.value in FULL_LENGTH_CATEGORIES and length_val not in FULL_LENGTH_VALUES:
+                length_val = default_length(category_enum.value, sub_category)
 
             wardrobe_item = WardrobeItem(
                 id=item_id,
@@ -1068,12 +1071,7 @@ def confirm_ingestion_batch(
                 length=length_val,
                 season=list(attrs.get("season", [])),
                 weather_suitability=list(attrs.get("weather_suitability", [])),
-                functional_flags=[
-                    normalized
-                    for flag in attrs.get("functional_flags", [])
-                    if (normalized := str(flag).strip().lower())
-                    and normalized in VALID_FUNCTIONAL_FLAGS
-                ],
+                functional_flags=normalize_functional_flags(attrs.get("functional_flags", []))[0],
                 free_text_tags=list(attrs.get("free_text_tags", [])),
                 field_confidence=detection.field_confidence,
                 is_active=True,

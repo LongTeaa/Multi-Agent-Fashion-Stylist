@@ -9,7 +9,7 @@ from alembic.config import Config
 from sqlalchemy import Engine
 
 from app.core.config import get_settings
-from app.core.database import create_database_engine
+from app.core.database import create_database_engine, get_engine
 from app.main import app
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -26,8 +26,18 @@ def offline_context_weather(request: pytest.FixtureRequest, monkeypatch: pytest.
         monkeypatch.delenv("GEMINI_API_KEYS", raising=False)
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     get_settings.cache_clear()
+    _reset_engine_cache()
     yield
     get_settings.cache_clear()
+    _reset_engine_cache()
+
+
+def _reset_engine_cache() -> None:
+    """get_engine() is process-cached; a stale engine would keep pointing at whatever
+    DATABASE_URL an earlier test (or the developer's .env) configured."""
+    if get_engine.cache_info().currsize:
+        get_engine().dispose()
+    get_engine.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +57,7 @@ def migrated_database(
     database_url = f"sqlite:///{database_path.as_posix()}"
     monkeypatch.setenv("DATABASE_URL", database_url)
     get_settings.cache_clear()
+    _reset_engine_cache()
 
     alembic_config = Config(str(BACKEND_ROOT / "alembic.ini"))
     command.upgrade(alembic_config, "head")
