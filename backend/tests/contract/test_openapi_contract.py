@@ -210,6 +210,7 @@ class TestOpenAPIContract:
             "outfit_id",
             "avatar_id",
             "item_ids",
+            "force_refresh",
         }
         response_properties = schemas["TryOnResponseData"].get("properties", {})
         assert set(response_properties) == {
