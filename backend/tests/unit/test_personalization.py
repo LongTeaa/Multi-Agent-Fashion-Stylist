@@ -559,3 +559,47 @@ def test_personalization_agent_node_db_error_reports_error():
     assert result["ranked_outfits"] == []
     assert result["errors"] == ["PERSONALIZATION_DB_ERROR"]
     assert "DB connection dropped" not in str(result["errors"])
+
+
+# ============================================================================
+# ANTI-REPETITION UNDER EVERY WEIGHT PROFILE
+# ============================================================================
+
+@pytest.mark.parametrize("profile", ["comfort", "active", "formal", "balanced"])
+def test_recent_exact_outfit_is_demoted_under_every_weight_profile(profile: str):
+    """The comfort/active profiles give PersonalPref 0 weight; repetition must still be penalized."""
+    worn = _make_evaluated_outfit(
+        "worn", [_make_slot("t1", OutfitSlotRole.TOP), _make_slot("b1", OutfitSlotRole.BOTTOM),
+                 _make_slot("s1", OutfitSlotRole.FOOTWEAR)], fashion_score=0.95,
+    )
+    fresh = _make_evaluated_outfit(
+        "fresh", [_make_slot("t2", OutfitSlotRole.TOP), _make_slot("b2", OutfitSlotRole.BOTTOM),
+                  _make_slot("s2", OutfitSlotRole.FOOTWEAR)], fashion_score=0.90,
+    )
+    context = StylistContext(
+        occasion="cafe", time_of_day="afternoon", weather_condition="warm",
+        target_formality_range=[2, 4], weight_profile=profile,
+    )
+    wear_data = {"exact_outfits_72h": [{"t1", "b1", "s1"}], "items_worn_48h": {"t1", "b1", "s1"}}
+
+    ranked, _ = rerank_evaluated_outfits(
+        [worn, fresh], preferences=None, recent_wear_data=wear_data, context=context, max_output=2,
+    )
+
+    assert [outfit.items[0].item_id for outfit in ranked] == ["t2", "t1"]
+    assert worn.component_scores["recent_wear_penalty"] == pytest.approx(0.70)
+    assert worn.component_scores["behavior_penalty"] == pytest.approx(0.70)
+
+
+def test_preference_score_excludes_behavior_penalties():
+    """personalization_score reports taste affinity; repetition is reported separately."""
+    outfit = _make_evaluated_outfit(
+        "worn", [_make_slot("t1", OutfitSlotRole.TOP), _make_slot("b1", OutfitSlotRole.BOTTOM)],
+    )
+    wear_data = {"exact_outfits_72h": [{"t1", "b1"}], "items_worn_48h": set()}
+
+    fresh_ranked, _ = rerank_evaluated_outfits([outfit.model_copy(deep=True)])
+    worn_ranked, _ = rerank_evaluated_outfits([outfit], recent_wear_data=wear_data)
+
+    assert worn_ranked[0].personalization_score == fresh_ranked[0].personalization_score
+    assert worn_ranked[0].composite_score == pytest.approx(fresh_ranked[0].composite_score - 0.40, abs=1e-4)

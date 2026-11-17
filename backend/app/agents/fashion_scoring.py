@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 from app.agents.state import EvaluatedOutfit, OutfitItemSlot, StylistContext
+from app.agents.garment_profile import effective_length, infer_silhouette_level
 from app.models.entities import OutfitSlotRole, WardrobeCategory
 
 # --- 1. TAXONOMY & COLOR FAMILIES ---
@@ -352,189 +353,140 @@ def calculate_weather_score(
 # --- 6. PROPORTION BALANCE & PATTERN SCORING ---
 
 def _derive_silhouette(item: OutfitItemSlot) -> int:
-    """Derive silhouette level (1-5) with intelligent fallback from fit/sub_category/name."""
-    sil = getattr(item, "silhouette_level", 3)
-    fit = (item.fit or "").lower().strip()
-    sub = (item.sub_category or "").lower().strip()
-    name = (item.name or "").lower().strip()
-
-    if sil != 3:
-        return sil
-
-    # Fallback derivation if silhouette was default 3
-    if any(k in sub or k in name or k in fit for k in ["oversized", "baggy"]):
-        return 5
-    if any(k in sub or k in name or k in fit for k in ["relaxed", "loose", "wide"]):
-        return 4
-    if any(k in fit for k in ["slim"]):
-        return 2
-    if any(k in fit for k in ["skinny", "tight"]):
-        return 1
-    if "hoodie" in sub:
-        return 4
-    return 3
+    """Stored silhouette (1-5) wins; free-text inference only fills a missing value."""
+    if item.silhouette_level is not None:
+        return item.silhouette_level
+    return infer_silhouette_level(item.fit, item.sub_category, item.name)
 
 
-def _derive_length(item: OutfitItemSlot, default_len: str = "hip") -> str:
-    """Derive garment length (cropped, waist, hip, long) with fallback from sub_category/name."""
-    length = getattr(item, "length", "").lower().strip()
-    if length and length not in {"unknown", "none"}:
-        return length
+def _derive_length(item: OutfitItemSlot) -> str | None:
+    """Category-aware length with proportion meaning (None for shoes/accessories)."""
+    return effective_length(item.category.value, item.length, item.sub_category, item.name)
 
-    sub = (item.sub_category or "").lower().strip()
-    name = (item.name or "").lower().strip()
 
-    if any(k in sub or k in name for k in ["crop", "cropped"]):
-        return "cropped"
-    if any(k in sub or k in name for k in ["trench", "long_coat", "overcoat", "maxi"]):
-        return "long"
-    if any(k in sub or k in name for k in ["shorts", "mini_skirt", "mini"]):
-        return "cropped"
+def _is_patterned(item: OutfitItemSlot) -> bool:
+    return item.pattern.lower().strip() not in {"solid", "", "none", "unknown"}
 
-    return default_len
+
+# Top silhouette x bottom silhouette -> base proportion score (before length/layer modifiers).
+# Rows: top 1..5, columns: bottom 1..5. 1 = very fitted, 3 = regular, 5 = oversized.
+#   - Fitted top over a regular-to-wide bottom is the "golden" contrast (0.95).
+#   - Loose top over a fitted/regular bottom is the classic counterweight (0.92).
+#   - Regular on regular is clean but unremarkable (0.85).
+#   - Extremes on both halves swallow (5+5) or constrict (1+1) the figure.
+PROPORTION_MATRIX: tuple[tuple[float, ...], ...] = (
+    # bottom:  1     2     3     4     5
+    (0.60, 0.78, 0.95, 0.95, 0.95),  # top 1
+    (0.78, 0.82, 0.95, 0.95, 0.95),  # top 2
+    (0.82, 0.86, 0.85, 0.88, 0.84),  # top 3
+    (0.92, 0.92, 0.92, 0.74, 0.66),  # top 4
+    (0.90, 0.92, 0.92, 0.66, 0.55),  # top 5
+)
+STREETWEAR_VOLUME_SCORE = 0.92  # streetwear deliberately stacks volume (both halves >= 4)
+SPORT_FITTED_SCORE = 0.92  # compression/activewear layers are meant to be fitted
+ELONGATION_BONUS = 0.05  # cropped/waist-length top over a full-length bottom
+LAYER_HARMONY_BONUS = 0.03  # outer layer whose length frames the silhouette
+SHORTENING_PENALTY = 0.10  # long top/outer over a short bottom
+BULK_TRAP_PENALTY = 0.15  # oversized outer + loose top + baggy bottom
+DRESS_BASE_SCORE = 0.92  # one-piece outfits are inherently cohesive
 
 
 def calculate_proportion_score(
     items: list[OutfitItemSlot],
     target_style: str | None = None,
 ) -> tuple[float, list[str]]:
-    """Calculate deterministic proportion balance and pattern compatibility score.
+    """Calculate deterministic proportion balance and pattern compatibility (0.0-1.0).
 
-    Applies the Advisor's 5 Proportion Archetypes:
-    1. Harmonious Contrast (Top vs Bottom):
-       - Tight top (1-2) + Loose bottom (3-5) -> Golden proportion (1.00).
-       - Loose top (4-5) + Fitted/Regular bottom (2-3) -> Classic balance (1.00).
-    2. Vertical Elongation:
-       - Cropped/waist top + Long bottom -> Leg-lengthening bonus (1.00).
-    3. Balanced Standard:
-       - Regular top (3) + Regular bottom (3) -> Clean standard balance (0.90).
-    4. Layered Proportion (Outerwear + Top + Bottom / Dress):
-       - Cropped jacket over long bottom/dress -> Enhances vertical ratio (+0.05).
-       - Long outerwear + long bottom/dress -> Elegant vertical drape (+0.05).
-       - Long outerwear + cropped bottom -> Disproportionate shortening (-0.10).
-       - 3-Layer bulk trap (Oversized outerwear + loose top + baggy pants) -> (-0.15) unless streetwear.
-    5. Clashing Penalties:
-       - Extreme loose (Top 5 + Bottom 5) -> -0.15 unless target_style is 'streetwear'.
-       - Extreme tight (Top 1 + Bottom 1) -> -0.20 unless activewear/sport.
-       - Long top (long) + Cropped bottom -> -0.10 penalty (shortens legs).
-       - Heavily patterned items beyond the first: -0.30 each.
-       - Patterned top + patterned bottom: additional -0.20.
+    1. Silhouette contrast: ``PROPORTION_MATRIX[top][bottom]``. Golden contrast
+       (fitted top + regular/wide bottom) 0.95; classic counterweight (loose top +
+       fitted/regular bottom) 0.92; regular + regular 0.85; 4+4 0.74;
+       4+5 / 5+4 0.66; 5+5 0.55; 1+1 0.60. Streetwear scores any loose + loose
+       pairing 0.92 and sport/activewear scores 1+1 at 0.92.
+    2. Length: cropped/waist top + full-length bottom +0.05 (leg elongation);
+       long top + short bottom -0.10.
+    3. Layers: cropped outer over full-length bottom/dress, or long outer over
+       full-length bottom/dress, +0.03; long outer over short bottom/dress -0.10;
+       oversized outer + loose top + baggy bottom -0.15 unless streetwear.
+    4. Dress: base 0.92 with the layer rules above; oversized dress under an
+       oversized outer -0.10 unless streetwear.
+    5. Patterns: -0.30 per patterned major item beyond the first; -0.20 more when
+       both top and bottom are patterned.
+
+    Stored silhouette/length are authoritative; inference applies only to missing data.
     """
     major_items = _get_major_items(items)
     warnings: list[str] = []
     if not major_items:
         return 1.0, warnings
 
-    # 1. Check for missing fit metadata
-    for item in major_items:
-        if not item.fit or item.fit.lower().strip() in {"", "unknown", "none"}:
-            if "fit_unknown" not in warnings:
-                warnings.append("fit_unknown")
-
-    # 2. Pattern Clashes
-    pattern_penalties = 0.0
-    patterned_items = [
-        item for item in major_items
-        if item.pattern.lower().strip() not in {"solid", "", "none"}
-    ]
-    if len(patterned_items) > 1:
-        pattern_penalties += 0.30 * (len(patterned_items) - 1)
+    if any(not item.fit or item.fit.lower().strip() in {"", "unknown", "none"} for item in major_items):
+        warnings.append("fit_unknown")
 
     tops = [item for item in items if item.slot_role == OutfitSlotRole.TOP]
     bottoms = [item for item in items if item.slot_role == OutfitSlotRole.BOTTOM]
     dresses = [item for item in items if item.slot_role == OutfitSlotRole.DRESS]
     outerwears = [item for item in items if item.slot_role == OutfitSlotRole.OUTERWEAR]
 
-    if tops and bottoms:
-        top_patterned = tops[0].pattern.lower().strip() not in {"solid", "", "none"}
-        bottom_patterned = bottoms[0].pattern.lower().strip() not in {"solid", "", "none"}
-        if top_patterned and bottom_patterned:
-            pattern_penalties += 0.20
+    patterned_count = sum(1 for item in major_items if _is_patterned(item))
+    pattern_penalty = 0.30 * max(0, patterned_count - 1)
+    if tops and bottoms and _is_patterned(tops[0]) and _is_patterned(bottoms[0]):
+        pattern_penalty += 0.20
 
     target_style_lower = target_style.lower().strip() if target_style else ""
     target_style_lower = STYLE_ALIASES.get(target_style_lower, target_style_lower)
-    is_streetwear = (target_style_lower == "streetwear")
-    is_sport = (
-        target_style_lower in {"sporty", "activewear"}
-        or any("sport" in it.functional_flags for it in items)
+    is_streetwear = target_style_lower == "streetwear"
+    is_sport = target_style_lower in {"sporty", "activewear"} or any(
+        "sport" in item.functional_flags for item in items
     )
 
-    base_prop = 1.00
+    outer = outerwears[0] if outerwears else None
+    outer_sil = _derive_silhouette(outer) if outer else None
+    outer_len = _derive_length(outer) if outer else None
+
+    def layer_adjustment(lower_len: str | None) -> float:
+        if outer is None or lower_len is None:
+            return 0.0
+        if outer_len == "long" and lower_len == "cropped":
+            return -SHORTENING_PENALTY
+        if lower_len == "long" and outer_len in {"cropped", "waist", "long"}:
+            return LAYER_HARMONY_BONUS
+        return 0.0
 
     if tops and bottoms:
-        top = tops[0]
-        bot = bottoms[0]
+        top_sil = _derive_silhouette(tops[0])
+        bot_sil = _derive_silhouette(bottoms[0])
+        top_len = _derive_length(tops[0])
+        bot_len = _derive_length(bottoms[0])
 
-        top_sil = _derive_silhouette(top)
-        bot_sil = _derive_silhouette(bot)
-        top_len = _derive_length(top, default_len="hip")
-        bot_len = _derive_length(bot, default_len="long")
+        if top_sil >= 4 and bot_sil >= 4 and is_streetwear:
+            base = STREETWEAR_VOLUME_SCORE
+        elif top_sil <= 1 and bot_sil <= 1 and is_sport:
+            base = SPORT_FITTED_SCORE
+        else:
+            base = PROPORTION_MATRIX[top_sil - 1][bot_sil - 1]
 
-        top_fit = (top.fit or "").lower().strip()
-        bot_fit = (bot.fit or "").lower().strip()
+        if top_len in {"cropped", "waist"} and bot_len == "long":
+            base += ELONGATION_BONUS
+        elif top_len == "long" and bot_len == "cropped":
+            base -= SHORTENING_PENALTY
 
-        is_both_loose = (
-            (top_sil >= 5 and bot_sil >= 4)
-            or (top_sil >= 4 and bot_sil >= 5)
-            or (top_fit in {"oversized", "baggy"} and bot_fit in {"oversized", "wide", "baggy"})
-        )
-        is_both_tight = (
-            (top_sil <= 1 and bot_sil <= 1)
-            or (top_fit in {"skinny", "tight"} and bot_fit in {"skinny", "tight"})
-        )
-
-        # Base proportion archetype evaluation
-        if is_both_loose:
-            base_prop = 1.00 if is_streetwear else 0.55
-        elif is_both_tight:
-            base_prop = 1.00 if is_sport else 0.60
-        elif top_sil <= 2 and bot_sil >= 3:
-            # Fitted top + Wide/Relaxed bottom -> Golden proportion
-            base_prop = 1.00
-        elif top_sil >= 4 and bot_sil in {2, 3}:
-            # Loose/Oversized top + Fitted/Regular bottom -> Classic balance
-            base_prop = 1.00
-        elif top_sil == 3 and bot_sil == 3:
-            # Standard regular balance
-            base_prop = 1.00
-
-        # Vertical Elongation
-        if top_len == "long" and bot_len == "cropped":
-            # Penalty for long top over cropped bottom (shortens legs)
-            base_prop = max(0.0, base_prop - 0.10)
-
-        # Layered Proportion evaluation when Outerwear is worn with Top & Bottom
-        if outerwears:
-            out = outerwears[0]
-            out_sil = _derive_silhouette(out)
-            out_len = _derive_length(out, default_len="hip")
-
-            # 3-Layer bulk trap: outerwear >= 5, top >= 4, bottom >= 5
-            if out_sil >= 5 and top_sil >= 4 and bot_sil >= 5 and not is_streetwear:
-                base_prop = max(0.0, base_prop - 0.15)
-            elif out_len == "long" and bot_len == "cropped":
-                base_prop = max(0.0, base_prop - 0.10)
-
+        if outer is not None and outer_sil is not None:
+            if outer_sil >= 5 and top_sil >= 4 and bot_sil >= 5 and not is_streetwear:
+                base -= BULK_TRAP_PENALTY
+            else:
+                base += layer_adjustment(bot_len)
     elif dresses:
         dress = dresses[0]
         dress_sil = _derive_silhouette(dress)
-        dress_len = _derive_length(dress, default_len="long")
-
-        if outerwears:
-            out = outerwears[0]
-            out_sil = _derive_silhouette(out)
-            out_len = _derive_length(out, default_len="hip")
-
-            if dress_sil >= 5 and out_sil >= 5 and not is_streetwear:
-                base_prop = 0.85
-            elif out_len == "long" and dress_len == "cropped":
-                base_prop = 0.85
-            else:
-                base_prop = 1.00
+        base = DRESS_BASE_SCORE
+        if outer is not None and outer_sil is not None and outer_sil >= 5 and dress_sil >= 5 and not is_streetwear:
+            base -= SHORTENING_PENALTY
         else:
-            base_prop = 1.00
+            base += layer_adjustment(_derive_length(dress))
+    else:
+        base = 1.0
 
-    final_prop = max(0.0, min(1.0, base_prop - pattern_penalties))
+    final_prop = max(0.0, min(1.0, base - pattern_penalty))
     return round(final_prop, 4), warnings
 
 

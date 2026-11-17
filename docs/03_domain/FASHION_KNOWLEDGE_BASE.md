@@ -35,8 +35,18 @@ Mỗi món đồ trong tủ đồ số hóa (`WardrobeItem`) được chuẩn h�
 * **Mức 4 (Loose / Relaxed Fit):** Phom rộng thoải mái, phóng khoáng.
 * **Mức 5 (Oversized / Baggy):** Phom cực rộng, thùng thình, thụng sâu (phong cách hip-hop, streetwear oversized).
 
+Giá trị đã lưu là nguồn sự thật: mức `3` do người dùng xác nhận được dùng nguyên vẹn, không bị suy đoán lại từ chữ trong `fit`/tên món. Suy luận từ từ khóa (`oversized`/`baggy` → 5, `relaxed`/`loose`/`wide` → 4, `slim`/`fitted` → 2, `skinny`/`tight` → 1) chỉ áp dụng khi dữ liệu thật sự thiếu, và một lần cho dữ liệu cũ qua migration `0014`.
+
 ### 2.4 Chiều dài Trang phục (`length`)
 The canonical MVP taxonomy is shared by every garment category: `cropped`, `waist`, `hip`, and `long`. More granular category-specific lengths are outside the MVP and MUST be normalized to one of these four values before persistence.
+
+Ý nghĩa độ dài phụ thuộc danh mục:
+
+| Danh mục | Giá trị có ý nghĩa tỷ lệ | Mặc định khi thiếu |
+| :--- | :--- | :--- |
+| `top`, `outerwear` | `cropped`, `waist`, `hip`, `long` (điểm kết thúc trên thân) | `cropped` cho crop top/bolero, `long` cho trench/măng tô, còn lại `hip` |
+| `bottom`, `dress` | chỉ `cropped` (ngắn: short, mini, capri) và `long` (dài) | suy ra từ loại đồ; `waist`/`hip` được coi là chưa xác định |
+| `footwear`, `accessory` | không dùng cho tỷ lệ | `hip` (bỏ qua khi chấm điểm) |
 
 ### 2.5 Nhãn Chức năng Thực tế (`functional_flags`)
 Danh sách nhãn đa trị phục vụ thích ứng hoàn cảnh vận động thực tế:
@@ -50,6 +60,8 @@ Danh sách nhãn đa trị phục vụ thích ứng hoàn cảnh vận động t
 * `protection`: Có đặc tính bảo vệ hoặc che phủ.
 * `light`: Vải hoặc kết cấu nhẹ.
 * `heavy`: Vải hoặc kết cấu dày, nặng.
+
+Các nhãn đồng nghĩa phổ biến được ánh xạ về từ điển chuẩn trước khi lưu (ví dụ `waterproof` → `water_resistant`, `breathable` → `light`, `stretch` → `movement`, `uv` → `sun`). Nhãn không nhận diện được bị từ chối khi chỉnh sửa; với dữ liệu cũ, migration `0014` chuyển chúng sang `free_text_tags` để không mất thông tin.
 
 ---
 
@@ -95,14 +107,26 @@ $$\text{AestheticScore} = 0.40 \cdot \text{ColorHarmony} + 0.35 \cdot \text{Prop
    * Phối màu tương đồng (Analogous): `0.85`.
    * Phối màu tương phản bổ sung có neo trung tính: `0.80`.
    * Quá 3 họ màu bão hòa không có neo trung tính: Phạt điểm nặng (`0.20`).
-2. **Cân bằng Tỷ lệ Phom dáng (`ProportionBalance` - 35%):**
-   * *Nguyên tắc Tương phản Cân bằng:*
-     * Áo ôm (`silhouette` = 1..2) + Quần suông/rộng (`silhouette` = 3..4): Điểm thưởng tỷ lệ vàng (`1.0`).
-     * Áo rộng (`silhouette` = 4) + Quần vừa vặn suông nhẹ (`silhouette` = 2..3): Điểm thưởng (`1.0`).
-     * Áo ngắn croptop + Quần cạp cao dáng dài (`length` = long): Điểm thưởng kéo dài chân (`1.0`).
-   * *Nguyên tắc Phạt Mất cân đối:*
-     * Cả trên và dưới cùng siêu thụng (`silhouette` = 5 + 5): Phạt xuống `0.55` (trừ phong cách Streetwear).
-     * Cả trên và dưới cùng siêu bó sát (`silhouette` = 1 + 1): Phạt xuống `0.60` (trừ trang phục thể thao chuyên dụng).
+2. **Cân bằng Tỷ lệ Phom dáng (`ProportionBalance` - 35%):** điểm phân cấp, không phải đạt/không đạt, để các tỷ lệ kinh điển thực sự xếp trên các bộ chỉ "không lỗi".
+   * *Ma trận phom áo × phom quần (điểm nền):*
+
+     | Áo \ Quần | 1 | 2 | 3 | 4 | 5 |
+     | :---: | :---: | :---: | :---: | :---: | :---: |
+     | **1** | 0.60 | 0.78 | 0.95 | 0.95 | 0.95 |
+     | **2** | 0.78 | 0.82 | 0.95 | 0.95 | 0.95 |
+     | **3** | 0.82 | 0.86 | 0.85 | 0.88 | 0.84 |
+     | **4** | 0.92 | 0.92 | 0.92 | 0.74 | 0.66 |
+     | **5** | 0.90 | 0.92 | 0.92 | 0.66 | 0.55 |
+
+     * Tỷ lệ vàng — áo ôm (1..2) + quần suông/rộng (3..5): `0.95`.
+     * Đối trọng kinh điển — áo rộng (4..5) + quần vừa/ôm (2..3): `0.92`.
+     * Tiêu chuẩn — suông + suông (3 + 3): `0.85`.
+     * Mất cân đối — cùng rộng giảm dần `0.74` (4+4) → `0.66` (4+5) → `0.55` (5+5); cùng bó `0.78` (1+2) → `0.60` (1+1).
+     * Ngoại lệ: yêu cầu phong cách Streetwear chấm mọi cặp rộng + rộng (≥ 4) là `0.92`; thể thao/activewear chấm 1 + 1 là `0.92`.
+   * *Điều chỉnh theo độ dài:* áo `cropped`/`waist` + quần dài: `+0.05` (kéo dài chân, đưa tỷ lệ vàng lên `1.0`); áo `long` + quần ngắn: `-0.10`.
+   * *Lớp ngoài:* áo khoác ngắn hoặc dài phủ trên quần/đầm dài `+0.03`; áo khoác dài trên quần/đầm ngắn `-0.10`; bẫy ba lớp cồng kềnh (khoác 5 + áo ≥ 4 + quần 5) `-0.15` trừ Streetwear.
+   * *Đầm:* điểm nền `0.92`, áp dụng cùng quy tắc lớp ngoài; đầm 5 dưới khoác 5 `-0.10` trừ Streetwear.
+   * *Họa tiết:* `-0.30` cho mỗi món chính có họa tiết sau món đầu tiên; thêm `-0.20` khi cả áo và quần cùng có họa tiết.
 3. **Tương thích Phong cách (`StyleCompatibility` - 25%):**
    * Thang điểm ma trận đối xứng liên tục:
      * `casual × casual = 1.0`
@@ -112,12 +136,14 @@ $$\text{AestheticScore} = 0.40 \cdot \text{ColorHarmony} + 0.35 \cdot \text{Prop
 
 ### 3.3 Tầng 3: Sự Phù hợp Ngữ cảnh & Cơ chế Trọng số Động (Context Fit & Dynamic Weights)
 
-Fashion shortlisting MUST use these context weights (neutral personal score `0.5`) before the five-candidate cutoff. It MUST NOT shortlist solely by aesthetic score. Personalization then applies actual preferences to those candidates. Optional layers failing the requested weather MUST not be added through automatic retrieval relaxation unless explicitly required.
+Fashion shortlisting MUST use these context weights (neutral personal score `0.5`) before the 50-candidate cutoff. It MUST NOT shortlist solely by aesthetic score. Personalization then applies actual preferences to those candidates. Optional layers failing the requested weather MUST not be added through automatic retrieval relaxation unless explicitly required.
 
 Functional fit uses recorded `functional_flags`. A name such as sneakers, jacket, or waterproof coat alone is not evidence of a capability. Recorded `water_resistant` also satisfies `rain`; `rain` alone MUST NOT imply water resistance. These are bounded product heuristics, not guarantees of fabric performance or universal aesthetic judgments.
 Điểm tổng kết cuối cùng là tích vô hướng giữa Vector Hồ sơ Trọng số và Vector Điểm Phù hợp Ngữ cảnh:
 
-$$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{comfort}} \cdot \text{WeatherComfortFit} + w_{\text{func}} \cdot \text{FunctionalFit} + w_{\text{aest}} \cdot \text{AestheticScore} + w_{\text{pers}} \cdot \text{PersonalPref}$$
+$$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{comfort}} \cdot \text{WeatherComfortFit} + w_{\text{func}} \cdot \text{FunctionalFit} + w_{\text{aest}} \cdot \text{AestheticScore} + w_{\text{pers}} \cdot \text{PersonalPref} - \text{BehaviorPenalty}$$
+
+`PersonalPref` chỉ đo mức hợp gu (phong cách, bảng màu, ưu tiên, điểm học từ đánh giá sao). `BehaviorPenalty` là hình phạt hành vi: phạt lặp đồ (bộ y hệt đã mặc trong 72 giờ `-0.40`; mỗi món chính đã mặc trong 48 giờ `-0.15`, tối đa `-0.30`) và phạt vi phạm "tránh" khi buộc phải nới lỏng (`-0.10` mỗi vi phạm). Hình phạt nằm **ngoài** trọng số nên vẫn có hiệu lực với hồ sơ đặt $w_{\text{pers}} = 0$ (Comfort, Active). Kết quả được kẹp trong `[0, 1]`.
 
 | Hồ sơ Trọng số (Profile) | Hoàn cảnh kích hoạt tiêu biểu | $w_{\text{formality}}$ | $w_{\text{comfort}}$ | $w_{\text{func}}$ | $w_{\text{aest}}$ | $w_{\text{pers}}$ |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |

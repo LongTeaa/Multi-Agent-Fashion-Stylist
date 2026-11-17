@@ -4,9 +4,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.agents.garment_profile import normalize_functional_flags
 from app.models.entities import (
     ConfidenceValue,
-    VALID_FUNCTIONAL_FLAGS,
     VALID_LENGTH_VALUES,
     WardrobeCategory,
 )
@@ -52,11 +52,10 @@ class WardrobeItemAttributes(BaseModel):
     @field_validator("functional_flags")
     @classmethod
     def validate_functional_flag_taxonomy(cls, values: list[str]) -> list[str]:
-        normalized = cls.validate_bounded_strings(values)
-        unknown = sorted(set(normalized) - VALID_FUNCTIONAL_FLAGS)
+        canonical, unknown = normalize_functional_flags(cls.validate_bounded_strings(values))
         if unknown:
             raise ValueError(f"Unknown functional flags: {', '.join(unknown)}.")
-        return normalized
+        return canonical
 
 
 class WardrobeItemCreate(WardrobeItemAttributes):

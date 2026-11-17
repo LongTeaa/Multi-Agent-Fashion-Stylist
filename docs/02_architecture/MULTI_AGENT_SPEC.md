@@ -89,11 +89,12 @@ The Tier-2 `fashion_score` is the context-independent aesthetic score:
 0.40 color + 0.35 pattern/proportion + 0.25 style
 ```
 
-Before truncating to five core-distinct candidates, Fashion MUST rank by the Tier-3 context-weighted score with neutral personalization `0.5`. This keeps suitable weather/formality/function candidates available for Personalization. The stored aesthetic score MUST remain independent of weather; final reranking uses actual user preferences and the same documented dynamic weight profile. The legacy 0.30/0.20/0.20/0.20/0.10 aggregate remains a diagnostic helper, not the shortlist/final ranking policy. Lookup tables, penalties, and final weight vectors are defined in `../03_domain/FASHION_KNOWLEDGE_BASE.md`.
+Before truncating to at most 50 core-distinct candidates, Fashion MUST rank by the Tier-3 context-weighted score with neutral personalization `0.5`. This keeps suitable weather/formality/function candidates available for Personalization. The stored aesthetic score MUST remain independent of weather; final reranking uses actual user preferences and the same documented dynamic weight profile. The legacy 0.30/0.20/0.20/0.20/0.10 aggregate remains a diagnostic helper, not the shortlist/final ranking policy. Lookup tables, penalties, and final weight vectors are defined in `../03_domain/FASHION_KNOWLEDGE_BASE.md`.
 
 ## 6. Personalization Agent
 
-- It MUST rerank no more than five fashion candidates into a top 1–3 result.
+- It MUST rerank the bounded Fashion shortlist (at most 50 core-distinct candidates) into a top 1–3 result. The wider pool lets actual preferences and anti-repetition surface alternatives that a five-item cut would drop.
+- With a resolved context it MUST score each candidate with the Tier-3 dynamic weight profile, then subtract the behavior penalty (recent-wear and relaxed-avoid penalties) outside the weights, so every profile, including those with zero preference weight, demotes repeated outfits. Without context it uses `0.60 * fashion_score + 0.40 * preference_score - behavior_penalty`.
 - Fashion shortlisting MUST collapse candidates sharing the same required garment IDs (top/bottom or dress, plus footwear), keeping the highest-ranked variant. Optional layers/accessories alone do not create a distinct recommendation.
 - Personalization MUST retain the best-scoring candidate. For each remaining slot it considers candidates within 0.08 composite points of the best remaining candidate and maximizes `composite - 0.10 * maximum core Jaccard overlap` with already selected outfits. Ties retain deterministic score order. Final display order retains descending original score order; scores are not rewritten. Sparse wardrobes MAY return fewer than three outfits.
 - It MUST use onboarding weights, rating affinity, explicit exclusions, and confirmed wear history.

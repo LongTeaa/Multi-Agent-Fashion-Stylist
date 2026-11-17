@@ -151,8 +151,9 @@ class OutfitItemSlot(BaseModel):
     category: WardrobeCategory
     formality_level: int = Field(default=3, ge=1, le=5)
     comfort_level: int = Field(default=3, ge=1, le=5)
-    silhouette_level: int = Field(default=3, ge=1, le=5)
-    length: str = Field(default="hip")
+    # None means "not recorded": scoring infers it. A stored value is always trusted.
+    silhouette_level: int | None = Field(default=None, ge=1, le=5)
+    length: str | None = None
     weather_suitability: list[str] = Field(default_factory=list)
     pattern: str = Field(default="solid")
     material: str = Field(default="cotton")

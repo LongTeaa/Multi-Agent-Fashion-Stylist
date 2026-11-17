@@ -97,8 +97,9 @@ users
 | `primary_color`, `secondary_color` | Canonical color; secondary is nullable |
 | `pattern`, `material`, `style`, `fit` | Normalized strings |
 | `formality_level`, `comfort_level`, `silhouette_level` | Integer 1–5 with database CHECK constraints |
-| `length` | One of `cropped`, `waist`, `hip`, `long` |
-| `season`, `weather_suitability`, `functional_flags` | JSON arrays |
+| `length` | One of `cropped`, `waist`, `hip`, `long`. Bottoms and dresses store only `cropped` or `long`; a missing value defaults from the subtype (see `FASHION_KNOWLEDGE_BASE.md` §2.4) |
+| `season`, `weather_suitability` | JSON arrays |
+| `functional_flags` | JSON array restricted to the canonical taxonomy; known aliases (for example `waterproof`) are mapped before persistence |
 | `free_text_tags` | User-confirmed JSON array |
 | `field_confidence` | JSON object |
 | `is_active`, `is_user_confirmed` | Boolean |
@@ -132,6 +133,8 @@ This derived table stores one deterministic retrieval document per active, user-
 ### 3.8.1 `recommendation_requests`
 
 One row binds `(user_id, request_id)` as a composite primary key to a SHA-256 `fingerprint` of the validated query/location, nullable JSON `response_data`, and UTC `created_at`. `user_id` references `users`; request keys support up to 64 characters. Binding is atomic. The complete successful recommendation response and feedback delivery decision MUST commit together. Failed/clarification attempts may leave a binding without a response; persisted recommendations are replayed only after active ownership and slot validation.
+
+Migration 0014 normalizes garment profiles created before the Tier-1 taxonomy: aliased functional flags are mapped to canonical values and unrecognized flags move to `free_text_tags`; rows still at the 0008 default `silhouette_level = 3` take the silhouette stated by their `fit`/subtype text; bottoms and dresses with `waist`/`hip` length take the subtype-derived `cropped`/`long`. Retrieval documents of changed items are rebuilt. The migration is data-only and its downgrade is a no-op.
 
 Seed wardrobe identifiers are deterministic UUID v5 values derived from frozen golden-item names. Migration 0011 remaps only the golden owner's legacy identifiers, preserving item media, outfit items, retrieval documents, and structured identifiers inside owned snapshots/replay responses. It MUST reject collisions and MUST NOT rewrite free text or storage keys. It does not reseed or reset attributes, ratings, or wear history.
 

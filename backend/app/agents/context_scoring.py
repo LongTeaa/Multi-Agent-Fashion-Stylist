@@ -188,6 +188,7 @@ def calculate_context_composite_score(
     aesthetic_score: float,
     personal_fit: float,
     weight_profile: str = "balanced",
+    behavior_penalty: float = 0.0,
 ) -> tuple[float, dict[str, float | str]]:
     """Synthesize Tier-3 Final Outfit Score using the Dynamic Weight Profile specified by Advisor.
 
@@ -197,6 +198,12 @@ def calculate_context_composite_score(
                          + w_fn * FunctionalFit
                          + w_a * AestheticScore
                          + w_p * PersonalPref
+                         - BehaviorPenalty
+
+    PersonalPref is pure taste affinity (style, palette, priorities, learned ratings),
+    so a profile may weight it at 0. BehaviorPenalty (recent-wear repetition and
+    relaxed avoid violations) is subtracted after weighting and therefore applies
+    under every profile.
     """
     profile = WEIGHT_PROFILES.get(weight_profile.lower(), WEIGHT_PROFILES["balanced"])
 
@@ -212,6 +219,7 @@ def calculate_context_composite_score(
         + w_functional * functional_fit
         + w_aesthetic * aesthetic_score
         + w_personal * personal_fit
+        - behavior_penalty
     )
     final_score_clamped = round(max(0.0, min(1.0, final_score)), 4)
 
@@ -221,6 +229,7 @@ def calculate_context_composite_score(
         "functional_fit": functional_fit,
         "aesthetic_score": aesthetic_score,
         "personal_fit": personal_fit,
+        "behavior_penalty": round(behavior_penalty, 4),
         "final_composite_score": final_score_clamped,
         "weight_profile": weight_profile,
     }
