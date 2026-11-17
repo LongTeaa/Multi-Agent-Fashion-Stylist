@@ -42,7 +42,7 @@ export interface TryOnModalProps {
   isBookmarked: boolean;
   isWorn?: boolean;
   onBookmarkChange: (outfitId: string, isBookmarked: boolean) => void;
-  onWornChange?: (outfitId: string, isWorn: boolean, timesWorn?: number) => void;
+  onWornChange?: (outfitId: string, isWorn: boolean, timesWorn?: number, wornAt?: string) => void;
   onClose: () => void;
 }
 
@@ -290,7 +290,7 @@ export function TryOnModal({
       });
       wearIdempotencyKeyRef.current = createWearIdempotencyKey();
       setWorn(true);
-      onWornChange?.(outfitId, true, res.times_worn);
+      onWornChange?.(outfitId, true, res.times_worn, res.worn_at);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError

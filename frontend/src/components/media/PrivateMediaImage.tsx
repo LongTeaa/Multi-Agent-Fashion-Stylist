@@ -69,7 +69,9 @@ export function PrivateMediaImage({
     return (
       <div
         data-testid="private-media-error"
-        className={`flex flex-col items-center justify-center gap-1 p-3 text-center bg-sunken rounded-xl text-muted min-h-[120px] ${
+        className={`flex flex-col items-center justify-center gap-1 p-3 text-center bg-sunken rounded-xl text-muted ${
+          showRetryButton ? 'min-h-[120px]' : ''
+        } ${
           imageProps.className || ''
         }`}
       >

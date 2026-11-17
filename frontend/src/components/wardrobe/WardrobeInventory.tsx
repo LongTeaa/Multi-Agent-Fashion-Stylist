@@ -7,6 +7,8 @@ import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { PageHeader } from '@/components/layout/AppShell';
 import { attributeLabel } from '@/lib/preferenceLabels';
+import { FUNCTIONAL_FLAG_VALUES, FUNCTION_TAG_NAMES } from '@/lib/garmentAttributes';
+import { SegmentedScale } from '@/components/ui/SegmentedScale';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -35,31 +37,6 @@ export const LENGTH_NAMES: Record<string, string> = {
   long: 'Dáng dài',
 };
 
-export const FUNCTION_TAG_NAMES: Record<string, string> = {
-  movement: 'Vận động',
-  outdoor: 'Ngoài trời',
-  sun: 'Chống nắng',
-  rain: 'Chống mưa',
-  water_resistant: 'Chống mưa',
-  work: 'Công sở',
-  sport: 'Thể thao',
-  protection: 'Bảo hộ',
-  light: 'Thoáng nhẹ',
-  heavy: 'Dày ấm',
-};
-
-const EDITABLE_FLAGS = [
-  'movement',
-  'outdoor',
-  'sun',
-  'water_resistant',
-  'work',
-  'sport',
-  'protection',
-  'light',
-  'heavy',
-] as const;
-
 interface ScaleInputProps {
   label: string;
   value: number;
@@ -69,34 +46,14 @@ interface ScaleInputProps {
   testIdPrefix?: string;
 }
 
-/** 1–5 segmented scale. */
+/** Labelled 1–5 scale with end-point captions. */
 function ScaleInput({ label, value, onChange, lowLabel, highLabel, testIdPrefix }: ScaleInputProps) {
   return (
     <div>
       <span className="field-label">
         {label} <span className="font-normal text-muted">· {value}/5</span>
       </span>
-      <div className="grid grid-cols-5 gap-1 rounded-xl bg-sunken p-1" role="group" aria-label={label}>
-        {[1, 2, 3, 4, 5].map((level) => (
-          <button
-            key={level}
-            type="button"
-            data-testid={testIdPrefix ? `${testIdPrefix}-${level}` : undefined}
-            aria-pressed={value === level}
-            aria-label={`${label} ${level}`}
-            onClick={() => onChange(level)}
-            className={`h-8 rounded-lg text-sm font-semibold tabular-nums transition-colors ${
-              value === level
-                ? 'bg-ink text-paper'
-                : value > level
-                ? 'bg-surface text-ink'
-                : 'text-muted hover:bg-surface hover:text-ink'
-            }`}
-          >
-            {level}
-          </button>
-        ))}
-      </div>
+      <SegmentedScale label={label} value={value} onChange={onChange} testIdPrefix={testIdPrefix} />
       <div className="mt-1 flex justify-between text-xs text-muted">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
@@ -222,6 +179,14 @@ export function WardrobeInventory({
     } finally {
       setDeleting(false);
     }
+  };
+
+  // Dialogs stay open while a request is in flight so its outcome (especially an error) is never lost.
+  const closeEdit = () => {
+    if (!savingEdit) setEditingItem(null);
+  };
+  const closeDelete = () => {
+    if (!deleting) setDeletingItemId(null);
   };
 
   const totalPages = Math.ceil(total / pageSize);
@@ -376,7 +341,8 @@ export function WardrobeInventory({
                       Mặc {item.times_worn} lần
                     </span>
                   )}
-                  <div className="absolute right-2 top-2 flex gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                  {/* Reveal-on-hover only where hover exists; touch screens always show the actions. */}
+                  <div className="absolute right-2 top-2 flex gap-1 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
                     <button
                       type="button"
                       data-testid={`edit-item-${item.id}`}
@@ -464,7 +430,7 @@ export function WardrobeInventory({
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !savingEdit) setEditingItem(null);
+            if (e.target === e.currentTarget) closeEdit();
           }}
         >
           <div
@@ -484,7 +450,8 @@ export function WardrobeInventory({
               </div>
               <button
                 type="button"
-                onClick={() => setEditingItem(null)}
+                onClick={closeEdit}
+                disabled={savingEdit}
                 aria-label="Đóng"
                 className="btn btn-ghost btn-icon -mr-2"
               >
@@ -609,7 +576,7 @@ export function WardrobeInventory({
               <section className="space-y-3 border-t border-line pt-5">
                 <h4 className="text-sm font-semibold text-ink">Công dụng</h4>
                 <div className="flex flex-wrap gap-2">
-                  {EDITABLE_FLAGS.map((flag) => {
+                  {FUNCTIONAL_FLAG_VALUES.map((flag) => {
                     const currentFlags = editForm.functional_flags || [];
                     const isSelected = currentFlags.includes(flag);
                     return (
@@ -641,7 +608,7 @@ export function WardrobeInventory({
             </div>
 
             <div className="sticky bottom-0 flex justify-end gap-2 border-t border-line bg-surface px-6 py-4">
-              <button type="button" onClick={() => setEditingItem(null)} className="btn btn-ghost">
+              <button type="button" onClick={closeEdit} disabled={savingEdit} className="btn btn-ghost">
                 Hủy
               </button>
               <button
@@ -663,7 +630,7 @@ export function WardrobeInventory({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[2px]"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !deleting) setDeletingItemId(null);
+            if (e.target === e.currentTarget) closeDelete();
           }}
         >
           <div
@@ -684,7 +651,7 @@ export function WardrobeInventory({
               </p>
             )}
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setDeletingItemId(null)} className="btn btn-ghost">
+              <button type="button" onClick={closeDelete} disabled={deleting} className="btn btn-ghost">
                 Hủy
               </button>
               <button

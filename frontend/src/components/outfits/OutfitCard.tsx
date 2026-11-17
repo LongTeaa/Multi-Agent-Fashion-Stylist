@@ -87,7 +87,7 @@ export interface OutfitCardProps {
   initialRating?: number | null;
   lastWornAt?: string | null;
   onBookmarkChange?: (outfitId: string, isBookmarked: boolean) => void;
-  onWearSuccess?: (outfitId: string, timesWorn: number) => void;
+  onWearSuccess?: (outfitId: string, timesWorn: number, lastWornAt: string) => void;
   onRatingChange?: (outfitId: string, rating: number) => void;
   className?: string;
   testId?: string;
@@ -128,6 +128,13 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
   if (initialTimesWorn !== prevInitialTimesWorn) {
     setPrevInitialTimesWorn(initialTimesWorn);
     setTimesWorn(initialTimesWorn);
+  }
+  // Last-worn date follows the same prop-sync pattern so a fresh wear updates it immediately.
+  const [prevLastWornAt, setPrevLastWornAt] = useState<string | null | undefined>(lastWornAt);
+  const [lastWorn, setLastWorn] = useState<string | null | undefined>(lastWornAt);
+  if (lastWornAt !== prevLastWornAt) {
+    setPrevLastWornAt(lastWornAt);
+    setLastWorn(lastWornAt);
   }
   const [isWearPending, setIsWearPending] = useState<boolean>(false);
   const [wearSuccessMsg, setWearSuccessMsg] = useState<string | null>(null);
@@ -212,6 +219,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       });
 
       setTimesWorn(res.times_worn);
+      setLastWorn(res.worn_at);
       setWearSuccessMsg(
         res.already_processed
           ? 'Đã ghi nhận mặc trước đó!'
@@ -221,7 +229,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
       // Successfully processed: cycle idempotency key for future wears
       idempotencyKeyRef.current = generateUUIDv4();
 
-      onWearSuccess?.(outfitId, res.times_worn);
+      onWearSuccess?.(outfitId, res.times_worn, res.worn_at);
 
       // Auto-clear success badge after 4 seconds (with timer cleanup)
       if (wearTimerRef.current) {
@@ -298,7 +306,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
             {worn && (
               <p className="mt-1 text-xs text-muted" suppressHydrationWarning>
                 Đã mặc {timesWorn} lần
-                {lastWornAt ? ` · gần nhất ${new Date(lastWornAt).toLocaleDateString('vi-VN')}` : ''}
+                {lastWorn ? ` · gần nhất ${new Date(lastWorn).toLocaleDateString('vi-VN')}` : ''}
               </p>
             )}
           </div>
@@ -454,10 +462,12 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
           setIsBookmarked(nextBookmarked);
           onBookmarkChange?.(changedOutfitId, nextBookmarked);
         }}
-        onWornChange={(changedOutfitId, _nextWorn, nextTimesWorn) => {
+        onWornChange={(changedOutfitId, _nextWorn, nextTimesWorn, nextWornAt) => {
           const updatedTimesWorn = nextTimesWorn ?? timesWorn + 1;
+          const wornAt = nextWornAt ?? new Date().toISOString();
           setTimesWorn(updatedTimesWorn);
-          onWearSuccess?.(changedOutfitId, updatedTimesWorn);
+          setLastWorn(wornAt);
+          onWearSuccess?.(changedOutfitId, updatedTimesWorn, wornAt);
         }}
         onClose={() => setIsTryOnOpen(false)}
       />

@@ -10,6 +10,7 @@ import { RecommendationView } from '@/components/chat/RecommendationView';
 import { RatingPrompt } from '@/components/feedback/RatingPrompt';
 import { isSessionFeedbackSuppressed } from '@/lib/api';
 import { OCCASION_SHORTCUTS, STYLIST_QUERY_PARAM } from '@/lib/occasions';
+import { removeUrlParam } from '@/lib/browserState';
 
 const emptySubscribe = () => () => {};
 const getSessionSuppressedSnapshot = () => isSessionFeedbackSuppressed();
@@ -38,9 +39,7 @@ export default function ChatPage() {
     if (!handoff) return;
     composerRef.current?.setQueryText(handoff);
     sendMessage(handoff);
-    params.delete(STYLIST_QUERY_PARAM);
-    const rest = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`);
+    removeUrlParam(STYLIST_QUERY_PARAM);
   }, [sendMessage]);
 
   const handleRatingChange = (outfitId: string, rating: number) => {

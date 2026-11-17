@@ -296,7 +296,38 @@ describe('OutfitCard Component', () => {
 
     expect(wearBtn.hasAttribute('disabled')).toBe(false);
     expect(screen.getAllByText(/Đã mặc 1 lần/i).length).toBeGreaterThanOrEqual(1);
-    expect(onWearSuccess).toHaveBeenCalledWith('outfit-101', 1);
+    expect(onWearSuccess).toHaveBeenCalledWith('outfit-101', 1, '2026-09-15T08:30:00Z');
+  });
+
+  it('shows the new last-worn date right after recording a wear', async () => {
+    vi.mocked(api.recordOutfitWorn).mockResolvedValue({
+      wear_log_id: 'wear-log-2',
+      outfit_id: 'outfit-101',
+      times_worn: 3,
+      already_processed: false,
+      worn_at: '2026-11-15T08:30:00Z',
+    });
+
+    render(
+      <OutfitCard
+        outfitId="outfit-101"
+        rank={1}
+        explanationVi="Phối đồ thanh lịch"
+        items={mockItems}
+        initialTimesWorn={2}
+        lastWornAt="2026-11-01T08:30:00Z"
+      />
+    );
+
+    const before = new Date('2026-11-01T08:30:00Z').toLocaleDateString('vi-VN');
+    const after = new Date('2026-11-15T08:30:00Z').toLocaleDateString('vi-VN');
+    expect(screen.getByText(new RegExp(`Đã mặc 2 lần · gần nhất ${before}`))).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Xác nhận đã mặc bộ trang phục này hôm nay/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(`Đã mặc 3 lần · gần nhất ${after}`))).toBeDefined();
+    });
   });
 
   it('preserves same idempotency key on network failure for safe retry', async () => {

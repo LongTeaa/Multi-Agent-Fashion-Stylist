@@ -4,28 +4,20 @@ import React, { useState, useSyncExternalStore } from 'react';
 import { IngestionWorkflow } from '@/components/ingestion/IngestionWorkflow';
 import { WardrobeInventory } from '@/components/wardrobe/WardrobeInventory';
 import { ArrowLeftIcon } from '@/components/ui/icons';
+import { ACTIVE_INGESTION_BATCH_KEY, removeUrlParam } from '@/lib/browserState';
 
 const ADD_PARAM = 'add';
-const ACTIVE_BATCH_KEY = 'active_ingestion_batch_id';
 
 const noopSubscribe = () => () => {};
 const readWantsAdd = () => new URLSearchParams(window.location.search).has(ADD_PARAM);
 const readHasPendingBatch = () => {
   try {
-    return Boolean(window.sessionStorage.getItem(ACTIVE_BATCH_KEY));
+    return Boolean(window.sessionStorage.getItem(ACTIVE_INGESTION_BATCH_KEY));
   } catch {
     return false;
   }
 };
 const serverFalse = () => false;
-
-function clearAddParam() {
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has(ADD_PARAM)) return;
-  params.delete(ADD_PARAM);
-  const rest = params.toString();
-  window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`);
-}
 
 export function WardrobeView() {
   // `?add=1` (from the home page or an error banner) opens the add flow directly.
@@ -42,7 +34,7 @@ export function WardrobeView() {
   };
 
   const backToInventory = () => {
-    clearAddParam();
+    removeUrlParam(ADD_PARAM);
     setChosenMode('inventory');
   };
 

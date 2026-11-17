@@ -358,5 +358,54 @@ describe('WardrobeInventory Component', () => {
       );
     });
   });
+
+  it('keeps the edit dialog open while saving so a failure is still reported', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValueOnce({
+      items: [mockItems[0]],
+      total: 1,
+      page: 1,
+      page_size: 12,
+    });
+    let rejectSave: (reason: Error) => void = () => {};
+    vi.mocked(api.updateWardrobeItem).mockImplementationOnce(
+      () => new Promise((_, reject) => { rejectSave = reject; })
+    );
+
+    render(<WardrobeInventory />);
+    await waitFor(() => expect(screen.getByTestId('edit-item-item-1')).toBeDefined());
+    fireEvent.click(screen.getByTestId('edit-item-item-1'));
+    fireEvent.click(screen.getByTestId('save-edit-btn'));
+
+    const cancel = screen.getByRole('button', { name: 'Hủy' });
+    const close = screen.getByRole('button', { name: 'Đóng' });
+    expect(cancel.hasAttribute('disabled')).toBe(true);
+    expect(close.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(cancel);
+    expect(screen.getByRole('dialog')).toBeDefined();
+
+    rejectSave(new Error('Máy chủ đang bận'));
+    expect(await screen.findByText('Máy chủ đang bận')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Hủy' }).hasAttribute('disabled')).toBe(false);
+  });
+
+  it('keeps the delete dialog open while deleting', async () => {
+    vi.mocked(api.listWardrobeItems).mockResolvedValueOnce({
+      items: [mockItems[0]],
+      total: 1,
+      page: 1,
+      page_size: 12,
+    });
+    vi.mocked(api.deleteWardrobeItem).mockImplementationOnce(() => new Promise(() => {}));
+
+    render(<WardrobeInventory />);
+    await waitFor(() => expect(screen.getByTestId('delete-item-item-1')).toBeDefined());
+    fireEvent.click(screen.getByTestId('delete-item-item-1'));
+    fireEvent.click(screen.getByTestId('confirm-delete-btn'));
+
+    const cancel = screen.getByRole('button', { name: 'Hủy' });
+    expect(cancel.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(cancel);
+    expect(screen.getByRole('alertdialog')).toBeDefined();
+  });
 });
 

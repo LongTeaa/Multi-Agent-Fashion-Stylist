@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AppShell, PageHeader } from '@/components/layout/AppShell';
 import { ArrowLeftIcon, ArrowRightIcon, BookmarkIcon, RefreshIcon } from '@/components/ui/icons';
-import { formatLookNumber } from '@/lib/looks';
 import { getSavedOutfits, ApiError } from '@/lib/api';
 import type { SavedOutfitsResponseData } from '@/types/outfits';
 import { OutfitCard, normalizeDetailItems } from '@/components/outfits/OutfitCard';
@@ -104,13 +103,13 @@ export default function SavedOutfitsPage() {
     });
   };
 
-  const handleWearSuccess = (outfitId: string, timesWorn: number) => {
+  const handleWearSuccess = (outfitId: string, timesWorn: number, lastWornAt: string) => {
     setData((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         items: prev.items.map((item) =>
-          item.id === outfitId ? { ...item, times_worn: timesWorn } : item
+          item.id === outfitId ? { ...item, times_worn: timesWorn, last_worn_at: lastWornAt } : item
         ),
       };
     });
@@ -202,11 +201,11 @@ export default function SavedOutfitsPage() {
 
       {!loading && !error && data && data.items.length > 0 && (
         <div className="space-y-5">
-          {data.items.map((outfit, index) => (
+          {data.items.map((outfit) => (
             <OutfitCard
               key={outfit.id}
               outfitId={outfit.id}
-              title={formatLookNumber((page - 1) * pageSize + index + 1)}
+              rank={outfit.rank}
               context={outfit.user_query}
               compositeScore={outfit.composite_score}
               explanationVi={outfit.explanation_vi}

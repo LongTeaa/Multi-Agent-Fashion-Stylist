@@ -4,6 +4,8 @@ import React from 'react';
 import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
 import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
+import { SegmentedScale } from '@/components/ui/SegmentedScale';
+import { FUNCTIONAL_FLAG_VALUES, type FunctionalFlag } from '@/lib/garmentAttributes';
 
 interface DetectionItemCardProps {
   cropEditor?: React.ReactNode;
@@ -79,17 +81,23 @@ const LENGTHS = [
   { value: 'long', label: 'Dáng dài (Long - Phủ chân/Dài qua gối)' },
 ];
 
-const FUNCTIONAL_FLAGS = [
-  { value: 'movement', label: 'Vận động / Co giãn' },
-  { value: 'outdoor', label: 'Dã ngoại / Ngoài trời' },
-  { value: 'sun', label: 'Chống nắng' },
-  { value: 'water_resistant', label: 'Chống mưa / Nước' },
-  { value: 'work', label: 'Đi làm / Công sở' },
-  { value: 'sport', label: 'Thể thao' },
-  { value: 'protection', label: 'Bảo hộ / Giữ nhiệt' },
-  { value: 'light', label: 'Siêu nhẹ / Thoáng' },
-  { value: 'heavy', label: 'Dày ấm / Nặng' },
-];
+// Longer, explanatory labels for the review step; the flag set itself is shared.
+const FUNCTIONAL_FLAG_REVIEW_LABELS: Record<FunctionalFlag, string> = {
+  movement: 'Vận động / Co giãn',
+  outdoor: 'Dã ngoại / Ngoài trời',
+  sun: 'Chống nắng',
+  water_resistant: 'Chống mưa / Nước',
+  work: 'Đi làm / Công sở',
+  sport: 'Thể thao',
+  protection: 'Bảo hộ / Giữ nhiệt',
+  light: 'Siêu nhẹ / Thoáng',
+  heavy: 'Dày ấm / Nặng',
+};
+
+const FUNCTIONAL_FLAGS = FUNCTIONAL_FLAG_VALUES.map((value) => ({
+  value,
+  label: FUNCTIONAL_FLAG_REVIEW_LABELS[value],
+}));
 
 const COMFORT_LABELS: Record<number, string> = {
   1: 'Gò bó / Thô cứng (1)',
@@ -430,26 +438,12 @@ export function DetectionItemCard({
                   </label>
                   {renderConfidenceBadge('comfort_level')}
                 </div>
-                <div className="grid grid-cols-5 gap-1 rounded-xl bg-sunken p-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      disabled={!accepted}
-                      aria-pressed={(attributes.comfort_level || 3) === star}
-                      onClick={() => onUpdateAttribute('comfort_level', star)}
-                      className={`h-8 rounded-lg text-sm font-semibold tabular-nums transition-colors disabled:cursor-not-allowed ${
-                        (attributes.comfort_level || 3) === star
-                          ? 'bg-ink text-paper'
-                          : (attributes.comfort_level || 3) > star
-                          ? 'bg-surface text-ink'
-                          : 'text-muted hover:bg-surface'
-                      }`}
-                    >
-                      {star}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedScale
+                  label="Độ thoải mái"
+                  value={attributes.comfort_level || 3}
+                  onChange={(level) => onUpdateAttribute('comfort_level', level)}
+                  disabled={!accepted}
+                />
                 <p className="mt-1 text-xs text-muted">
                   {COMFORT_LABELS[attributes.comfort_level || 3] || 'Tiêu chuẩn (3)'}
                 </p>

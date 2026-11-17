@@ -238,6 +238,9 @@ describe('SavedOutfitsPage Integration', () => {
       expect(screen.queryByText(/Set đồ thanh lịch đi làm/i)).toBeNull();
       expect(screen.getByText('24 bộ đồ')).toBeDefined();
     });
+    // Titles follow each outfit's own rank, so removing a card does not renumber the rest.
+    expect(screen.getByText('Look 02')).toBeDefined();
+    expect(screen.queryByText('Look 01')).toBeNull();
   });
 
   it('auto-recovers to valid previous page and avoids showing empty state when page drift occurs', async () => {

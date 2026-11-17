@@ -294,11 +294,6 @@ body {
   }
 }
 
-/* Legacy helper kept for components that still reference it. */
-.animate-fadeIn {
-  animation: rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

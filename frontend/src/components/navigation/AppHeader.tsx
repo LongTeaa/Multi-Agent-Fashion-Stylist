@@ -15,7 +15,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: '/chat', label: 'Phối đồ', icon: LooksIcon },
   { href: '/wardrobe', label: 'Tủ đồ', icon: HangerIcon },
-  { href: '/saved', label: 'Đã lưu', icon: (p) => <BookmarkIcon {...p} /> },
+  { href: '/saved', label: 'Đã lưu', icon: BookmarkIcon },
   { href: '/profile', label: 'Gu của tôi', icon: ProfileIcon },
 ];
 

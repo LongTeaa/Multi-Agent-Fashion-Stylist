@@ -19,6 +19,7 @@ import { CropEditor } from './CropEditor';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { DetectionItemCard } from './DetectionItemCard';
 import { AlertIcon, CheckIcon, CloseIcon, Spinner, TrashIcon } from '@/components/ui/icons';
+import { ACTIVE_INGESTION_BATCH_KEY } from '@/lib/browserState';
 
 type WorkflowStep = 'upload' | 'processing' | 'review' | 'confirmed' | 'failed';
 
@@ -29,7 +30,7 @@ interface IngestionWorkflowProps {
 export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const { taxonomy, taxonomyError, retryTaxonomy } = useGarmentTaxonomy();
   const [step, setStep] = useState<WorkflowStep>(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('active_ingestion_batch_id')) {
+    if (typeof window !== 'undefined' && sessionStorage.getItem(ACTIVE_INGESTION_BATCH_KEY)) {
       return 'processing';
     }
     return 'upload';
@@ -40,7 +41,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
   const [isCropSaving, setIsCropSaving] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('active_ingestion_batch_id');
+      return sessionStorage.getItem(ACTIVE_INGESTION_BATCH_KEY);
     }
     return null;
   });
@@ -128,7 +129,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
         } else if (review.status === 'failed' || review.status === 'expired') {
           setBatchReview(review);
           if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('active_ingestion_batch_id');
+            sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
             sessionStorage.removeItem('active_ingestion_source_id');
           }
           setErrorMessage(
@@ -140,7 +141,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           return;
         } else if (review.status === 'confirmed') {
           if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('active_ingestion_batch_id');
+            sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
             sessionStorage.removeItem('active_ingestion_source_id');
           }
           setStep('upload');
@@ -180,7 +181,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     try {
       const res = await uploadIngestionImages(files, declaredKind);
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('active_ingestion_batch_id', res.batch_id);
+        sessionStorage.setItem(ACTIVE_INGESTION_BATCH_KEY, res.batch_id);
         sessionStorage.removeItem('active_ingestion_source_id');
       }
       setSelectedSourceId(null);
@@ -262,7 +263,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
       setConfirmedItemIds(res.wardrobe_item_ids);
       if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('active_ingestion_batch_id');
+        sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
         sessionStorage.removeItem('active_ingestion_source_id');
       }
       setStep('confirmed');
@@ -292,7 +293,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     try {
       await deleteIngestionBatch(batchId);
       if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('active_ingestion_batch_id');
+        sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
         sessionStorage.removeItem('active_ingestion_source_id');
       }
       setIsCancelling(false);
@@ -319,7 +320,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
     }
     idempotencyTokenRef.current = crypto.randomUUID();
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('active_ingestion_batch_id');
+      sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
       sessionStorage.removeItem('active_ingestion_source_id');
     }
     setStep('upload');
