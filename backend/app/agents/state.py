@@ -192,6 +192,70 @@ class RankedOutfit(BaseModel):
     applied_preferences: list[str] = Field(default_factory=list)
 
 
+SlotName = Literal["tops", "bottoms", "dresses", "footwear", "outerwear", "accessories"]
+
+RelaxAction = Literal[
+    "color_family",
+    "material_relax",
+    "subcategory_equivalent",
+]
+
+
+class RelaxationRequest(BaseModel):
+    """Feedback message from Fashion Agent back to Wardrobe Agent (Loop 1)."""
+
+    issue_code: Literal["MISSING_SLOT", "CONSTRAINT_UNSATISFIED"]
+    bottleneck_slots: list[SlotName] = Field(min_length=1)
+    blocked_constraints: list[GarmentConstraint] = Field(default_factory=list)
+    allowed_actions: list[RelaxAction] = Field(min_length=1)
+    reason_vi: str
+
+
+class RelaxationStep(BaseModel):
+    """Audit record of one executed relaxation step for downstream validation and explanation."""
+
+    round: int = Field(ge=1)
+    slot: SlotName
+    action: RelaxAction
+    category: WardrobeCategory
+    original_value: str
+    relaxed_values: list[str] = Field(default_factory=list)
+    reason_vi: str
+
+
+class CritiqueSignal(BaseModel):
+    """Critique feedback signal from Coordinator back to Fashion Agent (Loop 2)."""
+
+    issue_code: Literal["ALL_RECENTLY_WORN", "LOW_DIVERSITY", "CONTEXT_GAP"]
+    soft_avoid_item_ids: list[str] = Field(default_factory=list)
+    require_functional_tags: list[str] = Field(default_factory=list)
+    diversify: bool = False
+    reason_vi: str
+
+
+class ConflictNote(BaseModel):
+    """Structured multi-objective conflict record for Coordinator arbitration and explanation."""
+
+    conflict_type: Literal[
+        "PROFILE_AVOID_VS_REQUEST",
+        "RECENT_WEAR_VS_BEST_FIT",
+        "RELAXED_CONSTRAINT",
+        "CRITIC_KEPT_ORIGINAL",
+    ]
+    description_vi: str
+    resolution_vi: str
+
+
+class AgentTraceEvent(BaseModel):
+    """Inter-agent communication trace event for debugging, testing, and observability."""
+
+    round: int = Field(ge=0)
+    sender: Literal["context", "wardrobe", "fashion", "personalization", "coordinator"]
+    receiver: Literal["wardrobe", "fashion", "personalization", "coordinator", "end"]
+    event_type: str
+    summary_vi: str
+
+
 class StylistGraphState(TypedDict, total=False):
     """Shared state flowing through the LangGraph recommendation workflow.
 
@@ -221,3 +285,15 @@ class StylistGraphState(TypedDict, total=False):
     feedback_target_outfit_id: str | None
     errors: list[str]
     warnings: list[str]
+
+    # Multi-agent feedback loop coordination fields
+    enable_agent_loops: bool
+    relaxation_round: int
+    relaxation_request: RelaxationRequest | None
+    active_relaxations: list[RelaxationStep]
+    critique_round: int
+    critique: CritiqueSignal | None
+    previous_ranked_outfits: list[RankedOutfit]
+    coordinator_decision: Literal["approve", "reroute_fashion", "fail"] | None
+    conflict_notes: list[ConflictNote]
+    agent_trace: list[AgentTraceEvent]
