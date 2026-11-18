@@ -40,6 +40,14 @@ export interface StylistContext {
   weather_source: string;
 }
 
+export interface StylistTraceEvent {
+  round: number;
+  sender: string;
+  receiver: string;
+  event_type: string;
+  summary_vi: string;
+}
+
 export interface StylistChatResponseData {
   request_id: string;
   needs_clarification: boolean;
@@ -49,4 +57,5 @@ export interface StylistChatResponseData {
   feedback_prompt_eligible: boolean;
   feedback_target_outfit_id?: string | null;
   warnings: string[];
+  agent_trace?: StylistTraceEvent[];
 }

@@ -120,6 +120,16 @@ class StylistRecommendationResponse(BaseModel):
     applied_preferences: list[str] = Field(default_factory=list)
 
 
+class StylistTraceEventResponse(BaseModel):
+    """Public representation of one inter-agent communication step in the recommendation graph."""
+
+    round: int = Field(ge=0)
+    sender: str
+    receiver: str
+    event_type: str
+    summary_vi: str
+
+
 class StylistChatResponseData(BaseModel):
     """Response data envelope for POST /api/v1/stylist/chat."""
 
@@ -131,3 +141,4 @@ class StylistChatResponseData(BaseModel):
     feedback_prompt_eligible: bool = False
     feedback_target_outfit_id: str | None = None
     warnings: list[str] = Field(default_factory=list)
+    agent_trace: list[StylistTraceEventResponse] = Field(default_factory=list)

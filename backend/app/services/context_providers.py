@@ -79,6 +79,57 @@ class GeminiContextProvider:
         except (httpx.HTTPError, json.JSONDecodeError, KeyError, TypeError) as exc:
             raise RuntimeError("Context provider returned an invalid response.") from exc
 
+    def generate_outfit_explanation(
+        self,
+        *,
+        items_description: list[str],
+        occasion: str,
+        weather_condition: str,
+        target_formality_range: list[int],
+        composite_score: float,
+        applied_preferences: list[str],
+        relaxation_notes: list[str],
+        conflict_notes: list[str],
+    ) -> str:
+        """Generate a grounded Vietnamese stylist explanation for one selected outfit."""
+        items_str = ", ".join(items_description)
+        prefs_str = "; ".join(applied_preferences) if applied_preferences else "không có"
+        relax_str = " ".join(relaxation_notes) if relaxation_notes else "không có"
+        conflict_str = " ".join(conflict_notes) if conflict_notes else "không có"
+        prompt = (
+            "Bạn là chuyên gia tư vấn phối đồ (Fashion Stylist). Hãy viết lời giải thích ngắn gọn (2 câu tiếng Việt) "
+            "cho bộ trang phục đã chọn dưới đây. Chỉ trả về JSON hợp lệ theo mẫu {\"explanation_vi\": \"...\"}.\n"
+            f"- Các món đồ bắt buộc phải giữ nguyên cách viết trong ngoặc vuông: {items_str}\n"
+            f"- Dịp: {occasion}, thời tiết: {weather_condition}, khoảng trang trọng mục tiêu: {target_formality_range}\n"
+            f"- Điểm phù hợp tổng hợp: {round(composite_score * 100)}%\n"
+            f"- Sở thích áp dụng: {prefs_str}\n"
+            f"- Ghi chú nới lỏng (nếu có): {relax_str}\n"
+            f"- Ghi chú cân bằng xung đột (nếu có): {conflict_str}\n"
+            "Quy tắc bắt buộc:\n"
+            "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] đã liệt kê ở trên, giữ nguyên dấu ngoặc vuông [...].\n"
+            "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách.\n"
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"response_mime_type": "application/json"},
+        }
+        url = f"{self.base_url}/models/{self.model}:generateContent"
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
+        req_timeout = min(self.timeout_seconds, 6.0)
+        try:
+            if self._client is not None:
+                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
+            else:
+                with httpx.Client(timeout=req_timeout) as client:
+                    response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            text = parsed.get("explanation_vi", "")
+            return str(text).strip() if isinstance(text, str) else ""
+        except Exception as exc:
+            raise RuntimeError("Failed to generate LLM outfit explanation.") from exc
+
 
 class OpenWeatherProvider:
     """OpenWeather forecast adapter normalized to the domain weather taxonomy."""

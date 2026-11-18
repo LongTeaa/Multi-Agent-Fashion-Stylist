@@ -166,7 +166,7 @@ def create_stylist_graph(
 
     # 5. Coordinator Node
     def _coordinator_step(state: StylistGraphState) -> dict[str, Any]:
-        return coordinator_node(state, session=session)
+        return coordinator_node(state, session=session, llm_provider=llm_provider)
 
     # Register nodes
     workflow.add_node("context", _context_step)

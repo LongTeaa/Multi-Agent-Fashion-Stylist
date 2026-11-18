@@ -942,3 +942,41 @@ def test_grounded_explanation_low_score_transparency_and_diversity():
     assert "thoáng mát" not in mid_exp
     assert "mềm mại" not in mid_exp
 
+
+def test_grounded_llm_explanation_synthesis_and_anti_hallucination_fallback():
+    """Verify LLM explanation is used when strictly grounded, and falls back deterministically on hallucination."""
+    top = _make_slot("t_white", OutfitSlotRole.TOP, name="Áo thun trắng", color="white")
+    bottom = _make_slot("b_khaki", OutfitSlotRole.BOTTOM, name="Quần tây khaki", color="khaki")
+    footwear = _make_slot("f_white", OutfitSlotRole.FOOTWEAR, name="Giày sneaker trắng", color="white")
+    outfit = _make_ranked_outfit(1, [top, bottom, footwear], composite_score=0.84)
+    context = _make_context(occasion="cafe", weather_condition="cool", time_of_day="evening")
+
+    class ValidGroundedLLM:
+        def generate_outfit_explanation(self, **kwargs) -> str:
+            return (
+                "Sự kết hợp giữa [Áo thun] màu trắng, [Quần tây] màu khaki và [Giày sneaker] màu trắng "
+                "tạo nên tổng thể gọn gàng, hài hòa cho buổi hẹn cafe tối trời mát."
+            )
+
+    class HallucinatingLLM:
+        def generate_outfit_explanation(self, **kwargs) -> str:
+            # Mentions an invented [Áo blazer đen] not in the outfit
+            return "Phối [Áo thun], [Quần tây], [Giày sneaker] kèm [Áo blazer đen] lịch lãm."
+
+    class ForbiddenWordLLM:
+        def generate_outfit_explanation(self, **kwargs) -> str:
+            # Uses forbidden subjective claim 'lý tưởng'
+            return "Phối [Áo thun], [Quần tây] và [Giày sneaker] là lựa chọn lý tưởng cho buổi tối."
+
+    valid_exp = generate_grounded_explanation_vi(outfit, context, llm_provider=ValidGroundedLLM())
+    assert "tạo nên tổng thể gọn gàng, hài hòa" in valid_exp
+    assert "[Áo thun]" in valid_exp and "[Quần tây]" in valid_exp and "[Giày sneaker]" in valid_exp
+
+    fallback_hallucinated = generate_grounded_explanation_vi(outfit, context, llm_provider=HallucinatingLLM())
+    assert "Áo blazer" not in fallback_hallucinated
+    assert fallback_hallucinated == generate_grounded_explanation_vi(outfit, context)
+
+    fallback_forbidden = generate_grounded_explanation_vi(outfit, context, llm_provider=ForbiddenWordLLM())
+    assert "lý tưởng" not in fallback_forbidden
+    assert fallback_forbidden == generate_grounded_explanation_vi(outfit, context)
+

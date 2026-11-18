@@ -265,13 +265,53 @@ def validate_outfit_completeness(
 # 5. DETERMINISTIC GROUNDED VIETNAMESE EXPLANATION GENERATOR
 # ============================================================================
 
+_FORBIDDEN_EXPLANATION_PHRASES: tuple[str, ...] = (
+    "lý tưởng",
+    "rất phù hợp",
+    "thoáng mát",
+    "mềm mại",
+)
+
+
+def _validate_grounded_llm_explanation(
+    candidate_text: str,
+    item_allowed_brackets: list[set[str]],
+) -> bool:
+    """Verify an LLM-generated explanation references only canonical outfit items and avoids forbidden claims."""
+    import re
+
+    cleaned = candidate_text.strip()
+    if len(cleaned) < 15 or len(cleaned) > 600:
+        return False
+    lowered = cleaned.lower()
+    if any(forbidden in lowered for forbidden in _FORBIDDEN_EXPLANATION_PHRASES):
+        return False
+
+    # Every outfit item must have at least one of its canonical [Name] bracket forms present
+    for group in item_allowed_brackets:
+        if not any(token in lowered for token in group):
+            return False
+
+    # No extra [...] bracketed garment names outside the outfit's allowed brackets may be hallucinated
+    found_brackets = {f"[{m.strip().lower()}]" for m in re.findall(r"\[([^\[\]]+)\]", cleaned)}
+    all_allowed = set().union(*item_allowed_brackets) if item_allowed_brackets else set()
+    if not found_brackets.issubset(all_allowed):
+        return False
+
+    return True
+
+
 def generate_grounded_explanation_vi(
     outfit: RankedOutfit,
     context: StylistContext,
     active_relaxations: Sequence[RelaxationStep] | None = None,
     conflict_notes: Sequence[ConflictNote] | None = None,
+    llm_provider: Any = None,
 ) -> str:
-    """Generates a 100% deterministic, grounded Vietnamese explanation for a selected outfit.
+    """Generates a grounded Vietnamese explanation for a selected outfit.
+
+    Uses grounded LLM synthesis when an LLM explanation provider is supplied and passes
+    strict anti-hallucination validation; otherwise falls back to 100% deterministic template synthesis.
 
     Strict Invariants:
     - References ONLY canonical items present in this specific outfit.
@@ -285,6 +325,7 @@ def generate_grounded_explanation_vi(
     from app.services.garment_taxonomy import classify, normalize
 
     parts: list[str] = []
+    item_allowed_brackets: list[set[str]] = []
     for item in outfit.items:
         _, garment = classify(item.category, item.name)
         name = garment.label if garment else item.name
@@ -292,6 +333,21 @@ def generate_grounded_explanation_vi(
         color_label = colors.get(color, color)
         color_in_name = f" {normalize(color_label)} " in f" {normalize(name)} "
         color_note = f" màu {color_label}" if color and color != "unknown" and not color_in_name else ""
+        allowed_for_item = {f"[{name.strip().lower()}]", f"[{item.name.strip().lower()}]"}
+        if item.sub_category:
+            _, sub_garment = classify(item.category, item.sub_category)
+            if sub_garment:
+                allowed_for_item.add(f"[{sub_garment.label.strip().lower()}]")
+        if color_label and color_label != "unknown":
+            allowed_for_item.add(f"[{name.strip().lower()} {color_label}]")
+        # Also allow base garment name with trailing color stripped (including khaki/be/kem)
+        for col_vi in (*colors.values(), "khaki", "kaki", "kem"):
+            raw_lower = item.name.strip().lower()
+            if raw_lower.endswith(f" {col_vi}"):
+                base_only = raw_lower[: -len(col_vi)].strip()
+                if base_only:
+                    allowed_for_item.add(f"[{base_only}]")
+        item_allowed_brackets.append(allowed_for_item)
         parts.append(f"[{name}]{color_note}")
     explanation = "Phối " + ", ".join(parts) + "."
     major = [item for item in outfit.items if item.slot_role != OutfitSlotRole.ACCESSORY]
@@ -302,13 +358,16 @@ def generate_grounded_explanation_vi(
             explanation += " Các món chính đều nằm trong mức trang trọng bạn cần."
         else:
             explanation += " Mức trang trọng giữa các món chưa hoàn toàn đồng đều với nhu cầu."
+    low_score_note = ""
     if outfit.composite_score < 0.65:
-        explanation += f" Độ phù hợp ở mức vừa phải ({round(outfit.composite_score * 100)}%); bạn nên cân nhắc theo nhu cầu."
+        low_score_note = f"Độ phù hợp ở mức vừa phải ({round(outfit.composite_score * 100)}%); bạn nên cân nhắc theo nhu cầu."
+        explanation += f" {low_score_note}"
     valid_prefs = [p.strip() for p in outfit.applied_preferences
                    if p.strip() in CANONICAL_PREFERENCE_TAGS]
     if valid_prefs:
         explanation += " " + "; ".join(valid_prefs[:2]) + "."
 
+    dedup_relax_notes: list[str] = []
     if active_relaxations:
         relax_notes: list[str] = []
         for step in active_relaxations:
@@ -343,8 +402,38 @@ def generate_grounded_explanation_vi(
                     relax_notes.append(
                         "Đã linh hoạt mở rộng chất liệu có sẵn trong tủ."
                     )
-        for note in dict.fromkeys(relax_notes):
+        dedup_relax_notes = list(dict.fromkeys(relax_notes))
+        for note in dedup_relax_notes:
             explanation += f" {note}"
+
+    if llm_provider is not None and hasattr(llm_provider, "generate_outfit_explanation"):
+        try:
+            conflict_strs = [f"{c.description_vi} {c.resolution_vi}" for c in (conflict_notes or ())]
+            llm_text = llm_provider.generate_outfit_explanation(
+                items_description=parts,
+                occasion=context.occasion,
+                weather_condition=context.weather_condition,
+                target_formality_range=list(context.target_formality_range),
+                composite_score=outfit.composite_score,
+                applied_preferences=valid_prefs[:2],
+                relaxation_notes=dedup_relax_notes,
+                conflict_notes=conflict_strs,
+            )
+            if isinstance(llm_text, str) and _validate_grounded_llm_explanation(llm_text, item_allowed_brackets):
+                final_llm = llm_text.strip()
+                if not final_llm.endswith("."):
+                    final_llm += "."
+                if low_score_note and f"{round(outfit.composite_score * 100)}%" not in final_llm:
+                    final_llm += f" {low_score_note}"
+                for pref in valid_prefs[:2]:
+                    if pref not in final_llm:
+                        final_llm += f" {pref}."
+                for r_note in dedup_relax_notes:
+                    if r_note not in final_llm:
+                        final_llm += f" {r_note}"
+                return final_llm
+        except Exception as exc:
+            logger.warning("Grounded LLM explanation fallback triggered: %s", exc)
 
     return explanation
 
@@ -430,14 +519,24 @@ def persist_recommendations_atomically(
     ranked_outfits: list[RankedOutfit],
     request_location: str | None = None,
     warnings: list[str] | None = None,
+    agent_trace: Sequence[AgentTraceEvent] | None = None,
 ) -> tuple[bool, list[str]]:
     """Persists OutfitRecommendation and OutfitItem records in a single atomic transaction with invariant validation."""
+    serialized_trace = [
+        t.model_dump() if hasattr(t, "model_dump") else dict(t)
+        for t in (agent_trace or ())
+    ]
     return persist_outfit_recommendations(
         session=session,
         user_id=user_id,
         request_id=request_id,
         user_query=user_query,
-        context_snapshot={**context.model_dump(), "_request_location": request_location, "_warnings": list(warnings or [])},
+        context_snapshot={
+            **context.model_dump(),
+            "_request_location": request_location,
+            "_warnings": list(warnings or []),
+            "_agent_trace": serialized_trace,
+        },
         ranked_outfits=ranked_outfits,
     )
 
@@ -449,6 +548,7 @@ def persist_recommendations_atomically(
 def coordinator_node(
     state: StylistGraphState,
     session: Session | None = None,
+    llm_provider: Any = None,
 ) -> dict[str, Any]:
     """LangGraph node execution function for the Coordinator Agent.
 
@@ -593,7 +693,17 @@ def coordinator_node(
                 context,
                 active_relaxations=active_relaxations,
                 conflict_notes=conflict_notes,
+                llm_provider=llm_provider,
             )
+
+        approve_trace = AgentTraceEvent(
+            round=critique_round,
+            sender="coordinator",
+            receiver="end",
+            event_type="RECOMMENDATIONS_APPROVED",
+            summary_vi=f"Đã kiểm định và lưu {len(canonical_outfits)} bộ trang phục vào cơ sở dữ liệu.",
+        )
+        final_trace = existing_trace + [approve_trace]
 
         # 6. Atomic Persistence
         success, persisted_ids = persist_recommendations_atomically(
@@ -603,7 +713,9 @@ def coordinator_node(
             user_query=user_query,
             context=context,
             ranked_outfits=canonical_outfits,
-            request_location=state.get("location"), warnings=existing_warnings,
+            request_location=state.get("location"),
+            warnings=existing_warnings,
+            agent_trace=final_trace,
         )
 
         if not success or not persisted_ids:
@@ -611,14 +723,6 @@ def coordinator_node(
                 **base_response,
                 "errors": existing_errors + [COORDINATOR_PERSISTENCE_ERROR],
             }
-
-        approve_trace = AgentTraceEvent(
-            round=critique_round,
-            sender="coordinator",
-            receiver="end",
-            event_type="RECOMMENDATIONS_APPROVED",
-            summary_vi=f"Đã kiểm định và lưu {len(persisted_ids)} bộ trang phục vào cơ sở dữ liệu.",
-        )
 
         return {
             "ranked_outfits": canonical_outfits,
@@ -630,7 +734,7 @@ def coordinator_node(
             "critique": None,
             "conflict_notes": conflict_notes,
             "warnings": existing_warnings,
-            "agent_trace": existing_trace + [approve_trace],
+            "agent_trace": final_trace,
         }
 
     if session is not None:
