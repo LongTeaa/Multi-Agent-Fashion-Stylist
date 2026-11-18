@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import pytest
 from sqlmodel import Session, select
@@ -37,8 +37,12 @@ def _add_wardrobe_item(
     color: str = "white",
     style: str = "smart_casual",
     formality: int = 3,
+    comfort: int = 3,
+    pattern: str = "solid",
     weather: list[str] | None = None,
     material: str = "cotton",
+    functional_flags: list[str] | None = None,
+    last_worn_at: datetime | None = None,
     active: bool = True,
     deleted: bool = False,
 ) -> WardrobeItem:
@@ -49,13 +53,16 @@ def _add_wardrobe_item(
         category=category,
         sub_category=sub_category,
         primary_color=color,
-        pattern="solid",
+        pattern=pattern,
         material=material,
         style=style,
         fit="regular",
         formality_level=formality,
+        comfort_level=comfort,
         weather_suitability=weather or ["cool", "warm"],
+        functional_flags=functional_flags or [],
         free_text_tags=[style, color, sub_category],
+        last_worn_at=last_worn_at,
         is_user_confirmed=True,
         is_active=active,
         deleted_at=datetime.now(timezone.utc) if deleted else None,
@@ -109,7 +116,7 @@ def test_stylist_graph_happy_path_fixed_sequence(
         nodes = set(graph.nodes.keys())
         assert {"context", "wardrobe", "fashion", "personalization", "coordinator"}.issubset(nodes)
 
-        # Strictly assert edge topology: only sequential next node or __end__, no bypass/skip
+        # Strictly assert 5-node cyclic topology with bounded feedback loops (12 directed edges)
         edges = {(e.source, e.target) for e in graph.get_graph().edges}
         assert edges == {
             ("__start__", "context"),
@@ -117,10 +124,12 @@ def test_stylist_graph_happy_path_fixed_sequence(
             ("context", "__end__"),
             ("wardrobe", "fashion"),
             ("wardrobe", "__end__"),
+            ("fashion", "wardrobe"),
             ("fashion", "personalization"),
             ("fashion", "__end__"),
             ("personalization", "coordinator"),
             ("personalization", "__end__"),
+            ("coordinator", "fashion"),
             ("coordinator", "__end__"),
         }
 
@@ -590,3 +599,309 @@ def test_stylist_graph_rejects_alternate_branch_that_violates_must_have(
         assert session.exec(
             select(OutfitRecommendation).where(OutfitRecommendation.user_id == user_id)
         ).all() == []
+
+
+# ============================================================================
+# 9. CYCLIC MULTI-AGENT FEEDBACK LOOPS (LOOP 1 & LOOP 2)
+# ============================================================================
+
+def test_loop1_relaxation_recovers_missing_color_in_must_have(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Loop 1 (Fashion <-> Wardrobe): relax color_family within same category while enforcing must_avoid."""
+    _, engine = migrated_database
+    user_id = f"user_loop1_col_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-shirt-white", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="formal", formality=4)
+        _add_wardrobe_item(session, item_id="bot-trousers-grey", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="trousers", color="grey", style="formal", formality=4)
+        _add_wardrobe_item(session, item_id="shoe-oxford-black", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="black", style="formal", formality=5)
+        _add_wardrobe_item(session, item_id="shoe-oxford-brown", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="brown", style="formal", formality=4)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop1-color",
+                "user_id": user_id,
+                "user_query": "Tối mai đi tiệc cưới, mình muốn mặc quần tây đen, đừng chọn giày đen.",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["relaxation_round"] == 1
+        assert len(result["active_relaxations"]) == 1
+        assert result["active_relaxations"][0].action == "color_family"
+        assert len(result["recommendation_ids"]) >= 1
+
+        top1 = result["ranked_outfits"][0]
+        top1_ids = {item.item_id for item in top1.items}
+        assert "bot-trousers-grey" in top1_ids
+        assert "shoe-oxford-brown" in top1_ids
+        assert "shoe-oxford-black" not in top1_ids
+        assert "linh hoạt chọn màu" in top1.explanation_vi
+
+
+def test_loop1_relaxation_recovers_equivalent_subcategory(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Loop 1 (Fashion <-> Wardrobe): relax trousers -> equivalent chinos within BOTTOM."""
+    _, engine = migrated_database
+    user_id = f"user_loop1_sub_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-shirt-01", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="smart_casual", formality=3)
+        _add_wardrobe_item(session, item_id="bot-chinos-01", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="navy", style="smart_casual", formality=3)
+        _add_wardrobe_item(session, item_id="shoe-loafer-01", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="loafers", color="brown", style="smart_casual", formality=3)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop1-sub",
+                "user_id": user_id,
+                "user_query": "Đi làm ngày mai, phải mặc quần tây.",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["relaxation_round"] == 1
+        assert any(step.action == "subcategory_equivalent" for step in result["active_relaxations"])
+
+        top1 = result["ranked_outfits"][0]
+        assert any(item.item_id == "bot-chinos-01" for item in top1.items)
+        assert "kiểu dáng tương đương" in top1.explanation_vi
+
+
+def test_loop1_never_relaxes_must_avoid(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Invariant: explicit must_avoid constraints are NEVER relaxed even after Loop 1."""
+    _, engine = migrated_database
+    user_id = f"user_loop1_avoid_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-shirt-white", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white")
+        _add_wardrobe_item(session, item_id="bot-black-only", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="black")
+        _add_wardrobe_item(session, item_id="shoe-white", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="sneakers", color="white")
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop1-avoid",
+                "user_id": user_id,
+                "user_query": "Đi cafe tối nay, phải mặc áo sơ mi trắng, không mặc quần đen",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == [NO_COMPLETE_OUTFIT_ERROR]
+        assert result["grounding_validated"] is False
+        assert result["recommendation_ids"] == []
+        assert session.exec(
+            select(OutfitRecommendation).where(OutfitRecommendation.user_id == user_id)
+        ).all() == []
+
+
+def test_loop1_bounded_when_wardrobe_truly_missing_category(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Missing required category without blocking structured_must_have terminates at Round 0."""
+    _, engine = migrated_database
+    user_id = f"user_loop1_miss_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-only-01", user_id=user_id, category=WardrobeCategory.TOP, sub_category="polo", color="white")
+        _add_wardrobe_item(session, item_id="top-only-02", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="navy")
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop1-missing-cat",
+                "user_id": user_id,
+                "user_query": "Đi cafe sáng mai mặc gì",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == [NO_COMPLETE_OUTFIT_ERROR]
+        assert result["relaxation_round"] == 0
+        assert result["active_relaxations"] == []
+        assert result["grounding_validated"] is False
+
+
+def test_loop2_critic_reroutes_when_all_top_outfits_recently_worn(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Loop 2 (Coordinator Critic -> Fashion): promote unworn item when all top 3 repeat a 48h wear."""
+    _, engine = migrated_database
+    user_id = f"user_loop2_reroute_{uuid4().hex[:8]}"
+    worn_12h_ago = _fixed_clock() - timedelta(hours=12)
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-w1", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(session, item_id="top-w2", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="cream", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(session, item_id="top-w3", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="beige", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(
+            session, item_id="bot-worn", user_id=user_id, category=WardrobeCategory.BOTTOM,
+            sub_category="trousers", color="navy", style="smart_casual", formality=3, comfort=3,
+            functional_flags=["outdoor", "movement", "protection"],
+            last_worn_at=worn_12h_ago,
+        )
+        _add_wardrobe_item(
+            session, item_id="bot-fresh", user_id=user_id, category=WardrobeCategory.BOTTOM,
+            sub_category="chinos", color="khaki", style="smart_casual", formality=3, comfort=4,
+            functional_flags=["outdoor"],
+        )
+        _add_wardrobe_item(session, item_id="shoe-ox", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="loafers", color="brown", style="smart_casual", formality=3, comfort=3)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop2-reroute",
+                "user_id": user_id,
+                "user_query": "Sáng mai đi làm ngoài trời mặc gì?",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["critique_round"] == 1
+        assert result["coordinator_decision"] == "approve"
+        top1_ids = {item.item_id for item in result["ranked_outfits"][0].items}
+        assert "bot-fresh" in top1_ids
+        assert "bot-worn" not in top1_ids
+
+        # DB persistence happens exactly once with the final approved outfits
+        recs = session.exec(
+            select(OutfitRecommendation).where(OutfitRecommendation.user_id == user_id)
+        ).all()
+        assert len(recs) == len(result["recommendation_ids"])
+        assert {r.id for r in recs} == set(result["recommendation_ids"])
+
+
+def test_loop2_critic_keeps_original_if_retry_score_drops_sharply(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Loop 2 fallback guard: keep original ranked outfits when fresh alternative drops score by > 0.05."""
+    _, engine = migrated_database
+    user_id = f"user_loop2_keep_{uuid4().hex[:8]}"
+    worn_12h_ago = _fixed_clock() - timedelta(hours=12)
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-k1", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(session, item_id="top-k2", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="cream", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(session, item_id="top-k3", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="beige", style="smart_casual", formality=3, comfort=3)
+        _add_wardrobe_item(
+            session, item_id="bot-worn-best", user_id=user_id, category=WardrobeCategory.BOTTOM,
+            sub_category="trousers", color="black", style="smart_casual", formality=3, comfort=3,
+            functional_flags=["outdoor", "movement", "protection"],
+            last_worn_at=worn_12h_ago,
+        )
+        # Fresh bottom passes formality retrieval but loses > 0.05 composite score -> fallback restores original
+        _add_wardrobe_item(
+            session, item_id="bot-fresh-poor", user_id=user_id, category=WardrobeCategory.BOTTOM,
+            sub_category="shorts", color="orange", pattern="floral", style="streetwear", formality=3, comfort=1,
+            functional_flags=[],
+        )
+        _add_wardrobe_item(session, item_id="shoe-k1", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="loafers", color="black", style="smart_casual", formality=3, comfort=3)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop2-keep",
+                "user_id": user_id,
+                "user_query": "Sáng mai đi làm ngoài trời mặc gì?",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["critique_round"] == 1
+        assert result["coordinator_decision"] == "approve"
+        assert any(note.conflict_type == "CRITIC_KEPT_ORIGINAL" for note in result["conflict_notes"])
+
+        top1_ids = {item.item_id for item in result["ranked_outfits"][0].items}
+        assert "bot-worn-best" in top1_ids
+
+        # DB persistence happens exactly once
+        recs = session.exec(
+            select(OutfitRecommendation).where(OutfitRecommendation.user_id == user_id)
+        ).all()
+        assert len(recs) == len(result["recommendation_ids"])
+        assert {r.id for r in recs} == set(result["recommendation_ids"])
+
+
+def test_loop2_critic_reroutes_on_rainy_context_gap(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Loop 2 (CONTEXT_GAP): surface water_resistant item in pool when rainy request lacks it in top 3."""
+    from app.models.entities import UserPreference
+
+    _, engine = migrated_database
+    user_id = f"user_loop2_rain_{uuid4().hex[:8]}"
+    worn_12h_ago = _fixed_clock() - timedelta(hours=12)
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.add(
+            UserPreference(
+                user_id=user_id,
+                styles=["formal"],
+                color_palettes=["neutral"],
+                priorities=["polished"],
+            )
+        )
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-r1", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", pattern="striped", style="formal", formality=4, comfort=5, weather=["rainy", "cool"])
+        _add_wardrobe_item(session, item_id="top-r2", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="cream", pattern="striped", style="formal", formality=4, comfort=5, weather=["rainy", "cool"])
+        _add_wardrobe_item(session, item_id="top-r3", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="beige", pattern="striped", style="formal", formality=4, comfort=5, weather=["rainy", "cool"])
+        _add_wardrobe_item(session, item_id="bot-r1", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="trousers", color="black", style="formal", formality=4, comfort=5, weather=["rainy", "cool"])
+        _add_wardrobe_item(session, item_id="shoe-r1-dry", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="black", style="formal", formality=4, comfort=5, weather=["rainy", "cool"])
+        # Rainproof footwear lags top-3 unworn combos by ~0.03 in Round 0, so Critic promotes it via CONTEXT_GAP
+        _add_wardrobe_item(
+            session, item_id="shoe-r2-rain", user_id=user_id, category=WardrobeCategory.FOOTWEAR,
+            sub_category="boots", color="green", pattern="floral", style="streetwear",
+            formality=4, comfort=2, weather=["rainy", "cool"],
+            functional_flags=["water_resistant", "rain"],
+            last_worn_at=worn_12h_ago,
+        )
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-loop2-rain-gap",
+                "user_id": user_id,
+                "user_query": "Tối nay đi tiệc cưới trời mưa mặc gì?",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["critique_round"] == 1
+        assert result["coordinator_decision"] == "approve"
+        assert any("water_resistant" in item.functional_flags for item in result["ranked_outfits"][0].items)
