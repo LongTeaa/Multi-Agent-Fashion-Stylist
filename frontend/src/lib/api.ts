@@ -523,12 +523,13 @@ export async function listTryOnAvatars(
 
 export async function uploadTryOnAvatar(
   file: File,
-  name?: string
+  options: { name?: string; consent: true }
 ): Promise<TryOnAvatar> {
   const formData = new FormData();
   formData.append('file', file);
-  if (name) {
-    formData.append('name', name);
+  formData.append('consent', String(options.consent));
+  if (options.name) {
+    formData.append('name', options.name);
   }
   return apiFetch<TryOnAvatar>(`${API_BASE_URL}/api/v1/tryons/avatars`, {
     method: 'POST',

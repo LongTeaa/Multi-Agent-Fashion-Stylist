@@ -5,6 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 from sqlmodel import Session, select
@@ -396,11 +397,25 @@ def test_user_avatar_upload_listing_and_deletion(
         client = TestClient(app)
         img_bytes = _image_bytes("blue")
 
+        # 0. Reject upload without explicit consent, and persist nothing
+        for consent_data in ({"name": "Ảnh chân dung"}, {"name": "Ảnh chân dung", "consent": "false"}):
+            res_no_consent = client.post(
+                "/api/v1/tryons/avatars",
+                headers={"X-User-Id": user_id},
+                data=consent_data,
+                files={"file": ("portrait.jpg", img_bytes, "image/jpeg")},
+            )
+            assert res_no_consent.status_code == 422
+            assert res_no_consent.json()["error"]["code"] == "VALIDATION_ERROR"
+            assert res_no_consent.json()["error"]["details"]["field"] == "consent"
+        res_empty = client.get("/api/v1/tryons/avatars", headers={"X-User-Id": user_id})
+        assert [a for a in res_empty.json()["data"] if not a["is_preset"]] == []
+
         # 1. Upload personal avatar
         res_upload = client.post(
             "/api/v1/tryons/avatars",
             headers={"X-User-Id": user_id},
-            data={"name": "Ảnh chân dung"},
+            data={"name": "Ảnh chân dung", "consent": "true"},
             files={"file": ("portrait.jpg", img_bytes, "image/jpeg")},
         )
         assert res_upload.status_code == 201
@@ -438,7 +453,7 @@ def test_user_avatar_upload_listing_and_deletion(
         res_no_person = client.post(
             "/api/v1/tryons/avatars",
             headers={"X-User-Id": user_id},
-            data={"name": "Ảnh chiếc giày"},
+            data={"name": "Ảnh chiếc giày", "consent": "true"},
             files={"file": ("shoe.jpg", img_bytes, "image/jpeg")},
         )
         assert res_no_person.status_code == 422
@@ -543,9 +558,11 @@ def test_virtual_tryon_multi_pass_and_caching(
         app.dependency_overrides.clear()
 
 
+@pytest.mark.parametrize("scenario", ["quota_exceeded", "timeout"])
 def test_virtual_tryon_quota_or_provider_failure_falls_back_to_moodboard(
     migrated_database: tuple[object, object],
     tmp_path: Path,
+    scenario: str,
 ) -> None:
     _, engine = migrated_database
     user_id = str(uuid4())
@@ -555,8 +572,8 @@ def test_virtual_tryon_quota_or_provider_failure_falls_back_to_moodboard(
     from app.core.dependencies import get_tryon_provider
     from app.services.fakes.tryon_fakes import FakeTryOnProvider
 
-    # Simulates Hugging Face ZeroGPU quota exceeded
-    failing_vton = FakeTryOnProvider(scenario="quota_exceeded")
+    # Simulates Hugging Face ZeroGPU quota exhaustion or an expired per-pass timeout
+    failing_vton = FakeTryOnProvider(scenario=scenario)  # type: ignore[arg-type]
     app.dependency_overrides[get_db_session] = _override_session(engine)
     app.dependency_overrides[get_object_storage] = lambda: storage
     app.dependency_overrides[get_tryon_provider] = lambda: failing_vton

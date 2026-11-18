@@ -486,7 +486,15 @@ Lists available try-on avatars for the authenticated user, including built-in pr
 
 ### 8.4 `POST /tryons/avatars`
 
-Multipart form upload (`file`) of a user full-body photo. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
+Multipart form upload of a user full-body photo with these fields:
+
+| Field | Required | Description |
+| :--- | :---: | :--- |
+| `file` | Yes | PNG, JPEG, or WebP image, at most 10 MB |
+| `consent` | Yes | MUST be `true`: the user explicitly agreed that the photo is sent to the configured external try-on provider |
+| `name` | No | Display name; defaults to `Ảnh của tôi` |
+
+A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.field = "consent"`, and nothing is stored. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
 
 ### 8.5 `DELETE /tryons/avatars/{avatar_id}`
 

@@ -15,7 +15,7 @@ from app.core.dependencies import (
     get_tryon_provider,
 )
 from app.repositories.object_storage import ObjectStorage
-from app.schemas.common import ErrorResponse, SuccessResponse
+from app.schemas.common import ErrorResponse, SuccessResponse, ValidationError
 from app.schemas.tryons import TryOnAvatarResponse, TryOnRequest, TryOnResponseData
 from app.services.providers import DetectorProtocol, ImageProviderProtocol, TryOnProviderProtocol
 from app.services.tryon_service import (
@@ -56,12 +56,18 @@ def get_avatars(
 async def upload_user_avatar(
     file: Annotated[UploadFile, File(...)],
     name: Annotated[str, Form()] = "Ảnh của tôi",
+    consent: Annotated[bool, Form()] = False,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_db_session),
     storage: ObjectStorage = Depends(get_object_storage),
     detector: DetectorProtocol | None = Depends(get_detector),
     settings: Settings = Depends(get_settings),
 ) -> SuccessResponse[TryOnAvatarResponse]:
+    if not consent:
+        raise ValidationError(
+            message="Vui lòng đồng ý cho phép xử lý ảnh trước khi tải lên.",
+            details={"field": "consent", "reason": "consent_required"},
+        )
     file_bytes = await file.read()
     avatar = create_user_avatar(
         session=session,
