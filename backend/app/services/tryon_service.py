@@ -11,6 +11,7 @@ from typing import Literal, cast
 
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import and_
+from sqlalchemy import delete as sa_delete
 from sqlmodel import Session, select
 
 from app.models.entities import (
@@ -20,6 +21,7 @@ from app.models.entities import (
     MediaAsset,
     MediaKind,
     OutfitItem,
+    OrphanMediaCleanup,
     OutfitRecommendation,
     TryOnAvatar,
     TryOnRender,
@@ -275,7 +277,13 @@ def delete_user_avatar(
     avatar_id: str,
     storage: ObjectStorage | None = None,
 ) -> None:
-    """Soft-delete a user-uploaded avatar and remove its underlying media object."""
+    """Soft-delete a user-uploaded avatar together with every try-on render derived from it.
+
+    A virtual try-on render shows the user's likeness, so it is removed with its source
+    avatar: render rows are deleted, their media assets are soft-deleted, and every storage
+    object is queued in the cleanup outbox in the same transaction. Objects are then deleted
+    immediately; any that fail stay queued and converge through the cleanup scheduler.
+    """
     avatar = session.exec(
         select(TryOnAvatar).where(
             TryOnAvatar.id == avatar_id,
@@ -288,33 +296,57 @@ def delete_user_avatar(
 
     now = utc_now()
     avatar.deleted_at = now
-    if avatar.media_asset_id:
-        asset = session.get(MediaAsset, avatar.media_asset_id)
-        if asset is not None and asset.user_id == user_id:
+    session.add(avatar)
+
+    renders = session.exec(
+        select(TryOnRender).where(
+            TryOnRender.user_id == user_id,
+            TryOnRender.avatar_id == avatar_id,
+        )
+    ).all()
+    asset_ids = [avatar.media_asset_id] if avatar.media_asset_id else []
+    asset_ids.extend(render.media_asset_id for render in renders if render.media_asset_id)
+    for render in renders:
+        session.delete(render)
+
+    queued: list[tuple[str, str, str]] = []
+    for asset_id in dict.fromkeys(asset_ids):
+        asset = session.get(MediaAsset, asset_id)
+        if asset is None or asset.user_id != user_id:
+            continue
+        if asset.deleted_at is None:
             asset.deleted_at = now
-            if storage is not None:
-                try:
-                    storage.delete_object(
-                        user_id=asset.user_id,
-                        bucket=asset.bucket,
-                        object_key=asset.object_key,
-                    )
-                except ObjectNotFoundError:
-                    pass
-                except Exception as del_err:
-                    logger.warning(
-                        "Failed to delete avatar file %s from storage: %s",
-                        asset.object_key,
-                        del_err,
-                    )
-                    record_orphan_cleanup(
-                        session=session,
-                        user_id=asset.user_id,
-                        bucket=asset.bucket,
-                        object_key=asset.object_key,
-                        last_error=str(del_err),
-                    )
+            session.add(asset)
+        record = record_orphan_cleanup(
+            session=session,
+            user_id=user_id,
+            bucket=asset.bucket,
+            object_key=asset.object_key,
+        )
+        queued.append((record.id, asset.bucket, asset.object_key))
     session.commit()
+
+    if storage is None:
+        return
+    removed_record_ids: list[str] = []
+    for record_id, bucket, object_key in queued:
+        try:
+            storage.delete_object(user_id=user_id, bucket=bucket, object_key=object_key)
+        except ObjectNotFoundError:
+            pass
+        except Exception as del_err:
+            logger.warning(
+                "Avatar media %s stays queued for cleanup after delete failed: %s",
+                object_key,
+                del_err,
+            )
+            continue
+        removed_record_ids.append(record_id)
+    if removed_record_ids:
+        session.execute(
+            sa_delete(OrphanMediaCleanup).where(OrphanMediaCleanup.id.in_(removed_record_ids))
+        )
+        session.commit()
 
 
 def get_tryon_render_by_id(
@@ -596,6 +628,21 @@ def create_tryon(
     )
 
 
+class _AvatarDeletedDuringRender(Exception):
+    """The source avatar was deleted while provider passes were running."""
+
+
+def _avatar_is_active(session: Session, user_id: str, avatar_id: str) -> bool:
+    # Select a column, not the entity, so the identity map cannot return a stale row.
+    return session.exec(
+        select(TryOnAvatar.id).where(
+            TryOnAvatar.id == avatar_id,
+            TryOnAvatar.user_id == user_id,
+            TryOnAvatar.deleted_at.is_(None),
+        )
+    ).first() is not None
+
+
 def _execute_virtual_tryon(
     *,
     session: Session,
@@ -832,6 +879,9 @@ def _execute_virtual_tryon(
                 current_person_bytes = res.image_bytes
 
         final_image_bytes = current_person_bytes
+        # Provider passes can take minutes; discard the result if the avatar was deleted meanwhile.
+        if avatar_record is not None and not _avatar_is_active(session, user_id, avatar_record.id):
+            raise _AvatarDeletedDuringRender()
         width, height = _image_dimensions(final_image_bytes)
         duration_ms = max(0, round((performance_clock() - started_at) * 1000))
 
@@ -906,6 +956,8 @@ def _execute_virtual_tryon(
             status="ready",
         )
 
+    except _AvatarDeletedDuringRender:
+        raise ValidationError(message="Không tìm thấy người mẫu / ảnh đại diện đã chọn.")
     except Exception as exc:
         logger.warning(
             "Virtual try-on execution failed, falling back to deterministic Moodboard: %s",

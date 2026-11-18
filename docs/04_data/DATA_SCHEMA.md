@@ -209,6 +209,11 @@ Stores user full-body avatar images and preset model configurations. Fields are 
 `is_default` (boolean), `consent_at` (nullable datetime recording user consent),
 `created_at`, and `deleted_at` (nullable datetime for soft deletion).
 
+Deleting a user avatar sets `deleted_at` on the avatar, deletes the `tryon_renders`
+rows whose `avatar_id` matches, and soft-deletes the media assets of the avatar and of
+those renders. Their storage objects are recorded in `orphan_media_cleanups` in the
+same transaction, then deleted; a manifest is removed only after its object is gone.
+
 ## 4. Relational Invariants
 
 - **INVARIANT:** An outfit and every wardrobe item within it have the same `user_id`.

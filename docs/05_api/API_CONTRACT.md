@@ -500,6 +500,8 @@ A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.
 
 Soft-deletes a user's uploaded avatar. Returns HTTP `204 No Content`. Users MUST NOT be able to delete built-in presets or other users' avatars.
 
+Deleting an avatar MUST also remove every try-on render made from it: afterwards `GET /tryons/{tryon_id}` and `GET /media/{asset_id}` for those renders return `404`. Renders made from built-in presets are kept. A try-on request whose avatar is deleted before the render is stored returns `422 VALIDATION_ERROR` and stores nothing.
+
 ## 9. Media API
 
 ### 9.1 `GET /media/{media_asset_id}`
