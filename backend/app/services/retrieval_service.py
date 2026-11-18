@@ -67,7 +67,55 @@ def _strict_candidates(
     return selected
 
 
+MIN_CANDIDATES_PER_CATEGORY = 2
+FORMALITY_NEAR_TOLERANCE = 1
+
+
+def _formality_distance(item: WardrobeItem, query: WardrobeRetrievalQuery) -> int:
+    minimum = query.formality_min if query.formality_min is not None else 1
+    maximum = query.formality_max if query.formality_max is not None else 5
+    if item.formality_level < minimum:
+        return minimum - item.formality_level
+    if item.formality_level > maximum:
+        return item.formality_level - maximum
+    return 0
+
+
 def _select_with_relaxation(
+    rows: list[tuple[WardrobeItem, WardrobeRetrievalDocument]],
+    query: WardrobeRetrievalQuery,
+) -> list[tuple[WardrobeItem, WardrobeRetrievalDocument, tuple[str, ...]]]:
+    """Select category candidates, relaxing constraints only as far as needed.
+
+    Weather then formality are dropped when a category has no candidate. When the
+    category still has fewer than MIN_CANDIDATES_PER_CATEGORY items under an enforced
+    formality range, items within FORMALITY_NEAR_TOLERANCE of the range are added and
+    individually marked as formality-relaxed, so ranking can still offer an
+    alternative while preferring in-range items.
+    """
+    selected, relaxed = _select_with_category_relaxation(rows, query)
+    with_relaxations = [(item, document, relaxed) for item, document in selected]
+
+    formality_enforced = (
+        query.formality_min is not None or query.formality_max is not None
+    ) and "formality" not in relaxed
+    if formality_enforced and len(selected) < MIN_CANDIDATES_PER_CATEGORY:
+        selected_ids = {item.id for item, _ in selected}
+        near = _strict_candidates(
+            rows,
+            query,
+            enforce_weather=query.weather_condition is not None and "weather" not in relaxed,
+            enforce_formality=False,
+        )
+        for item, document in near:
+            if item.id in selected_ids:
+                continue
+            if _formality_distance(item, query) <= FORMALITY_NEAR_TOLERANCE:
+                with_relaxations.append((item, document, relaxed + ("formality",)))
+    return with_relaxations
+
+
+def _select_with_category_relaxation(
     rows: list[tuple[WardrobeItem, WardrobeRetrievalDocument]],
     query: WardrobeRetrievalQuery,
 ) -> tuple[list[tuple[WardrobeItem, WardrobeRetrievalDocument]], tuple[str, ...]]:
@@ -157,9 +205,9 @@ def retrieve_wardrobe_items(
     results: dict[WardrobeCategory, list[RetrievalMatch]] = {}
     for category in query.categories:
         category_rows = [(item, document) for item, document in rows if item.category == category]
-        selected, relaxed = _select_with_relaxation(category_rows, query)
+        selected = _select_with_relaxation(category_rows, query)
         matches: list[RetrievalMatch] = []
-        for item, document in selected:
+        for item, document, relaxed in selected:
             metadata_score = _metadata_score(item, query)
             full_text_score = (
                 _full_text_score(document, query.text_query)

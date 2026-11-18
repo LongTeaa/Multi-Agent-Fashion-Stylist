@@ -33,7 +33,7 @@ EXPECTED_GOLDEN_ITEMS = {
         "unknown",
         "unknown",
         "smart_casual",
-        3,
+        4,
         ["warm", "cool", "cold"],
     ),
     golden_item_id("item-top-03"): (
@@ -99,6 +99,18 @@ EXPECTED_GOLDEN_ITEMS = {
 }
 
 
+# (comfort_level, silhouette_level, length, functional_flags); see DATA_SCHEMA.md section 5.
+EXPECTED_GOLDEN_PROFILES = {
+    golden_item_id("item-top-01"): (4, 3, "hip", ["light"]),
+    golden_item_id("item-top-02"): (3, 2, "hip", ["work"]),
+    golden_item_id("item-top-03"): (5, 4, "hip", ["light", "movement"]),
+    golden_item_id("item-bottom-01"): (3, 3, "long", []),
+    golden_item_id("item-bottom-02"): (2, 3, "long", ["work"]),
+    golden_item_id("item-bottom-03"): (4, 3, "cropped", ["movement"]),
+    golden_item_id("item-shoes-01"): (4, 3, "hip", ["movement"]),
+    golden_item_id("item-shoes-02"): (2, 3, "hip", ["work"]),
+}
+
 def test_seed_is_idempotent_and_matches_the_golden_fixture(
     migrated_database: tuple[Config, Engine],
 ) -> None:
@@ -138,6 +150,20 @@ def test_seed_is_idempotent_and_matches_the_golden_fixture(
         for item in items
     }
     assert actual_golden_items == EXPECTED_GOLDEN_ITEMS
+    actual_profiles = {
+        item.id: (
+            item.comfort_level,
+            item.silhouette_level,
+            item.length,
+            item.functional_flags,
+        )
+        for item in items
+    }
+    assert actual_profiles == EXPECTED_GOLDEN_PROFILES
+    # The demo wardrobe MUST exercise the garment profile, not only its defaults.
+    assert len({profile[0] for profile in actual_profiles.values()}) > 1
+    assert len({profile[1] for profile in actual_profiles.values()}) > 1
+    assert any(profile[3] for profile in actual_profiles.values())
 
     for item in items:
         assert item.user_id == GOLDEN_USER_ID

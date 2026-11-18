@@ -177,6 +177,63 @@ def test_weather_then_formality_relaxation_is_reported_but_avoid_is_never_relaxe
     assert excluded[WardrobeCategory.ACCESSORY] == []
 
 
+def test_sparse_category_adds_near_formality_items_marked_per_item(
+    migrated_database: tuple[object, object],
+) -> None:
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_item(session, item_id="shirt", user_id=user_id, formality=4)
+        _add_item(session, item_id="polo", user_id=user_id, formality=3)
+        _add_item(session, item_id="tee", user_id=user_id, formality=1)
+        _add_item(session, item_id="hot-only", user_id=user_id, formality=3, weather=["hot"])
+        session.commit()
+        results = retrieve_wardrobe_items(
+            session=session,
+            user_id=user_id,
+            query=WardrobeRetrievalQuery(
+                categories=[WardrobeCategory.TOP],
+                weather_condition="cool",
+                formality_min=4,
+                formality_max=5,
+            ),
+        )
+
+    matches = results[WardrobeCategory.TOP]
+    # In-range first; one level away is added; two levels away and weather misses are not.
+    assert [match.item.id for match in matches] == ["shirt", "polo"]
+    assert matches[0].relaxed_constraints == ()
+    assert matches[1].relaxed_constraints == ("formality",)
+    assert matches[0].metadata_score > matches[1].metadata_score
+
+
+def test_category_with_enough_in_range_items_is_not_widened(
+    migrated_database: tuple[object, object],
+) -> None:
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_item(session, item_id="shirt-a", user_id=user_id, formality=4)
+        _add_item(session, item_id="shirt-b", user_id=user_id, formality=5)
+        _add_item(session, item_id="polo", user_id=user_id, formality=3)
+        session.commit()
+        results = retrieve_wardrobe_items(
+            session=session,
+            user_id=user_id,
+            query=WardrobeRetrievalQuery(
+                categories=[WardrobeCategory.TOP],
+                formality_min=4,
+                formality_max=5,
+            ),
+        )
+
+    assert {match.item.id for match in results[WardrobeCategory.TOP]} == {"shirt-a", "shirt-b"}
+
+
 def test_retrieval_caps_each_category_at_fifteen(
     migrated_database: tuple[object, object],
 ) -> None:

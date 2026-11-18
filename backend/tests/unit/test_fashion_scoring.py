@@ -265,6 +265,31 @@ def test_formality_distance_penalty():
     assert score == 0.50
 
 
+def test_formality_weakest_link_is_not_averaged_away():
+    """One major item below the range lowers the score even if the average is close."""
+    polo = _make_slot("top-1", OutfitSlotRole.TOP, formality=3)
+    shirt = _make_slot("top-2", OutfitSlotRole.TOP, formality=4)
+    trousers = _make_slot("bot-1", OutfitSlotRole.BOTTOM, formality=4)
+    oxford = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR, formality=4)
+
+    polo_score = calculate_formality_score([polo, trousers, oxford], target_range=[4, 5])
+    shirt_score = calculate_formality_score([shirt, trousers, oxford], target_range=[4, 5])
+
+    # Average 3.67 is only 0.33 below the range, but the polo itself is a full level below.
+    assert polo_score == 0.75
+    assert shirt_score == 1.0
+
+
+def test_formality_accessories_do_not_count_as_weakest_link():
+    """Accessories are excluded from major items, so they cannot drag formality down."""
+    top = _make_slot("top-1", OutfitSlotRole.TOP, formality=4)
+    bot = _make_slot("bot-1", OutfitSlotRole.BOTTOM, formality=4)
+    shoe = _make_slot("shoe-1", OutfitSlotRole.FOOTWEAR, formality=4)
+    cap = _make_slot("acc-1", OutfitSlotRole.ACCESSORY, formality=1)
+
+    assert calculate_formality_score([top, bot, shoe, cap], target_range=[4, 5]) == 1.0
+
+
 # ============================================================================
 # 4. WEATHER & ENVIRONMENT SCORING TESTS
 # ============================================================================

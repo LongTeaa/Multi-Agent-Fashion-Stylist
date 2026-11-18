@@ -32,6 +32,10 @@ class GoldenWardrobeItem:
     style: str
     formality_level: int
     weather_suitability: tuple[str, ...]
+    comfort_level: int
+    silhouette_level: int
+    length: str
+    functional_flags: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,10 @@ GOLDEN_WARDROBE = (
         style="smart_casual",
         formality_level=3,
         weather_suitability=("warm", "cool"),
+        comfort_level=4,
+        silhouette_level=3,
+        length="hip",
+        functional_flags=("light",),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-top-02"),
@@ -66,8 +74,12 @@ GOLDEN_WARDROBE = (
         pattern="unknown",
         material="unknown",
         style="smart_casual",
-        formality_level=3,
+        formality_level=4,
         weather_suitability=("warm", "cool", "cold"),
+        comfort_level=3,
+        silhouette_level=2,
+        length="hip",
+        functional_flags=("work",),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-top-03"),
@@ -79,6 +91,10 @@ GOLDEN_WARDROBE = (
         style="streetwear",
         formality_level=1,
         weather_suitability=("hot", "warm"),
+        comfort_level=5,
+        silhouette_level=4,
+        length="hip",
+        functional_flags=("light", "movement"),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-bottom-01"),
@@ -90,6 +106,10 @@ GOLDEN_WARDROBE = (
         style="smart_casual",
         formality_level=3,
         weather_suitability=("warm", "cool"),
+        comfort_level=3,
+        silhouette_level=3,
+        length="long",
+        functional_flags=(),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-bottom-02"),
@@ -101,6 +121,10 @@ GOLDEN_WARDROBE = (
         style="formal",
         formality_level=4,
         weather_suitability=("warm", "cool", "cold"),
+        comfort_level=2,
+        silhouette_level=3,
+        length="long",
+        functional_flags=("work",),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-bottom-03"),
@@ -112,6 +136,10 @@ GOLDEN_WARDROBE = (
         style="casual",
         formality_level=1,
         weather_suitability=("hot", "warm"),
+        comfort_level=4,
+        silhouette_level=3,
+        length="cropped",
+        functional_flags=("movement",),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-shoes-01"),
@@ -123,6 +151,10 @@ GOLDEN_WARDROBE = (
         style="minimalist",
         formality_level=2,
         weather_suitability=("hot", "warm", "cool"),
+        comfort_level=4,
+        silhouette_level=3,
+        length="hip",
+        functional_flags=("movement",),
     ),
     GoldenWardrobeItem(
         id=golden_item_id("item-shoes-02"),
@@ -134,6 +166,10 @@ GOLDEN_WARDROBE = (
         style="formal",
         formality_level=4,
         weather_suitability=("warm", "cool", "cold"),
+        comfort_level=2,
+        silhouette_level=3,
+        length="hip",
+        functional_flags=("work",),
     ),
 )
 
@@ -153,7 +189,10 @@ def _apply_spec(item: WardrobeItem, spec: GoldenWardrobeItem) -> None:
     item.formality_level = spec.formality_level
     item.season = []
     item.weather_suitability = list(spec.weather_suitability)
-    item.functional_flags = []
+    item.comfort_level = spec.comfort_level
+    item.silhouette_level = spec.silhouette_level
+    item.length = spec.length
+    item.functional_flags = list(spec.functional_flags)
     item.free_text_tags = []
     item.field_confidence = {}
     item.is_active = True

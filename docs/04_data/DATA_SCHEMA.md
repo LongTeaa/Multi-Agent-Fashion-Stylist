@@ -223,16 +223,18 @@ Stores user full-body avatar images and preset model configurations. Fields are 
 
 The golden fixture MUST include one test user and these eight items:
 
-| ID | Category | Description | Style/Formality | Weather |
-| :--- | :--- | :--- | :--- | :--- |
-| `item-top-01` | top | white solid cotton polo | smart_casual/3 | warm,cool |
-| `item-top-02` | top | black button-down shirt | smart_casual/3 | warm,cool,cold |
-| `item-top-03` | top | grey graphic tee | streetwear/1 | hot,warm |
-| `item-bottom-01` | bottom | navy chinos | smart_casual/3 | warm,cool |
-| `item-bottom-02` | bottom | black wool trousers | formal/4 | warm,cool,cold |
-| `item-bottom-03` | bottom | denim shorts | casual/1 | hot,warm |
-| `item-shoes-01` | footwear | white leather sneakers | minimalist/2 | hot,warm,cool |
-| `item-shoes-02` | footwear | brown leather Oxford shoes | formal/4 | warm,cool,cold |
+| ID | Category | Description | Style/Formality | Weather | Comfort/Silhouette/Length | Functional flags |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `item-top-01` | top | white solid cotton polo | smart_casual/3 | warm,cool | 4/3/hip | light |
+| `item-top-02` | top | black button-down shirt | smart_casual/4 | warm,cool,cold | 3/2/hip | work |
+| `item-top-03` | top | grey graphic tee | streetwear/1 | hot,warm | 5/4/hip | light,movement |
+| `item-bottom-01` | bottom | navy chinos | smart_casual/3 | warm,cool | 3/3/long | — |
+| `item-bottom-02` | bottom | black wool trousers | formal/4 | warm,cool,cold | 2/3/long | work |
+| `item-bottom-03` | bottom | denim shorts | casual/1 | hot,warm | 4/3/cropped | movement |
+| `item-shoes-01` | footwear | white leather sneakers | minimalist/2 | hot,warm,cool | 4/3/hip | movement |
+| `item-shoes-02` | footwear | brown leather Oxford shoes | formal/4 | warm,cool,cold | 2/3/hip | work |
+
+The fixture MUST exercise the garment profile in `../03_domain/FASHION_KNOWLEDGE_BASE.md` section 2: comfort and silhouette levels MUST vary across items and at least one item MUST carry a functional flag. A button-down shirt is formality 4 per that scale. Re-running the seed restores these values and resets the golden items' wear counters.
 
 Fixture images SHOULD reside in `data/fixtures/sample_clothes/`. The seed command MUST be idempotent.
 

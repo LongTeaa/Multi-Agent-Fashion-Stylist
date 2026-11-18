@@ -143,6 +143,8 @@ Functional fit uses recorded `functional_flags`. A name such as sneakers, jacket
 
 $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{comfort}} \cdot \text{WeatherComfortFit} + w_{\text{func}} \cdot \text{FunctionalFit} + w_{\text{aest}} \cdot \text{AestheticScore} + w_{\text{pers}} \cdot \text{PersonalPref} - \text{BehaviorPenalty}$$
 
+`FormalityFit` lấy giá trị thấp hơn giữa hai cách nhìn, mỗi cách là $\max(0, 1 - d/4)$ với $d$ là số bậc nằm ngoài khoảng `target_formality_range`: (1) mức trang trọng trung bình của các món chính (không tính phụ kiện) và (2) món chính lệch xa nhất (weakest link). Nhờ vậy một món lạc tông không bị trung bình hóa: polo (3) đi cùng quần tây và Oxford (4) cho buổi phỏng vấn `[4, 5]` đạt `0.75` thay vì `0.917`, còn bộ sơ mi (4) + quần tây + Oxford đạt `1.0`. Kiểm chứng bởi `backend/tests/integration/test_formal_occasion_ranking.py`.
+
 `PersonalPref` chỉ đo mức hợp gu (phong cách, bảng màu, ưu tiên, điểm học từ đánh giá sao). `BehaviorPenalty` là hình phạt hành vi: phạt lặp đồ (bộ y hệt đã mặc trong 72 giờ `-0.40`; mỗi món chính đã mặc trong 48 giờ `-0.15`, tối đa `-0.30`) và phạt vi phạm "tránh" khi buộc phải nới lỏng (`-0.10` mỗi vi phạm). Hình phạt nằm **ngoài** trọng số nên vẫn có hiệu lực với hồ sơ đặt $w_{\text{pers}} = 0$ (Comfort, Active). Kết quả được kẹp trong `[0, 1]`.
 
 | Hồ sơ Trọng số (Profile) | Hoàn cảnh kích hoạt tiêu biểu | $w_{\text{formality}}$ | $w_{\text{comfort}}$ | $w_{\text{func}}$ | $w_{\text{aest}}$ | $w_{\text{pers}}$ |

@@ -260,25 +260,35 @@ def calculate_formality_score(
     items: list[OutfitItemSlot],
     target_range: list[int] | None = None,
 ) -> float:
-    """Calculate formality score according to Section 5.
+    """Calculate FormalityFit (FASHION_KNOWLEDGE_BASE.md, section 3.3).
 
-    If average formality of major items is inside target_range [min, max], score is 1.0.
-    Otherwise max(0, 1 - distance / 4).
+    The outfit score is the weaker of two views, each ``max(0, 1 - distance / 4)``
+    where distance is how far a level lies outside target_range [min, max]:
+    - the average formality of the major items, and
+    - the single major item furthest outside the range (weakest link).
+
+    The weakest link stops one out-of-place item from being averaged away, e.g. a
+    polo (3) with trousers and Oxfords (4) for a [4, 5] interview.
     """
     major_items = _get_major_items(items)
     if not major_items:
         return 1.0
 
-    avg_formality = sum(item.formality_level for item in major_items) / len(major_items)
     if not target_range or len(target_range) != 2:
         target_range = [2, 3]
-
     min_f, max_f = target_range[0], target_range[1]
-    if min_f <= avg_formality <= max_f:
-        return 1.0
 
-    distance = min(abs(avg_formality - min_f), abs(avg_formality - max_f))
-    score = max(0.0, 1.0 - (distance / 4.0))
+    def _distance(level: float) -> float:
+        if level < min_f:
+            return min_f - level
+        if level > max_f:
+            return level - max_f
+        return 0.0
+
+    avg_formality = sum(item.formality_level for item in major_items) / len(major_items)
+    worst_distance = max(_distance(item.formality_level) for item in major_items)
+    distance = max(_distance(avg_formality), worst_distance)
+    score = 1.0 - (distance / 4.0)
     return round(max(0.0, min(1.0, score)), 4)
 
 
