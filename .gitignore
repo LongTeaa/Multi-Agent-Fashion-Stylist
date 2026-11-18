@@ -29,6 +29,7 @@ data/*.sqlite3
 data/object_storage/
 data/storage/
 data/private-vision-review/
+data/demo-wardrobe/
 backend/data
 
 # Logs and operating-system files

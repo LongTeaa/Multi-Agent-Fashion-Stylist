@@ -16,7 +16,7 @@ The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tai
 - Person body reference:
   - Preset standard model/mannequin (male or female), bundled in local assets.
   - User-uploaded full-body avatar (`tryon_avatars`).
-- Avatar validation: Any uploaded user avatar MUST pass a person detection guard (e.g. YOLO-World detector detecting a clear `person`) before persistence. Uploading an avatar MUST require explicit user consent, and users MUST be able to delete their avatar at any time.
+- Avatar validation: Any uploaded user avatar MUST pass a person detection guard (e.g. YOLO-World detector detecting a clear `person`) before persistence. Uploading an avatar MUST require explicit user consent, and users MUST be able to delete their avatar at any time. The consent control MUST be unchecked by default and MUST state that the photo is sent to an external image-processing service; the API MUST reject an upload whose `consent` field is not `true` (see `../05_api/API_CONTRACT.md`, section 8.4).
 - Garment categorization:
   - `tops`: Shirts, t-shirts, polos, hoodies, jackets, coats (`top`, `outerwear`).
   - `bottoms`: Pants, jeans, trousers, skirts, shorts (`bottom`).
@@ -25,7 +25,7 @@ The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tai
 
 The Gemini image adapter uses the same `GEMINI_API_KEY` as Vision, with a separate `IMAGE_MODEL` identifier. Set `IMAGE_PROVIDER=gemini` to enable it. The adapter sends the outfit's private item crops as inline reference images and reads generated image bytes from the Gemini response. A provider error, invalid image response, or timeout follows the moodboard fallback path.
 
-The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space endpoint (`FASHN_TRYON_SPACE=fashn-ai/fashn-vton-1.5`) with optional `HF_TOKEN`.
+The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space endpoint (`FASHN_TRYON_SPACE=fashn-ai/fashn-vton-1.5`) with optional `HF_TOKEN`. Each provider pass MUST be bounded by `TRYON_TIMEOUT_SECONDS`; on expiry the adapter MUST cancel the remote job and raise a timeout, which follows the moodboard fallback path.
 
 ## 3. Pipeline
 

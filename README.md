@@ -2,5 +2,6 @@
 
 Project specifications: [docs/README.md](docs/README.md).
 
-Weather/Context setup, multi-agent rule audit, and live acceptance evidence:
-[2026-11-03 audit](docs/07_implementation/MULTI_AGENT_WEATHER_AUDIT_2026-11-03.md).
+Historical reviews, audits, and live-test evidence (including the
+[2026-11-03 weather/context audit](docs/archive/reports/MULTI_AGENT_WEATHER_AUDIT_2026-11-03.md))
+are kept in [docs/archive/](docs/archive/README.md).

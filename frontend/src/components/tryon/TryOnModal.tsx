@@ -82,7 +82,7 @@ export function TryOnModal({
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadName, setUploadName] = useState('');
-  const [consentChecked, setConsentChecked] = useState(true);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -334,12 +334,16 @@ export function TryOnModal({
     setIsUploading(true);
     setUploadError(null);
     try {
-      const newAvatar = await uploadTryOnAvatar(uploadFile, uploadName.trim() || undefined);
+      const newAvatar = await uploadTryOnAvatar(uploadFile, {
+        name: uploadName.trim() || undefined,
+        consent: true,
+      });
       setAvatars((prev) => [...prev, newAvatar]);
       setSelectedAvatarId(newAvatar.id);
       setIsUploadOpen(false);
       setUploadFile(null);
       setUploadName('');
+      setConsentChecked(false);
       void generate(newAvatar.id);
     } catch (err) {
       setUploadError(
@@ -454,7 +458,7 @@ export function TryOnModal({
                     className="h-3.5 w-3.5 rounded border-[#C8C2B7] text-[#9C5234] focus:ring-[#9C5234]"
                   />
                   <label htmlFor="consent_checkbox" className="text-xs text-[#736E65]">
-                    Tôi đồng ý dùng ảnh này để tạo ảnh mặc thử. Ảnh chỉ được lưu trong tài khoản của tôi.
+                    Tôi đồng ý gửi ảnh này tới dịch vụ xử lý ảnh bên ngoài để tạo ảnh mặc thử. Ảnh được lưu riêng tư trong tài khoản và tôi có thể xóa bất cứ lúc nào.
                   </label>
                 </div>
                 {uploadError && <p className="text-xs text-rose-700">{uploadError}</p>}

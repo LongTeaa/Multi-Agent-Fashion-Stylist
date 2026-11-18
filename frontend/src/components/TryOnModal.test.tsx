@@ -11,6 +11,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
     ...actual,
     createTryOn: vi.fn(),
     setOutfitBookmark: vi.fn(),
+    uploadTryOnAvatar: vi.fn(),
     getMediaUrl: vi.fn((path: string) => `http://media.test${path}`),
   };
 });
@@ -145,6 +146,55 @@ describe('TryOnModal', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     fireEvent.click(screen.getByRole('button', { name: 'Thử tạo lại' }));
     await waitFor(() => expect(screen.getByText('Ảnh minh họa AI')).toBeDefined());
+  });
+
+  it('requires explicit consent, unticked by default, before uploading an avatar', async () => {
+    vi.mocked(api.createTryOn).mockResolvedValue({
+      tryon_id: 'tryon-mb',
+      outfit_id: 'outfit-1',
+      image_url: '/api/v1/media/moodboard-1',
+      render_kind: 'moodboard',
+      fallback_used: true,
+      duration_ms: 80,
+      status: 'ready',
+    });
+    vi.mocked(api.uploadTryOnAvatar).mockResolvedValue({
+      id: 'avatar-1',
+      name: 'Ảnh của tôi',
+      is_preset: false,
+      is_default: false,
+      image_url: '/api/v1/media/avatar-1',
+      created_at: '2026-11-18T08:00:00Z',
+    });
+
+    render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={items}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Tải ảnh toàn thân của bạn' }));
+    const consent = screen.getByRole('checkbox', { name: /dịch vụ xử lý ảnh bên ngoài/ });
+    expect((consent as HTMLInputElement).checked).toBe(false);
+
+    const file = new File(['avatar'], 'me.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText(/Ảnh toàn thân/), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu và mặc thử' }));
+
+    expect(await screen.findByText('Vui lòng đồng ý điều khoản bảo mật ảnh trước khi tải lên.')).toBeDefined();
+    expect(api.uploadTryOnAvatar).not.toHaveBeenCalled();
+
+    fireEvent.click(consent);
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu và mặc thử' }));
+
+    await waitFor(() => {
+      expect(api.uploadTryOnAvatar).toHaveBeenCalledWith(file, { name: undefined, consent: true });
+    });
   });
 
   it('supports avatar selection and renders virtual try-on with before/after toggle', async () => {

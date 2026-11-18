@@ -152,7 +152,11 @@ The executable metadata baseline uses applicable-signal normalization with weigh
 `style=0.30`, `color=0.25`, `formality=0.25`, and `weather=0.20`. When no ranking hint
 is present, the neutral metadata score is `0.50`. `must_avoid` and `must_have` are not
 relaxed. If a required category has no result, weather is relaxed first and formality
-second, and every relaxation MUST be reported with the candidate result.
+second, and every relaxation MUST be reported with the candidate result. If an enforced
+formality range still leaves a category with fewer than 2 candidates, items at most one
+level outside the range (and satisfying every other active constraint) MUST be added so
+the stylist can offer an alternative. Each such item MUST carry `formality` in its own
+relaxed constraints; in-range items keep theirs and rank higher through the metadata score.
 
 Optional full-text ranking tokenizes the normalized retrieval document and query. When
 enabled with a non-empty text query, the merged score is `0.80 * metadata_score + 0.20 *

@@ -1,5 +1,7 @@
 # MVP Implementation Roadmap
 
+> **Archived 2026-11-18.** All seven phases are complete. This file is a historical record and MUST NOT be reopened; new work belongs in `../07_implementation/ROADMAP.md`. References to `TEST_STRATEGY.md` below mean `../07_implementation/TEST_STRATEGY.md`.
+
 A task MAY be checked only after its specified verification passes. A later phase MUST NOT be used to hide a failure in an earlier phase. All commands below are executed from the repository root.
 
 ## Phase 1 — Scaffold, Database, and Object Storage

@@ -11,6 +11,8 @@ Agents MUST read `docs/README.md` before implementation. When documents conflict
 5. Relevant feature and architecture specifications.
 6. The implementation roadmap and vibe-coding guide.
 
+Files under `docs/archive/` are historical records (completed roadmaps, dated reviews, audits, spike and live-test reports). They MUST NOT be treated as a source of truth and SHOULD be read only when tracing why a decision was made.
+
 Agents MUST NOT add shopping, affiliate, social-network, or 3D body-scanning features to the MVP.
 
 ## 2. Session Memory
@@ -22,7 +24,8 @@ Agents MUST NOT add shopping, affiliate, social-network, or 3D body-scanning fea
 
 ## 3. Implementation Rules
 
-- Work MUST follow the phases in `docs/07_implementation/MVP_ROADMAP.md`.
+- Work MUST follow the phases in `docs/07_implementation/ROADMAP.md`. When that roadmap defines no active phase, agents MUST NOT start feature work until the user approves a phase. The completed MVP roadmap is archived at `docs/archive/MVP_ROADMAP.md`.
+- New dated reviews, audits, and live-test reports MUST be written under `docs/archive/reports/`, not beside the normative specifications.
 - Agents SHOULD read only the context files listed for the active phase.
 - Documentation examples MUST NOT be copied mechanically. Implementation MUST match the installed library versions and the normative contracts.
 - Every recommended item MUST belong to the active wardrobe of the requesting user.
