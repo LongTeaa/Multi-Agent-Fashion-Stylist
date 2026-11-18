@@ -9,21 +9,7 @@ import { TryOnModal } from '@/components/tryon/TryOnModal';
 import { BookmarkIcon, CheckIcon, CloseIcon, Spinner, StarIcon } from '@/components/ui/icons';
 import { formatLookNumber } from '@/lib/looks';
 import { attributeLabel } from '@/lib/preferenceLabels';
-
-/**
- * Standard RFC 4122 Version 4 UUID generator with fallback
- * Guaranteed to satisfy backend UUID v4 validation in all environments
- */
-export function generateUUIDv4(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { generateUUIDv4 } from '@/lib/uuid';
 
 export interface NormalizedOutfitItem {
   id: string;

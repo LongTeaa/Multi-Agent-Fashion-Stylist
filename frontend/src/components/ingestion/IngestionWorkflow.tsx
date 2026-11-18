@@ -14,6 +14,7 @@ import {
   updateDetectionCrop,
 } from '@/lib/api';
 import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
+import { generateUUIDv4 } from '@/lib/uuid';
 import { UploadDropzone } from './UploadDropzone';
 import { CropEditor } from './CropEditor';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
@@ -55,7 +56,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
 
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingCancelledRef = useRef<boolean>(false);
-  const idempotencyTokenRef = useRef<string>(crypto.randomUUID());
+  const idempotencyTokenRef = useRef<string>(generateUUIDv4());
 
   useEffect(() => {
     if (selectedSourceId) sessionStorage.setItem('active_ingestion_source_id', selectedSourceId);
@@ -318,7 +319,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       clearTimeout(pollingTimerRef.current);
       pollingTimerRef.current = null;
     }
-    idempotencyTokenRef.current = crypto.randomUUID();
+    idempotencyTokenRef.current = generateUUIDv4();
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(ACTIVE_INGESTION_BATCH_KEY);
       sessionStorage.removeItem('active_ingestion_source_id');
