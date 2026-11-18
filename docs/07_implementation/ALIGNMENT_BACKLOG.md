@@ -21,3 +21,9 @@ The thesis is the highest-priority source of truth and is the author's academic 
 | :--- | :--- | :--- |
 | D-1 | `../README.md` requires English except for user-query examples, test queries, and user-facing messages. `../03_domain/FASHION_KNOWLEDGE_BASE.md` is largely Vietnamese. | Allow Vietnamese in domain-knowledge documents, or translate the knowledge base to English. |
 | D-2 | `../01_product/PRD_MVP.md` and `TEST_STRATEGY.md` section 4 are scoped to the completed MVP. | When the first upgrade phase changes product requirements, decide whether to extend the PRD in place or start a new PRD version. |
+
+## 3. API Contract (`../05_api/API_CONTRACT.md`)
+
+| ID | Divergence | Owner decision |
+| :--- | :--- | :--- |
+| A-1 | Section 8.5 specifies `204 No Content` for `DELETE /tryons/avatars/{avatar_id}`. The implementation (`backend/app/api/v1/endpoints/tryons.py`) returns `200` with `{"deleted": true, "avatar_id": ...}`, and the frontend and tests rely on that body. Recorded 2026-11-19. | Change the contract to `200` with this body, or change the endpoint, client, and tests to `204`. |
