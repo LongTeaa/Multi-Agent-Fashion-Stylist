@@ -15,6 +15,7 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
 from time import perf_counter
+from typing import Any
 from uuid import uuid4
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -40,7 +41,10 @@ from app.services.ingestion_service import (
     confirm_ingestion_batch, create_ingestion_batch, get_batch_review,
     process_ingestion_batch, update_detection_crop,
 )
-from app.services.providers import BoundingBoxDetection, DetectionResult, VisionExtractionResult
+from app.core.dependencies import get_yolo_world_detector
+from app.services.providers import (
+    BoundingBoxDetection, DetectionResult, DetectorProtocol, VisionExtractionResult,
+)
 from app.services.vision_evaluation import region_coverage
 
 
@@ -82,7 +86,13 @@ class AnnotatedReplay:
             boxes=[BoundingBoxDetection(box=r.box, label=r.category.value) for r in case.regions],
         )
 
-    def extract_attributes(self, crop_bytes: bytes) -> VisionExtractionResult:
+    def extract_attributes(
+        self,
+        crop_bytes: bytes,
+        spatial_context: dict[str, Any] | None = None,
+    ) -> VisionExtractionResult:
+        """Match VisionProviderProtocol; spatial context is irrelevant to annotations."""
+        del spatial_context
         category = self.crops[sha256(crop_bytes).hexdigest()]
         attrs = dict(category=category.value, sub_category=category.value, primary_color="unknown",
                      pattern="unknown", material="unknown", style="casual", fit="regular",
@@ -168,7 +178,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=ROOT / "data/private-vision-review")
     parser.add_argument("--manifest", type=Path, default=ROOT / "data/fixtures/vision_real_review_v2.json")
-    parser.add_argument("--live", action="store_true", help="Send private images to the configured Gemini detector")
+    parser.add_argument("--live", action="store_true",
+                        help="Run the selected detector on the private images (Gemini sends them to Google)")
+    parser.add_argument("--detector", choices=("gemini", "yolo_world"), default="gemini",
+                        help="Detector for --live: Gemini API or the local YOLO-World ONNX model")
     parser.add_argument("--case", dest="case_ids", action="append",
                         help="Evaluate only this case live (repeatable); offline replay still covers all sources")
     args = parser.parse_args()
@@ -192,10 +205,16 @@ def main() -> int:
     failures = 0
     if args.live:
         settings = get_settings()
-        if not settings.gemini_api_key or not settings.vision_model or settings.vision_provider != "gemini":
-            parser.error("Live evaluation requires configured Gemini vision provider, key and model")
-        detector = GeminiDetector(settings.gemini_api_key, settings.vision_model,
-                                  timeout_seconds=30, max_retries=0)
+        detector: DetectorProtocol
+        if args.detector == "yolo_world":
+            detector = get_yolo_world_detector(settings)
+            detector_model = settings.yolo_world_model_path
+        else:
+            if not settings.gemini_api_key or not settings.vision_model or settings.vision_provider != "gemini":
+                parser.error("Live Gemini evaluation requires configured Gemini vision provider, key and model")
+            detector = GeminiDetector(settings.gemini_api_key, settings.vision_model,
+                                      timeout_seconds=30, max_retries=0)
+            detector_model = settings.vision_model
         rows: list[dict[str, object]] = []
         selected_cases = [(case, raw) for case, raw in cases if not args.case_ids or case.id in args.case_ids]
         for case_index, (case, raw) in enumerate(selected_cases, 1):
@@ -232,8 +251,8 @@ def main() -> int:
                                  elapsed_seconds=round(perf_counter()-start, 3)))
             print(f"{case.id}: {rows[-1]['status']}", flush=True)
         available = [r for r in rows if r["status"] == "available"]
-        report["live"] = dict(model=settings.vision_model, results=rows,
-            adapter_contract="gemini-native-yxyx1000-v1", manifest_sha256=sha256(args.manifest.read_bytes()).hexdigest(),
+        report["live"] = dict(detector=args.detector, model=detector_model, results=rows,
+            adapter_contract="gemini-native-yxyx1000-v1" if args.detector == "gemini" else "yolo-world-onnx", manifest_sha256=sha256(args.manifest.read_bytes()).hexdigest(),
             crop_policy=AUTO_CROP_POLICY_VERSION,
             selected_case_ids=[case.id for case, _ in selected_cases],
             available_cases=len(available), total_cases=len(selected_cases),
