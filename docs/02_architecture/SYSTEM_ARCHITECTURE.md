@@ -12,10 +12,10 @@ The MVP MUST use a fixed pipeline. The Coordinator executes validation, persiste
 Next.js Web Client
     |
 FastAPI REST API
-    |-- Wardrobe ingestion service -- Vision provider
-    |-- Context/weather service ----- Weather provider
+    |-- Wardrobe ingestion service -- Detector + Vision provider
+    |-- Context/weather service ----- Context (LLM) + Weather provider
     |-- Stylist LangGraph workflow
-    |-- Try-on service -------------- Image provider
+    |-- Try-on service -------------- Try-on (VTON) provider, Image provider, moodboard
     |-- ObjectStorage --------------- MinIO / local adapter
     |-- SQLModel -------------------- SQLite
 ```
@@ -31,9 +31,11 @@ ChromaDB MUST NOT be a default MVP dependency. A semantic index MAY be introduce
 | Workflow | LangGraph fixed state graph |
 | Relational database | SQLite for development/MVP; migration path to PostgreSQL |
 | Object storage | MinIO; local-filesystem adapter for tests/offline demonstrations |
-| Vision and LLM | Provider abstraction; model identifiers from environment settings |
-| Image generation | Provider abstraction; a dedicated image model from environment settings |
-| Weather | OpenWeatherMap or an equivalent provider with a deterministic fallback |
+| Item detection | `DETECTOR_BACKEND`: `auto` (follows `VISION_PROVIDER`), `fake`, `gemini`, or `yolo_world` (local ONNX model) |
+| Vision and LLM | Provider abstraction (`fake` or `gemini`; context also `fallback` rules); model identifiers and an optional Vision fallback model from environment settings; multiple Gemini keys MAY be rotated |
+| Image generation | Provider abstraction (`disabled`, `fake`, `gemini`) with a dedicated image model from environment settings |
+| 2D virtual try-on | Provider abstraction (`disabled`, `fake`, `fashn`); FASHN VTON through a configurable Hugging Face Space |
+| Weather | Open-Meteo or OpenWeather, or `disabled`, with a deterministic fallback |
 
 Preview model identifiers MUST NOT be hardcoded in business logic. Model identifiers MUST be configurable to avoid coupling implementation to a short-lived provider version.
 
@@ -87,19 +89,18 @@ thesis/
 
 ## 7. Environment Contract
 
-```env
-DATABASE_URL=sqlite:///./data/fashion_stylist.db
-FRONTEND_URL=http://localhost:3000
-LLM_MODEL=provider_model_name
-VISION_MODEL=provider_model_name
-IMAGE_MODEL=provider_image_model_name
-GEMINI_API_KEY=your_api_key
-WEATHER_API_KEY=your_weather_api_key
-OBJECT_STORAGE_BACKEND=minio
-MINIO_ENDPOINT=http://localhost:9000
-MINIO_ACCESS_KEY=your_access_key
-MINIO_SECRET_KEY=your_secret_key
-```
+The complete, placeholder-only variable list is `.env.example` at the repository root, validated by `backend/app/core/config.py`. Variables fall into these groups:
+
+| Group | Examples |
+| :--- | :--- |
+| Application | `DATABASE_URL`, `FRONTEND_URL` |
+| Provider selection | `VISION_PROVIDER`, `DETECTOR_BACKEND`, `CONTEXT_PROVIDER`, `WEATHER_PROVIDER`, `IMAGE_PROVIDER`, `TRYON_PROVIDER` |
+| Model identifiers | `LLM_MODEL`, `VISION_MODEL`, `VISION_FALLBACK_MODEL`, `DETECTOR_MODEL`, `IMAGE_MODEL`, `YOLO_WORLD_MODEL_PATH`, `FASHN_TRYON_SPACE` |
+| Timeouts and limits | `*_TIMEOUT_SECONDS`, `INGESTION_MAX_CONCURRENCY` |
+| Credentials | `GEMINI_API_KEY`, `GEMINI_API_KEYS`, `WEATHER_API_KEY`, `HF_TOKEN` |
+| Object storage | `OBJECT_STORAGE_BACKEND`, `MINIO_*`, `SIGNED_URL_TTL_SECONDS` |
+
+Defaults MUST keep every external provider fake or disabled, so that a fresh checkout runs without credentials.
 
 The complete object-storage contract is defined in `../04_data/OBJECT_STORAGE_SPEC.md`.
 
@@ -111,6 +112,7 @@ The complete object-storage contract is defined in `../04_data/OBJECT_STORAGE_SP
 | Weather provider fails | Preserve weather explicitly supplied by the user; otherwise use a documented default and warning |
 | Vision provider fails | Preserve the ingestion batch and allow manual metadata entry/correction |
 | Image generation fails or exceeds 8 seconds | Generate a moodboard; return HTTP 200 when fallback succeeds |
+| 2D try-on provider fails, times out, or exhausts quota | Follow the fallback rules in `../06_features/VIRTUAL_TRYON_SPEC.md`; a successful moodboard fallback reports `fallback_used=true` |
 | Object storage fails | MUST NOT commit a database record that references a missing object |
 | Grounding validation fails | MUST NOT persist recommendations; return a normalized safe error |
 

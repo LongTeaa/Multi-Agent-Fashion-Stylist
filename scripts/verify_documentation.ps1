@@ -17,9 +17,12 @@ $requiredFiles = @(
     'docs/05_api/API_CONTRACT.md',
     'docs/06_features/PERSONALIZATION_AND_FEEDBACK_SPEC.md',
     'docs/06_features/VIRTUAL_TRYON_SPEC.md',
-    'docs/07_implementation/MVP_ROADMAP.md',
+    'docs/07_implementation/ROADMAP.md',
+    'docs/07_implementation/ALIGNMENT_BACKLOG.md',
     'docs/07_implementation/TEST_STRATEGY.md',
-    'docs/07_implementation/VIBE_CODING_GUIDE.md'
+    'docs/07_implementation/VIBE_CODING_GUIDE.md',
+    'docs/archive/README.md',
+    'docs/archive/MVP_ROADMAP.md'
 )
 
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -34,6 +37,19 @@ foreach ($relativePath in $requiredFiles) {
 $legacyThesisPath = Join-Path $workspaceRoot 'tro_ly_phoi_do_thong_minh_multi_agent.md'
 if (Test-Path -LiteralPath $legacyThesisPath) {
     $failures.Add('The thesis file MUST exist only under thesis/.')
+}
+
+$normativeDirectories = Get-ChildItem -LiteralPath (Join-Path $workspaceRoot 'docs') -Directory |
+    Where-Object { $_.Name -match '^0[1-7]_' }
+foreach ($directory in $normativeDirectories) {
+    $reports = Get-ChildItem -LiteralPath $directory.FullName -Recurse -File |
+        Where-Object { $_.Name -match '_\d{4}-\d{2}-\d{2}\.(md|json)$' -or $_.Name -match '(SPIKE|AUDIT)_REPORT' }
+    foreach ($report in $reports) {
+        $failures.Add("Dated or evidence report MUST live under docs/archive/reports/: $($report.FullName.Substring($workspaceRoot.Length + 1))")
+    }
+}
+if (Test-Path -LiteralPath (Join-Path $workspaceRoot 'ADVERSARIAL_AUDIT_REPORT.md')) {
+    $failures.Add('ADVERSARIAL_AUDIT_REPORT.md MUST live under docs/archive/reports/.')
 }
 
 $governanceFiles = @(
@@ -56,9 +72,9 @@ foreach ($filePath in $auditedFiles) {
         $failures.Add("Unbalanced Markdown code fences: $relativeFile")
     }
 
-    $isLiveTestReport = $relativeFile -match '(^|[\\/])LIVE_TEST_ISSUES_[^\\/]+\.md$'
+    $isArchived = $relativeFile -match '^docs[\\/]archive[\\/]'
     if ($filePath -like (Join-Path $workspaceRoot 'docs\*') -and
-        -not $isLiveTestReport -and
+        -not $isArchived -and
         $content -notmatch '\bMUST\b|\bSHOULD\b|\bINVARIANT\b') {
         $failures.Add("Missing RFC keyword usage: $relativeFile")
     }
@@ -72,7 +88,8 @@ foreach ($filePath in $auditedFiles) {
         'docs/05_DATA_SCHEMA.md',
         'docs/06_API_CONTRACT.md',
         'docs/07_VIRTUAL_TRYON_SPEC.md',
-        'docs/08_MVP_ROADMAP_CHECKLIST.md'
+        'docs/08_MVP_ROADMAP_CHECKLIST.md',
+        'docs/07_implementation/MVP_ROADMAP.md'
     )
     foreach ($legacyPattern in $legacyPatterns) {
         if ($content.Contains($legacyPattern)) {
@@ -94,12 +111,20 @@ foreach ($filePath in $auditedFiles) {
     }
 }
 
-$roadmap = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $workspaceRoot 'docs/07_implementation/MVP_ROADMAP.md')
-if (([regex]::Matches($roadmap, '(?m)^## Phase [1-7] ')).Count -ne 7) {
-    $failures.Add('MVP_ROADMAP.md MUST define exactly seven phases.')
+$commandBlockPattern = '(?m)^\*\*Executable Commands?:\*\*\r?$'
+
+$archivedRoadmap = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $workspaceRoot 'docs/archive/MVP_ROADMAP.md')
+if (([regex]::Matches($archivedRoadmap, '(?m)^## Phase [1-7] ')).Count -ne 7) {
+    $failures.Add('docs/archive/MVP_ROADMAP.md MUST keep exactly seven phases.')
 }
-if (([regex]::Matches($roadmap, '(?m)^\*\*Executable Commands?:\*\*\r?$')).Count -ne 7) {
-    $failures.Add('Every roadmap phase MUST define an executable command block.')
+if (([regex]::Matches($archivedRoadmap, $commandBlockPattern)).Count -ne 7) {
+    $failures.Add('Every archived MVP roadmap phase MUST keep its executable command block.')
+}
+
+$roadmap = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $workspaceRoot 'docs/07_implementation/ROADMAP.md')
+$roadmapPhaseCount = ([regex]::Matches($roadmap, '(?m)^## Phase \d+ ')).Count
+if (([regex]::Matches($roadmap, $commandBlockPattern)).Count -ne $roadmapPhaseCount) {
+    $failures.Add('Every ROADMAP.md phase MUST define exactly one executable command block.')
 }
 
 $testStrategy = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $workspaceRoot 'docs/07_implementation/TEST_STRATEGY.md')
@@ -140,4 +165,4 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Output "Documentation verification passed ($($requiredFiles.Count) required files, 7 roadmap phases)."
+Write-Output "Documentation verification passed ($($requiredFiles.Count) required files, $roadmapPhaseCount active roadmap phases)."

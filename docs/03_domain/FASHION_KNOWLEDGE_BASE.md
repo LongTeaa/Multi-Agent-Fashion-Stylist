@@ -158,7 +158,7 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 
 ## 4. Kịch bản Thực nghiệm Đối chứng Tương phản (Contrastive Demonstration Scenarios)
 
-Được tự động kiểm chứng và bảo chứng bởi bộ test tích hợp `test_contrastive_defense_demonstration_scenarios.py`:
+Được tự động kiểm chứng và bảo chứng bởi bộ test tích hợp `backend/tests/integration/test_contrastive_demo_scenarios.py`:
 
 ### Kịch bản A: Tiệc cưới Trang trọng tại Khách sạn
 * **Đầu vào Người dùng:** *"Tối nay tôi đi dự tiệc cưới trang trọng ở khách sạn, cần chỉn chu lịch thiệp"*

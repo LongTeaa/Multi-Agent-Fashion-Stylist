@@ -2,7 +2,7 @@
 
 ## 1. Session Discipline
 
-Every session MUST begin by reading `AGENTS.md`, `CURRENT_STATE.md`, and `docs/README.md`. Work SHOULD be limited to one roadmap task with one explicit verification target. A coding agent MUST inspect the workspace before creating or replacing files.
+Every session MUST begin by reading `AGENTS.md`, `CURRENT_STATE.md`, and `docs/README.md`. Work SHOULD be limited to one roadmap task with one explicit verification target. If `docs/07_implementation/ROADMAP.md` has no active phase, the session MUST first agree a phase with the user and add it to the roadmap. A coding agent MUST inspect the workspace before creating or replacing files.
 
 Design documents intentionally omit complete Python and TypeScript implementations. Specifications define contracts; source code and automated tests demonstrate compliance.
 
@@ -21,7 +21,7 @@ Template:
 Context Anchor:
 Work in the Multi-Agent-Fashion-Stylist repository. Read AGENTS.md,
 CURRENT_STATE.md, docs/README.md, and Phase [N] in
-docs/07_implementation/MVP_ROADMAP.md. Preserve all documented INVARIANTS.
+docs/07_implementation/ROADMAP.md. Preserve all documented INVARIANTS.
 
 Spec Files:
 - [exact/spec/path.md, section]
@@ -33,10 +33,12 @@ Implement only [one concrete task]. First inspect the existing code and tests.
 Do not implement adjacent roadmap tasks. Update CURRENT_STATE.md after verification.
 
 Verification Command:
-[paste the exact command from MVP_ROADMAP.md]
+[paste the exact command from ROADMAP.md]
 ```
 
 ## 3. Examples
+
+The examples below use phases from the archived MVP roadmap to illustrate the format.
 
 ### 3.1 API Task
 
