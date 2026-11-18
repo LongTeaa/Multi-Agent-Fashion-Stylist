@@ -29,6 +29,8 @@ data/fixtures/
 
 Shared fixtures MUST include an isolated temporary SQLite database, a temporary local object store, two distinct users, the eight-item golden wardrobe, and deterministic provider fakes.
 
+The eight-item golden wardrobe is for deterministic tests only. Demonstrations and recommendation evaluation SHOULD use the demo wardrobe `data/fixtures/demo_wardrobe_v1.json`: 58 real single-garment photos from the CC0 [Clothing dataset](https://github.com/alexeygrigorev/clothing-dataset), split into a female persona (31 items, including dresses) and a male persona (27 items). `backend/scripts/build_demo_wardrobe.py` downloads the images into the git-ignored `data/demo-wardrobe/`, verifies their SHA-256, and uploads them through the real ingestion pipeline for one deterministic demo user per persona. Batches stop at `needs_review`; a person MUST confirm each item. Each item's `expected_category` is the reference label for category-accuracy measurement. The dataset has no bags or non-hat accessories, and contains no multi-item or worn-outfit photos.
+
 ## 3. Provider Mock Strategy
 
 ### 3.1 LLM and Context Extraction
