@@ -14,6 +14,8 @@ from app.agents.context_scoring import (
 )
 from app.agents.fashion_scoring import calculate_formality_score
 from app.agents.state import (
+    AgentTraceEvent,
+    ConflictNote,
     EvaluatedOutfit,
     OutfitItemSlot,
     RankedOutfit,
@@ -638,7 +640,43 @@ def personalization_agent_node(
         max_output=3,
     )
 
+    conflict_notes: list[ConflictNote] = []
+    if AVOID_RELAXATION_WARNING in warnings:
+        conflict_notes.append(
+            ConflictNote(
+                conflict_type="PROFILE_AVOID_VS_REQUEST",
+                description_vi=(
+                    "Các phương án phù hợp hoàn cảnh hiện đều chứa màu sắc/phong cách bạn từng đánh dấu hạn chế trong hồ sơ."
+                ),
+                resolution_vi="Ưu tiên đáp ứng đúng hoàn cảnh của câu hỏi hiện tại.",
+            )
+        )
+    if ranked:
+        top_wear_penalty, _ = calculate_recent_wear_penalty(
+            ranked[0].items, recent_wear_data, reference_time
+        )
+        if top_wear_penalty > 0.0:
+            conflict_notes.append(
+                ConflictNote(
+                    conflict_type="RECENT_WEAR_VS_BEST_FIT",
+                    description_vi="Phương án hợp hoàn cảnh nhất có sử dụng lại trang phục bạn vừa mặc gần đây.",
+                    resolution_vi="Đã trừ điểm lặp đồ và kiểm tra phương án thay thế.",
+                )
+            )
+
+    existing_trace = list(state.get("agent_trace", []))
+    critique_round = int(state.get("critique_round", 0))
+    trace_event = AgentTraceEvent(
+        round=critique_round,
+        sender="personalization",
+        receiver="coordinator",
+        event_type="RANKED_OUTFITS_PRODUCED",
+        summary_vi=f"Đã xếp hạng Top {len(ranked)} phương án cá nhân hóa.",
+    )
+
     return {
         "ranked_outfits": ranked,
         "warnings": existing_warnings + warnings,
+        "conflict_notes": conflict_notes,
+        "agent_trace": existing_trace + [trace_event],
     }

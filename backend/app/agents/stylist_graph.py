@@ -13,7 +13,7 @@ from app.agents.context_agent import VIETNAM_TZ, context_agent_node
 from app.agents.coordinator import coordinator_node
 from app.agents.fashion_agent import fashion_agent_node
 from app.agents.personalization_agent import personalization_agent_node
-from app.agents.state import StylistGraphState
+from app.agents.state import AgentTraceEvent, StylistGraphState
 from app.agents.wardrobe_agent import wardrobe_agent_node
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
@@ -62,10 +62,14 @@ def route_after_wardrobe(state: StylistGraphState) -> str:
 def route_after_fashion(state: StylistGraphState) -> str:
     """Routes after Fashion Agent.
 
-    Continues to 'personalization' only when no errors exist and at least one
-    evaluated outfit exists. Otherwise routes directly to END.
+    Continues back to 'wardrobe' when a bounded RelaxationRequest is emitted,
+    forward to 'personalization' when evaluated outfits exist, or to END on errors.
     """
-    if not state.get("errors") and bool(state.get("evaluated_outfits")):
+    if state.get("errors"):
+        return END
+    if state.get("enable_agent_loops") and state.get("relaxation_request") is not None:
+        return "wardrobe"
+    if state.get("evaluated_outfits"):
         return "personalization"
     return END
 
@@ -81,6 +85,18 @@ def route_after_personalization(state: StylistGraphState) -> str:
     return END
 
 
+def route_after_coordinator(state: StylistGraphState) -> str:
+    """Routes after Coordinator Agent.
+
+    Routes back to 'fashion' on a bounded Critic reroute, or terminates at END.
+    """
+    if state.get("errors"):
+        return END
+    if state.get("enable_agent_loops") and state.get("coordinator_decision") == "reroute_fashion":
+        return "fashion"
+    return END
+
+
 # ============================================================================
 # GRAPH BUILDER & RUNNER
 # ============================================================================
@@ -91,11 +107,12 @@ def create_stylist_graph(
     clock: Clock | None = None,
     llm_provider: ContextLLMProviderProtocol | None = None,
     weather_provider: WeatherProviderProtocol | None = None,
+    enable_agent_loops: bool = True,
 ) -> CompiledStateGraph:
-    """Creates and compiles the fixed recommendation LangGraph workflow.
+    """Creates and compiles the 5-agent cyclic recommendation LangGraph workflow.
 
-    Fixed Sequence:
-        context -> wardrobe -> fashion -> personalization -> coordinator
+    Nodes:
+        context -> wardrobe <-> fashion -> personalization -> coordinator -> (fashion | END)
 
     Dependencies (database session, clock) are injected into node closures so
     tests and callers do not require live services or SDK patching.
@@ -120,6 +137,19 @@ def create_stylist_graph(
             weather_provider=weather_provider,
         )
         result["reference_time"] = ref_time
+        if "enable_agent_loops" not in state:
+            result["enable_agent_loops"] = enable_agent_loops
+        ctx = result.get("context")
+        needs_clar = bool(ctx and ctx.needs_clarification)
+        result["agent_trace"] = list(state.get("agent_trace", [])) + [
+            AgentTraceEvent(
+                round=0,
+                sender="context",
+                receiver="end" if needs_clar else "wardrobe",
+                event_type="CLARIFICATION_REQUESTED" if needs_clar else "CONTEXT_EXTRACTED",
+                summary_vi="Yêu cầu làm rõ ngữ cảnh." if needs_clar else "Đã trích xuất StylistContext.",
+            )
+        ]
         return result
 
     # 2. Wardrobe Node
@@ -145,13 +175,13 @@ def create_stylist_graph(
     workflow.add_node("personalization", _personalization_step)
     workflow.add_node("coordinator", _coordinator_step)
 
-    # Register edges
+    # Register edges (5 agent nodes, 12 directed edges with 2 bounded feedback loops)
     workflow.add_edge(START, "context")
     workflow.add_conditional_edges("context", route_after_context, ["wardrobe", END])
     workflow.add_conditional_edges("wardrobe", route_after_wardrobe, ["fashion", END])
-    workflow.add_conditional_edges("fashion", route_after_fashion, ["personalization", END])
+    workflow.add_conditional_edges("fashion", route_after_fashion, ["wardrobe", "personalization", END])
     workflow.add_conditional_edges("personalization", route_after_personalization, ["coordinator", END])
-    workflow.add_edge("coordinator", END)
+    workflow.add_conditional_edges("coordinator", route_after_coordinator, ["fashion", END])
 
     return workflow.compile()
 
@@ -188,6 +218,7 @@ def execute_stylist_recommendation(
         "user_id": state.get("user_id", ""),
         "user_query": state.get("user_query", ""),
         "location": state.get("location"),
+        "client_session_id": state.get("client_session_id"),
         "reference_time": ref_time,
         "context": None,
         "candidate_pool": _make_empty_candidate_pool(),
@@ -199,6 +230,16 @@ def execute_stylist_recommendation(
         "feedback_target_outfit_id": None,
         "errors": [],
         "warnings": [],
+        "enable_agent_loops": state.get("enable_agent_loops", True),
+        "relaxation_round": 0,
+        "relaxation_request": None,
+        "active_relaxations": [],
+        "critique_round": 0,
+        "critique": None,
+        "previous_ranked_outfits": [],
+        "coordinator_decision": None,
+        "conflict_notes": [],
+        "agent_trace": [],
     }
 
     graph = create_stylist_graph(
@@ -206,8 +247,9 @@ def execute_stylist_recommendation(
         clock=clock,
         llm_provider=llm_provider,
         weather_provider=weather_provider,
+        enable_agent_loops=bool(fresh_state["enable_agent_loops"]),
     )
-    result = graph.invoke(fresh_state)
+    result = graph.invoke(fresh_state, config={"recursion_limit": 25})
 
     # 3. Defensive state normalization on return
     normalized_result = dict(result)
@@ -238,5 +280,11 @@ def execute_stylist_recommendation(
         normalized_result["errors"] = []
     if normalized_result.get("warnings") is None:
         normalized_result["warnings"] = []
+    if normalized_result.get("active_relaxations") is None:
+        normalized_result["active_relaxations"] = []
+    if normalized_result.get("conflict_notes") is None:
+        normalized_result["conflict_notes"] = []
+    if normalized_result.get("agent_trace") is None:
+        normalized_result["agent_trace"] = []
 
     return normalized_result  # type: ignore[return-value]

@@ -1,17 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 import logging
 from typing import Any
 from sqlmodel import Session, select
 
 from app.agents.state import (
+    AgentTraceEvent,
+    ConflictNote,
+    CritiqueSignal,
     OutfitItemSlot,
     RankedOutfit,
+    RelaxationStep,
     StylistContext,
     StylistGraphState,
 )
-from app.agents.fashion_agent import outfit_satisfies_explicit_constraints
+from app.agents.fashion_agent import (
+    _normalized_value,
+    outfit_satisfies_explicit_constraints,
+)
+from app.agents.fashion_scoring import count_recently_worn_items
 from app.core.database import get_engine
 from app.models.entities import (
     OutfitItem,
@@ -259,6 +268,8 @@ def validate_outfit_completeness(
 def generate_grounded_explanation_vi(
     outfit: RankedOutfit,
     context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    conflict_notes: Sequence[ConflictNote] | None = None,
 ) -> str:
     """Generates a 100% deterministic, grounded Vietnamese explanation for a selected outfit.
 
@@ -298,7 +309,112 @@ def generate_grounded_explanation_vi(
     if valid_prefs:
         explanation += " " + "; ".join(valid_prefs[:2]) + "."
 
+    if active_relaxations:
+        relax_notes: list[str] = []
+        for step in active_relaxations:
+            matching_items = [item for item in outfit.items if item.category == step.category]
+            if not matching_items:
+                continue
+            if step.action == "color_family":
+                relaxed_cols = {_normalized_value(v) for v in step.relaxed_values}
+                orig_col = _normalized_value(step.original_value)
+                if any(
+                    _normalized_value(it.primary_color) in relaxed_cols
+                    and _normalized_value(it.primary_color) != orig_col
+                    for it in matching_items
+                ):
+                    relax_notes.append(
+                        "Đã linh hoạt chọn màu hiện có trong tủ thay cho màu yêu cầu ban đầu."
+                    )
+            elif step.action == "subcategory_equivalent":
+                relaxed_subs = {_normalized_value(v) for v in step.relaxed_values}
+                orig_sub = _normalized_value(step.original_value)
+                if any(
+                    _normalized_value(it.sub_category) in relaxed_subs
+                    and _normalized_value(it.sub_category) != orig_sub
+                    for it in matching_items
+                ):
+                    relax_notes.append(
+                        "Đã linh hoạt chọn kiểu dáng tương đương hiện có trong tủ."
+                    )
+            elif step.action == "material_relax":
+                orig_mat = _normalized_value(step.original_value)
+                if any(_normalized_value(it.material) != orig_mat for it in matching_items):
+                    relax_notes.append(
+                        "Đã linh hoạt mở rộng chất liệu có sẵn trong tủ."
+                    )
+        for note in dict.fromkeys(relax_notes):
+            explanation += f" {note}"
+
     return explanation
+
+
+def evaluate_critic_signal(
+    canonical_outfits: list[RankedOutfit],
+    candidate_pool: dict[str, list[OutfitItemSlot]],
+    context: StylistContext,
+    reference_time: datetime | None = None,
+) -> CritiqueSignal | None:
+    """Evaluate top ranked outfits for repetition or functional gaps before DB persistence."""
+    if not canonical_outfits:
+        return None
+
+    slot_map: dict[WardrobeCategory, str] = {
+        WardrobeCategory.TOP: "tops",
+        WardrobeCategory.BOTTOM: "bottoms",
+        WardrobeCategory.DRESS: "dresses",
+        WardrobeCategory.FOOTWEAR: "footwear",
+        WardrobeCategory.OUTERWEAR: "outerwear",
+        WardrobeCategory.ACCESSORY: "accessories",
+    }
+
+    # Rule 1: ALL_RECENTLY_WORN (every top candidate contains at least one item worn within 48h,
+    # while the candidate_pool still has an unworn replacement in that same slot).
+    if all(
+        count_recently_worn_items(outfit.items, reference_time=reference_time, recent_window_hours=48) > 0
+        for outfit in canonical_outfits
+    ):
+        soft_avoid_ids: list[str] = []
+        for outfit in canonical_outfits:
+            for item in outfit.items:
+                if count_recently_worn_items([item], reference_time=reference_time, recent_window_hours=48) == 0:
+                    continue
+                pool_slot = slot_map.get(item.category, "")
+                slot_candidates = candidate_pool.get(pool_slot, [])
+                has_unworn_alt = any(
+                    cand.item_id != item.item_id
+                    and count_recently_worn_items([cand], reference_time=reference_time, recent_window_hours=48) == 0
+                    for cand in slot_candidates
+                )
+                if has_unworn_alt and item.item_id not in soft_avoid_ids:
+                    soft_avoid_ids.append(item.item_id)
+        if soft_avoid_ids:
+            return CritiqueSignal(
+                issue_code="ALL_RECENTLY_WORN",
+                soft_avoid_item_ids=soft_avoid_ids,
+                reason_vi="Cả 3 phương án đầu đều chứa món vừa mặc trong 48h trong khi tủ vẫn còn món chưa mặc.",
+            )
+
+    # Rule 2: CONTEXT_GAP (rainy context expects water_resistant, pool has one, top outfits lack it).
+    if "water_resistant" in (context.target_functional_tags or []):
+        has_water_resistant_in_top = any(
+            "water_resistant" in item.functional_flags
+            for outfit in canonical_outfits
+            for item in outfit.items
+        )
+        has_water_resistant_in_pool = any(
+            "water_resistant" in cand.functional_flags
+            for slot_items in candidate_pool.values()
+            for cand in slot_items
+        )
+        if not has_water_resistant_in_top and has_water_resistant_in_pool:
+            return CritiqueSignal(
+                issue_code="CONTEXT_GAP",
+                require_functional_tags=["water_resistant"],
+                reason_vi="Thời tiết mưa nhưng các bộ đề xuất chưa tận dụng trang phục chống thấm nước có sẵn trong tủ.",
+            )
+
+    return None
 
 
 # ============================================================================
@@ -393,16 +509,65 @@ def coordinator_node(
         return base_response
 
     # 3. Completeness & Mutual Exclusivity Check
+    active_relaxations = list(state.get("active_relaxations", []))
     for outfit in canonical_outfits:
         complete_valid, complete_error = validate_outfit_completeness(outfit.items)
         if not complete_valid:
             logger.error("Outfit completeness check failed for rank %s: %s", outfit.rank, complete_error)
             base_response["errors"] = existing_errors + [GROUNDING_VALIDATION_FAILED]
             return base_response
-        if not outfit_satisfies_explicit_constraints(outfit.items, context):
+        if not outfit_satisfies_explicit_constraints(outfit.items, context, active_relaxations):
             logger.error("Outfit rank %s violates explicit query constraints", outfit.rank)
             base_response["errors"] = existing_errors + [GROUNDING_VALIDATION_FAILED]
             return base_response
+
+    # 3.5. Coordinator Critic Evaluation (Loop 2 before persistence)
+    conflict_notes = list(state.get("conflict_notes", []))
+    existing_trace = list(state.get("agent_trace", []))
+    enable_loops = bool(state.get("enable_agent_loops", False))
+    critique_round = int(state.get("critique_round", 0))
+    previous_ranked_outfits = list(state.get("previous_ranked_outfits", []))
+
+    if enable_loops:
+        if critique_round >= 1 and previous_ranked_outfits:
+            prev_score = previous_ranked_outfits[0].composite_score
+            new_score = canonical_outfits[0].composite_score
+            if prev_score - new_score > 0.05:
+                canonical_outfits = previous_ranked_outfits
+                conflict_notes.append(
+                    ConflictNote(
+                        conflict_type="CRITIC_KEPT_ORIGINAL",
+                        description_vi=(
+                            "Đã thử tìm phương án thay thế để tránh lặp đồ nhưng độ phù hợp hoàn cảnh giảm đáng kể."
+                        ),
+                        resolution_vi="Giữ lại phương án có điểm phù hợp cao nhất ban đầu.",
+                    )
+                )
+        elif critique_round == 0:
+            signal = evaluate_critic_signal(
+                canonical_outfits,
+                candidate_pool,
+                context,
+                reference_time=state.get("reference_time"),
+            )
+            if signal is not None:
+                reroute_trace = AgentTraceEvent(
+                    round=critique_round,
+                    sender="coordinator",
+                    receiver="fashion",
+                    event_type=f"CRITIQUE_{signal.issue_code}",
+                    summary_vi=signal.reason_vi,
+                )
+                return {
+                    "coordinator_decision": "reroute_fashion",
+                    "critique": signal,
+                    "critique_round": critique_round + 1,
+                    "previous_ranked_outfits": canonical_outfits,
+                    "warnings": existing_warnings,
+                    "errors": existing_errors,
+                    "conflict_notes": conflict_notes,
+                    "agent_trace": existing_trace + [reroute_trace],
+                }
 
     # Collect all item slots across all outfits for comprehensive DB & category validation
     all_item_slots = [
@@ -423,7 +588,12 @@ def coordinator_node(
 
         # 5. Generate Grounded Explanations
         for outfit in canonical_outfits:
-            outfit.explanation_vi = generate_grounded_explanation_vi(outfit, context)
+            outfit.explanation_vi = generate_grounded_explanation_vi(
+                outfit,
+                context,
+                active_relaxations=active_relaxations,
+                conflict_notes=conflict_notes,
+            )
 
         # 6. Atomic Persistence
         success, persisted_ids = persist_recommendations_atomically(
@@ -442,13 +612,25 @@ def coordinator_node(
                 "errors": existing_errors + [COORDINATOR_PERSISTENCE_ERROR],
             }
 
+        approve_trace = AgentTraceEvent(
+            round=critique_round,
+            sender="coordinator",
+            receiver="end",
+            event_type="RECOMMENDATIONS_APPROVED",
+            summary_vi=f"Đã kiểm định và lưu {len(persisted_ids)} bộ trang phục vào cơ sở dữ liệu.",
+        )
+
         return {
             "ranked_outfits": canonical_outfits,
             "recommendation_ids": persisted_ids,
             "grounding_validated": True,
             "feedback_prompt_eligible": False,
             "feedback_target_outfit_id": None,
+            "coordinator_decision": "approve",
+            "critique": None,
+            "conflict_notes": conflict_notes,
             "warnings": existing_warnings,
+            "agent_trace": existing_trace + [approve_trace],
         }
 
     if session is not None:

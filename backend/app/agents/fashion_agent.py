@@ -219,17 +219,29 @@ def diagnose_bottleneck(
             continue
 
         added_for_c = False
-        if c.color is not None:
+        slot_items = candidate_pool[slot_name]
+        # Check whether an item in slot already satisfies sub_category (and material) so we only
+        # relax what is actually blocking instead of firing unnecessary subcategory relaxations.
+        has_sub_match = c.sub_category is None or any(
+            _normalized_value(it.sub_category) == _normalized_value(c.sub_category)
+            for it in slot_items
+        )
+        has_mat_match = c.material is None or any(
+            _normalized_value(it.material) == _normalized_value(c.material)
+            for it in slot_items
+        )
+
+        if c.color is not None and has_sub_match and has_mat_match:
             norm_col = _normalized_value(c.color)
             if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
                 if "color_family" not in allowed_actions:
                     allowed_actions.append("color_family")
                 added_for_c = True
-        if c.material is not None and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
+        if c.material is not None and not has_mat_match and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
             if "material_relax" not in allowed_actions:
                 allowed_actions.append("material_relax")
             added_for_c = True
-        if c.sub_category is not None:
+        if c.sub_category is not None and not has_sub_match:
             norm_sub = _normalized_value(c.sub_category)
             raw_sub = c.sub_category.strip().lower()
             has_equiv = (
@@ -240,6 +252,30 @@ def diagnose_bottleneck(
                 if "subcategory_equivalent" not in allowed_actions:
                     allowed_actions.append("subcategory_equivalent")
                 added_for_c = True
+
+        # Fallback if exact sub+color+mat combination still blocks (e.g. matching sub_category items have wrong color AND wrong material)
+        if not added_for_c:
+            if c.color is not None:
+                norm_col = _normalized_value(c.color)
+                if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+                    if "color_family" not in allowed_actions:
+                        allowed_actions.append("color_family")
+                    added_for_c = True
+            if c.material is not None and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
+                if "material_relax" not in allowed_actions:
+                    allowed_actions.append("material_relax")
+                added_for_c = True
+            if c.sub_category is not None:
+                norm_sub = _normalized_value(c.sub_category)
+                raw_sub = c.sub_category.strip().lower()
+                has_equiv = (
+                    (c.category, norm_sub) in SUBCATEGORY_EQUIVALENTS
+                    or (c.category, raw_sub) in SUBCATEGORY_EQUIVALENTS
+                )
+                if has_equiv and (c.category, "subcategory_equivalent", norm_sub) not in applied:
+                    if "subcategory_equivalent" not in allowed_actions:
+                        allowed_actions.append("subcategory_equivalent")
+                    added_for_c = True
 
         if added_for_c:
             bottleneck_slots.append(slot_name)
@@ -446,13 +482,30 @@ def evaluate_and_rank_combinations(
     unique_warnings = list(dict.fromkeys(all_warnings))
     from app.agents.outfit_diversity import core_signature
 
+    filtered_for_critique = evaluated_outfits
+    if soft_avoid_ids:
+        non_avoided = [
+            o for o in filtered_for_critique if not any(item.item_id in soft_avoid_ids for item in o.items)
+        ]
+        if non_avoided:
+            filtered_for_critique = non_avoided
+    if req_func_tags:
+        functional_matched = [
+            o
+            for o in filtered_for_critique
+            if req_func_tags & {f.lower().strip() for item in o.items for f in item.functional_flags}
+        ]
+        if functional_matched:
+            filtered_for_critique = functional_matched
+
     unique_outfits: list[EvaluatedOutfit] = []
     seen: set[frozenset[str]] = set()
-    for outfit in evaluated_outfits:
+    for outfit in filtered_for_critique:
         signature = core_signature(outfit.items)
         if signature not in seen:
             seen.add(signature)
             unique_outfits.append(outfit)
+
     return unique_outfits[:top_k], unique_warnings
 
 
