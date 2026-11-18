@@ -22,6 +22,7 @@ from app.schemas.wardrobe import (
 )
 from app.services.retrieval_document_service import refresh_retrieval_document
 from app.services.garment_taxonomy import ItemGroup, classify, matches_search, parse_search
+from app.services.item_media import primary_media_id, primary_media_ids
 
 
 def _owned_active_item(session: Session, item_id: str, user_id: str) -> WardrobeItem:
@@ -33,25 +34,17 @@ def _owned_active_item(session: Session, item_id: str, user_id: str) -> Wardrobe
     return item
 
 
-def _primary_media_id(session: Session, item_id: str, user_id: str) -> str | None:
-    links = session.exec(
-        select(ItemMedia).where(
-            ItemMedia.wardrobe_item_id == item_id,
-            ItemMedia.user_id == user_id,
-        )
-    ).all()
-    if not links:
-        return None
-    priority = {
-        ItemMediaRole.PRIMARY: 0,
-        ItemMediaRole.THUMBNAIL: 1,
-        ItemMediaRole.ALTERNATE: 2,
-    }
-    return min(links, key=lambda link: priority[link.role]).media_asset_id
-
-
-def serialize_item(session: Session, item: WardrobeItem) -> WardrobeItemResponseData:
-    media_id = _primary_media_id(session, item.id, item.user_id)
+def serialize_item(
+    session: Session,
+    item: WardrobeItem,
+    media_ids: dict[str, str] | None = None,
+) -> WardrobeItemResponseData:
+    """Serialize an item; pass ``media_ids`` from ``primary_media_ids`` to avoid a query per item."""
+    media_id = (
+        media_ids.get(item.id)
+        if media_ids is not None
+        else primary_media_id(session, item.id, item.user_id)
+    )
     group, item_type = classify(item.category, item.sub_category)
     return WardrobeItemResponseData(
         **item.model_dump(),
@@ -113,8 +106,9 @@ def list_wardrobe_items(
     else:
         total = session.exec(select(func.count()).select_from(WardrobeItem).where(*filters)).one()
         items = session.exec(query.offset((page - 1) * page_size).limit(page_size)).all()
+    media_ids = primary_media_ids(session, user_id, [item.id for item in items])
     return WardrobeItemListResponseData(
-        items=[serialize_item(session, item) for item in items],
+        items=[serialize_item(session, item, media_ids) for item in items],
         page=page,
         page_size=page_size,
         total=total,

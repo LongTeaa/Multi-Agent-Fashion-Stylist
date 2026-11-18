@@ -110,6 +110,8 @@ users
 
 This table links `wardrobe_item_id`, `media_asset_id`, ownership key `user_id`, and `role` (`primary`, `alternate`, `thumbnail`). The `(wardrobe_item_id, media_asset_id)` pair MUST be unique. Composite foreign keys MUST enforce that the item and media asset have the same `user_id`.
 
+The image shown for an item (`media_url` in the wardrobe API, `image_url` in recommendations, outfit details, and saved outfits) is the linked asset that is not soft-deleted with the highest-priority role, in the order `primary`, `thumbnail`, `alternate`. When every linked asset is soft-deleted, the URL is `null`. This rule is implemented once, in `backend/app/services/item_media.py`.
+
 ### 3.7.1 `wardrobe_retrieval_documents`
 
 This derived table stores one deterministic retrieval document per active, user-confirmed wardrobe item. `wardrobe_item_id` is the primary key, `user_id` is indexed, `searchable_text` contains normalized item attributes, `metadata_snapshot` contains the bounded retrieval metadata, and `updated_at` records the latest refresh. A composite foreign key MUST enforce that the document and item have the same owner. Confirmation and item updates MUST upsert the document in the same transaction; soft deletion MUST remove it.

@@ -273,6 +273,38 @@ def test_wardrobe_agent_media_attachment(
     assert candidate_pool["tops"][0].image_url == f"/api/v1/media/{media_id}"
 
 
+def test_wardrobe_agent_skips_soft_deleted_media(
+    migrated_database: tuple[object, object],
+) -> None:
+    """A soft-deleted primary image falls back to the thumbnail; none left gives no URL."""
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    primary_id, thumbnail_id, lone_id = str(uuid4()), str(uuid4()), str(uuid4())
+    context = StylistContext(
+        occasion="cafe",
+        time_of_day="evening",
+        weather_condition="cool",
+        target_formality_range=[2, 3],
+    )
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_item(session, item_id="polo-item", user_id=user_id, category=WardrobeCategory.TOP)
+        _add_item(session, item_id="chino-item", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos")
+        primary = _add_media(session, media_id=primary_id, item_id="polo-item", user_id=user_id)
+        _add_media(session, media_id=thumbnail_id, item_id="polo-item", user_id=user_id, role=ItemMediaRole.THUMBNAIL)
+        lone = _add_media(session, media_id=lone_id, item_id="chino-item", user_id=user_id)
+        primary.deleted_at = datetime.now(timezone.utc)
+        lone.deleted_at = datetime.now(timezone.utc)
+        session.commit()
+
+        candidate_pool, _, _ = retrieve_candidate_pool(session, user_id, context)
+
+    assert candidate_pool["tops"][0].image_url == f"/api/v1/media/{thumbnail_id}"
+    assert candidate_pool["bottoms"][0].image_url is None
+
+
 def test_wardrobe_agent_node_execution(
     migrated_database: tuple[object, object],
 ) -> None:
