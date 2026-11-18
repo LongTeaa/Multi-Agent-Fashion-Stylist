@@ -196,7 +196,7 @@ class StylistGraphState(TypedDict, total=False):
     """Shared state flowing through the LangGraph recommendation workflow.
 
     Owners:
-    - request_id, user_id, user_query, location: API entry
+    - request_id, user_id, user_query, location, client_session_id: API entry
     - context: Context Agent
     - candidate_pool: Wardrobe Agent
     - evaluated_outfits: Fashion Agent
