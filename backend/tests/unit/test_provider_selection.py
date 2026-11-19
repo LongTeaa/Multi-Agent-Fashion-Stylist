@@ -734,3 +734,18 @@ class TestGeminiProviderAdapter:
             vision.extract_attributes(create_test_image_bytes("PNG"))
         assert calls == 1
         assert "400" in str(exc_info.value.message)
+
+
+class TestGeminiKeyPoolSingleton:
+    """The key pool must build even before any Gemini key is configured."""
+
+    def test_key_pool_without_configured_keys_uses_placeholder(self) -> None:
+        from app.core import dependencies
+
+        settings = Settings(_env_file=None, gemini_api_key=None, gemini_api_keys=[])
+        with patch.object(dependencies, "_key_pool_instance", None), patch.object(
+            dependencies, "_key_pool_signature", None
+        ):
+            pool = dependencies.get_gemini_key_pool(settings)
+
+        assert [key.get_secret_value() for key in pool.keys] == ["placeholder-key"]

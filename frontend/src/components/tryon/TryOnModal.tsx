@@ -14,6 +14,7 @@ import {
 } from '@/lib/api';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnAvatar, TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
+import { generateUUIDv4 } from '@/lib/uuid';
 
 const SLOT_NAMES: Record<string, string> = {
   top: 'Áo trong',
@@ -23,17 +24,6 @@ const SLOT_NAMES: Record<string, string> = {
   outerwear: 'Áo khoác',
   accessory: 'Phụ kiện',
 };
-
-function createWearIdempotencyKey(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 export interface TryOnModalProps {
   isOpen: boolean;
@@ -280,7 +270,7 @@ export function TryOnModal({
   const handleRecordWorn = async () => {
     if (isRecordingWorn || worn) return;
     if (!wearIdempotencyKeyRef.current) {
-      wearIdempotencyKeyRef.current = createWearIdempotencyKey();
+      wearIdempotencyKeyRef.current = generateUUIDv4();
     }
     setIsRecordingWorn(true);
     setError(null);
@@ -288,7 +278,7 @@ export function TryOnModal({
       const res = await recordOutfitWorn(outfitId, {
         idempotency_key: wearIdempotencyKeyRef.current,
       });
-      wearIdempotencyKeyRef.current = createWearIdempotencyKey();
+      wearIdempotencyKeyRef.current = generateUUIDv4();
       setWorn(true);
       onWornChange?.(outfitId, true, res.times_worn, res.worn_at);
     } catch (requestError) {

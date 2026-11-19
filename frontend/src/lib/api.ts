@@ -36,6 +36,7 @@ import type {
   WardrobeItemUpdatePayload,
   WardrobeItemDeleteResponse,
 } from '@/types/wardrobe';
+import { generateUUIDv4 } from '@/lib/uuid';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const USER_STORAGE_KEY = 'fashion_stylist_user_id';
@@ -57,13 +58,13 @@ export function getStoredUserId(): string {
   try {
     let userId = localStorage.getItem(USER_STORAGE_KEY);
     if (!userId) {
-      userId = crypto.randomUUID();
+      userId = generateUUIDv4();
       localStorage.setItem(USER_STORAGE_KEY, userId);
     }
     return userId;
   } catch {
     if (!memoryUserId) {
-      memoryUserId = crypto.randomUUID();
+      memoryUserId = generateUUIDv4();
     }
     return memoryUserId;
   }
@@ -93,13 +94,13 @@ export function getStoredSessionId(): string {
   try {
     let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!sessionId) {
-      sessionId = crypto.randomUUID();
+      sessionId = generateUUIDv4();
       sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
     }
     return sessionId;
   } catch {
     if (!memorySessionId) {
-      memorySessionId = crypto.randomUUID();
+      memorySessionId = generateUUIDv4();
     }
     return memorySessionId;
   }

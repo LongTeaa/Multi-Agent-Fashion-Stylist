@@ -25,7 +25,7 @@ from app.core.dependencies import (
     validate_client_session_id_header,
 )
 from app.services.feedback_cadence_service import FeedbackCadenceService
-from app.services.outfit_service import _primary_media_id
+from app.services.item_media import primary_media_id
 from app.models.entities import (
     OutfitItem,
     OutfitRecommendation,
@@ -85,7 +85,7 @@ def _reconstruct_idempotent_response(
                     status_code=409, code="STALE_RECOMMENDATION",
                     message="Gợi ý đã thay đổi. Vui lòng gửi yêu cầu phối đồ mới.",
                 )
-            media_id = _primary_media_id(session, wi.id, user_id)
+            media_id = primary_media_id(session, wi.id, user_id)
             img_url = f"/api/v1/media/{media_id}" if media_id else None
             item_dtos.append(
                 StylistRecommendationItemResponse(

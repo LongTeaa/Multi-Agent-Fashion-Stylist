@@ -79,6 +79,7 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 ## 8. Acceptance Criteria and Invariants
 
 - **INVARIANT:** A user cannot render, retrieve, or delete another user's outfit, avatar, or try-on render.
+- **INVARIANT:** Deleting a user avatar removes every try-on render made from it, including its stored image; a render still in progress when the avatar is deleted is discarded (see `../05_api/API_CONTRACT.md`, section 8.5).
 - **INVARIANT:** Every garment described in the try-on belongs to the persisted outfit or the user's wardrobe.
 - The moodboard fallback MUST work when the external provider key is absent, quota is exceeded, or the provider is mocked to fail.
 - The UI MUST distinguish a generated try-on from a moodboard.

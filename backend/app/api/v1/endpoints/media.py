@@ -42,11 +42,10 @@ def get_media_asset(
             code="MEDIA_NOT_FOUND",
         ) from error
 
+    # Content-Length is derived from the bytes actually read; size_bytes in the
+    # database can drift from storage, and a wrong length breaks the response.
     return Response(
         content=content,
         media_type=media_asset.mime_type,
-        headers={
-            "Cache-Control": "private, max-age=3600",
-            "Content-Length": str(media_asset.size_bytes),
-        },
+        headers={"Cache-Control": "private, max-age=3600"},
     )
