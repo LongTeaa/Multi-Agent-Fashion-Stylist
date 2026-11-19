@@ -451,7 +451,7 @@ def run_judge_calibration(
         good_s = samples_by_id[str(pair["good_id"])]
         bad_s = samples_by_id[str(pair["bad_id"])]
         comp = judge.compare_pair_bidirectional(
-            query=f"{good_s['query']} (so sánh chất lượng phối đồ đúng ngữ cảnh)",
+            query=str(pair.get("query") or good_s["query"]),
             weather_condition=str(good_s.get("weather_condition", "")),
             profile_summary=str(good_s.get("profile_summary", "")),
             a_items=list(good_s["items"]),

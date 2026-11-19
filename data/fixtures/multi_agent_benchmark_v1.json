@@ -571,7 +571,7 @@
       "category": "ambiguous_and_boundary",
       "wardrobe_id": "male_realistic_27",
       "profile_id": null,
-      "query": "Phỏng vấn sáng mai, cần mặc áo sơ mi trắng nhưng không mặc áo sơ mi.",
+      "query": "Phỏng vấn sáng mai, cần mặc quần tây màu đen nhưng không mặc màu đen.",
       "location": "Hà Nội",
       "expected_status": "error",
       "expected_error": "NO_COMPLETE_OUTFIT",

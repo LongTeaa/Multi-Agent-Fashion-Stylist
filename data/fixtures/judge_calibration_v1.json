@@ -252,7 +252,7 @@
     {"id": "pair_cal_04", "good_id": "cal_good_04", "bad_id": "cal_bad_07", "expected_winner": "good"},
     {"id": "pair_cal_05", "good_id": "cal_good_05", "bad_id": "cal_bad_01", "expected_winner": "good"},
     {"id": "pair_cal_06", "good_id": "cal_good_06", "bad_id": "cal_bad_05", "expected_winner": "good"},
-    {"id": "pair_cal_07", "good_id": "cal_good_07", "bad_id": "cal_bad_04", "expected_winner": "good"},
+    {"id": "pair_cal_07", "good_id": "cal_good_07", "bad_id": "cal_bad_04", "expected_winner": "good", "query": "Ngày mai đi làm văn phòng, tuyệt đối không mặc màu đen."},
     {"id": "pair_cal_08", "good_id": "cal_good_08", "bad_id": "cal_bad_06", "expected_winner": "good"},
     {"id": "pair_cal_09", "good_id": "cal_good_03", "bad_id": "cal_bad_06", "expected_winner": "good"},
     {"id": "pair_cal_10", "good_id": "cal_good_02", "bad_id": "cal_bad_08", "expected_winner": "good"}

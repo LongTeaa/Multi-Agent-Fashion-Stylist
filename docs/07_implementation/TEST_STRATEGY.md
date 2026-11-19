@@ -156,6 +156,14 @@ The minimum fixed evaluation set MUST contain:
 
 Datasets MUST be versioned. Reports MUST record dataset version, rule version, provider/model version for optional live runs, and execution timestamp.
 
+### Multi-Agent Advisory Benchmark (Two-Layer Framework)
+
+End-to-end advisory quality of the five-agent stylist graph MUST be evaluated independently from wardrobe ingestion and virtual try-on using `data/fixtures/multi_agent_benchmark_v1.json`, `data/fixtures/stylist_benchmark_wardrobes_v1.json`, and `data/fixtures/judge_calibration_v1.json`:
+
+- **Layer A (Mandatory Technical Gate):** Grounding against active DB items, outfit structure completeness, `must_avoid` compliance, explanation bracket factuality, and bounded termination (`relaxation_round <= 2`, `critique_round <= 1`, single DB persistence).
+- **Layer B (Five-Axis Advisory Quality):** Context accuracy/F1 (`B1`), Cross-Family LLM-as-a-Judge quality `NDCG@3`/`Hit@1`/Unacceptable rate with bidirectional pairwise wins (`B2`), personalization sensitivity & diversity (`B3`), grounded explanation acceptance & usefulness (`B4`), and Net Loop Impact / cost ablations (`B5`) across `RandomValid` (`B0`), `Rule-Only DAG` (`B1`), `Single-Prompt Gemini` (`B2`), `M-Full`, `M-NoLoop1`, `M-NoLoop2`, `M-NoLoops`, and `M-NoPersonalization`.
+- Automated CI (`pytest backend/tests/evaluation/test_multi_agent_benchmark.py -v`) MUST stay offline deterministic (`0` external API calls). Opt-in live runs and cross-family Judge calibration are invoked via `backend/scripts/evaluate_multi_agent_chatbot.py` (with `--dry-run-budget` and `--cache-dir`).
+
 ## 7. Quality Gates
 
 Repository review closure regressions live in `test_review_hardening.py`, `test_review_closure.py`, `test_review_migrations.py`, `test_multi_upload_acceptance.py`, and `test_review_ranking.py`. Cover full response replay and content binding, stale active-item checks, serialized persistence/cleanup, fit and combination-budget behavior, explicit-null validation, preserved UUID references, and source ownership after partial failures. Browser acceptance covers 1/2/10 photos, selected-source reload, crop raw restoration, actual item editing, Vietnamese search, and recommendation display at desktop/mobile widths. Keep these deterministic and independent of live provider availability. See `REVIEW_CLOSURE_2026-11-03.md` for the final execution record.
