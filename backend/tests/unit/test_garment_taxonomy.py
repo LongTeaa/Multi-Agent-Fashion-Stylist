@@ -49,3 +49,28 @@ def test_aliases_are_category_scoped() -> None:
     assert group is not None and group.value == "top"
     assert subtype is not None and subtype.value == "t-shirt"
     assert classify(WardrobeCategory.BOTTOM, "sneakers") == (None, None)
+
+
+@pytest.mark.parametrize("category,subtype,group,garment", [
+    # Names Gemini Vision proposed in the 2026-11-19 live evaluation.
+    ("top", "camisole", "top", "tanktop"),
+    ("top", "tunic", "top", "blouse"),
+    ("bottom", "culottes", "pants", "trousers"),
+    ("bottom", "leggings", "pants", "trousers"),
+    ("dress", "sheath_dress", "dress", "dress"),
+    ("dress", "evening_dress", "dress", "formal_dress"),
+    ("accessory", "cap", "accessory", "hat"),
+    ("accessory", "beanie", "accessory", "hat"),
+])
+def test_observed_provider_subtypes_resolve_to_a_group_and_type(
+    category: str, subtype: str, group: str, garment: str,
+) -> None:
+    resolved_group, resolved_type = classify(WardrobeCategory(category), subtype)
+    assert resolved_group is not None and resolved_group.value == group
+    assert resolved_type is not None and resolved_type.value == garment
+
+
+def test_culottes_count_as_pants_not_skirts_in_search() -> None:
+    culottes = item("bottom", "culottes")
+    assert matches_search(culottes, parse_search("quần"))
+    assert not matches_search(culottes, parse_search("chân váy"))
