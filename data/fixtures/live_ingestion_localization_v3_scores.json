@@ -1,0 +1,208 @@
+[
+ {
+  "label": "yolo_world (yolov8s-worldv2.onnx)",
+  "file": "..\\data\\fixtures\\live_ingestion_localization_v3_yolo_world.json",
+  "run_at": "2026-11-19T08:04:50.461427+00:00",
+  "localization": {
+   "dataset_version": "vision-real-review-v3",
+   "cases": 14,
+   "provider_errors": 0,
+   "matched_regions": 17,
+   "expected_regions": 47,
+   "region_recall": 0.3617,
+   "count_pass": {
+    "count": 5,
+    "total": 14
+   },
+   "latency_seconds": {
+    "count": 14,
+    "median": 0.236,
+    "p90": 0.259,
+    "max": 0.26
+   },
+   "per_case": {
+    "images_bayra1": {
+     "status": "ok",
+     "expected_regions": 6,
+     "predicted_regions": 2,
+     "matched_regions": 2,
+     "coverage": 0.3333333333333333,
+     "count_pass": false
+    },
+    "images_bayra2": {
+     "status": "ok",
+     "expected_regions": 5,
+     "predicted_regions": 4,
+     "matched_regions": 2,
+     "coverage": 0.4,
+     "count_pass": false
+    },
+    "images_bayra3": {
+     "status": "ok",
+     "expected_regions": 9,
+     "predicted_regions": 1,
+     "matched_regions": 1,
+     "coverage": 0.1111111111111111,
+     "count_pass": false
+    },
+    "images_bayra4": {
+     "status": "ok",
+     "expected_regions": 5,
+     "predicted_regions": 2,
+     "matched_regions": 1,
+     "coverage": 0.2,
+     "count_pass": false
+    },
+    "images_bayra5": {
+     "status": "ok",
+     "expected_regions": 2,
+     "predicted_regions": 2,
+     "matched_regions": 2,
+     "coverage": 1.0,
+     "count_pass": true
+    },
+    "images_nguyenbo1": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 3,
+     "matched_regions": 2,
+     "coverage": 0.6666666666666666,
+     "count_pass": true
+    },
+    "images_nguyenbo2": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 4,
+     "matched_regions": 1,
+     "coverage": 0.3333333333333333,
+     "count_pass": false
+    },
+    "images_nguyenbo3": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 4,
+     "matched_regions": 1,
+     "coverage": 0.3333333333333333,
+     "count_pass": false
+    },
+    "images_nguyenbo4": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 2,
+     "matched_regions": 2,
+     "coverage": 0.6666666666666666,
+     "count_pass": false
+    },
+    "images_nguyenbo5": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 4,
+     "matched_regions": 2,
+     "coverage": 0.6666666666666666,
+     "count_pass": false
+    },
+    "images_treo_moc1": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 0,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": false
+    },
+    "images_treo_moc2": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 1,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": true
+    },
+    "images_treo_moc3": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 1,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": true
+    },
+    "images_treo_moc4": {
+     "status": "ok",
+     "expected_regions": 2,
+     "predicted_regions": 2,
+     "matched_regions": 1,
+     "coverage": 0.5,
+     "count_pass": true
+    }
+   },
+   "match_rule": "one-to-one, IoU >= 0.5, retention >= 0.9"
+  }
+ },
+ {
+  "label": "gemini (gemini-3.6-flash)",
+  "file": "..\\data\\fixtures\\live_ingestion_localization_v3_gemini.json",
+  "run_at": "2026-11-19T08:32:35.597285+00:00",
+  "localization": {
+   "dataset_version": "vision-real-review-v3",
+   "cases": 14,
+   "provider_errors": 14,
+   "matched_regions": 0,
+   "expected_regions": 47,
+   "region_recall": 0.0,
+   "count_pass": {
+    "count": 0,
+    "total": 14
+   },
+   "latency_seconds": {
+    "count": 0,
+    "median": null,
+    "p90": null,
+    "max": null
+   },
+   "per_case": {
+    "images_bayra1": {
+     "status": "error"
+    },
+    "images_bayra2": {
+     "status": "error"
+    },
+    "images_bayra3": {
+     "status": "error"
+    },
+    "images_bayra4": {
+     "status": "error"
+    },
+    "images_bayra5": {
+     "status": "error"
+    },
+    "images_nguyenbo1": {
+     "status": "error"
+    },
+    "images_nguyenbo2": {
+     "status": "error"
+    },
+    "images_nguyenbo3": {
+     "status": "error"
+    },
+    "images_nguyenbo4": {
+     "status": "error"
+    },
+    "images_nguyenbo5": {
+     "status": "error"
+    },
+    "images_treo_moc1": {
+     "status": "error"
+    },
+    "images_treo_moc2": {
+     "status": "error"
+    },
+    "images_treo_moc3": {
+     "status": "error"
+    },
+    "images_treo_moc4": {
+     "status": "error"
+    }
+   },
+   "match_rule": "one-to-one, IoU >= 0.5, retention >= 0.9"
+  }
+ }
+]

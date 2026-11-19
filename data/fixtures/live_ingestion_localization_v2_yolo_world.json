@@ -1,0 +1,257 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-19T08:04:55.703711+00:00",
+ "detector": "yolo_world",
+ "detector_model": "yolov8s-worldv2.onnx",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "localization_dataset_version": "vision-real-review-v2",
+ "localization_sha256": "3832e8ac987c05c90ff16724c4e630c4dd5305fa89ec64bbffc0d02e9578258e",
+ "localization_results": [
+  {
+   "id": "worn-trousers",
+   "status": "ok",
+   "elapsed_seconds": 0.19,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.2672,
+      0.0804,
+      0.845,
+      0.9486
+     ],
+     "label": "jacket",
+     "confidence": 0.4149
+    },
+    {
+     "box": [
+      0.1975,
+      0.0,
+      0.6776,
+      0.0937
+     ],
+     "label": "t-shirt",
+     "confidence": 0.4016
+    },
+    {
+     "box": [
+      0.2603,
+      0.0823,
+      0.8246,
+      0.7384
+     ],
+     "label": "trousers",
+     "confidence": 0.2554
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.2672,
+      0.0804,
+      0.845,
+      0.9486
+     ],
+     "label": "jacket",
+     "confidence": 0.4149
+    },
+    {
+     "box": [
+      0.1975,
+      0.0,
+      0.6776,
+      0.0937
+     ],
+     "label": "t-shirt",
+     "confidence": 0.4016
+    },
+    {
+     "box": [
+      0.2603,
+      0.0823,
+      0.8246,
+      0.7384
+     ],
+     "label": "trousers",
+     "confidence": 0.2554
+    }
+   ]
+  },
+  {
+   "id": "matching-sneaker-pair",
+   "status": "ok",
+   "elapsed_seconds": 0.199,
+   "input_kind": "cluttered",
+   "raw_boxes": [],
+   "boxes": []
+  },
+  {
+   "id": "worn-polo",
+   "status": "ok",
+   "elapsed_seconds": 0.198,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.376,
+      0.0734,
+      0.5626,
+      0.1761
+     ],
+     "label": "hat",
+     "confidence": 0.7044
+    },
+    {
+     "box": [
+      0.2894,
+      0.2487,
+      0.6941,
+      0.7277
+     ],
+     "label": "shirt",
+     "confidence": 0.6116
+    },
+    {
+     "box": [
+      0.3503,
+      0.711,
+      0.6271,
+      0.9996
+     ],
+     "label": "pants",
+     "confidence": 0.4797
+    },
+    {
+     "box": [
+      0.295,
+      0.2398,
+      0.6973,
+      0.7515
+     ],
+     "label": "t-shirt",
+     "confidence": 0.463
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.376,
+      0.0734,
+      0.5626,
+      0.1761
+     ],
+     "label": "hat",
+     "confidence": 0.7044
+    },
+    {
+     "box": [
+      0.2894,
+      0.2487,
+      0.6941,
+      0.7277
+     ],
+     "label": "shirt",
+     "confidence": 0.6116
+    },
+    {
+     "box": [
+      0.3503,
+      0.711,
+      0.6271,
+      0.9996
+     ],
+     "label": "pants",
+     "confidence": 0.4797
+    },
+    {
+     "box": [
+      0.295,
+      0.2398,
+      0.6973,
+      0.7515
+     ],
+     "label": "t-shirt",
+     "confidence": 0.463
+    }
+   ]
+  },
+  {
+   "id": "single-derby",
+   "status": "ok",
+   "elapsed_seconds": 0.19,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.0895,
+      0.4953,
+      0.9122,
+      0.7521
+     ],
+     "label": "shoes",
+     "confidence": 0.4131
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.0895,
+      0.4953,
+      0.9122,
+      0.7521
+     ],
+     "label": "shoes",
+     "confidence": 0.4131
+    }
+   ]
+  },
+  {
+   "id": "single-jeans",
+   "status": "ok",
+   "elapsed_seconds": 0.203,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.0928,
+      0.0928,
+      0.8898,
+      0.9787
+     ],
+     "label": "coat",
+     "confidence": 0.5173
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.0928,
+      0.0928,
+      0.8898,
+      0.9787
+     ],
+     "label": "coat",
+     "confidence": 0.5173
+    }
+   ]
+  },
+  {
+   "id": "blue-tshirt",
+   "status": "ok",
+   "elapsed_seconds": 0.196,
+   "input_kind": "cluttered",
+   "raw_boxes": [],
+   "boxes": []
+  },
+  {
+   "id": "red-tshirt",
+   "status": "ok",
+   "elapsed_seconds": 0.246,
+   "input_kind": "cluttered",
+   "raw_boxes": [],
+   "boxes": []
+  }
+ ]
+}
