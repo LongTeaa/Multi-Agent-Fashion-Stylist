@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import Any
@@ -301,24 +303,22 @@ def _validate_grounded_llm_explanation(
     return True
 
 
-def generate_grounded_explanation_vi(
+@dataclass(frozen=True)
+class _PreparedGroundedExplanation:
+    deterministic_explanation: str
+    items_description: list[str]
+    item_allowed_brackets: list[set[str]]
+    low_score_note: str
+    valid_prefs: list[str]
+    dedup_relax_notes: list[str]
+
+
+def _prepare_grounded_explanation(
     outfit: RankedOutfit,
     context: StylistContext,
     active_relaxations: Sequence[RelaxationStep] | None = None,
-    conflict_notes: Sequence[ConflictNote] | None = None,
-    llm_provider: Any = None,
-) -> str:
-    """Generates a grounded Vietnamese explanation for a selected outfit.
-
-    Uses grounded LLM synthesis when an LLM explanation provider is supplied and passes
-    strict anti-hallucination validation; otherwise falls back to 100% deterministic template synthesis.
-
-    Strict Invariants:
-    - References ONLY canonical items present in this specific outfit.
-    - Never hallucinates external garments, colors, or materials.
-    - Explains formality alignment without inferring material performance.
-    - Reflects applied preferences if present.
-    """
+) -> _PreparedGroundedExplanation:
+    """Build deterministic template explanation and grounding constraints for one outfit."""
     colors = {"white": "trắng", "black": "đen", "grey": "xám", "gray": "xám",
               "navy": "xanh navy", "navy blue": "xanh navy", "blue": "xanh dương",
               "brown": "nâu", "beige": "be", "green": "xanh lá", "red": "đỏ"}
@@ -406,36 +406,186 @@ def generate_grounded_explanation_vi(
         for note in dedup_relax_notes:
             explanation += f" {note}"
 
+    return _PreparedGroundedExplanation(
+        deterministic_explanation=explanation,
+        items_description=parts,
+        item_allowed_brackets=item_allowed_brackets,
+        low_score_note=low_score_note,
+        valid_prefs=valid_prefs,
+        dedup_relax_notes=dedup_relax_notes,
+    )
+
+
+def _finalize_llm_explanation(
+    llm_text: Any,
+    prepared: _PreparedGroundedExplanation,
+    outfit: RankedOutfit,
+) -> str | None:
+    """Validate an LLM explanation and append mandatory transparency notes if omitted."""
+    if not isinstance(llm_text, str) or not _validate_grounded_llm_explanation(
+        llm_text, prepared.item_allowed_brackets
+    ):
+        return None
+    final_llm = llm_text.strip()
+    if not final_llm.endswith("."):
+        final_llm += "."
+    if prepared.low_score_note and f"{round(outfit.composite_score * 100)}%" not in final_llm:
+        final_llm += f" {prepared.low_score_note}"
+    for pref in prepared.valid_prefs[:2]:
+        if pref not in final_llm:
+            final_llm += f" {pref}."
+    for r_note in prepared.dedup_relax_notes:
+        if r_note not in final_llm:
+            final_llm += f" {r_note}"
+    return final_llm
+
+
+def generate_grounded_explanation_vi(
+    outfit: RankedOutfit,
+    context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    conflict_notes: Sequence[ConflictNote] | None = None,
+    llm_provider: Any = None,
+) -> str:
+    """Generates a grounded Vietnamese explanation for a selected outfit.
+
+    Uses grounded LLM synthesis when an LLM explanation provider is supplied and passes
+    strict anti-hallucination validation; otherwise falls back to 100% deterministic template synthesis.
+
+    Strict Invariants:
+    - References ONLY canonical items present in this specific outfit.
+    - Never hallucinates external garments, colors, or materials.
+    - Explains formality alignment without inferring material performance.
+    - Reflects applied preferences if present.
+    """
+    prepared = _prepare_grounded_explanation(outfit, context, active_relaxations=active_relaxations)
+
     if llm_provider is not None and hasattr(llm_provider, "generate_outfit_explanation"):
         try:
             conflict_strs = [f"{c.description_vi} {c.resolution_vi}" for c in (conflict_notes or ())]
             llm_text = llm_provider.generate_outfit_explanation(
-                items_description=parts,
+                items_description=prepared.items_description,
                 occasion=context.occasion,
                 weather_condition=context.weather_condition,
                 target_formality_range=list(context.target_formality_range),
                 composite_score=outfit.composite_score,
-                applied_preferences=valid_prefs[:2],
-                relaxation_notes=dedup_relax_notes,
+                applied_preferences=prepared.valid_prefs[:2],
+                relaxation_notes=prepared.dedup_relax_notes,
                 conflict_notes=conflict_strs,
             )
-            if isinstance(llm_text, str) and _validate_grounded_llm_explanation(llm_text, item_allowed_brackets):
-                final_llm = llm_text.strip()
-                if not final_llm.endswith("."):
-                    final_llm += "."
-                if low_score_note and f"{round(outfit.composite_score * 100)}%" not in final_llm:
-                    final_llm += f" {low_score_note}"
-                for pref in valid_prefs[:2]:
-                    if pref not in final_llm:
-                        final_llm += f" {pref}."
-                for r_note in dedup_relax_notes:
-                    if r_note not in final_llm:
-                        final_llm += f" {r_note}"
-                return final_llm
+            validated = _finalize_llm_explanation(llm_text, prepared, outfit)
+            if validated is not None:
+                return validated
         except Exception as exc:
             logger.warning("Grounded LLM explanation fallback triggered: %s", exc)
 
-    return explanation
+    return prepared.deterministic_explanation
+
+
+def generate_grounded_explanations_batch(
+    outfits: Sequence[RankedOutfit],
+    context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    conflict_notes: Sequence[ConflictNote] | None = None,
+    llm_provider: Any = None,
+) -> list[str]:
+    """Generate grounded explanations for 1..3 outfits using a single batch LLM call when supported.
+
+    Falls back to concurrent single-outfit calls when a custom provider only implements
+    ``generate_outfit_explanation``, and falls back per-outfit to the deterministic template
+    whenever an LLM output fails anti-hallucination validation or raises an error.
+    """
+    if not outfits:
+        return []
+
+    prepared_list = [
+        _prepare_grounded_explanation(outfit, context, active_relaxations=active_relaxations)
+        for outfit in outfits
+    ]
+    results = [prepared.deterministic_explanation for prepared in prepared_list]
+
+    if llm_provider is None:
+        return results
+
+    conflict_strs = [f"{c.description_vi} {c.resolution_vi}" for c in (conflict_notes or ())]
+
+    # Preferred path: 1 batched LLM request for all ranked outfits (lowest latency & RPM cost).
+    if hasattr(llm_provider, "generate_outfit_explanations"):
+        try:
+            batch_payload = [
+                {
+                    "rank": outfit.rank,
+                    "items_description": prepared.items_description,
+                    "composite_score": outfit.composite_score,
+                    "applied_preferences": prepared.valid_prefs[:2],
+                    "relaxation_notes": prepared.dedup_relax_notes,
+                }
+                for outfit, prepared in zip(outfits, prepared_list)
+            ]
+            raw_texts = llm_provider.generate_outfit_explanations(
+                outfits=batch_payload,
+                occasion=context.occasion,
+                weather_condition=context.weather_condition,
+                target_formality_range=list(context.target_formality_range),
+                conflict_notes=conflict_strs,
+            )
+            if isinstance(raw_texts, list):
+                for idx, (outfit, prepared) in enumerate(zip(outfits, prepared_list)):
+                    if idx >= len(raw_texts):
+                        continue
+                    validated = _finalize_llm_explanation(raw_texts[idx], prepared, outfit)
+                    if validated is not None:
+                        results[idx] = validated
+            return results
+        except Exception as exc:
+            logger.warning("Grounded batch LLM explanation fallback triggered: %s", exc)
+            return results
+
+    # Compatibility path: provider only implements single-outfit explanation -> run concurrently.
+    if hasattr(llm_provider, "generate_outfit_explanation"):
+        def _explain_one(idx: int) -> str:
+            outfit = outfits[idx]
+            prepared = prepared_list[idx]
+            try:
+                llm_text = llm_provider.generate_outfit_explanation(
+                    items_description=prepared.items_description,
+                    occasion=context.occasion,
+                    weather_condition=context.weather_condition,
+                    target_formality_range=list(context.target_formality_range),
+                    composite_score=outfit.composite_score,
+                    applied_preferences=prepared.valid_prefs[:2],
+                    relaxation_notes=prepared.dedup_relax_notes,
+                    conflict_notes=conflict_strs,
+                )
+                validated = _finalize_llm_explanation(llm_text, prepared, outfit)
+                if validated is not None:
+                    return validated
+            except Exception as exc:
+                logger.warning("Grounded LLM explanation fallback triggered for rank %s: %s", outfit.rank, exc)
+            return prepared.deterministic_explanation
+
+        if len(outfits) == 1:
+            return [_explain_one(0)]
+        with ThreadPoolExecutor(max_workers=len(outfits)) as executor:
+            return list(executor.map(_explain_one, range(len(outfits))))
+
+    return results
+
+
+def _kept_original_description_vi(trace: Sequence[AgentTraceEvent]) -> str:
+    """Return a conflict description matching the critic issue that triggered Loop 2."""
+    for event in reversed(trace):
+        if event.sender == "coordinator" and event.event_type.startswith("CRITIQUE_"):
+            if event.event_type == "CRITIQUE_ALL_RECENTLY_WORN":
+                return (
+                    "Đã thử tìm phương án thay thế để tránh lặp đồ nhưng độ phù hợp hoàn cảnh giảm đáng kể."
+                )
+            if event.event_type == "CRITIQUE_CONTEXT_GAP":
+                return (
+                    "Đã thử tìm phương án bổ sung trang phục phù hợp điều kiện thời tiết nhưng độ phù hợp tổng thể giảm đáng kể."
+                )
+            break
+    return "Đã thử tìm phương án thay thế theo phản biện chất lượng nhưng độ phù hợp tổng thể giảm đáng kể."
 
 
 def evaluate_critic_signal(
@@ -637,9 +787,7 @@ def coordinator_node(
                 conflict_notes.append(
                     ConflictNote(
                         conflict_type="CRITIC_KEPT_ORIGINAL",
-                        description_vi=(
-                            "Đã thử tìm phương án thay thế để tránh lặp đồ nhưng độ phù hợp hoàn cảnh giảm đáng kể."
-                        ),
+                        description_vi=_kept_original_description_vi(existing_trace),
                         resolution_vi="Giữ lại phương án có điểm phù hợp cao nhất ban đầu.",
                     )
                 )
@@ -686,15 +834,16 @@ def coordinator_node(
                 "errors": existing_errors + [GROUNDING_VALIDATION_FAILED],
             }
 
-        # 5. Generate Grounded Explanations
-        for outfit in canonical_outfits:
-            outfit.explanation_vi = generate_grounded_explanation_vi(
-                outfit,
-                context,
-                active_relaxations=active_relaxations,
-                conflict_notes=conflict_notes,
-                llm_provider=llm_provider,
-            )
+        # 5. Generate Grounded Explanations (single batched LLM call when supported)
+        explanations = generate_grounded_explanations_batch(
+            canonical_outfits,
+            context,
+            active_relaxations=active_relaxations,
+            conflict_notes=conflict_notes,
+            llm_provider=llm_provider,
+        )
+        for outfit, explanation in zip(canonical_outfits, explanations):
+            outfit.explanation_vi = explanation
 
         approve_trace = AgentTraceEvent(
             round=critique_round,

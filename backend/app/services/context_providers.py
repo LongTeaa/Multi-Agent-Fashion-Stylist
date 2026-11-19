@@ -130,6 +130,69 @@ class GeminiContextProvider:
         except Exception as exc:
             raise RuntimeError("Failed to generate LLM outfit explanation.") from exc
 
+    def generate_outfit_explanations(
+        self,
+        *,
+        outfits: list[dict[str, Any]],
+        occasion: str,
+        weather_condition: str,
+        target_formality_range: list[int],
+        conflict_notes: list[str],
+    ) -> list[str]:
+        """Generate grounded Vietnamese explanations for up to 3 outfits in a single Gemini call."""
+        if not outfits:
+            return []
+        conflict_str = " ".join(conflict_notes) if conflict_notes else "không có"
+        outfit_lines: list[str] = []
+        for idx, entry in enumerate(outfits, start=1):
+            items_str = ", ".join(entry.get("items_description", []))
+            prefs = entry.get("applied_preferences") or []
+            prefs_str = "; ".join(prefs) if prefs else "không có"
+            relax = entry.get("relaxation_notes") or []
+            relax_str = " ".join(relax) if relax else "không có"
+            score_pct = round(float(entry.get("composite_score", 0.0)) * 100)
+            outfit_lines.append(
+                f"Bộ {idx}:\n"
+                f"  - Các món đồ bắt buộc giữ nguyên dấu ngoặc vuông: {items_str}\n"
+                f"  - Điểm phù hợp tổng hợp: {score_pct}%\n"
+                f"  - Sở thích áp dụng: {prefs_str}\n"
+                f"  - Ghi chú nới lỏng (nếu có): {relax_str}"
+            )
+        outfits_block = "\n".join(outfit_lines)
+        prompt = (
+            "Bạn là chuyên gia tư vấn phối đồ (Fashion Stylist). Hãy viết lời giải thích ngắn gọn (2 câu tiếng Việt mỗi bộ) "
+            f"cho đúng {len(outfits)} bộ trang phục dưới đây. "
+            'Chỉ trả về JSON hợp lệ theo mẫu {"explanations": ["...", "..."]} với đúng thứ tự và số lượng phần tử bằng số bộ.\n'
+            f"- Dịp: {occasion}, thời tiết: {weather_condition}, khoảng trang trọng mục tiêu: {target_formality_range}\n"
+            f"- Ghi chú cân bằng xung đột (nếu có): {conflict_str}\n"
+            f"{outfits_block}\n"
+            "Quy tắc bắt buộc cho TỪNG lời giải thích:\n"
+            "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] của riêng bộ đó, giữ nguyên dấu ngoặc vuông [...].\n"
+            "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách của bộ đó.\n"
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"response_mime_type": "application/json"},
+        }
+        url = f"{self.base_url}/models/{self.model}:generateContent"
+        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
+        req_timeout = min(self.timeout_seconds, 8.0)
+        try:
+            if self._client is not None:
+                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
+            else:
+                with httpx.Client(timeout=req_timeout) as client:
+                    response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_list = parsed.get("explanations")
+            if not isinstance(raw_list, list):
+                raise ValueError("Missing 'explanations' list in Gemini batch response.")
+            return [str(item).strip() if isinstance(item, str) else "" for item in raw_list]
+        except Exception as exc:
+            raise RuntimeError("Failed to generate batch LLM outfit explanations.") from exc
+
 
 class OpenWeatherProvider:
     """OpenWeather forecast adapter normalized to the domain weather taxonomy."""
