@@ -1,0 +1,2853 @@
+[
+ {
+  "label": "yolo_world + gemini-3.6-flash",
+  "file": "..\\data\\fixtures\\live_ingestion_attributes_v1_yolo_world.json",
+  "run_at": "2026-11-19T07:54:33.298027+00:00",
+  "attributes": {
+   "images": 58,
+   "not_run": 0,
+   "completed": 58,
+   "images_with_detector_error": 0,
+   "images_with_vision_error": 1,
+   "provider_model_fallback_events": 0,
+   "provider_rate_limit_events": 0,
+   "exactly_one_detection": {
+    "count": 57,
+    "total": 58
+   },
+   "full_frame_box": {
+    "count": 11,
+    "total": 58
+   },
+   "latency_seconds": {
+    "count": 58,
+    "median": 5.598,
+    "p90": 13.864,
+    "max": 20.28
+   },
+   "owner_reviewed_gold_items": 58,
+   "metrics": {
+    "category": {
+     "correct": 56,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.9655,
+     "accuracy_when_answered": 0.9825
+    },
+    "category_strict": {
+     "correct": 56,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.9655,
+     "accuracy_when_answered": 0.9825
+    },
+    "item_group": {
+     "correct": 54,
+     "answered": 55,
+     "total": 58,
+     "accuracy": 0.931,
+     "accuracy_when_answered": 0.9818
+    },
+    "garment_type": {
+     "correct": 46,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.7931,
+     "accuracy_when_answered": 0.807
+    },
+    "primary_color": {
+     "correct": 51,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.8793,
+     "accuracy_when_answered": 0.9107
+    },
+    "pattern": {
+     "correct": 54,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.931,
+     "accuracy_when_answered": 0.9474
+    },
+    "pattern_solid_vs_patterned": {
+     "correct": 55,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.9483,
+     "accuracy_when_answered": 0.9649
+    },
+    "material": {
+     "correct": 53,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9138,
+     "accuracy_when_answered": 0.9464
+    },
+    "formality_exact": {
+     "correct": 33,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.569,
+     "accuracy_when_answered": 0.5789
+    },
+    "formality_within_one": {
+     "correct": 57,
+     "answered": 57,
+     "total": 58,
+     "accuracy": 0.9828,
+     "accuracy_when_answered": 1.0
+    },
+    "formality_mae": 0.4211,
+    "formality_mean_signed_error": -0.3509,
+    "category_confusion": [
+     {
+      "expected": "accessory",
+      "predicted": "accessory",
+      "count": 3
+     },
+     {
+      "expected": "accessory",
+      "predicted": "no_answer",
+      "count": 1
+     },
+     {
+      "expected": "bottom",
+      "predicted": "bottom",
+      "count": 12
+     },
+     {
+      "expected": "dress",
+      "predicted": "dress",
+      "count": 4
+     },
+     {
+      "expected": "footwear",
+      "predicted": "footwear",
+      "count": 8
+     },
+     {
+      "expected": "outerwear",
+      "predicted": "outerwear",
+      "count": 9
+     },
+     {
+      "expected": "top",
+      "predicted": "dress",
+      "count": 1
+     },
+     {
+      "expected": "top",
+      "predicted": "top",
+      "count": 20
+     }
+    ],
+    "category_per_class": {
+     "accessory": {
+      "total": 4,
+      "correct": 3,
+      "recall": 0.75
+     },
+     "bottom": {
+      "total": 12,
+      "correct": 12,
+      "recall": 1.0
+     },
+     "dress": {
+      "total": 4,
+      "correct": 4,
+      "recall": 1.0
+     },
+     "footwear": {
+      "total": 8,
+      "correct": 8,
+      "recall": 1.0
+     },
+     "outerwear": {
+      "total": 9,
+      "correct": 9,
+      "recall": 1.0
+     },
+     "top": {
+      "total": 21,
+      "correct": 20,
+      "recall": 0.9524
+     }
+    }
+   },
+   "per_item": {
+    "demo-01": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-02": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-03": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "sweater",
+      "primary_color": [
+       "red"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-04": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "blouse",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-05": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "animal",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-06": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": false,
+     "material": null,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "floral",
+      "material": [],
+      "formality_level": 3
+     }
+    },
+    "demo-07": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "blouse",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-08": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "blouse",
+      "primary_color": [
+       "red"
+      ],
+      "pattern": "floral",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-09": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "camisole",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-10": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "striped",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-11": {
+     "category": true,
+     "item_group": null,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": null,
+      "garment_type": "culottes",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-12": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-13": {
+     "category": true,
+     "item_group": null,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": null,
+      "garment_type": "leggings",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "animal",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-14": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-15": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "skirt",
+      "garment_type": "skirt",
+      "primary_color": [
+       "blue",
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "linen"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-16": {
+     "category": true,
+     "item_group": false,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "floral",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-17": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": false,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "evening_dress",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "floral",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-18": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "casual_dress",
+      "primary_color": [
+       "purple"
+      ],
+      "pattern": "floral",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-19": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "sheath_dress",
+      "primary_color": [
+       "pink",
+       "purple"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-20": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "midi_dress",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "linen"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-21": {
+     "category": false,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "tunic",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-22": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "pink"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-23": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "blue",
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-24": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-25": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-26": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "heels",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 5
+     }
+    },
+    "demo-27": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "sandals",
+      "garment_type": "sandals",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "animal",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-28": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": null,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [],
+      "pattern": "striped",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-29": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "flats",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-30": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "hat",
+      "primary_color": [
+       "pink"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-31": null,
+    "demo-32": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-33": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "striped",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-34": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-35": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-36": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "navy blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-37": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-38": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "plaid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-39": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": false,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-40": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": false,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "sweater",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-41": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "jacket",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-42": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "trousers",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-43": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-44": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-45": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "trousers",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-46": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-47": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "plaid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-48": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "vest",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-49": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "coat",
+      "primary_color": [
+       "purple"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-50": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": false,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "striped",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-51": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": false,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-52": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-53": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-54": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "sandals",
+      "garment_type": "sandals",
+      "primary_color": [
+       "brown"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-55": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-56": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-57": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "cap",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-58": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "beanie",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 1
+     }
+    }
+   }
+  }
+ },
+ {
+  "label": "gemini + gemini-3.6-flash",
+  "file": "..\\data\\fixtures\\live_ingestion_attributes_v1_gemini.json",
+  "run_at": "2026-11-19T08:01:38.244152+00:00",
+  "attributes": {
+   "images": 58,
+   "not_run": 0,
+   "completed": 58,
+   "images_with_detector_error": 54,
+   "images_with_vision_error": 2,
+   "provider_model_fallback_events": 0,
+   "provider_rate_limit_events": 0,
+   "exactly_one_detection": {
+    "count": 58,
+    "total": 58
+   },
+   "full_frame_box": {
+    "count": 54,
+    "total": 58
+   },
+   "latency_seconds": {
+    "count": 58,
+    "median": 26.727,
+    "p90": 47.88,
+    "max": 73.445
+   },
+   "owner_reviewed_gold_items": 58,
+   "metrics": {
+    "category": {
+     "correct": 55,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9483,
+     "accuracy_when_answered": 0.9821
+    },
+    "category_strict": {
+     "correct": 55,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9483,
+     "accuracy_when_answered": 0.9821
+    },
+    "item_group": {
+     "correct": 53,
+     "answered": 54,
+     "total": 58,
+     "accuracy": 0.9138,
+     "accuracy_when_answered": 0.9815
+    },
+    "garment_type": {
+     "correct": 46,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.7931,
+     "accuracy_when_answered": 0.8214
+    },
+    "primary_color": {
+     "correct": 50,
+     "answered": 55,
+     "total": 58,
+     "accuracy": 0.8621,
+     "accuracy_when_answered": 0.9091
+    },
+    "pattern": {
+     "correct": 53,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9138,
+     "accuracy_when_answered": 0.9464
+    },
+    "pattern_solid_vs_patterned": {
+     "correct": 53,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9138,
+     "accuracy_when_answered": 0.9464
+    },
+    "material": {
+     "correct": 52,
+     "answered": 55,
+     "total": 58,
+     "accuracy": 0.8966,
+     "accuracy_when_answered": 0.9455
+    },
+    "formality_exact": {
+     "correct": 32,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.5517,
+     "accuracy_when_answered": 0.5714
+    },
+    "formality_within_one": {
+     "correct": 56,
+     "answered": 56,
+     "total": 58,
+     "accuracy": 0.9655,
+     "accuracy_when_answered": 1.0
+    },
+    "formality_mae": 0.4286,
+    "formality_mean_signed_error": -0.3929,
+    "category_confusion": [
+     {
+      "expected": "accessory",
+      "predicted": "accessory",
+      "count": 4
+     },
+     {
+      "expected": "bottom",
+      "predicted": "bottom",
+      "count": 11
+     },
+     {
+      "expected": "bottom",
+      "predicted": "no_answer",
+      "count": 1
+     },
+     {
+      "expected": "dress",
+      "predicted": "dress",
+      "count": 4
+     },
+     {
+      "expected": "footwear",
+      "predicted": "footwear",
+      "count": 8
+     },
+     {
+      "expected": "outerwear",
+      "predicted": "outerwear",
+      "count": 9
+     },
+     {
+      "expected": "top",
+      "predicted": "dress",
+      "count": 1
+     },
+     {
+      "expected": "top",
+      "predicted": "no_answer",
+      "count": 1
+     },
+     {
+      "expected": "top",
+      "predicted": "top",
+      "count": 19
+     }
+    ],
+    "category_per_class": {
+     "accessory": {
+      "total": 4,
+      "correct": 4,
+      "recall": 1.0
+     },
+     "bottom": {
+      "total": 12,
+      "correct": 11,
+      "recall": 0.9167
+     },
+     "dress": {
+      "total": 4,
+      "correct": 4,
+      "recall": 1.0
+     },
+     "footwear": {
+      "total": 8,
+      "correct": 8,
+      "recall": 1.0
+     },
+     "outerwear": {
+      "total": 9,
+      "correct": 9,
+      "recall": 1.0
+     },
+     "top": {
+      "total": 21,
+      "correct": 19,
+      "recall": 0.9048
+     }
+    }
+   },
+   "per_item": {
+    "demo-01": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-02": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-03": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "sweater",
+      "primary_color": [
+       "orange"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-04": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "blouse",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-05": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "animal",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-06": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": false,
+     "material": null,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "floral",
+      "material": [],
+      "formality_level": 3
+     }
+    },
+    "demo-07": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "blouse",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-08": null,
+    "demo-09": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "camisole",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-10": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "striped",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-11": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "trousers",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-12": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-13": {
+     "category": true,
+     "item_group": null,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": null,
+      "garment_type": "leggings",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "animal",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-14": null,
+    "demo-15": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "skirt",
+      "garment_type": "skirt",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "linen"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-16": {
+     "category": true,
+     "item_group": false,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "floral",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-17": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": false,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "evening_dress",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "floral",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-18": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "casual_dress",
+      "primary_color": [
+       "purple"
+      ],
+      "pattern": "floral",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-19": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "sheath_dress",
+      "primary_color": [
+       "pink",
+       "purple"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-20": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "midi_dress",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "linen"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-21": {
+     "category": false,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "dress",
+      "item_group": "dress",
+      "garment_type": "shift_dress",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-22": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "pink"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-23": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "blue",
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-24": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "coat",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-25": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-26": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "heels",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 5
+     }
+    },
+    "demo-27": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "sandals",
+      "garment_type": "sandals",
+      "primary_color": [
+       "brown"
+      ],
+      "pattern": "animal",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-28": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": null,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [],
+      "pattern": "striped",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-29": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "flats",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-30": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "hat",
+      "primary_color": [
+       "pink"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-31": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "beret",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-32": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-33": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "striped",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-34": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "t-shirt",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-35": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "blue",
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-36": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "polo",
+      "primary_color": [
+       "navy blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-37": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-38": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "plaid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-39": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "shirt",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "print",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 3
+     }
+    },
+    "demo-40": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": false,
+     "formality_error": -1,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "sweater",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-41": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": false,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "top",
+      "item_group": "top",
+      "garment_type": "hoodie",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-42": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "trousers",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-43": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-44": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "jeans",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-45": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "trousers",
+      "primary_color": [
+       "green"
+      ],
+      "pattern": "solid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-46": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "denim"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-47": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "bottom",
+      "item_group": "pants",
+      "garment_type": "shorts",
+      "primary_color": [
+       "white"
+      ],
+      "pattern": "plaid",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-48": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "vest",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-49": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "purple"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-50": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": false,
+     "pattern": true,
+     "material": false,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "blue"
+      ],
+      "pattern": "striped",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-51": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": false,
+     "formality_error": 0,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "blazer",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 4
+     }
+    },
+    "demo-52": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "outerwear",
+      "item_group": "outerwear",
+      "garment_type": "jacket",
+      "primary_color": [
+       "beige"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-53": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-54": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "sandals",
+      "garment_type": "sandals",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-55": {
+     "category": true,
+     "item_group": null,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": -1,
+     "normalized": {
+      "category": "footwear",
+      "item_group": null,
+      "garment_type": "slip_ons",
+      "primary_color": [
+       "blue",
+       "navy blue"
+      ],
+      "pattern": "solid",
+      "material": [
+       "leather"
+      ],
+      "formality_level": 2
+     }
+    },
+    "demo-56": {
+     "category": true,
+     "item_group": true,
+     "garment_type": true,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "footwear",
+      "item_group": "shoes",
+      "garment_type": "sneakers",
+      "primary_color": [
+       "black"
+      ],
+      "pattern": "solid",
+      "material": [
+       "synthetic"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-57": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "cap",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "graphic",
+      "material": [
+       "cotton"
+      ],
+      "formality_level": 1
+     }
+    },
+    "demo-58": {
+     "category": true,
+     "item_group": true,
+     "garment_type": false,
+     "primary_color": true,
+     "pattern": true,
+     "material": true,
+     "formality_error": 0,
+     "normalized": {
+      "category": "accessory",
+      "item_group": "accessory",
+      "garment_type": "beanie",
+      "primary_color": [
+       "grey"
+      ],
+      "pattern": "solid",
+      "material": [
+       "wool"
+      ],
+      "formality_level": 1
+     }
+    }
+   }
+  }
+ }
+]

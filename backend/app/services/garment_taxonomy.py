@@ -62,11 +62,11 @@ def get_taxonomy() -> GarmentTaxonomy:
                      aliases=("top", "tops"), types=(
             _type("t-shirt", "Áo thun", "tshirt", "tee", "t shirt", "áo phông"),
             _type("polo", "Áo Polo", "polo shirt"), _type("shirt", "Áo sơ mi", "button_down_shirt", "dress shirt"),
-            _type("blouse", "Áo kiểu"), _type("sweater", "Áo len"),
-            _type("tanktop", "Áo ba lỗ", "tank top"))),
+            _type("blouse", "Áo kiểu", "tunic"), _type("sweater", "Áo len"),
+            _type("tanktop", "Áo ba lỗ", "tank top", "camisole", "cami"))),
         GarmentGroup(value=ItemGroup.PANTS, label="Quần", category=WardrobeCategory.BOTTOM,
                      aliases=("pants", "pant", "quần dài"), types=(
-            _type("trousers", "Quần tây", "trouser", "dress pants"),
+            _type("trousers", "Quần tây", "trouser", "dress pants", "culottes", "leggings"),
             _type("jeans", "Quần jeans", "jean", "quần bò"),
             _type("chinos", "Quần Chinos", "chino"),
             _type("shorts", "Quần short", "quần đùi"),
@@ -78,8 +78,8 @@ def get_taxonomy() -> GarmentTaxonomy:
             _type("mini_skirt", "Chân váy ngắn"), _type("midi_skirt", "Chân váy midi"))),
         GarmentGroup(value=ItemGroup.DRESS, label="Váy liền", category=WardrobeCategory.DRESS,
                      aliases=("đầm", "dress", "dresses", "váy liền thân"), types=(
-            _type("dress", "Váy liền"), _type("casual_dress", "Đầm thường ngày"),
-            _type("formal_dress", "Đầm dạ hội"), _type("shirt_dress", "Đầm sơ mi"),
+            _type("dress", "Váy liền", "sheath dress"), _type("casual_dress", "Đầm thường ngày"),
+            _type("formal_dress", "Đầm dạ hội", "evening dress", "gown"), _type("shirt_dress", "Đầm sơ mi"),
             _type("maxi_dress", "Đầm maxi"), _type("midi_dress", "Đầm midi"))),
         GarmentGroup(value=ItemGroup.SHOES, label="Giày", category=WardrobeCategory.FOOTWEAR,
                      aliases=("shoe", "shoes"), types=(
@@ -102,7 +102,7 @@ def get_taxonomy() -> GarmentTaxonomy:
         GarmentGroup(value=ItemGroup.ACCESSORY, label="Phụ kiện", category=WardrobeCategory.ACCESSORY,
                      aliases=("accessory", "accessories"), types=(
             _type("belt", "Thắt lưng"), _type("watch", "Đồng hồ"),
-            _type("bag", "Túi xách"), _type("hat", "Mũ", "nón"),
+            _type("bag", "Túi xách"), _type("hat", "Mũ", "nón", "cap", "baseball cap", "beanie", "beret"),
             _type("glasses", "Kính mắt"))),
     ))
 
