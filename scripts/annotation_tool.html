@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Công cụ gán nhãn</title>
+<style>
+  :root { --bg:#f6f6f4; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#dcdcd6; --accent:#2f5d50; --warn:#9a4b16; --chip:#eef2ef; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#151614; --panel:#1f201e; --ink:#ececE8; --muted:#a3a39c; --line:#363733; --accent:#7fb8a6; --warn:#e3a06e; --chip:#2a2d2a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui, sans-serif; }
+  header { padding:12px 16px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  button, select, input { font:inherit; color:inherit; }
+  button { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button[aria-pressed="true"] { background:var(--chip); border-color:var(--accent); }
+  input[type=text], input[type=number], select { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+  main { padding:16px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .viewer { flex:1 1 420px; min-width:0; }
+  .viewer img { max-width:100%; max-height:70vh; display:block; margin:auto; }
+  .form { flex:1 1 360px; min-width:0; }
+  .field { margin-bottom:12px; }
+  .field > label, .field > .label { display:block; font-weight:600; margin-bottom:4px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips button { padding:3px 9px; border-radius:999px; font-size:13px; }
+  .chips button .order { font-size:11px; color:var(--muted); margin-left:4px; }
+  .muted { color:var(--muted); }
+  .warn { color:var(--warn); }
+  .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .stage { position:relative; display:inline-block; max-width:100%; user-select:none; touch-action:none; }
+  .stage img { max-width:100%; max-height:72vh; display:block; }
+  .box { position:absolute; border:2px solid var(--accent); background:rgba(47,93,80,.12); }
+  .box.selected { border-color:var(--warn); background:rgba(154,75,22,.15); }
+  .box span { position:absolute; left:0; top:-20px; background:var(--accent); color:#fff; font-size:11px; padding:1px 5px; border-radius:3px; white-space:nowrap; }
+  .box.selected span { background:var(--warn); }
+  table { border-collapse:collapse; width:100%; }
+  td, th { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; font-size:13px; }
+  .hidden { display:none !important; }
+  .files label { display:inline-flex; gap:6px; align-items:center; margin-right:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Công cụ gán nhãn</h1>
+  <div role="tablist" aria-label="Chế độ">
+    <button role="tab" id="tab-attr" aria-selected="true" aria-pressed="true">Duyệt thuộc tính</button>
+    <button role="tab" id="tab-box" aria-selected="false" aria-pressed="false">Đánh khung ảnh</button>
+  </div>
+</header>
+
+<main>
+<!-- ================= Attribute review ================= -->
+<section id="attr" aria-labelledby="tab-attr">
+  <div class="panel bar files">
+    <label>File nhãn (JSON) <input type="file" id="attr-json" accept=".json,application/json"></label>
+    <label>Thư mục ảnh <input type="file" id="attr-dir" webkitdirectory multiple></label>
+    <button id="attr-export" class="primary">Tải file nhãn đã duyệt</button>
+    <span id="attr-status" class="muted" aria-live="polite"></span>
+  </div>
+  <p class="muted">Danh sách chấp nhận: bấm để chọn hoặc bỏ. Giá trị chọn đầu tiên là nhãn ưu tiên. Nhãn nháp không hiển thị kết quả của hệ thống nhận diện.</p>
+  <div id="attr-work" class="row hidden">
+    <div class="panel viewer">
+      <div class="bar">
+        <button id="attr-prev" aria-label="Ảnh trước">Trước</button>
+        <span id="attr-pos"></span>
+        <button id="attr-next" aria-label="Ảnh sau">Sau</button>
+        <label><input type="checkbox" id="attr-unreviewed"> Chỉ ảnh chưa duyệt</label>
+      </div>
+      <img id="attr-img" alt="">
+      <p id="attr-caption" class="muted"></p>
+    </div>
+    <div class="panel form" id="attr-form"></div>
+  </div>
+</section>
+
+<!-- ================= Box annotation ================= -->
+<section id="box" class="hidden" aria-labelledby="tab-box">
+  <div class="panel bar files">
+    <label>Thư mục ảnh <input type="file" id="box-dir" webkitdirectory multiple></label>
+    <label>Manifest có sẵn (tuỳ chọn) <input type="file" id="box-json" accept=".json,application/json"></label>
+    <button id="box-export" class="primary">Tải manifest</button>
+    <span id="box-status" class="muted" aria-live="polite"></span>
+  </div>
+  <p class="muted">Kéo chuột trên ảnh để vẽ khung bao trọn từng món đồ. Một đôi giày là một khung. Chọn khung để đổi loại hoặc xoá (phím Delete).</p>
+  <div id="box-work" class="row hidden">
+    <div class="panel viewer">
+      <div class="bar">
+        <button id="box-prev" aria-label="Ảnh trước">Trước</button>
+        <span id="box-pos"></span>
+        <button id="box-next" aria-label="Ảnh sau">Sau</button>
+      </div>
+      <div class="stage" id="stage"><img id="box-img" alt="" draggable="false"></div>
+    </div>
+    <div class="panel form">
+      <div class="field"><label for="case-id">Mã ảnh</label><input type="text" id="case-id"></div>
+      <div class="field">
+        <label for="case-count">Số khung kỳ vọng</label>
+        <input type="number" id="case-count" min="1" step="1" placeholder="Để trống nếu không chấm số lượng">
+        <div class="muted">Điền khi ảnh có số món rõ ràng, ví dụ ảnh 1 món hoặc 1 đôi giày.</div>
+      </div>
+      <div class="field"><label for="case-kind">Loại ảnh</label>
+        <select id="case-kind"><option value="worn_outfit">Người đang mặc</option><option value="multi_item">Nhiều món bày ra</option><option value="single_item">Một món</option><option value="hanger">Treo móc</option></select>
+      </div>
+      <div class="field"><label for="new-category">Loại cho khung mới</label><select id="new-category"></select></div>
+      <div class="field"><span class="label">Các khung</span>
+        <table><thead><tr><th>#</th><th>Loại</th><th>Toạ độ</th><th><span class="hidden">Xoá</span></th></tr></thead><tbody id="region-rows"></tbody></table>
+      </div>
+      <label><input type="checkbox" id="case-skip"> Bỏ ảnh này khỏi manifest</label>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+"use strict";
+const CATEGORIES = ["top", "bottom", "dress", "footwear", "outerwear", "accessory"];
+const GROUPS = ["top", "pants", "skirt", "dress", "shoes", "sandals", "outerwear", "accessory"];
+const COLORS = ["black", "white", "grey", "beige", "brown", "navy blue", "blue", "green", "red", "pink", "purple", "orange", "yellow"];
+const PATTERNS = ["solid", "striped", "plaid", "floral", "animal", "graphic", "print", "lace", "embellished"];
+const MATERIALS = ["cotton", "denim", "linen", "wool", "silk", "synthetic", "leather", "knit"];
+const TYPES = ["t-shirt", "polo", "shirt", "blouse", "sweater", "tanktop", "hoodie", "trousers", "jeans", "chinos", "shorts", "joggers",
+  "skirt", "pleated_skirt", "pencil_skirt", "a_line_skirt", "mini_skirt", "midi_skirt", "dress", "casual_dress", "formal_dress",
+  "shirt_dress", "maxi_dress", "midi_dress", "sneakers", "derby", "oxford", "loafers", "leather_shoes", "boots", "chelsea_boots",
+  "heels", "flats", "sandals", "slides", "slippers", "flip_flops", "jacket", "coat", "blazer", "cardigan", "vest", "belt", "watch",
+  "bag", "hat", "glasses"];
+const LIST_FIELDS = [
+  ["category", "Nhóm chính (category)", CATEGORIES],
+  ["item_group", "Nhóm hiển thị", GROUPS],
+  ["garment_type", "Kiểu đồ", TYPES],
+  ["primary_color", "Màu chính", COLORS],
+  ["pattern", "Hoạ tiết", PATTERNS],
+  ["material", "Chất liệu (ước lượng bằng mắt)", MATERIALS],
+];
+const FORMALITY = {1: "Rất thoải mái", 2: "Thường ngày", 3: "Smart casual", 4: "Lịch sự", 5: "Trang trọng"};
+
+function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage may be unavailable */ } }
+function restore(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function download(name, data) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1) + "\n"], {type: "application/json"}));
+  const a = Object.assign(document.createElement("a"), {href: url, download: name});
+  document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+}
+async function sha256Hex(file) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------- tabs ---------- */
+const tabs = {attr: document.getElementById("tab-attr"), box: document.getElementById("tab-box")};
+function showTab(name) {
+  for (const [key, tab] of Object.entries(tabs)) {
+    const active = key === name;
+    tab.setAttribute("aria-selected", String(active)); tab.setAttribute("aria-pressed", String(active));
+    document.getElementById(key).classList.toggle("hidden", !active);
+  }
+}
+tabs.attr.onclick = () => showTab("attr");
+tabs.box.onclick = () => showTab("box");
+
+/* ---------- attribute review ---------- */
+const A = {gold: null, original: null, images: new Map(), index: 0, url: null};
+const attrStatus = document.getElementById("attr-status");
+
+document.getElementById("attr-json").onchange = async (event) => {
+  const file = event.target.files[0]; if (!file) return;
+  const loaded = JSON.parse(await file.text());
+  const saved = restore("annotation-attr:" + loaded.dataset_version);
+  A.original = JSON.parse(JSON.stringify(loaded));
+  A.gold = saved && saved.items && saved.items.length === loaded.items.length
+    && confirm("Có bản duyệt dang dở trong trình duyệt. Tiếp tục bản đó?") ? saved : loaded;
+  A.index = Math.max(0, A.gold.items.findIndex(i => !i.owner_reviewed));
+  renderAttr();
+};
+document.getElementById("attr-dir").onchange = (event) => {
+  A.images = new Map([...event.target.files].map(f => [f.name, f]));
+  renderAttr();
+};
+document.getElementById("attr-prev").onclick = () => moveAttr(-1);
+document.getElementById("attr-next").onclick = () => moveAttr(1);
+document.getElementById("attr-export").onclick = () => {
+  if (!A.gold) return;
+  const reviewed = A.gold.items.filter(i => i.owner_reviewed).length;
+  A.gold.review_status = reviewed === A.gold.items.length ? "owner_reviewed" : "partially_owner_reviewed";
+  download("vision_attribute_gold_v1.json", A.gold);
+};
+
+function moveAttr(step) {
+  if (!A.gold) return;
+  const onlyOpen = document.getElementById("attr-unreviewed").checked;
+  let next = A.index;
+  for (let n = 0; n < A.gold.items.length; n++) {
+    next = (next + step + A.gold.items.length) % A.gold.items.length;
+    if (!onlyOpen || !A.gold.items[next].owner_reviewed) break;
+  }
+  A.index = next; renderAttr();
+}
+
+function renderAttr() {
+  if (!A.gold) return;
+  document.getElementById("attr-work").classList.remove("hidden");
+  const item = A.gold.items[A.index];
+  const done = A.gold.items.filter(i => i.owner_reviewed).length;
+  document.getElementById("attr-pos").textContent = `${A.index + 1} / ${A.gold.items.length}`;
+  attrStatus.textContent = `Đã duyệt ${done}/${A.gold.items.length}`;
+  const img = document.getElementById("attr-img");
+  if (A.url) URL.revokeObjectURL(A.url);
+  const file = A.images.get(item.file);
+  A.url = file ? URL.createObjectURL(file) : null;
+  img.src = A.url || ""; img.alt = file ? `Ảnh ${item.id}, nhãn gốc ${item.source_label}` : "";
+  document.getElementById("attr-caption").textContent = file
+    ? `${item.id} · nhãn gốc của bộ dữ liệu: ${item.source_label}${item.note ? " · ghi chú nháp: " + item.note : ""}`
+    : "Chưa chọn thư mục ảnh hoặc không tìm thấy " + item.file;
+
+  const form = document.getElementById("attr-form");
+  form.replaceChildren();
+  form.append(el("p", {className: item.owner_reviewed ? "" : "warn"},
+    item.owner_reviewed ? "Đã duyệt" : "Chưa duyệt"));
+  for (const [key, title, vocab] of LIST_FIELDS) {
+    const field = item[key];
+    const chips = el("div", {className: "chips", role: "group"});
+    chips.setAttribute("aria-label", title);
+    const options = [...new Set([...vocab, ...field.accepted])];
+    for (const value of options) {
+      const position = field.accepted.indexOf(value);
+      const chip = el("button", {type: "button"}, value);
+      chip.setAttribute("aria-pressed", String(position >= 0));
+      if (position >= 0) chip.append(el("span", {className: "order"}, position === 0 ? "ưu tiên" : String(position + 1)));
+      chip.onclick = () => {
+        const list = field.accepted;
+        if (list.includes(value)) { if (list.length > 1) list.splice(list.indexOf(value), 1); }
+        else list.push(value);
+        renderAttr(); persistAttr();
+      };
+      chips.append(chip);
+    }
+    const header = el("div", {className: "label"}, title, " ");
+    header.append(el("span", {className: "muted"}, `(${field.provenance})`));
+    if (key === "category") header.append(el("div", {className: "muted"}, "Lấy từ nhãn gốc của bộ dữ liệu; chỉ sửa khi nhãn gốc sai."));
+    form.append(el("div", {className: "field"}, header, chips));
+  }
+  const formality = el("div", {className: "chips", role: "radiogroup"});
+  formality.setAttribute("aria-label", "Độ trang trọng");
+  for (const level of [1, 2, 3, 4, 5]) {
+    const chip = el("button", {type: "button"}, `${level} · ${FORMALITY[level]}`);
+    chip.setAttribute("role", "radio");
+    chip.setAttribute("aria-checked", String(item.formality_level.value === level));
+    chip.setAttribute("aria-pressed", String(item.formality_level.value === level));
+    chip.onclick = () => { item.formality_level.value = level; renderAttr(); persistAttr(); };
+    formality.append(chip);
+  }
+  form.append(el("div", {className: "field"}, el("div", {className: "label"}, "Độ trang trọng ",
+    el("span", {className: "muted"}, `(${item.formality_level.provenance})`)), formality));
+  const confirmButton = el("button", {type: "button", className: "primary"}, "Xác nhận và sang ảnh sau (Enter)");
+  confirmButton.onclick = confirmAttr;
+  form.append(confirmButton);
+}
+
+function confirmAttr() {
+  const item = A.gold.items[A.index];
+  const before = A.original.items[A.index];
+  for (const [key] of LIST_FIELDS) {
+    const changed = JSON.stringify(item[key].accepted) !== JSON.stringify(before[key].accepted);
+    if (changed) item[key].provenance = "owner_labelled";
+    else if (item[key].provenance === "ai_draft") item[key].provenance = "owner_reviewed";
+  }
+  if (item.formality_level.value !== before.formality_level.value) item.formality_level.provenance = "owner_labelled";
+  else if (item.formality_level.provenance === "ai_draft") item.formality_level.provenance = "owner_reviewed";
+  item.owner_reviewed = true;
+  persistAttr(); moveAttr(1);
+}
+function persistAttr() { if (A.gold) store("annotation-attr:" + A.gold.dataset_version, A.gold); }
+
+/* ---------- box annotation ---------- */
+const B = {files: [], cases: new Map(), index: 0, url: null, selected: -1, drag: null, header: null};
+const stage = document.getElementById("stage");
+const boxImg = document.getElementById("box-img");
+const newCategory = document.getElementById("new-category");
+for (const c of CATEGORIES) newCategory.append(el("option", {value: c}, c));
+
+document.getElementById("box-dir").onchange = async (event) => {
+  B.files = [...event.target.files].filter(f => /\.(jpe?g|png|webp)$/i.test(f.name) && !f.webkitRelativePath.includes("/run-"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const saved = restore("annotation-box");
+  if (saved && !B.cases.size && confirm("Có bản đánh khung dang dở trong trình duyệt. Tiếp tục bản đó?")) {
+    for (const c of saved.cases) B.cases.set(c.file, c);
+    B.header = saved.header;
+  }
+  B.index = 0; await renderBox();
+};
+document.getElementById("box-json").onchange = async (event) => {
+  const file = event.target.files[0]; if (!file) return;
+  const manifest = JSON.parse(await file.text());
+  const {cases: _cases, ...fields} = manifest;
+  B.header = {fields};
+  for (const c of manifest.cases) B.cases.set(c.file, {...c, kind: c.kind || "", skip: false});
+  await renderBox();
+};
+document.getElementById("box-prev").onclick = () => { B.index = (B.index - 1 + B.files.length) % B.files.length; B.selected = -1; renderBox(); };
+document.getElementById("box-next").onclick = () => { B.index = (B.index + 1) % B.files.length; B.selected = -1; renderBox(); };
+document.getElementById("box-export").onclick = async () => {
+  const cases = [];
+  for (const file of B.files) {
+    const c = B.cases.get(file.name);
+    if (!c || c.skip || !c.regions.length) continue;
+    cases.push({id: c.id, file: c.file, sha256: c.sha256 || await sha256Hex(file), kind: c.kind || null,
+      regions: c.regions.map(r => ({category: r.category, box: r.box.map(v => Math.round(v * 1000) / 1000)})),
+      expected_box_count: c.expected_box_count ?? null});
+  }
+  const loaded = (B.header && B.header.fields) || {};
+  const sameVersion = loaded.dataset_version === "vision-real-review-v3";
+  download("vision_real_review_v3.json", {
+    ...(sameVersion ? loaded : {}),
+    dataset_version: "vision-real-review-v3",
+    annotation_kind: "owner-drawn rectangles in the offline annotation page; one rectangle per garment, a shoe pair is one rectangle",
+    iou_threshold: 0.5,
+    supersedes_dataset_version: sameVersion ? loaded.supersedes_dataset_version ?? null : loaded.dataset_version || null,
+    annotated_at: new Date().toISOString().slice(0, 10),
+    cases});
+};
+
+function currentCase() {
+  const file = B.files[B.index];
+  if (!B.cases.has(file.name)) {
+    B.cases.set(file.name, {id: file.name.replace(/\.[^.]+$/, ""), file: file.name, sha256: null, kind: "worn_outfit",
+      regions: [], expected_box_count: null, skip: false});
+  }
+  return B.cases.get(file.name);
+}
+function persistBox() { store("annotation-box", {header: B.header, cases: [...B.cases.values()]}); }
+
+async function renderBox() {
+  if (!B.files.length) return;
+  document.getElementById("box-work").classList.remove("hidden");
+  const file = B.files[B.index];
+  const c = currentCase();
+  if (!c.sha256) c.sha256 = await sha256Hex(file);
+  if (B.url) URL.revokeObjectURL(B.url);
+  B.url = URL.createObjectURL(file);
+  boxImg.src = B.url; boxImg.alt = `Ảnh ${c.id}`;
+  document.getElementById("box-pos").textContent = `${B.index + 1} / ${B.files.length} · ${file.name}`;
+  const annotated = B.files.filter(f => (B.cases.get(f.name)?.regions.length || 0) > 0).length;
+  document.getElementById("box-status").textContent = `Đã có khung: ${annotated}/${B.files.length}`;
+  const idInput = document.getElementById("case-id");
+  idInput.value = c.id; idInput.oninput = () => { c.id = idInput.value.trim(); persistBox(); };
+  const count = document.getElementById("case-count");
+  count.value = c.expected_box_count ?? "";
+  count.oninput = () => { c.expected_box_count = count.value ? Number(count.value) : null; persistBox(); };
+  const kind = document.getElementById("case-kind");
+  kind.value = c.kind || "worn_outfit"; kind.onchange = () => { c.kind = kind.value; persistBox(); };
+  const skip = document.getElementById("case-skip");
+  skip.checked = Boolean(c.skip); skip.onchange = () => { c.skip = skip.checked; persistBox(); };
+  drawBoxes();
+}
+
+function drawBoxes() {
+  const c = currentCase();
+  stage.querySelectorAll(".box").forEach(n => n.remove());
+  const rows = document.getElementById("region-rows");
+  rows.replaceChildren();
+  c.regions.forEach((region, i) => {
+    const [x1, y1, x2, y2] = region.box;
+    const node = el("div", {className: "box" + (i === B.selected ? " selected" : "")}, el("span", {}, `${i + 1} ${region.category}`));
+    Object.assign(node.style, {left: x1 * 100 + "%", top: y1 * 100 + "%", width: (x2 - x1) * 100 + "%", height: (y2 - y1) * 100 + "%"});
+    node.onpointerdown = (e) => { e.stopPropagation(); B.selected = i; drawBoxes(); };
+    stage.append(node);
+    const select = el("select", {});
+    select.setAttribute("aria-label", `Loại của khung ${i + 1}`);
+    for (const cat of CATEGORIES) select.append(el("option", {value: cat, selected: cat === region.category}, cat));
+    select.onchange = () => { region.category = select.value; persistBox(); drawBoxes(); };
+    const remove = el("button", {type: "button"}, "Xoá");
+    remove.setAttribute("aria-label", `Xoá khung ${i + 1}`);
+    remove.onclick = () => { c.regions.splice(i, 1); B.selected = -1; persistBox(); drawBoxes(); };
+    rows.append(el("tr", {}, el("td", {}, String(i + 1)), el("td", {}, select),
+      el("td", {className: "muted"}, region.box.map(v => v.toFixed(3)).join(", ")), el("td", {}, remove)));
+  });
+}
+
+function pointFromEvent(e) {
+  const rect = boxImg.getBoundingClientRect();
+  return [Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)), Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height))];
+}
+stage.addEventListener("pointerdown", (e) => {
+  if (!B.files.length) return;
+  stage.setPointerCapture(e.pointerId);
+  B.drag = {start: pointFromEvent(e), node: el("div", {className: "box selected"})};
+  stage.append(B.drag.node);
+});
+stage.addEventListener("pointermove", (e) => {
+  if (!B.drag) return;
+  const [sx, sy] = B.drag.start, [x, y] = pointFromEvent(e);
+  Object.assign(B.drag.node.style, {left: Math.min(sx, x) * 100 + "%", top: Math.min(sy, y) * 100 + "%",
+    width: Math.abs(x - sx) * 100 + "%", height: Math.abs(y - sy) * 100 + "%"});
+});
+stage.addEventListener("pointerup", (e) => {
+  if (!B.drag) return;
+  const [sx, sy] = B.drag.start, [x, y] = pointFromEvent(e);
+  B.drag.node.remove(); B.drag = null;
+  if (Math.abs(x - sx) < 0.01 || Math.abs(y - sy) < 0.01) return;
+  const c = currentCase();
+  c.regions.push({category: newCategory.value, box: [Math.min(sx, x), Math.min(sy, y), Math.max(sx, x), Math.max(sy, y)]});
+  B.selected = c.regions.length - 1; persistBox(); drawBoxes();
+});
+
+document.addEventListener("keydown", (e) => {
+  const typing = ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName);
+  if (!document.getElementById("attr").classList.contains("hidden")) {
+    if (e.key === "Enter" && A.gold && !typing) { e.preventDefault(); confirmAttr(); }
+  } else if ((e.key === "Delete" || e.key === "Backspace") && !typing && B.selected >= 0) {
+    currentCase().regions.splice(B.selected, 1); B.selected = -1; persistBox(); drawBoxes();
+  }
+});
+</script>
+</body>
+</html>
