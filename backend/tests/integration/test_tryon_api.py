@@ -600,6 +600,90 @@ def test_avatar_deletion_queues_objects_when_storage_delete_fails(
         app.dependency_overrides.clear()
 
 
+def _portrait_photo_with_gps(format_name: str = "JPEG") -> bytes:
+    """A landscape-encoded phone photo whose EXIF says 'rotate 90 degrees clockwise'."""
+    image = Image.new("RGB", (220, 160), "red")
+    image.paste("blue", (110, 0, 220, 160))
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    exif[0x010F] = "PhoneMaker"
+    gps = exif.get_ifd(0x8825)
+    gps[1], gps[2] = "N", (10.0, 46.0, 30.0)
+    exif[0x8825] = gps
+    buffer = BytesIO()
+    image.save(buffer, format=format_name, exif=exif.tobytes())
+    return buffer.getvalue()
+
+
+def test_avatar_upload_is_upright_and_free_of_metadata(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.models.entities import TryOnAvatar
+    from app.services.fakes.vision_fakes import FakeDetector
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    detected: list[bytes] = []
+
+    class RecordingDetector(FakeDetector):
+        def detect(self, image_bytes: bytes):  # type: ignore[no-untyped-def]
+            detected.append(image_bytes)
+            return super().detect(image_bytes)
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.commit()
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_detector] = lambda: RecordingDetector(mode="worn_outfit")
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"name": "Ảnh dọc", "consent": "true"},
+            files={"file": ("portrait.jpg", _portrait_photo_with_gps(), "image/jpeg")},
+        )
+        assert response.status_code == 201
+
+        with Session(engine) as session:
+            avatar = session.get(TryOnAvatar, response.json()["data"]["id"])
+            assert avatar is not None
+            asset = session.get(MediaAsset, avatar.media_asset_id)
+            assert asset is not None
+            stored = storage.get_object(
+                user_id=user_id, bucket=asset.bucket, object_key=asset.object_key
+            )
+        with Image.open(BytesIO(stored)) as image:
+            assert image.size == (160, 220)
+            assert (asset.width, asset.height) == (160, 220)
+            assert len(image.getexif()) == 0
+            red, _, blue = image.convert("RGB").getpixel((10, 10))
+            assert red > 200 and blue < 60
+
+        assert len(detected) == 1
+        with Image.open(BytesIO(detected[0])) as sent:
+            assert len(sent.getexif()) == 0
+            assert sent.size == (160, 220)
+        assert b"PhoneMaker" not in detected[0] and b"PhoneMaker" not in stored
+
+        # The contract accepts PNG, JPEG, or WebP only.
+        gif = BytesIO()
+        Image.new("RGB", (160, 220), "red").save(gif, format="GIF")
+        rejected = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"consent": "true"},
+            files={"file": ("portrait.gif", gif.getvalue(), "image/gif")},
+        )
+        assert rejected.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_render_is_discarded_when_avatar_is_deleted_mid_render(
     migrated_database: tuple[object, object],
     tmp_path: Path,

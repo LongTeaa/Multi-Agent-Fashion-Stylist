@@ -31,8 +31,63 @@ class ValidatedImage:
     sha256: str
 
 
+_EXIF_ORIENTATION_TAG: Final[int] = 0x0112
+_JPEG_COMMENT_KEYS: Final[frozenset[str]] = frozenset({"comment", "COM"})
+_XMP_KEYS: Final[frozenset[str]] = frozenset({"xmp", "XML:com.adobe.xmp"})
+
+
+def _has_personal_metadata(source: Image.Image) -> bool:
+    """EXIF (camera, GPS, timestamps), XMP, JPEG comments, or PNG text chunks."""
+    if len(source.getexif()) > 0:
+        return True
+    if _XMP_KEYS & source.info.keys() or _JPEG_COMMENT_KEYS & source.info.keys():
+        return True
+    return bool(getattr(source, "text", None))
+
+
+def _strip_metadata(source: Image.Image, img_format: str) -> tuple[bytes, tuple[int, int]] | None:
+    """Re-encode an upload without metadata, with its EXIF orientation applied.
+
+    User photos are stored and sent to external providers (Gemini, FASHN), so EXIF
+    GPS and device data MUST NOT survive. Pixels are rotated to the orientation that
+    browsers display, so normalized crop coordinates address the visible image.
+    Returns ``None`` when the upload has no metadata and can be kept byte for byte.
+    The colour profile is kept; JPEG keeps its quantization tables and subsampling,
+    so a photo that needs no rotation is not degraded to Pillow's default quality.
+    """
+    if not _has_personal_metadata(source):
+        return None
+
+    needs_rotation = source.getexif().get(_EXIF_ORIENTATION_TAG, 1) != 1
+    clean = ImageOps.exif_transpose(source) if needs_rotation else source.copy()
+    clean.info = {}  # Pillow 12 writes only metadata passed to save(); clear for safety.
+
+    options: dict[str, object] = {}
+    if "transparency" in source.info:
+        options["transparency"] = source.info["transparency"]
+    icc_profile = source.info.get("icc_profile")
+    if icc_profile:
+        options["icc_profile"] = icc_profile
+    if img_format == "JPEG":
+        from PIL import JpegImagePlugin
+
+        options["qtables"] = getattr(source, "quantization", None) or "web_high"
+        sampling = JpegImagePlugin.get_sampling(source)
+        if sampling >= 0:
+            options["subsampling"] = sampling
+    elif img_format == "WEBP":
+        options["quality"] = 95
+
+    buffer = BytesIO()
+    clean.save(buffer, format=img_format, **options)
+    return buffer.getvalue(), clean.size
+
+
 def validate_image_bytes(raw_bytes: bytes) -> ValidatedImage:
     """Validate image bytes for MIME type, size limit, and pixel dimensions.
+
+    The returned bytes carry no EXIF, XMP, comment, or text metadata, and their pixels
+    use the orientation the EXIF tag described.
 
     Raises:
         ValidationError: If the image is invalid, corrupted, disguised, too large, or too small.
@@ -80,21 +135,16 @@ def validate_image_bytes(raw_bytes: bytes) -> ValidatedImage:
         )
 
     mime_type, extension = SUPPORTED_FORMATS[img_format]
-    # Store the same orientation that browsers and Vision display so normalized
-    # crop coordinates address the actual pixels, including phone-camera photos.
     try:
         with Image.open(BytesIO(raw_bytes)) as source:
-            if (img_format == "JPEG" or "exif" in source.info) and source.getexif().get(274, 1) != 1:
-                normalized = ImageOps.exif_transpose(source)
-                buffer = BytesIO()
-                normalized.save(buffer, format=img_format)
-                raw_bytes = buffer.getvalue()
-                img_width, img_height = normalized.size
-                size_bytes = len(raw_bytes)
-                if size_bytes > MAX_FILE_SIZE_BYTES:
-                    raise ValidationError(details={"reason": "normalized_image_too_large"})
+            sanitized = _strip_metadata(source, img_format)
     except (OSError, ValueError) as error:
         raise ValidationError(details={"reason": "invalid_image_orientation"}) from error
+    if sanitized is not None:
+        raw_bytes, (img_width, img_height) = sanitized
+        size_bytes = len(raw_bytes)
+        if size_bytes > MAX_FILE_SIZE_BYTES:
+            raise ValidationError(details={"reason": "normalized_image_too_large"})
     sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
 
     return ValidatedImage(

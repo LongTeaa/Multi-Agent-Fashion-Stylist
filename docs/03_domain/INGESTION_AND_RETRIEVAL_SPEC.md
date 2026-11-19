@@ -54,6 +54,8 @@ Detections MUST retain their original media identifier independently of crop
 identifiers. Multi-photo review MUST offer source selection and show regions only
 on the matching source. Phone EXIF orientation MUST be normalized before storing
 the original and sending it to detection, so displayed and cropped pixels agree.
+Image metadata, including GPS location, MUST be removed at the same step
+(`../04_data/OBJECT_STORAGE_SPEC.md`, section 3).
 Crop edits regenerate both crop and thumbnail through
 ObjectStorage and remain review-only until explicit confirmation. A matching
 pair of footwear is one wardrobe unit; different pairs remain separate. The

@@ -509,3 +509,148 @@ class TestIngestionApiAndFailureSemantics:
                 bucket="wardrobe-private",
                 object_key=deleted_keys[0],
             )
+
+
+def _photo_with_metadata(
+    format_name: str,
+    *,
+    orientation: int = 1,
+    size: tuple[int, int] = (160, 96),
+) -> bytes:
+    """A phone-style photo: left half red, right half blue, with GPS and device EXIF."""
+    image = Image.new("RGB", size, "red")
+    image.paste("blue", (size[0] // 2, 0, size[0], size[1]))
+    exif = Image.Exif()
+    exif[0x0112] = orientation
+    exif[0x010F] = "PhoneMaker"
+    exif[0x0132] = "2026:11:19 08:30:00"
+    gps = exif.get_ifd(0x8825)
+    gps[1], gps[2], gps[3], gps[4] = "N", (10.0, 46.0, 30.0), "E", (106.0, 41.0, 50.0)
+    exif[0x8825] = gps
+    options: dict[str, object] = {"exif": exif.tobytes()}
+    if format_name != "PNG":
+        options["xmp"] = b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF/></x:xmpmeta>'
+    buffer = BytesIO()
+    image.save(buffer, format=format_name, **options)
+    return buffer.getvalue()
+
+
+def _assert_no_metadata(raw: bytes) -> None:
+    with Image.open(BytesIO(raw)) as image:
+        assert len(image.getexif()) == 0
+        assert "xmp" not in image.info and "XML:com.adobe.xmp" not in image.info
+        assert not getattr(image, "text", None)
+    assert b"PhoneMaker" not in raw
+
+
+class TestUploadMetadataStripping:
+    @pytest.mark.parametrize("format_name", ["JPEG", "PNG", "WEBP"])
+    @pytest.mark.parametrize("orientation", [1, 6])
+    def test_strips_gps_and_device_metadata_and_applies_orientation(
+        self, format_name: str, orientation: int
+    ) -> None:
+        validated = validate_image_bytes(_photo_with_metadata(format_name, orientation=orientation))
+
+        _assert_no_metadata(validated.raw_bytes)
+        expected = (96, 160) if orientation == 6 else (160, 96)
+        assert (validated.width, validated.height) == expected
+        assert validated.size_bytes == len(validated.raw_bytes)
+        with Image.open(BytesIO(validated.raw_bytes)) as image:
+            assert image.format == format_name
+            assert image.size == expected
+            # Orientation 6 means "rotate 90 degrees clockwise to display": red ends on top.
+            top_left = image.convert("RGB").getpixel((5, 5))
+            assert top_left[0] > 200 and top_left[2] < 60
+
+    def test_upload_without_metadata_is_kept_byte_for_byte(self) -> None:
+        raw = create_test_image_bytes("JPEG")
+        assert validate_image_bytes(raw).raw_bytes == raw
+
+    def test_jpeg_keeps_its_quantization_when_only_metadata_is_removed(self) -> None:
+        source = Image.effect_noise((256, 256), 64).convert("RGB")
+        exif = Image.Exif()
+        exif[0x010F] = "PhoneMaker"
+        buffer = BytesIO()
+        source.save(buffer, format="JPEG", quality=92, exif=exif.tobytes())
+        raw = buffer.getvalue()
+
+        cleaned = validate_image_bytes(raw).raw_bytes
+
+        with Image.open(BytesIO(raw)) as before, Image.open(BytesIO(cleaned)) as after:
+            assert after.quantization == before.quantization
+            before_pixels = before.convert("L").tobytes()
+            after_pixels = after.convert("L").tobytes()
+        mean_error = sum(abs(a - b) for a, b in zip(before_pixels, after_pixels)) / len(before_pixels)
+        assert mean_error < 2.0
+
+    def test_png_text_chunks_are_removed_and_transparency_is_kept(self) -> None:
+        from PIL.PngImagePlugin import PngInfo
+
+        image = Image.new("P", (96, 96), 0)
+        image.putpalette([255, 255, 255, 255, 0, 0] + [0] * 762)
+        image.paste(1, (0, 0, 48, 96))
+        info = PngInfo()
+        info.add_text("Author", "PhoneMaker owner")
+        buffer = BytesIO()
+        image.save(buffer, format="PNG", pnginfo=info, transparency=0)
+
+        cleaned = validate_image_bytes(buffer.getvalue()).raw_bytes
+
+        _assert_no_metadata(cleaned)
+        with Image.open(BytesIO(cleaned)) as result:
+            assert result.info.get("transparency") == 0
+            assert result.convert("RGBA").getpixel((90, 10))[3] == 0
+
+
+@pytest.mark.parametrize(("orientation", "stored_size"), [(1, (160, 96)), (6, (96, 160))])
+def test_ingestion_stores_and_sends_photos_without_metadata(
+    migrated_database: tuple[object, object],
+    test_storage: LocalObjectStorage,
+    orientation: int,
+    stored_size: tuple[int, int],
+) -> None:
+    """The stored original and the bytes given to the detector (Gemini in production) carry no EXIF."""
+    from app.core.dependencies import get_detector, get_vision_provider
+    from app.services.fakes.vision_fakes import FakeDetector, FakeVisionProvider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    received: list[bytes] = []
+
+    class RecordingDetector(FakeDetector):
+        def detect(self, image_bytes: bytes):  # type: ignore[no-untyped-def]
+            received.append(image_bytes)
+            return super().detect(image_bytes)
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    app.dependency_overrides[get_object_storage] = lambda: test_storage
+    app.dependency_overrides[get_detector] = lambda: RecordingDetector(mode="single_item")
+    app.dependency_overrides[get_vision_provider] = lambda: FakeVisionProvider(scenario="golden_polo")
+    try:
+        response = TestClient(app).post(
+            "/api/v1/ingestions",
+            headers={"X-User-Id": user_id},
+            files=[("images[]", ("phone.jpg", _photo_with_metadata("JPEG", orientation=orientation), "image/jpeg"))],
+        )
+        assert response.status_code == 202
+
+        with Session(engine) as session:
+            original = session.exec(
+                select(MediaAsset).where(
+                    MediaAsset.user_id == user_id, MediaAsset.kind == MediaKind.ORIGINAL
+                )
+            ).one()
+            stored = test_storage.get_object(
+                user_id=user_id, bucket=original.bucket, object_key=original.object_key
+            )
+            assert (original.width, original.height) == stored_size
+            assert original.size_bytes == len(stored)
+
+        _assert_no_metadata(stored)
+        assert received == [stored]
+    finally:
+        app.dependency_overrides.clear()

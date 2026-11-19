@@ -75,6 +75,7 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 - When fallback succeeds, the API MUST return HTTP 200 with `fallback_used=true`.
 - Media MUST be stored in a private bucket (`tryon-private`) and guarded by ownership checks.
 - User personal avatar images MUST NOT be shared with other users or exposed publicly.
+- An uploaded avatar MUST be stored upright and without EXIF, GPS, or other metadata before person detection or any provider call (`../04_data/OBJECT_STORAGE_SPEC.md`, section 3).
 
 ## 8. Acceptance Criteria and Invariants
 

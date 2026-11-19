@@ -52,6 +52,7 @@ from app.services.providers import (
     TryOnRequest as ProviderTryOnRequest,
 )
 from app.services.tryon_prompt import LookbookPromptItem, build_lookbook_prompt
+from app.services.upload_validation import validate_image_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -153,13 +154,14 @@ def create_user_avatar(
     tryon_bucket: str,
 ) -> TryOnAvatarResponse:
     """Validate, transcode, verify person presence, and persist user-uploaded avatar."""
-    if len(file_bytes) > 10 * 1024 * 1024:
-        raise ValidationError(message="Kích thước ảnh tối đa là 10MB.")
+    # Same checks as wardrobe uploads: PNG/JPEG/WebP within 10 MB, EXIF orientation
+    # applied, and no EXIF/GPS or other metadata left for the detector or FASHN.
+    upload = validate_image_bytes(file_bytes)
 
     try:
-        with Image.open(BytesIO(file_bytes)) as pil_img:
+        with Image.open(BytesIO(upload.raw_bytes)) as pil_img:
             pil_img.verify()
-        with Image.open(BytesIO(file_bytes)) as pil_img:
+        with Image.open(BytesIO(upload.raw_bytes)) as pil_img:
             rgb_img = pil_img.convert("RGB")
             max_dim = max(rgb_img.size)
             if max_dim > 1536:
@@ -175,7 +177,7 @@ def create_user_avatar(
 
     if detector is not None:
         try:
-            detection = detector.detect(file_bytes)
+            detection = detector.detect(upload.raw_bytes)
             input_kind_val = getattr(detection.input_kind, "value", str(detection.input_kind))
             has_person = (
                 detection.person_box is not None

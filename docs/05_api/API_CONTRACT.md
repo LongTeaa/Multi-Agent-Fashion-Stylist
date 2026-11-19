@@ -494,7 +494,7 @@ Multipart form upload of a user full-body photo with these fields:
 | `consent` | Yes | MUST be `true`: the user explicitly agreed that the photo is sent to the configured external try-on provider |
 | `name` | No | Display name; defaults to `Ảnh của tôi` |
 
-A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.field = "consent"`, and nothing is stored. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
+A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.field = "consent"`, and nothing is stored. Another image format, a file over 10 MB, or an unreadable image returns `422 VALIDATION_ERROR`. The photo's EXIF orientation is applied and its metadata, including GPS location, is removed before it is stored or sent to any service. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
 
 ### 8.5 `DELETE /tryons/avatars/{avatar_id}`
 
