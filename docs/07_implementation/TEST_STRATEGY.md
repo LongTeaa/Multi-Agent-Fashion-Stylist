@@ -66,6 +66,29 @@ and digests for visual inspection. Each live report pins the adapter contract an
 manifest digest. `complete` denotes response availability, not passing crop quality;
 inspect per-case localization/count metrics separately. Results pooled across
 retries MUST NOT be described as a single successful full-corpus run.
+
+Attribute accuracy is measured by `backend/scripts/evaluate_live_ingestion.py`
+against `data/fixtures/vision_attribute_gold_v1.json` (the 58 demo photos). Category
+labels come from the source dataset. Other fields were drafted by an AI assistant
+and are reviewed by the project owner with `scripts/annotation_tool.html`; each field
+records its provenance (`source_dataset`, `ai_draft`, `owner_reviewed`,
+`owner_labelled`). Item confirmations stored in the app MUST NOT be used as gold
+labels, because they equal the provider proposal on 59 of 60 demo items. Each field
+lists every accepted value; free-text provider output is normalized onto taxonomy
+colors, nine pattern classes and eight fiber families before comparison. Material is
+reported as visual plausibility only. Formality is scored exact, within one level,
+and as mean absolute error.
+
+`--live --detector yolo_world|gemini --out <raw.json>` runs every gold photo
+through the real ingestion service in an isolated temporary database and store,
+wrapping the providers to record each call's output, latency and exception, plus
+model-fallback and rate-limit log events. `--localization` also runs the annotated
+localization manifest; photos are oriented and stripped exactly as uploads are
+before detection. `--score <raw.json>...` recomputes every metric offline. A
+provider failure counts as wrong in `accuracy`; `accuracy_when_answered` excludes
+it, and both are reported. The largest proposed detection is scored. Gold labels
+MUST be frozen before the scored live run and MUST NOT be edited afterwards to
+improve a score; any later correction is recorded with its reason and both scores.
 Live reports retain raw provider boxes/metrics and effective crop boxes/metrics
 separately, with scene inference, confidence, and crop-policy version. Changes to
 crop policy can also be tested against frozen provider boxes on private real
