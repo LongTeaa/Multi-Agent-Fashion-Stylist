@@ -82,12 +82,14 @@ def constraint_matches_item(
     if constraint.sub_category is not None:
         target_sub = _normalized_value(constraint.sub_category)
         item_sub = _normalized_value(item.sub_category)
-        allowed_subs = {target_sub}
-        for s in steps:
-            if s.action == "subcategory_equivalent" and _normalized_value(s.original_value) == target_sub:
-                allowed_subs.update(_normalized_value(v) for v in s.relaxed_values)
-        if item_sub not in allowed_subs:
-            return False
+        # Generic 'dress' constraint accepts specific dress taxonomy subtypes (formal_dress, midi_dress, ...)
+        if not (constraint.category == WardrobeCategory.DRESS and target_sub == "dress" and item.category == WardrobeCategory.DRESS):
+            allowed_subs = {target_sub}
+            for s in steps:
+                if s.action == "subcategory_equivalent" and _normalized_value(s.original_value) == target_sub:
+                    allowed_subs.update(_normalized_value(v) for v in s.relaxed_values)
+            if item_sub not in allowed_subs:
+                return False
 
     if constraint.color is not None:
         target_col = _normalized_value(constraint.color)
@@ -133,6 +135,28 @@ def outfit_satisfies_explicit_constraints(
     return True
 
 
+def _has_direct_avoid_conflict(
+    constraint: GarmentConstraint,
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> tuple[bool, bool]:
+    """Return whether constraint color or sub_category is directly banned by structured_must_avoid."""
+    color_banned = False
+    sub_banned = False
+    c_col = _normalized_value(constraint.color) if constraint.color is not None else None
+    c_sub = _normalized_value(constraint.sub_category) if constraint.sub_category is not None else None
+    for avoid in avoid_constraints:
+        cat_match = avoid.category is None or constraint.category is None or avoid.category == constraint.category
+        if not cat_match:
+            continue
+        if c_col is not None and avoid.color is not None and _normalized_value(avoid.color) == c_col:
+            if avoid.sub_category is None or (c_sub is not None and _normalized_value(avoid.sub_category) == c_sub):
+                color_banned = True
+        if c_sub is not None and avoid.sub_category is not None and _normalized_value(avoid.sub_category) == c_sub:
+            if avoid.color is None:
+                sub_banned = True
+    return color_banned, sub_banned
+
+
 def diagnose_bottleneck(
     candidate_pool: dict[str, list[OutfitItemSlot]],
     combinations: list[list[OutfitItemSlot]],
@@ -163,12 +187,15 @@ def diagnose_bottleneck(
             if candidate_pool.get(slot_name):
                 continue
 
+            _, sub_conflict = _has_direct_avoid_conflict(c, context.structured_must_avoid)
             added_for_c = False
             if c.material is not None and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
                 if "material_relax" not in allowed_actions:
                     allowed_actions.append("material_relax")
                 added_for_c = True
-            if c.sub_category is not None:
+            # Only widen sub_category when no material constraint is pending relaxation,
+            # preserving exact garment subtype (e.g. linen shirt -> cotton shirt before polo).
+            if c.sub_category is not None and not added_for_c and not sub_conflict:
                 norm_sub = _normalized_value(c.sub_category)
                 raw_sub = c.sub_category.strip().lower()
                 has_equiv = (
@@ -220,6 +247,7 @@ def diagnose_bottleneck(
             continue
 
         added_for_c = False
+        color_conflict, sub_conflict = _has_direct_avoid_conflict(c, context.structured_must_avoid)
         slot_items = candidate_pool[slot_name]
         # Check whether an item in slot already satisfies sub_category (and material) so we only
         # relax what is actually blocking instead of firing unnecessary subcategory relaxations.
@@ -232,7 +260,7 @@ def diagnose_bottleneck(
             for it in slot_items
         )
 
-        if c.color is not None and has_sub_match and has_mat_match:
+        if c.color is not None and not color_conflict and has_sub_match and has_mat_match:
             norm_col = _normalized_value(c.color)
             if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
                 if "color_family" not in allowed_actions:
@@ -242,7 +270,7 @@ def diagnose_bottleneck(
             if "material_relax" not in allowed_actions:
                 allowed_actions.append("material_relax")
             added_for_c = True
-        if c.sub_category is not None and not has_sub_match:
+        if c.sub_category is not None and not sub_conflict and not has_sub_match:
             norm_sub = _normalized_value(c.sub_category)
             raw_sub = c.sub_category.strip().lower()
             has_equiv = (
@@ -256,7 +284,7 @@ def diagnose_bottleneck(
 
         # Fallback if exact sub+color+mat combination still blocks (e.g. matching sub_category items have wrong color AND wrong material)
         if not added_for_c:
-            if c.color is not None:
+            if c.color is not None and not color_conflict:
                 norm_col = _normalized_value(c.color)
                 if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
                     if "color_family" not in allowed_actions:
@@ -266,7 +294,7 @@ def diagnose_bottleneck(
                 if "material_relax" not in allowed_actions:
                     allowed_actions.append("material_relax")
                 added_for_c = True
-            if c.sub_category is not None:
+            if c.sub_category is not None and not sub_conflict:
                 norm_sub = _normalized_value(c.sub_category)
                 raw_sub = c.sub_category.strip().lower()
                 has_equiv = (

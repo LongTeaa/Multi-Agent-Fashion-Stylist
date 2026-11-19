@@ -1,4 +1,5 @@
 from __future__ import annotations
+from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
@@ -435,6 +436,8 @@ def _extract_avoid_filters(
                 compound_exclusions.append(c)
             elif c.category is not None and c.sub_category is not None:
                 targeted_must_avoid[c.category].append(c.sub_category)
+            elif c.category is not None and c.is_category_only:
+                compound_exclusions.append(c)
             elif c.color is not None:
                 for cat in WardrobeCategory:
                     targeted_must_avoid[cat].append(c.color)

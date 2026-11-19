@@ -408,8 +408,8 @@ SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]]
     # Bottoms - Skirts (Checked before Dresses to prevent 'chân váy' from being classified as dress)
     (["chân váy chữ a", "chân váy xếp ly", "chân váy bút chì", "chân váy ngắn", "chân váy dài", "chân váy", "skirt", "skirts"], WardrobeCategory.BOTTOM, "skirt", None),
 
-    # Dresses
-    (["váy đầm", "đầm hoa", "váy hoa", "đầm", "váy", "dress"], WardrobeCategory.DRESS, "dress", None),
+    # Dresses (specific floral phrases stay before generic category rules)
+    (["đầm hoa", "váy hoa"], WardrobeCategory.DRESS, "dress", None),
 
     # Footwear
     (["giày da", "giày tây da", "giày tây", "giày oxford", "oxford"], WardrobeCategory.FOOTWEAR, "oxford", "leather"),
@@ -434,6 +434,7 @@ SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]]
 ]
 
 GENERIC_CATEGORY_DEFS: list[tuple[list[str], WardrobeCategory]] = [
+    (["váy đầm", "đầm", "váy", "dress"], WardrobeCategory.DRESS),
     (["áo"], WardrobeCategory.TOP),
     (["quần"], WardrobeCategory.BOTTOM),
     (["giày", "dép"], WardrobeCategory.FOOTWEAR),
@@ -548,15 +549,19 @@ def extract_constraints(
     structured_must_have: list[GarmentConstraint] = []
     structured_must_avoid: list[GarmentConstraint] = []
 
-    # Split into clauses by punctuation to handle compound sentences
-    clauses = re.split(r"[,;.]|\bnhưng\b", t)
+    # Split into clauses on punctuation, 'nhưng', or 'và <new constraint trigger>'
+    clauses = re.split(
+        r"[,;.]|\bnhưng\b|\bvà\s+(?=(?:không|chẳng|đừng|tránh|ghét|phải|cần|muốn|thích|bắt buộc)\b)",
+        t,
+    )
 
     avoid_triggers = [
         "không mặc", "không đi", "không mang", "không chọn", "không muốn", "không thích",
         "đừng mặc", "đừng đi", "đừng mang", "đừng chọn", "đừng phối",
-        "tránh", "ghét",
+        "tránh mặc", "tránh đi", "tránh mang", "tránh chọn", "tránh", "ghét",
     ]
     have_triggers = [
+        "bắt buộc phải mặc", "bắt buộc mặc", "bắt buộc phải", "bắt buộc",
         "muốn mặc", "thích mặc", "cần mặc", "phải mặc",
         "muốn đi", "thích đi", "cần đi", "phải đi",
         "muốn mang", "thích mang", "cần mang", "phải mang",

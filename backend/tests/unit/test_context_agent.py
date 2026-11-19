@@ -440,3 +440,22 @@ def test_garment_with_defaulted_occasion_calibrates_confidence():
     assert ctx.occasion == "casual"
     # occasion defaulted (-0.15) and weather defaulted (-0.10) => 0.95 - 0.25 = 0.70
     assert ctx.confidence == 0.70
+
+
+def test_compound_avoid_clauses_and_mandatory_triggers():
+    """Verify joined avoid triggers and 'bắt buộc mặc' mandatory triggers are both extracted cleanly."""
+    q1 = "Sáng mai đi cafe trời mát, tư vấn set đồ tránh mặc màu đen và không mặc quần jean."
+    c1 = extract_context(q1)
+    assert "màu đen" in c1.must_avoid
+    assert "quần jean" in c1.must_avoid
+    assert any(cs.color == "black" for cs in c1.structured_must_avoid)
+    assert any(cs.sub_category == "jeans" for cs in c1.structured_must_avoid)
+
+    q2 = "Tối nay đi tiệc trang trọng, bắt buộc mặc quần tây màu đen."
+    c2 = extract_context(q2)
+    assert any(cs.sub_category == "trousers" and cs.color == "black" for cs in c2.structured_must_have)
+
+    q3 = "Tối mai đi tiệc sinh nhật, mình muốn mặc đầm nhưng không mặc màu đen."
+    c3 = extract_context(q3)
+    assert any(cs.category == WardrobeCategory.DRESS and cs.is_category_only for cs in c3.structured_must_have)
+    assert any(cs.color == "black" for cs in c3.structured_must_avoid)
