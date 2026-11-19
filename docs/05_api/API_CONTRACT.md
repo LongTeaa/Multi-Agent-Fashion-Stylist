@@ -503,11 +503,13 @@ Multipart form upload of a user full-body photo with these fields:
 | `consent` | Yes | MUST be `true`: the user explicitly agreed that the photo is sent to the configured external try-on provider |
 | `name` | No | Display name; defaults to `Ảnh của tôi` |
 
-A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.field = "consent"`, and nothing is stored. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
+A missing or `false` `consent` MUST return `422 VALIDATION_ERROR` with `details.field = "consent"`, and nothing is stored. Another image format, a file over 10 MB, or an unreadable image returns `422 VALIDATION_ERROR`. The photo's EXIF orientation is applied and its metadata, including GPS location, is removed before it is stored or sent to any service. The photo MUST be verified by a person detector. Returns HTTP `201 Created` with avatar metadata.
 
 ### 8.5 `DELETE /tryons/avatars/{avatar_id}`
 
 Soft-deletes a user's uploaded avatar. Returns HTTP `204 No Content`. Users MUST NOT be able to delete built-in presets or other users' avatars.
+
+Deleting an avatar MUST also remove every try-on render made from it: afterwards `GET /tryons/{tryon_id}` and `GET /media/{asset_id}` for those renders return `404`. Renders made from built-in presets are kept. A try-on request whose avatar is deleted before the render is stored returns `422 VALIDATION_ERROR` and stores nothing.
 
 ## 9. Media API
 

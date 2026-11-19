@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.services.garment_taxonomy import group_label
+from app.services.item_media import primary_media_id, primary_media_ids
 
 import random
 import time
@@ -15,9 +16,6 @@ from app.agents.wardrobe_agent import format_localized_item_name
 from app.models.entities import (
     FeedbackPromptState,
     FeedbackSuppressedSession,
-    ItemMedia,
-    ItemMediaRole,
-    MediaAsset,
     OutfitItem,
     OutfitRecommendation,
     OutfitSlotRole,
@@ -50,13 +48,6 @@ SLOT_ORDER: dict[OutfitSlotRole, int] = {
     OutfitSlotRole.ACCESSORY: 5,
 }
 
-MEDIA_ROLE_PRIORITY: dict[ItemMediaRole, int] = {
-    ItemMediaRole.PRIMARY: 0,
-    ItemMediaRole.THUMBNAIL: 1,
-    ItemMediaRole.ALTERNATE: 2,
-}
-
-
 def _normalize_utc(dt: datetime | None) -> datetime | None:
     """Normalize datetime to timezone-aware UTC, or None."""
     if dt is None:
@@ -64,25 +55,6 @@ def _normalize_utc(dt: datetime | None) -> datetime | None:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
-
-
-def _primary_media_id(session: Session, item_id: str, user_id: str) -> str | None:
-    """Find highest-priority active media asset ID linked to a wardrobe item.
-
-    Must join MediaAsset and verify deleted_at is None to prevent returning broken URLs.
-    """
-    links = session.exec(
-        select(ItemMedia, MediaAsset)
-        .join(MediaAsset, ItemMedia.media_asset_id == MediaAsset.id)
-        .where(
-            ItemMedia.wardrobe_item_id == item_id,
-            ItemMedia.user_id == user_id,
-            MediaAsset.deleted_at.is_(None),
-        )
-    ).all()
-    if not links:
-        return None
-    return min(links, key=lambda pair: MEDIA_ROLE_PRIORITY.get(pair[0].role, 99))[0].media_asset_id
 
 
 def _build_outfit_item_dto(
@@ -154,7 +126,7 @@ def _build_outfit_detail_response(
     item_dtos: list[OutfitItemDetailResponse] = []
     for oi in sorted_outfit_items:
         w_item = session.get(WardrobeItem, oi.wardrobe_item_id)
-        media_id = _primary_media_id(session, oi.wardrobe_item_id, user_id) if w_item else None
+        media_id = primary_media_id(session, oi.wardrobe_item_id, user_id) if w_item else None
         item_dtos.append(_build_outfit_item_dto(oi, w_item, media_id, user_id))
 
     # 3. Aggregate wear history
@@ -271,25 +243,7 @@ def get_saved_outfits(
         wardrobe_map = {w.id: w for w in w_items}
 
     # 5. Batch prefetch active media (excluding soft-deleted MediaAsset)
-    primary_media_map: dict[str, str] = {}
-    if wardrobe_item_ids:
-        media_links = session.exec(
-            select(ItemMedia, MediaAsset)
-            .join(MediaAsset, ItemMedia.media_asset_id == MediaAsset.id)
-            .where(
-                ItemMedia.wardrobe_item_id.in_(wardrobe_item_ids),
-                ItemMedia.user_id == user_id,
-                MediaAsset.deleted_at.is_(None),
-            )
-        ).all()
-
-        media_by_item: dict[str, list[tuple[ItemMedia, MediaAsset]]] = defaultdict(list)
-        for im, ma in media_links:
-            media_by_item[im.wardrobe_item_id].append((im, ma))
-
-        for w_id, links in media_by_item.items():
-            best_link = min(links, key=lambda pair: MEDIA_ROLE_PRIORITY.get(pair[0].role, 99))
-            primary_media_map[w_id] = best_link[0].media_asset_id
+    primary_media_map = primary_media_ids(session, user_id, wardrobe_item_ids)
 
     # 6. Batch aggregate wear logs (COUNT and MAX)
     wear_stats = session.exec(

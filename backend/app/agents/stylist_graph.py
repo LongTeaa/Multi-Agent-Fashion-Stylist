@@ -197,7 +197,8 @@ def execute_stylist_recommendation(
     """Executes the stylist recommendation workflow with fresh-state normalization.
 
     Contract:
-    - Retains request-owned input: request_id, user_id, user_query, location, reference_time.
+    - Retains request-owned input: request_id, user_id, user_query, location,
+      client_session_id, reference_time.
     - Normalizes reference_time to a timezone-aware UTC datetime.
     - Overwrites caller-supplied agent-owned output fields with fresh defaults to
       prevent stale leaks on early-termination paths.

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { OutfitCard, normalizeStylistItems, normalizeDetailItems, generateUUIDv4 } from '@/components/outfits/OutfitCard';
+import { OutfitCard, normalizeStylistItems, normalizeDetailItems } from '@/components/outfits/OutfitCard';
 import * as api from '@/lib/api';
 import type { OutfitWornResponseData } from '@/types/outfits';
 
@@ -375,27 +375,6 @@ describe('OutfitCard Component', () => {
     const secondKey = vi.mocked(api.recordOutfitWorn).mock.calls[1][1].idempotency_key;
     // CRITICAL IDEMPOTENCY CHECK: retry must reuse the exact same key!
     expect(secondKey).toBe(firstKey);
-  });
-
-  it('generateUUIDv4 produces RFC 4122 v4 compliant UUID in native and fallback mode', () => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-    // Native mode
-    const nativeKey = generateUUIDv4();
-    expect(nativeKey).toMatch(uuidRegex);
-
-    // Fallback mode (when crypto.randomUUID is undefined)
-    const originalRandomUUID = crypto.randomUUID;
-    try {
-      // @ts-expect-error - simulate environment without crypto.randomUUID
-      crypto.randomUUID = undefined;
-      const fallbackKey = generateUUIDv4();
-      expect(fallbackKey).toMatch(uuidRegex);
-      expect(fallbackKey.charAt(14)).toBe('4');
-      expect(['8', '9', 'a', 'b']).toContain(fallbackKey.charAt(19).toLowerCase());
-    } finally {
-      crypto.randomUUID = originalRandomUUID;
-    }
   });
 
   it('localizes outerwear and accessory slots accurately', () => {

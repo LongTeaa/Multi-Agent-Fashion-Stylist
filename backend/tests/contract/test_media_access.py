@@ -144,3 +144,54 @@ def test_deleted_media_is_not_streamed(
         assert response.json()["error"]["code"] == "MEDIA_NOT_FOUND"
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("size_drift", [+7, -7])
+def test_media_length_comes_from_the_stored_object_not_the_database(
+    migrated_database: tuple[object, object],
+    private_storage: LocalObjectStorage,
+    size_drift: int,
+) -> None:
+    """A size_bytes that drifted from storage (e.g. after copying media) must not break the response."""
+    _, engine = migrated_database
+    owner_id, asset_id = str(uuid4()), str(uuid4())
+    content = b"image-bytes-after-a-manual-storage-copy"
+    object_key = f"users/{owner_id}/items/item-3/crop/v1.jpg"
+    with Session(engine) as session:
+        session.add(User(id=owner_id))
+        session.flush()
+        session.add(
+            MediaAsset(
+                id=asset_id,
+                user_id=owner_id,
+                kind=MediaKind.CROP,
+                bucket="wardrobe-private",
+                object_key=object_key,
+                mime_type="image/jpeg",
+                size_bytes=len(content) + size_drift,
+                width=10,
+                height=10,
+                sha256=sha256(content).hexdigest(),
+            )
+        )
+        session.commit()
+    private_storage.put_object(
+        user_id=owner_id,
+        bucket="wardrobe-private",
+        object_key=object_key,
+        data=content,
+        content_type="image/jpeg",
+    )
+
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: private_storage
+    try:
+        response = TestClient(app).get(
+            f"/api/v1/media/{asset_id}", headers={"X-User-Id": owner_id}
+        )
+        assert response.status_code == 200
+        assert response.content == content
+        assert response.headers["content-length"] == str(len(content))
+        assert response.headers["content-type"] == "image/jpeg"
+    finally:
+        app.dependency_overrides.clear()

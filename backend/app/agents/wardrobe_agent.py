@@ -16,14 +16,13 @@ from app.agents.state import (
 )
 from app.core.database import get_engine
 from app.models.entities import (
-    ItemMedia,
-    ItemMediaRole,
     OutfitSlotRole,
     WardrobeCategory,
     WardrobeItem,
     UserPreference,
 )
 from app.schemas.retrieval import WardrobeRetrievalQuery
+from app.services.item_media import primary_media_ids
 from app.services.retrieval_service import retrieve_wardrobe_items
 
 EMPTY_WARDROBE_ERROR = "WARDROBE_EMPTY"
@@ -366,24 +365,6 @@ def format_localized_item_name(item: WardrobeItem) -> str:
     return f"{sub_vi} {color_vi}".strip()
 
 
-def _get_primary_media_id(session: Session, item_id: str, user_id: str) -> str | None:
-    """Find the highest-priority media asset id for a wardrobe item."""
-    links = session.exec(
-        select(ItemMedia).where(
-            ItemMedia.wardrobe_item_id == item_id,
-            ItemMedia.user_id == user_id,
-        )
-    ).all()
-    if not links:
-        return None
-    priority = {
-        ItemMediaRole.PRIMARY: 0,
-        ItemMediaRole.THUMBNAIL: 1,
-        ItemMediaRole.ALTERNATE: 2,
-    }
-    return min(links, key=lambda link: priority[link.role]).media_asset_id
-
-
 def is_wardrobe_empty(session: Session, user_id: str) -> bool:
     """Check whether the user has any active, confirmed, non-deleted wardrobe items."""
     item = session.exec(
@@ -501,13 +482,11 @@ def _filter_compound_exclusions(
 
 
 def _build_outfit_item_slot(
-    session: Session,
-    user_id: str,
     item: WardrobeItem,
     category: WardrobeCategory,
+    media_id: str | None = None,
 ) -> OutfitItemSlot:
     """Build an OutfitItemSlot preserving nullable garment profile attributes."""
-    media_id = _get_primary_media_id(session, item.id, user_id)
     image_url = f"/api/v1/media/{media_id}" if media_id else None
     return OutfitItemSlot(
         item_id=item.id,
@@ -682,13 +661,16 @@ def retrieve_candidate_pool(
         matches = _filter_compound_exclusions(matches, compound_exclusions)
 
         slots: list[OutfitItemSlot] = []
-        for match in matches[:15]:  # Capped at 15 items per slot
+        capped_matches = matches[:15]  # Capped at 15 items per slot
+        media_ids = primary_media_ids(session, user_id, [match.item.id for match in capped_matches])
+
+        for match in capped_matches:
             item = match.item
             if match.relaxed_constraints:
                 for rel in match.relaxed_constraints:
                     rel_name = "thời tiết" if rel == "weather" else "độ trang trọng"
                     detailed_relaxations.append(f"{rel_name} ({cat.value})")
-            slots.append(_build_outfit_item_slot(session, user_id, item, cat))
+            slots.append(_build_outfit_item_slot(item, cat, media_id=media_ids.get(item.id)))
         candidate_pool[slot_name] = slots
 
     # Pre-flight Outfit Feasibility Check
@@ -819,7 +801,9 @@ def apply_relaxation_request(
         )
         matches = retrieve_wardrobe_items(session=session, user_id=user_id, query=cat_query).get(cat, [])
         matches = _filter_compound_exclusions(matches, compound_exclusions)
-        return [_build_outfit_item_slot(session, user_id, m.item, cat) for m in matches[:15]]
+        capped_matches = matches[:15]
+        media_ids = primary_media_ids(session, user_id, [m.item.id for m in capped_matches])
+        return [_build_outfit_item_slot(m.item, cat, media_id=media_ids.get(m.item.id)) for m in capped_matches]
 
     for c in request.blocked_constraints:
         if c.category is None:

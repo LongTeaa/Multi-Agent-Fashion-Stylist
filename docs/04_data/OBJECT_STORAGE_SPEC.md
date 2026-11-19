@@ -31,7 +31,7 @@ An object key MUST NOT contain an email address, real name, or original client f
 
 ## 3. Upload Lifecycle
 
-1. The backend MUST validate actual MIME type, maximum 10 MB file size, and configured pixel limits.
+1. The backend MUST validate actual MIME type, maximum 10 MB file size, and configured pixel limits. It MUST remove EXIF (including GPS location and device data), XMP, JPEG comments, and PNG text chunks before the image is stored or sent to any provider, after applying the EXIF orientation to the pixels. An upload without such metadata is stored unchanged. The colour profile and PNG transparency are kept, and a JPEG keeps its quantization tables. User avatars (`POST /tryons/avatars`) pass the same validation.
 2. It MUST create an `ingestion_batch` with `processing` status.
 3. It MUST upload the original image to a private bucket.
 4. It SHOULD create and upload item crops and optimized thumbnails.

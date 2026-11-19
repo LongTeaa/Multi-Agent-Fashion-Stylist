@@ -462,6 +462,276 @@ def test_user_avatar_upload_listing_and_deletion(
         app.dependency_overrides.clear()
 
 
+def _upload_avatar(client: TestClient, user_id: str) -> str:
+    response = client.post(
+        "/api/v1/tryons/avatars",
+        headers={"X-User-Id": user_id},
+        data={"name": "Ảnh của tôi", "consent": "true"},
+        files={"file": ("portrait.jpg", _image_bytes("blue"), "image/jpeg")},
+    )
+    assert response.status_code == 201
+    return response.json()["data"]["id"]
+
+
+def _render_tryon(client: TestClient, user_id: str, outfit_id: str, avatar_id: str) -> dict:
+    response = client.post(
+        "/api/v1/tryons",
+        headers={"X-User-Id": user_id},
+        json={"outfit_id": outfit_id, "avatar_id": avatar_id},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["render_kind"] == "virtual_tryon"
+    return data
+
+
+class _UndeletableStorage(LocalObjectStorage):
+    def delete_object(self, *, user_id: str, bucket: str, object_key: str) -> None:
+        raise RuntimeError("storage unavailable")
+
+
+def _configure_avatar_tryon(engine: object, storage: LocalObjectStorage, provider: object) -> None:
+    from app.core.dependencies import get_tryon_provider
+    from app.services.fakes.vision_fakes import FakeDetector
+
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_detector] = lambda: FakeDetector(mode="worn_outfit")
+    app.dependency_overrides[get_tryon_provider] = lambda: provider
+
+
+def test_deleting_avatar_removes_tryon_renders_derived_from_it(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.models.entities import OrphanMediaCleanup, TryOnAvatar
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+    _configure_avatar_tryon(engine, storage, FakeTryOnProvider())
+
+    try:
+        client = TestClient(app)
+        headers = {"X-User-Id": user_id}
+        avatar_id = _upload_avatar(client, user_id)
+        personal = _render_tryon(client, user_id, outfit_id, avatar_id)
+        preset = _render_tryon(client, user_id, outfit_id, "preset-male")
+
+        with Session(engine) as session:
+            avatar = session.get(TryOnAvatar, avatar_id)
+            render = session.get(TryOnRender, personal["tryon_id"])
+            assert avatar is not None and render is not None
+            likeness_assets = [
+                session.get(MediaAsset, avatar.media_asset_id),
+                session.get(MediaAsset, render.media_asset_id),
+            ]
+            likeness_objects = [(a.bucket, a.object_key) for a in likeness_assets if a is not None]
+        assert len(likeness_objects) == 2
+        for bucket, key in likeness_objects:
+            assert storage.object_exists(user_id=user_id, bucket=bucket, object_key=key)
+
+        response = client.delete(f"/api/v1/tryons/avatars/{avatar_id}", headers=headers)
+        assert response.status_code == 200
+
+        assert client.get(f"/api/v1/tryons/{personal['tryon_id']}", headers=headers).status_code == 404
+        assert client.get(personal["image_url"], headers=headers).status_code == 404
+        for bucket, key in likeness_objects:
+            assert not storage.object_exists(user_id=user_id, bucket=bucket, object_key=key)
+        with Session(engine) as session:
+            assert session.exec(
+                select(TryOnRender).where(TryOnRender.avatar_id == avatar_id)
+            ).all() == []
+            assert session.exec(
+                select(OrphanMediaCleanup).where(OrphanMediaCleanup.user_id == user_id)
+            ).all() == []
+
+        # Renders of preset models do not show the user and are kept.
+        assert client.get(f"/api/v1/tryons/{preset['tryon_id']}", headers=headers).status_code == 200
+        assert client.get(preset["image_url"], headers=headers).status_code == 200
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_avatar_deletion_queues_objects_when_storage_delete_fails(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.models.entities import OrphanMediaCleanup
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _UndeletableStorage(
+        root=tmp_path / "storage",
+        buckets=StorageBuckets(
+            wardrobe="wardrobe-private",
+            thumbnails="wardrobe-thumbnails",
+            tryon="tryon-private",
+        ),
+    )
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+    _configure_avatar_tryon(engine, storage, FakeTryOnProvider())
+
+    try:
+        client = TestClient(app)
+        headers = {"X-User-Id": user_id}
+        avatar_id = _upload_avatar(client, user_id)
+        personal = _render_tryon(client, user_id, outfit_id, avatar_id)
+
+        response = client.delete(f"/api/v1/tryons/avatars/{avatar_id}", headers=headers)
+        assert response.status_code == 200
+
+        assert client.get(personal["image_url"], headers=headers).status_code == 404
+        with Session(engine) as session:
+            queued = session.exec(
+                select(OrphanMediaCleanup).where(OrphanMediaCleanup.user_id == user_id)
+            ).all()
+            assert sorted(record.object_key for record in queued) == sorted(
+                [
+                    f"users/{user_id}/avatars/{avatar_id}/source.webp",
+                    f"users/{user_id}/tryons/{personal['tryon_id']}/render.webp",
+                ]
+            )
+            assert session.get(TryOnRender, personal["tryon_id"]) is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def _portrait_photo_with_gps(format_name: str = "JPEG") -> bytes:
+    """A landscape-encoded phone photo whose EXIF says 'rotate 90 degrees clockwise'."""
+    image = Image.new("RGB", (220, 160), "red")
+    image.paste("blue", (110, 0, 220, 160))
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    exif[0x010F] = "PhoneMaker"
+    gps = exif.get_ifd(0x8825)
+    gps[1], gps[2] = "N", (10.0, 46.0, 30.0)
+    exif[0x8825] = gps
+    buffer = BytesIO()
+    image.save(buffer, format=format_name, exif=exif.tobytes())
+    return buffer.getvalue()
+
+
+def test_avatar_upload_is_upright_and_free_of_metadata(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.models.entities import TryOnAvatar
+    from app.services.fakes.vision_fakes import FakeDetector
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    detected: list[bytes] = []
+
+    class RecordingDetector(FakeDetector):
+        def detect(self, image_bytes: bytes):  # type: ignore[no-untyped-def]
+            detected.append(image_bytes)
+            return super().detect(image_bytes)
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.commit()
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_detector] = lambda: RecordingDetector(mode="worn_outfit")
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"name": "Ảnh dọc", "consent": "true"},
+            files={"file": ("portrait.jpg", _portrait_photo_with_gps(), "image/jpeg")},
+        )
+        assert response.status_code == 201
+
+        with Session(engine) as session:
+            avatar = session.get(TryOnAvatar, response.json()["data"]["id"])
+            assert avatar is not None
+            asset = session.get(MediaAsset, avatar.media_asset_id)
+            assert asset is not None
+            stored = storage.get_object(
+                user_id=user_id, bucket=asset.bucket, object_key=asset.object_key
+            )
+        with Image.open(BytesIO(stored)) as image:
+            assert image.size == (160, 220)
+            assert (asset.width, asset.height) == (160, 220)
+            assert len(image.getexif()) == 0
+            red, _, blue = image.convert("RGB").getpixel((10, 10))
+            assert red > 200 and blue < 60
+
+        assert len(detected) == 1
+        with Image.open(BytesIO(detected[0])) as sent:
+            assert len(sent.getexif()) == 0
+            assert sent.size == (160, 220)
+        assert b"PhoneMaker" not in detected[0] and b"PhoneMaker" not in stored
+
+        # The contract accepts PNG, JPEG, or WebP only.
+        gif = BytesIO()
+        Image.new("RGB", (160, 220), "red").save(gif, format="GIF")
+        rejected = client.post(
+            "/api/v1/tryons/avatars",
+            headers={"X-User-Id": user_id},
+            data={"consent": "true"},
+            files={"file": ("portrait.gif", gif.getvalue(), "image/gif")},
+        )
+        assert rejected.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_render_is_discarded_when_avatar_is_deleted_mid_render(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+    from app.services.providers import TryOnRequest, TryOnResult
+    from app.services.tryon_service import delete_user_avatar
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+    state: dict[str, str] = {}
+
+    class DeletingProvider(FakeTryOnProvider):
+        def try_on(self, request: TryOnRequest) -> TryOnResult:
+            if not self.history:
+                with Session(engine) as other_session:
+                    delete_user_avatar(
+                        session=other_session,
+                        user_id=user_id,
+                        avatar_id=state["avatar_id"],
+                        storage=storage,
+                    )
+            return super().try_on(request)
+
+    _configure_avatar_tryon(engine, storage, DeletingProvider())
+
+    try:
+        client = TestClient(app)
+        state["avatar_id"] = _upload_avatar(client, user_id)
+        response = client.post(
+            "/api/v1/tryons",
+            headers={"X-User-Id": user_id},
+            json={"outfit_id": outfit_id, "avatar_id": state["avatar_id"]},
+        )
+
+        assert response.status_code == 422
+        with Session(engine) as session:
+            assert session.exec(
+                select(TryOnRender).where(TryOnRender.user_id == user_id)
+            ).all() == []
+        tryon_dir = tmp_path / "storage" / "tryon-private" / "users" / user_id / "tryons"
+        assert not tryon_dir.exists() or not any(tryon_dir.rglob("*"))
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_virtual_tryon_multi_pass_and_caching(
     migrated_database: tuple[object, object],
     tmp_path: Path,

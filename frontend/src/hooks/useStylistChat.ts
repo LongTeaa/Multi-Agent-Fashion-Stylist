@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { sendStylistChat, ApiError } from '@/lib/api';
+import { generateUUIDv4 } from '@/lib/uuid';
 import type { StylistChatResponseData } from '@/types/chat';
 
 export type ChatStatus = 'idle' | 'loading' | 'success' | 'clarification' | 'error';
@@ -31,7 +32,7 @@ export function useStylistChat(): UseStylistChatReturn {
 
   // Request sequence counter to discard stale out-of-order responses (race condition prevention)
   const sequenceIdRef = useRef<number>(0);
-  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const idempotencyKeyRef = useRef<string>(generateUUIDv4());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function useStylistChat(): UseStylistChatReturn {
 
     const trimmedLocation = location?.trim().slice(0, 200) || undefined;
     const currentSequenceId = ++sequenceIdRef.current;
-    const currentIdempotencyKey = retryKey || crypto.randomUUID();
+    const currentIdempotencyKey = retryKey || generateUUIDv4();
     idempotencyKeyRef.current = currentIdempotencyKey;
 
     setLastQuery(trimmedQuery);

@@ -75,10 +75,12 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 - When fallback succeeds, the API MUST return HTTP 200 with `fallback_used=true`.
 - Media MUST be stored in a private bucket (`tryon-private`) and guarded by ownership checks.
 - User personal avatar images MUST NOT be shared with other users or exposed publicly.
+- An uploaded avatar MUST be stored upright and without EXIF, GPS, or other metadata before person detection or any provider call (`../04_data/OBJECT_STORAGE_SPEC.md`, section 3).
 
 ## 8. Acceptance Criteria and Invariants
 
 - **INVARIANT:** A user cannot render, retrieve, or delete another user's outfit, avatar, or try-on render.
+- **INVARIANT:** Deleting a user avatar removes every try-on render made from it, including its stored image; a render still in progress when the avatar is deleted is discarded (see `../05_api/API_CONTRACT.md`, section 8.5).
 - **INVARIANT:** Every garment described in the try-on belongs to the persisted outfit or the user's wardrobe.
 - The moodboard fallback MUST work when the external provider key is absent, quota is exceeded, or the provider is mocked to fail.
 - The UI MUST distinguish a generated try-on from a moodboard.

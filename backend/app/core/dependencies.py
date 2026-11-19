@@ -8,6 +8,7 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 from fastapi import Depends, Header
+from pydantic import SecretStr
 from sqlmodel import Session
 
 from app.core.config import (

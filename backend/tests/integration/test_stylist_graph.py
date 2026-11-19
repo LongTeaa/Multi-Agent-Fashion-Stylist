@@ -133,11 +133,13 @@ def test_stylist_graph_happy_path_fixed_sequence(
             ("coordinator", "__end__"),
         }
 
+        client_session_id = str(uuid4())
         initial_state: StylistGraphState = {
             "request_id": f"req_{uuid4().hex[:8]}",
             "user_id": user_id,
             "user_query": "Tối nay tôi đi cafe với bạn, trời mát, nên mặc gì?",
             "location": "Hà Nội",
+            "client_session_id": client_session_id,
         }
 
         result = execute_stylist_recommendation(
@@ -154,6 +156,8 @@ def test_stylist_graph_happy_path_fixed_sequence(
         assert result["context"].occasion == "cafe"
         assert result["context"].weather_condition == "cool"
         assert result["context"].needs_clarification is False
+        assert result["client_session_id"] == client_session_id
+        assert result["context"].client_session_id == client_session_id
 
         # 2. Output bounds and ranking
         assert 1 <= len(result["ranked_outfits"]) <= 3
@@ -178,6 +182,7 @@ def test_stylist_graph_happy_path_fixed_sequence(
             assert rec.rule_version == COORDINATOR_RULE_VERSION
             assert rec.user_query == initial_state["user_query"]
             assert rec.user_id == user_id
+            assert rec.context_snapshot["client_session_id"] == client_session_id
 
         # Verify OutfitItem ownership and links
         outfit_items = session.exec(
@@ -419,6 +424,7 @@ def test_stylist_graph_fresh_state_clears_stale_inputs(
             "user_id": user_id,
             "user_query": "Mặc gì?",
             "location": "Đà Nẵng",
+            "client_session_id": "8b0f6c1e-2d4a-4f7e-9c3b-5a6d7e8f9a0b",
             "reference_time": datetime(2026, 9, 12, 8, 30, tzinfo=timezone.utc),
             "recommendation_ids": ["stale-rec-id-999"],
             "grounding_validated": True,
@@ -458,6 +464,7 @@ def test_stylist_graph_fresh_state_clears_stale_inputs(
         assert result["user_id"] == user_id
         assert result["user_query"] == "Mặc gì?"
         assert result["location"] == "Đà Nẵng"
+        assert result["client_session_id"] == "8b0f6c1e-2d4a-4f7e-9c3b-5a6d7e8f9a0b"
         assert result["reference_time"] == datetime(2026, 9, 12, 8, 30, tzinfo=timezone.utc)
 
         # Zero DB records created
