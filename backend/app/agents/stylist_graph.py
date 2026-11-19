@@ -13,7 +13,12 @@ from app.agents.context_agent import VIETNAM_TZ, context_agent_node
 from app.agents.coordinator import coordinator_node
 from app.agents.fashion_agent import fashion_agent_node
 from app.agents.personalization_agent import personalization_agent_node
-from app.agents.state import AgentTraceEvent, StylistGraphState
+from app.agents.state import (
+    AgentTraceEvent,
+    StylistGraphState,
+    is_critique_loop_enabled,
+    is_relaxation_loop_enabled,
+)
 from app.agents.wardrobe_agent import wardrobe_agent_node
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 
@@ -67,7 +72,7 @@ def route_after_fashion(state: StylistGraphState) -> str:
     """
     if state.get("errors"):
         return END
-    if state.get("enable_agent_loops") and state.get("relaxation_request") is not None:
+    if is_relaxation_loop_enabled(state) and state.get("relaxation_request") is not None:
         return "wardrobe"
     if state.get("evaluated_outfits"):
         return "personalization"
@@ -92,7 +97,7 @@ def route_after_coordinator(state: StylistGraphState) -> str:
     """
     if state.get("errors"):
         return END
-    if state.get("enable_agent_loops") and state.get("coordinator_decision") == "reroute_fashion":
+    if is_critique_loop_enabled(state) and state.get("coordinator_decision") == "reroute_fashion":
         return "fashion"
     return END
 
@@ -232,6 +237,9 @@ def execute_stylist_recommendation(
         "errors": [],
         "warnings": [],
         "enable_agent_loops": state.get("enable_agent_loops", True),
+        "enable_relaxation_loop": state.get("enable_relaxation_loop"),
+        "enable_critique_loop": state.get("enable_critique_loop"),
+        "disable_personalization": bool(state.get("disable_personalization", False)),
         "relaxation_round": 0,
         "relaxation_request": None,
         "active_relaxations": [],

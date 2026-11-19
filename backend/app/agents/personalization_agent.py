@@ -609,27 +609,28 @@ def personalization_agent_node(
     if not evaluated_outfits:
         return {"ranked_outfits": []}
 
-    # Load user data with session
+    # Load user data with session unless explicitly disabled for ablation evaluation
     preferences: UserPreference | None = None
     recent_wear_data: dict[str, Any] = {}
 
-    try:
-        if session is not None:
-            preferences, recent_wear_data = get_user_personalization_data(
-                session, user_id, reference_time
-            )
-        else:
-            with Session(get_engine()) as db_session:
+    if not state.get("disable_personalization", False):
+        try:
+            if session is not None:
                 preferences, recent_wear_data = get_user_personalization_data(
-                    db_session, user_id, reference_time
+                    session, user_id, reference_time
                 )
-    except Exception as exc:
-        logger.exception("Failed to load personalization data for user %s: %s", user_id, exc)
-        return {
-            "ranked_outfits": [],
-            "errors": existing_errors + ["PERSONALIZATION_DB_ERROR"],
-            "warnings": existing_warnings,
-        }
+            else:
+                with Session(get_engine()) as db_session:
+                    preferences, recent_wear_data = get_user_personalization_data(
+                        db_session, user_id, reference_time
+                    )
+        except Exception as exc:
+            logger.exception("Failed to load personalization data for user %s: %s", user_id, exc)
+            return {
+                "ranked_outfits": [],
+                "errors": existing_errors + ["PERSONALIZATION_DB_ERROR"],
+                "warnings": existing_warnings,
+            }
 
     ranked, warnings = rerank_evaluated_outfits(
         evaluated_outfits,

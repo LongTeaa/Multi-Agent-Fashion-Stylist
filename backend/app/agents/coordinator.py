@@ -17,6 +17,7 @@ from app.agents.state import (
     RelaxationStep,
     StylistContext,
     StylistGraphState,
+    is_critique_loop_enabled,
 )
 from app.agents.fashion_agent import (
     _normalized_value,
@@ -774,7 +775,7 @@ def coordinator_node(
     # 3.5. Coordinator Critic Evaluation (Loop 2 before persistence)
     conflict_notes = list(state.get("conflict_notes", []))
     existing_trace = list(state.get("agent_trace", []))
-    enable_loops = bool(state.get("enable_agent_loops", False))
+    enable_loops = is_critique_loop_enabled(state)
     critique_round = int(state.get("critique_round", 0))
     previous_ranked_outfits = list(state.get("previous_ranked_outfits", []))
 

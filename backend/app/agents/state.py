@@ -288,6 +288,9 @@ class StylistGraphState(TypedDict, total=False):
 
     # Multi-agent feedback loop coordination fields
     enable_agent_loops: bool
+    enable_relaxation_loop: bool | None
+    enable_critique_loop: bool | None
+    disable_personalization: bool
     relaxation_round: int
     relaxation_request: RelaxationRequest | None
     active_relaxations: list[RelaxationStep]
@@ -297,3 +300,19 @@ class StylistGraphState(TypedDict, total=False):
     coordinator_decision: Literal["approve", "reroute_fashion", "fail"] | None
     conflict_notes: list[ConflictNote]
     agent_trace: list[AgentTraceEvent]
+
+
+def is_relaxation_loop_enabled(state: StylistGraphState) -> bool:
+    """Return whether bounded Loop 1 (Fashion <-> Wardrobe) is active."""
+    override = state.get("enable_relaxation_loop")
+    if override is not None:
+        return bool(override)
+    return bool(state.get("enable_agent_loops", False))
+
+
+def is_critique_loop_enabled(state: StylistGraphState) -> bool:
+    """Return whether bounded Loop 2 (Coordinator Critic -> Fashion) is active."""
+    override = state.get("enable_critique_loop")
+    if override is not None:
+        return bool(override)
+    return bool(state.get("enable_agent_loops", False))

@@ -23,6 +23,7 @@ from app.agents.state import (
     SlotName,
     StylistContext,
     StylistGraphState,
+    is_relaxation_loop_enabled,
 )
 from app.agents.wardrobe_agent import RELAX_COLOR_FAMILIES, SUBCATEGORY_EQUIVALENTS
 from app.models.entities import OutfitSlotRole, WardrobeCategory
@@ -525,7 +526,7 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
     existing_errors = list(state.get("errors", []))
     existing_warnings = list(state.get("warnings", []))
     existing_trace = list(state.get("agent_trace", []))
-    enable_loops = bool(state.get("enable_agent_loops", False))
+    enable_loops = is_relaxation_loop_enabled(state)
     relaxation_round = int(state.get("relaxation_round", 0))
     active_relaxations = list(state.get("active_relaxations", []))
     critique = state.get("critique")
