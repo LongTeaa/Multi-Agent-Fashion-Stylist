@@ -1,0 +1,614 @@
+{
+ "dataset_version": "vision-real-review-v3",
+ "annotation_kind": "owner-drawn rectangles in the offline annotation page; one rectangle per garment, a shoe pair is one rectangle",
+ "iou_threshold": 0.5,
+ "supersedes_dataset_version": null,
+ "annotated_at": "2026-11-19",
+ "category_corrections": {
+  "date": "2026-11-19",
+  "by": "assistant, approved by owner",
+  "rule": "garment_taxonomy categories",
+  "changes": [
+   {
+    "case_id": "images_bayra1",
+    "region_index": 1,
+    "old": "dress",
+    "new": "bottom",
+    "reason": "trench-style skirt, not a one-piece dress"
+   },
+   {
+    "case_id": "images_treo_moc2",
+    "region_index": 0,
+    "old": "top",
+    "new": "outerwear",
+    "reason": "overcoat"
+   },
+   {
+    "case_id": "images_treo_moc3",
+    "region_index": 0,
+    "old": "top",
+    "new": "outerwear",
+    "reason": "blazer"
+   },
+   {
+    "case_id": "images_nguyenbo1",
+    "region_index": 0,
+    "old": "top",
+    "new": "outerwear",
+    "reason": "jacket worn over shirt and tie"
+   },
+   {
+    "case_id": "images_nguyenbo2",
+    "region_index": 0,
+    "old": "top",
+    "new": "outerwear",
+    "reason": "jacket worn over shirt and tie"
+   },
+   {
+    "case_id": "images_bayra1",
+    "field": "kind",
+    "old": "worn_outfit",
+    "new": "multi_item",
+    "reason": "flat lay, no wearer"
+   },
+   {
+    "case_id": "images_bayra4",
+    "region_index": 4,
+    "old": "accessory",
+    "new": "footwear",
+    "reason": "pair of shoes"
+   }
+  ]
+ },
+ "cases": [
+  {
+   "id": "images_bayra1",
+   "file": "images_bayra1.jpg",
+   "sha256": "839a52be4d44055fcc70118cba9b756fb10b93740eeb16d8b9c9b5dd938d5a89",
+   "kind": "multi_item",
+   "regions": [
+    {
+     "category": "footwear",
+     "box": [
+      0.394,
+      0.37,
+      0.553,
+      0.743
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.546,
+      0.196,
+      0.95,
+      0.781
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.1,
+      0.393,
+      0.283,
+      0.696
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.08,
+      0.173,
+      0.271,
+      0.349
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.402,
+      0.188,
+      0.543,
+      0.345
+     ]
+    },
+    {
+     "category": "top",
+     "box": [
+      0.228,
+      0.147,
+      0.39,
+      0.72
+     ]
+    }
+   ],
+   "expected_box_count": 6
+  },
+  {
+   "id": "images_bayra2",
+   "file": "images_bayra2.jpg",
+   "sha256": "886d4e60e150d13fd0cf8702377f4e9ef8c5b37039d4be6b0e3bc3c7ccb0024c",
+   "kind": "multi_item",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.066,
+      0.05,
+      0.626,
+      0.469
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.543,
+      0.586,
+      0.839,
+      0.877
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.071,
+      0.545,
+      0.535,
+      0.917
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.729,
+      0.184,
+      0.835,
+      0.366
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.632,
+      0.058,
+      0.898,
+      0.589
+     ]
+    }
+   ],
+   "expected_box_count": 5
+  },
+  {
+   "id": "images_bayra3",
+   "file": "images_bayra3.jpg",
+   "sha256": "226116270a2c36e84e00330c7b30605dce6ecc6597156da907cbac8a72173236",
+   "kind": "multi_item",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.258,
+      0.035,
+      0.524,
+      0.506
+     ]
+    },
+    {
+     "category": "dress",
+     "box": [
+      0.524,
+      0.188,
+      0.748,
+      0.925
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.255,
+      0.498,
+      0.518,
+      0.971
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.82,
+      0.668,
+      0.979,
+      0.999
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.071,
+      0.381,
+      0.251,
+      0.971
+     ]
+    },
+    {
+     "category": "top",
+     "box": [
+      0.007,
+      0.011,
+      0.232,
+      0.675
+     ]
+    },
+    {
+     "category": "top",
+     "box": [
+      0.684,
+      0,
+      1,
+      0.43
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.735,
+      0.603,
+      0.811,
+      0.967
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.535,
+      0.018,
+      0.682,
+      0.164
+     ]
+    }
+   ],
+   "expected_box_count": 9
+  },
+  {
+   "id": "images_bayra4",
+   "file": "images_bayra4.jpg",
+   "sha256": "af7a8f33eb6dcc7670f48e697d10ca000f60f22f87c59e78de6a35659ffefeec",
+   "kind": "multi_item",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.332,
+      0.162,
+      0.746,
+      0.77
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.078,
+      0.48,
+      0.359,
+      0.868
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.682,
+      0.009,
+      0.899,
+      0.249
+     ]
+    },
+    {
+     "category": "accessory",
+     "box": [
+      0.327,
+      0.064,
+      0.406,
+      0.206
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.728,
+      0.548,
+      0.933,
+      0.861
+     ]
+    }
+   ],
+   "expected_box_count": 5
+  },
+  {
+   "id": "images_bayra5",
+   "file": "images_bayra5.jpg",
+   "sha256": "8fb4a4b8c8c9dfd794b1775b7323556d6e7f400acf57bd3b924f73c519826bdb",
+   "kind": "multi_item",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.157,
+      0.13,
+      0.462,
+      0.736
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.556,
+      0.219,
+      0.77,
+      0.92
+     ]
+    }
+   ],
+   "expected_box_count": 2
+  },
+  {
+   "id": "images_nguyenbo1",
+   "file": "images_nguyenbo1.jpg",
+   "sha256": "a05c7f374e8336b0423d31d21b5415d2677f7daca6ba89ed96bc7cf4561bf196",
+   "kind": "worn_outfit",
+   "regions": [
+    {
+     "category": "outerwear",
+     "box": [
+      0.309,
+      0.114,
+      0.734,
+      0.443
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.493,
+      0.445,
+      0.72,
+      0.947
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.491,
+      0.929,
+      0.716,
+      0.99
+     ]
+    }
+   ],
+   "expected_box_count": 3
+  },
+  {
+   "id": "images_nguyenbo2",
+   "file": "images_nguyenbo2.jpg",
+   "sha256": "429249e5f61c690bd21b6704de0c964a9c0987f7e5562dc781e0f181703e20c1",
+   "kind": "worn_outfit",
+   "regions": [
+    {
+     "category": "outerwear",
+     "box": [
+      0.354,
+      0.14,
+      0.687,
+      0.449
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.436,
+      0.454,
+      0.62,
+      0.873
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.467,
+      0.865,
+      0.652,
+      0.97
+     ]
+    }
+   ],
+   "expected_box_count": 3
+  },
+  {
+   "id": "images_nguyenbo3",
+   "file": "images_nguyenbo3.jpg",
+   "sha256": "e7a667ab28eeae33a623c153b4452ab82e0f48d90d5e6e65f19ae4f2ebb5a3de",
+   "kind": "worn_outfit",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.35,
+      0.153,
+      0.681,
+      0.443
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.427,
+      0.452,
+      0.596,
+      0.955
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.395,
+      0.923,
+      0.611,
+      0.981
+     ]
+    }
+   ],
+   "expected_box_count": 3
+  },
+  {
+   "id": "images_nguyenbo4",
+   "file": "images_nguyenbo4.jpg",
+   "sha256": "68006c82010f298405a5726f58fdf25867766adcf54e2bb345859444e14cb371",
+   "kind": "worn_outfit",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.374,
+      0.172,
+      0.594,
+      0.49
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.411,
+      0.492,
+      0.616,
+      0.932
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.347,
+      0.864,
+      0.722,
+      0.973
+     ]
+    }
+   ],
+   "expected_box_count": 3
+  },
+  {
+   "id": "images_nguyenbo5",
+   "file": "images_nguyenbo5.jpg",
+   "sha256": "c79e7b52d69a6031b0a06a1b4c536a579d6a83f11917d65aec5a78693d860bf5",
+   "kind": "worn_outfit",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.327,
+      0.038,
+      0.667,
+      0.302
+     ]
+    },
+    {
+     "category": "bottom",
+     "box": [
+      0.395,
+      0.299,
+      0.647,
+      0.888
+     ]
+    },
+    {
+     "category": "footwear",
+     "box": [
+      0.389,
+      0.853,
+      0.676,
+      0.971
+     ]
+    }
+   ],
+   "expected_box_count": 3
+  },
+  {
+   "id": "images_treo_moc1",
+   "file": "images_treo_moc1.jpg",
+   "sha256": "24f4d97dce5272ba0cfaa8b44ec2a1b06a4b4f8edd46271b4f6ed4a2653866d9",
+   "kind": "hanger",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.166,
+      0.24,
+      0.886,
+      0.827
+     ]
+    }
+   ],
+   "expected_box_count": 1
+  },
+  {
+   "id": "images_treo_moc2",
+   "file": "images_treo_moc2.jpg",
+   "sha256": "ef298767b79053980604314b5120d99615d19f1d93be2c78ad8334a80a4e63b5",
+   "kind": "hanger",
+   "regions": [
+    {
+     "category": "outerwear",
+     "box": [
+      0.245,
+      0.165,
+      0.792,
+      0.911
+     ]
+    }
+   ],
+   "expected_box_count": 1
+  },
+  {
+   "id": "images_treo_moc3",
+   "file": "images_treo_moc3.jpg",
+   "sha256": "2b4cef0cd0faca5c91b504cbb2dc93513fab06f1393a68b11d97d6aeda8da081",
+   "kind": "hanger",
+   "regions": [
+    {
+     "category": "outerwear",
+     "box": [
+      0.215,
+      0.043,
+      0.804,
+      0.926
+     ]
+    }
+   ],
+   "expected_box_count": 1
+  },
+  {
+   "id": "images_treo_moc4",
+   "file": "images_treo_moc4.jpg",
+   "sha256": "24bd533f8d69ead0c4bbcd117f9142c7874a0be2e823cd069227d084533f8784",
+   "kind": "hanger",
+   "regions": [
+    {
+     "category": "top",
+     "box": [
+      0.444,
+      0.238,
+      0.731,
+      0.879
+     ]
+    },
+    {
+     "category": "top",
+     "box": [
+      0.181,
+      0.277,
+      0.457,
+      0.849
+     ]
+    }
+   ],
+   "expected_box_count": 2
+  }
+ ]
+}

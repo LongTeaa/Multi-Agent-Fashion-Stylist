@@ -1,0 +1,111 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-19T08:32:35.597285+00:00",
+ "detector": "gemini",
+ "detector_model": "gemini-3.6-flash",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "localization_dataset_version": "vision-real-review-v3",
+ "localization_sha256": "74448fe21f9c477c80d95fd8b724e72f69fd42ac412dd1b4de1c7b0e6698411c",
+ "localization_results": [
+  {
+   "id": "images_bayra1",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 6.725
+  },
+  {
+   "id": "images_bayra2",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 10.64
+  },
+  {
+   "id": "images_bayra3",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 10.416
+  },
+  {
+   "id": "images_bayra4",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 10.664
+  },
+  {
+   "id": "images_bayra5",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.969
+  },
+  {
+   "id": "images_nguyenbo1",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 11.944
+  },
+  {
+   "id": "images_nguyenbo2",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 10.156
+  },
+  {
+   "id": "images_nguyenbo3",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 12.906
+  },
+  {
+   "id": "images_nguyenbo4",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 14.751
+  },
+  {
+   "id": "images_nguyenbo5",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 9.339
+  },
+  {
+   "id": "images_treo_moc1",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.784
+  },
+  {
+   "id": "images_treo_moc2",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.52
+  },
+  {
+   "id": "images_treo_moc3",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.12
+  },
+  {
+   "id": "images_treo_moc4",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 10.163
+  }
+ ]
+}

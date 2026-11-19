@@ -1,0 +1,131 @@
+[
+ {
+  "label": "yolo_world (yolov8s-worldv2.onnx)",
+  "file": "..\\data\\fixtures\\live_ingestion_localization_v2_yolo_world.json",
+  "run_at": "2026-11-19T08:04:55.703711+00:00",
+  "localization": {
+   "dataset_version": "vision-real-review-v2",
+   "cases": 7,
+   "provider_errors": 0,
+   "matched_regions": 5,
+   "expected_regions": 10,
+   "region_recall": 0.5,
+   "count_pass": {
+    "count": 2,
+    "total": 5
+   },
+   "latency_seconds": {
+    "count": 7,
+    "median": 0.198,
+    "p90": 0.203,
+    "max": 0.246
+   },
+   "per_case": {
+    "worn-trousers": {
+     "status": "ok",
+     "expected_regions": 2,
+     "predicted_regions": 3,
+     "matched_regions": 1,
+     "coverage": 0.5,
+     "count_pass": null
+    },
+    "matching-sneaker-pair": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 0,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": false
+    },
+    "worn-polo": {
+     "status": "ok",
+     "expected_regions": 3,
+     "predicted_regions": 4,
+     "matched_regions": 2,
+     "coverage": 0.6666666666666666,
+     "count_pass": null
+    },
+    "single-derby": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 1,
+     "matched_regions": 1,
+     "coverage": 1.0,
+     "count_pass": true
+    },
+    "single-jeans": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 1,
+     "matched_regions": 1,
+     "coverage": 1.0,
+     "count_pass": true
+    },
+    "blue-tshirt": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 0,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": false
+    },
+    "red-tshirt": {
+     "status": "ok",
+     "expected_regions": 1,
+     "predicted_regions": 0,
+     "matched_regions": 0,
+     "coverage": 0.0,
+     "count_pass": false
+    }
+   },
+   "match_rule": "one-to-one, IoU >= 0.5, retention >= 0.9"
+  }
+ },
+ {
+  "label": "gemini (gemini-3.6-flash)",
+  "file": "..\\data\\fixtures\\live_ingestion_localization_v2_gemini.json",
+  "run_at": "2026-11-19T08:34:59.444153+00:00",
+  "localization": {
+   "dataset_version": "vision-real-review-v2",
+   "cases": 7,
+   "provider_errors": 7,
+   "matched_regions": 0,
+   "expected_regions": 10,
+   "region_recall": 0.0,
+   "count_pass": {
+    "count": 0,
+    "total": 5
+   },
+   "latency_seconds": {
+    "count": 0,
+    "median": null,
+    "p90": null,
+    "max": null
+   },
+   "per_case": {
+    "worn-trousers": {
+     "status": "error"
+    },
+    "matching-sneaker-pair": {
+     "status": "error"
+    },
+    "worn-polo": {
+     "status": "error"
+    },
+    "single-derby": {
+     "status": "error"
+    },
+    "single-jeans": {
+     "status": "error"
+    },
+    "blue-tshirt": {
+     "status": "error"
+    },
+    "red-tshirt": {
+     "status": "error"
+    }
+   },
+   "match_rule": "one-to-one, IoU >= 0.5, retention >= 0.9"
+  }
+ }
+]

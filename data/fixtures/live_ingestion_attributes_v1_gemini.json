@@ -1,0 +1,7379 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-19T08:01:38.244152+00:00",
+ "detector": "gemini",
+ "detector_model": "gemini-3.6-flash",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "gold_dataset_version": "vision-attribute-gold-v1",
+ "gold_sha256": "20f1c145be23a56a44d2581f0881344790ec8462379c3069e6afa39d80686868",
+ "gold_review_status": "owner_reviewed",
+ "attribute_results": [
+  {
+   "id": "demo-01",
+   "status": "ok",
+   "elapsed_seconds": 65.942,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "shadows cast across the garment affecting clear view of texture and color consistency"
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 55.57
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.112,
+     "crop_sha256": "01aa35e35472b987625bb97f76e3fdbc1501faf883038562a9201624a029ba7d",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "basic",
+       "everyday",
+       "crewneck",
+       "short-sleeve",
+       "solid white"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.99,
+      "secondary_color": 1.0,
+      "pattern": 0.99,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.92,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.92,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "01aa35e35472b987625bb97f76e3fdbc1501faf883038562a9201624a029ba7d",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "basic",
+       "everyday",
+       "crewneck",
+       "short-sleeve",
+       "solid white"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-02",
+   "status": "ok",
+   "elapsed_seconds": 38.936,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 30.062
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.767,
+     "crop_sha256": "aa08badfd759443851044fc777461370f0d28c4481eb0b22f82eae7d1eeeaf23",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "silver",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "star print",
+       "glitter",
+       "pocket",
+       "short sleeve",
+       "relaxed fit"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "aa08badfd759443851044fc777461370f0d28c4481eb0b22f82eae7d1eeeaf23",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "silver",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "star print",
+       "glitter",
+       "pocket",
+       "short sleeve",
+       "relaxed fit"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-03",
+   "status": "ok",
+   "elapsed_seconds": 39.127,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 26.415
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 12.603,
+     "crop_sha256": "ca3abe3d2181b9cbcb4e6d955a5c468fdad3b7c8c456dfdcae14c325acfe7f0d",
+     "attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "orange",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "turtleneck",
+       "knitwear",
+       "long-sleeve",
+       "warm"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "ca3abe3d2181b9cbcb4e6d955a5c468fdad3b7c8c456dfdcae14c325acfe7f0d",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "orange",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "turtleneck",
+       "knitwear",
+       "long-sleeve",
+       "warm"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-04",
+   "status": "ok",
+   "elapsed_seconds": 47.88,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 37.303
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.411,
+     "crop_sha256": "3a42df54bd1e3253463e1127438518e8496e80330644227743ce0f37784a37d4",
+     "attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "khaki",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "v-neck",
+       "button-down",
+       "long-sleeve",
+       "lightweight",
+       "office-ready"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "3a42df54bd1e3253463e1127438518e8496e80330644227743ce0f37784a37d4",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "khaki",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "v-neck",
+       "button-down",
+       "long-sleeve",
+       "lightweight",
+       "office-ready"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-05",
+   "status": "ok",
+   "elapsed_seconds": 45.247,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 30.524
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 14.597,
+     "crop_sha256": "87f12e2f3ae9e36a7f9862da7bb208dbf26e7cf326b26b4cd6ec40d1c83c95cc",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal print",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "button-down",
+       "long sleeve",
+       "collared",
+       "lightweight"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "87f12e2f3ae9e36a7f9862da7bb208dbf26e7cf326b26b4cd6ec40d1c83c95cc",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal print",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "button-down",
+       "long sleeve",
+       "collared",
+       "lightweight"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-06",
+   "status": "ok",
+   "elapsed_seconds": 51.989,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 42.533
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.246,
+     "crop_sha256": "526c6529e15a7c8de3c6e07cc282e94a3f5f77e30acf33bb7cd75ac1718853e5",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "floral",
+      "material": "lace",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "lace shirt",
+       "button-down",
+       "short sleeve",
+       "collared",
+       "feminine",
+       "summer top"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 1.0,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.95,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "526c6529e15a7c8de3c6e07cc282e94a3f5f77e30acf33bb7cd75ac1718853e5",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "floral",
+      "material": "lace",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "lace shirt",
+       "button-down",
+       "short sleeve",
+       "collared",
+       "feminine",
+       "summer top"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-07",
+   "status": "ok",
+   "elapsed_seconds": 73.445,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 63.623
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.703,
+     "crop_sha256": "043c79232ebd0cc12da78206dd239b7563e0caad812366aa2766d49af2187582",
+     "attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "layered",
+       "asymmetric hem",
+       "long sleeve",
+       "round neck",
+       "embbellished collar",
+       "flowy"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "043c79232ebd0cc12da78206dd239b7563e0caad812366aa2766d49af2187582",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "layered",
+       "asymmetric hem",
+       "long sleeve",
+       "round neck",
+       "embbellished collar",
+       "flowy"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-08",
+   "status": "ok",
+   "elapsed_seconds": 66.404,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "Một số trường có độ tin cậy thấp (< 70%): category, style, comfort_level, silhouette_level, length.",
+    "AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 31.244
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI vision provider timed out.",
+     "elapsed_seconds": 35.084,
+     "crop_sha256": "ebcb727998e4ffda048cffd133b32a184670a108cc6358fa5788889ea326ac04"
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "ebcb727998e4ffda048cffd133b32a184670a108cc6358fa5788889ea326ac04",
+     "proposed_attributes": {
+      "category": "unknown",
+      "style": "casual",
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "functional_flags": []
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-09",
+   "status": "ok",
+   "elapsed_seconds": 65.556,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 49.454
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 16.003,
+     "crop_sha256": "638a9dbfd37ff08043b543408b4877fc9795b4f6bf5640f08a8c5522603c2f0e",
+     "attributes": {
+      "category": "top",
+      "sub_category": "camisole",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "movement"
+      ],
+      "free_text_tags": [
+       "camisole",
+       "ruffle detail",
+       "spaghetti strap",
+       "black top",
+       "sleeveless",
+       "lightweight"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 1.0,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "638a9dbfd37ff08043b543408b4877fc9795b4f6bf5640f08a8c5522603c2f0e",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "camisole",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "movement"
+      ],
+      "free_text_tags": [
+       "camisole",
+       "ruffle detail",
+       "spaghetti strap",
+       "black top",
+       "sleeveless",
+       "lightweight"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-10",
+   "status": "ok",
+   "elapsed_seconds": 46.019,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 30.128
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.786,
+     "crop_sha256": "ad1383fb9a45736b6f27a17bc49a0d6017e4296d0a6cfd8d897e975eddabbc49",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "white",
+      "secondary_color": "blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "collar shirt",
+       "casual wear",
+       "summer top"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.85,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "ad1383fb9a45736b6f27a17bc49a0d6017e4296d0a6cfd8d897e975eddabbc49",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "white",
+      "secondary_color": "blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "collar shirt",
+       "casual wear",
+       "summer top"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-11",
+   "status": "ok",
+   "elapsed_seconds": 28.095,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 12.738,
+     "input_kind": "single_item",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.119,
+        0.15,
+        0.969,
+        0.81
+       ],
+       "label": "pants",
+       "confidence": 0.98
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.28,
+     "crop_sha256": "52013482f3dfb0dc6532052cb48e89afbf9c53d8274c3116bdb6cb4d7839c686",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "culottes",
+       "wide-leg",
+       "high-waist",
+       "cropped-pants",
+       "olive"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.119,
+      0.15,
+      0.969,
+      0.81
+     ],
+     "raw_box": [
+      0.119,
+      0.15,
+      0.969,
+      0.81
+     ],
+     "crop_sha256": "52013482f3dfb0dc6532052cb48e89afbf9c53d8274c3116bdb6cb4d7839c686",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "culottes",
+       "wide-leg",
+       "high-waist",
+       "cropped-pants",
+       "olive"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-12",
+   "status": "ok",
+   "elapsed_seconds": 23.633,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.996,
+     "input_kind": "single_item",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.211,
+        0.031,
+        0.737,
+        0.936
+       ],
+       "label": "jeans",
+       "confidence": 0.98
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.579,
+     "crop_sha256": "4b8b8abd483f9604fb12285636979814a05091ee48a242e34d12c65ff553aa91",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "faded wash",
+       "slim fit",
+       "mid rise",
+       "five pocket",
+       "classic denim"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 1.0,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.211,
+      0.031,
+      0.737,
+      0.936
+     ],
+     "raw_box": [
+      0.211,
+      0.031,
+      0.737,
+      0.936
+     ],
+     "crop_sha256": "4b8b8abd483f9604fb12285636979814a05091ee48a242e34d12c65ff553aa91",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "faded wash",
+       "slim fit",
+       "mid rise",
+       "five pocket",
+       "classic denim"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-13",
+   "status": "ok",
+   "elapsed_seconds": 38.264,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 23.079,
+     "input_kind": "single_item",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.098,
+        0.066,
+        0.952,
+        0.928
+       ],
+       "label": "pants",
+       "confidence": 0.98
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.094,
+     "crop_sha256": "0edd49619ce26687482ae17fdad7268c16fa2ef1bc2b925e63bbfeb6126f0af0",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "leggings",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "animal print",
+       "leggings",
+       "elastic waist",
+       "casual pants",
+       "soft"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.95,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.098,
+      0.066,
+      0.952,
+      0.928
+     ],
+     "raw_box": [
+      0.098,
+      0.066,
+      0.952,
+      0.928
+     ],
+     "crop_sha256": "0edd49619ce26687482ae17fdad7268c16fa2ef1bc2b925e63bbfeb6126f0af0",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "leggings",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "animal print",
+       "leggings",
+       "elastic waist",
+       "casual pants",
+       "soft"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-14",
+   "status": "ok",
+   "elapsed_seconds": 34.451,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "Một số trường có độ tin cậy thấp (< 70%): category, style, comfort_level, silhouette_level, length.",
+    "AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 30.09
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Không thể kết nối đến dịch vụ AI: [WinError 10054] An existing connection was forcibly closed by the remote host",
+     "elapsed_seconds": 4.266,
+     "crop_sha256": "5048120deffe212d2c7348693fd31195784a860abf8a11f73a5e1ab60d760af7"
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "5048120deffe212d2c7348693fd31195784a860abf8a11f73a5e1ab60d760af7",
+     "proposed_attributes": {
+      "category": "unknown",
+      "style": "casual",
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "functional_flags": []
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-15",
+   "status": "ok",
+   "elapsed_seconds": 45.442,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 30.255
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.079,
+     "crop_sha256": "e24655b8d26d2ba74eadacfd47b66afa1085f71e44ba54b1d09fad72b0fff0f0",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "skirt",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "warm"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "wrap skirt",
+       "linen skirt",
+       "turquoise",
+       "summer wear",
+       "casual skirt",
+       "belted"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.98,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.99,
+      "pattern": 0.99,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.88,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.88,
+      "length": 0.92,
+      "season": 0.92,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "e24655b8d26d2ba74eadacfd47b66afa1085f71e44ba54b1d09fad72b0fff0f0",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "skirt",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "warm"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "wrap skirt",
+       "linen skirt",
+       "turquoise",
+       "summer wear",
+       "casual skirt",
+       "belted"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-16",
+   "status": "ok",
+   "elapsed_seconds": 46.06,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 30.227
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.752,
+     "crop_sha256": "7a6a887756c547d5df8534e907b90d7d6ad20ab517a93e0e533f8032a6ba2c64",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "green",
+      "secondary_color": "yellow",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sun",
+       "light"
+      ],
+      "free_text_tags": [
+       "tropical print",
+       "elastic waist",
+       "flowy",
+       "summer shorts",
+       "leaf pattern"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.85,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "7a6a887756c547d5df8534e907b90d7d6ad20ab517a93e0e533f8032a6ba2c64",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "green",
+      "secondary_color": "yellow",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sun",
+       "light"
+      ],
+      "free_text_tags": [
+       "tropical print",
+       "elastic waist",
+       "flowy",
+       "summer shorts",
+       "leaf pattern"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-17",
+   "status": "ok",
+   "elapsed_seconds": 19.128,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.054,
+     "input_kind": "single_item",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.287,
+        0.0,
+        0.706,
+        1.0
+       ],
+       "label": "dress",
+       "confidence": 0.98
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.991,
+     "crop_sha256": "d9432381b6d9fa98b1e27c38dd43bdafbebf75b93ad6f0ac37f4f40e602bd812",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "evening dress",
+      "primary_color": "black",
+      "secondary_color": "teal",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "sequins",
+       "beaded",
+       "fringe",
+       "v-neck",
+       "sleeveless",
+       "party",
+       "evening"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 1.0,
+      "secondary_color": 0.9,
+      "pattern": 0.8,
+      "material": 0.7,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.287,
+      0.0,
+      0.706,
+      1.0
+     ],
+     "raw_box": [
+      0.287,
+      0.0,
+      0.706,
+      1.0
+     ],
+     "crop_sha256": "d9432381b6d9fa98b1e27c38dd43bdafbebf75b93ad6f0ac37f4f40e602bd812",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "evening dress",
+      "primary_color": "black",
+      "secondary_color": "teal",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "sequins",
+       "beaded",
+       "fringe",
+       "v-neck",
+       "sleeveless",
+       "party",
+       "evening"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-18",
+   "status": "ok",
+   "elapsed_seconds": 40.199,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 32.18
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.93,
+     "crop_sha256": "86f26a77f5260ffb0f31ba1e0b209d64e3d8344cef55c3621bbeaee7ca1e1f94",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "casual dress",
+      "primary_color": "purple",
+      "secondary_color": "white",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "floral print",
+       "scoop neck",
+       "summer dress",
+       "comfortable"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 0.95,
+      "secondary_color": 0.85,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.85,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "86f26a77f5260ffb0f31ba1e0b209d64e3d8344cef55c3621bbeaee7ca1e1f94",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "casual dress",
+      "primary_color": "purple",
+      "secondary_color": "white",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "floral print",
+       "scoop neck",
+       "summer dress",
+       "comfortable"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-19",
+   "status": "ok",
+   "elapsed_seconds": 49.258,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 34.372
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 14.787,
+     "crop_sha256": "8e5f1425038f3fb977ab4496e599d5f8f37bf2d86c4cb9aad35df787f5b7254e",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "sheath dress",
+      "primary_color": "magenta",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "magenta dress",
+       "short sleeve dress",
+       "cocktail dress",
+       "business casual dress"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.85,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.7,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "8e5f1425038f3fb977ab4496e599d5f8f37bf2d86c4cb9aad35df787f5b7254e",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "sheath dress",
+      "primary_color": "magenta",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "magenta dress",
+       "short sleeve dress",
+       "cocktail dress",
+       "business casual dress"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-20",
+   "status": "ok",
+   "elapsed_seconds": 47.391,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "TimeoutError",
+     "error_message": "AI detector request timed out.",
+     "elapsed_seconds": 31.673
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.627,
+     "crop_sha256": "478f8dced1679521b988118592d08521f91195c8b0045640161e31c8113de3c8",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "midi dress",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "puff sleeves",
+       "tie front",
+       "v-neck",
+       "flared skirt",
+       "olive green",
+       "linen dress"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.92,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.95,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "478f8dced1679521b988118592d08521f91195c8b0045640161e31c8113de3c8",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "midi dress",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "puff sleeves",
+       "tie front",
+       "v-neck",
+       "flared skirt",
+       "olive green",
+       "linen dress"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-21",
+   "status": "ok",
+   "elapsed_seconds": 29.996,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 13.811
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 16.116,
+     "crop_sha256": "419226deeecbea9d255d4fa06040b675f663f117782a6ac0742e552a359af4f4",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "shift dress",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "scoop neck",
+       "mesh side panels",
+       "summer dress",
+       "mini dress",
+       "casual dress"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.8,
+      "primary_color": 1.0,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.7,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.8,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "419226deeecbea9d255d4fa06040b675f663f117782a6ac0742e552a359af4f4",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "shift dress",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "scoop neck",
+       "mesh side panels",
+       "summer dress",
+       "mini dress",
+       "casual dress"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-22",
+   "status": "ok",
+   "elapsed_seconds": 20.909,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 12.587
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.223,
+     "crop_sha256": "2e79f123f254f4b0d9cba28f61093328a033a0e0282ba4a5496cec67a61f2ec4",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "pink",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "streetwear",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "bomber jacket",
+       "zip up",
+       "pockets",
+       "casual",
+       "light pink"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.95,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "2e79f123f254f4b0d9cba28f61093328a033a0e0282ba4a5496cec67a61f2ec4",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "pink",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "streetwear",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "bomber jacket",
+       "zip up",
+       "pockets",
+       "casual",
+       "light pink"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-23",
+   "status": "ok",
+   "elapsed_seconds": 42.027,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 32.774
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.16,
+     "crop_sha256": "bf72b1c41168ba9462282d5c77537c4e5e4067eb0fb8518e59027c68981be4eb",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "teal",
+      "secondary_color": "multicolor",
+      "pattern": "quilted",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "spring",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "quilted jacket",
+       "hooded",
+       "zip up",
+       "teal coat",
+       "casual outerwear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.7,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "bf72b1c41168ba9462282d5c77537c4e5e4067eb0fb8518e59027c68981be4eb",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "teal",
+      "secondary_color": "multicolor",
+      "pattern": "quilted",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "spring",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "quilted jacket",
+       "hooded",
+       "zip up",
+       "teal coat",
+       "casual outerwear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-24",
+   "status": "ok",
+   "elapsed_seconds": 40.318,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 503.",
+     "elapsed_seconds": 32.012
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.213,
+     "crop_sha256": "d6f061d3eda8f33705fc609ce558358515f6a047130887b5b354fed156fb0749",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "coat",
+      "primary_color": "beige",
+      "secondary_color": "pink",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "light",
+       "protection"
+      ],
+      "free_text_tags": [
+       "trench coat",
+       "double breasted",
+       "hooded",
+       "lightweight jacket",
+       "buttoned",
+       "cuff detail"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 0.95,
+      "secondary_color": 0.7,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d6f061d3eda8f33705fc609ce558358515f6a047130887b5b354fed156fb0749",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "coat",
+      "primary_color": "beige",
+      "secondary_color": "pink",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "light",
+       "protection"
+      ],
+      "free_text_tags": [
+       "trench coat",
+       "double breasted",
+       "hooded",
+       "lightweight jacket",
+       "buttoned",
+       "cuff detail"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-25",
+   "status": "ok",
+   "elapsed_seconds": 17.023,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.437
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.484,
+     "crop_sha256": "c42d7ea9d9b68a57de724ee3734d2d99265a5b8628a3f7ad50c14e98d255751d",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "cropped blazer",
+       "cream jacket",
+       "smart casual",
+       "double-breasted",
+       "lapel collar"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "c42d7ea9d9b68a57de724ee3734d2d99265a5b8628a3f7ad50c14e98d255751d",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "cropped blazer",
+       "cream jacket",
+       "smart casual",
+       "double-breasted",
+       "lapel collar"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-26",
+   "status": "ok",
+   "elapsed_seconds": 26.937,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 19.882
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.969,
+     "crop_sha256": "d928d865c9e2e495ab8b943c4455d3a47d25e1e326aa5f61eb10c1214c2a69fd",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "heels",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 5,
+      "comfort_level": 2,
+      "silhouette_level": 2,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "pumps",
+       "heels",
+       "pointed toe",
+       "patent leather",
+       "designer",
+       "nude"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d928d865c9e2e495ab8b943c4455d3a47d25e1e326aa5f61eb10c1214c2a69fd",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "heels",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 5,
+      "comfort_level": 2,
+      "silhouette_level": 2,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "pumps",
+       "heels",
+       "pointed toe",
+       "patent leather",
+       "designer",
+       "nude"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-27",
+   "status": "ok",
+   "elapsed_seconds": 23.062,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 13.467
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.501,
+     "crop_sha256": "c055b6151258fd13521eebf1bfaf52c29635e3cb65d752f58405b0f0241d5a2b",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "brown",
+      "secondary_color": "black",
+      "pattern": "animal print",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "slide sandals",
+       "snake print",
+       "flat sandals",
+       "slip on",
+       "summer shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "c055b6151258fd13521eebf1bfaf52c29635e3cb65d752f58405b0f0241d5a2b",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "brown",
+      "secondary_color": "black",
+      "pattern": "animal print",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "slide sandals",
+       "snake print",
+       "flat sandals",
+       "slip on",
+       "summer shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-28",
+   "status": "ok",
+   "elapsed_seconds": 19.073,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 11.396
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.583,
+     "crop_sha256": "f83de68a061a4f98d51bf0a5c1ed9630e0a85670ca0039f688698cc0a1485ace",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "multicolor",
+      "secondary_color": "red",
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "colorful knit",
+       "sneakers",
+       "casual footwear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.85,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "f83de68a061a4f98d51bf0a5c1ed9630e0a85670ca0039f688698cc0a1485ace",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "multicolor",
+      "secondary_color": "red",
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "colorful knit",
+       "sneakers",
+       "casual footwear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-29",
+   "status": "ok",
+   "elapsed_seconds": 18.172,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "Item appears heavily worn or soiled on the inner soles."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.419
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.665,
+     "crop_sha256": "4d0ba9d55d1be6d4e7291159739774ca75d35f09447aad1b264fdfa486b336e0",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "flats",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "ballet flats",
+       "bow detail",
+       "slip-on",
+       "worn"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "4d0ba9d55d1be6d4e7291159739774ca75d35f09447aad1b264fdfa486b336e0",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "flats",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "ballet flats",
+       "bow detail",
+       "slip-on",
+       "worn"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-30",
+   "status": "ok",
+   "elapsed_seconds": 18.483,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.716
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.662,
+     "crop_sha256": "d604e38c5b26f0ab194b00e7e71456a7e55cdd8278d13f217e3a3c151cbde36b",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "hat",
+      "primary_color": "pink",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "crochet",
+       "bucket hat",
+       "handmade",
+       "pastel",
+       "sun hat",
+       "summer accessory"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d604e38c5b26f0ab194b00e7e71456a7e55cdd8278d13f217e3a3c151cbde36b",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "hat",
+      "primary_color": "pink",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "crochet",
+       "bucket hat",
+       "handmade",
+       "pastel",
+       "sun hat",
+       "summer accessory"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-31",
+   "status": "ok",
+   "elapsed_seconds": 15.148,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.679
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.387,
+     "crop_sha256": "bb87e99f26572ef457d43ae9e86fef556d1a722e721059ecc2d430ddbc4a9f7e",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "beret",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "knit",
+       "beret",
+       "hat",
+       "headwear",
+       "textured",
+       "slouchy"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.8,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.8,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "bb87e99f26572ef457d43ae9e86fef556d1a722e721059ecc2d430ddbc4a9f7e",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "beret",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "knit",
+       "beret",
+       "hat",
+       "headwear",
+       "textured",
+       "slouchy"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-32",
+   "status": "ok",
+   "elapsed_seconds": 38.354,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 28.428
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.835,
+     "crop_sha256": "d4c0cf3743b473d20777602cf7666a3d087f2ff4f1a279df3e90a349ae50de80",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "streetwear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "graphic tee",
+       "skateboard brand",
+       "independent truck company",
+       "casual top",
+       "short sleeve"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d4c0cf3743b473d20777602cf7666a3d087f2ff4f1a279df3e90a349ae50de80",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "streetwear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "graphic tee",
+       "skateboard brand",
+       "independent truck company",
+       "casual top",
+       "short sleeve"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-33",
+   "status": "ok",
+   "elapsed_seconds": 17.498,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.066
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.326,
+     "crop_sha256": "a1ae7652c32f05a2214f810528fd8acc82aaf458274c96acb8792d9cf1d3570f",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "blue",
+      "secondary_color": "light blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "button placket",
+       "casual shirt",
+       "menswear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "a1ae7652c32f05a2214f810528fd8acc82aaf458274c96acb8792d9cf1d3570f",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "blue",
+      "secondary_color": "light blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "button placket",
+       "casual shirt",
+       "menswear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-34",
+   "status": "ok",
+   "elapsed_seconds": 16.31,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.31
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.921,
+     "crop_sha256": "974d67e0bb743562f8a53dfd0e4ab47eb05ae16892aed5fa104645f18c977c42",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "basic",
+       "crewneck",
+       "short sleeve",
+       "solid color",
+       "everyday",
+       "comfortable"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 0.99,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "974d67e0bb743562f8a53dfd0e4ab47eb05ae16892aed5fa104645f18c977c42",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "basic",
+       "crewneck",
+       "short sleeve",
+       "solid color",
+       "everyday",
+       "comfortable"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-35",
+   "status": "ok",
+   "elapsed_seconds": 22.431,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 11.431
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.918,
+     "crop_sha256": "3fa3de6ac7b7bde780f21e22c0524d2833c1a8cfdf9be46b7b2eaf2f76b6c442",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "teal",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "collar",
+       "buttons",
+       "casual wear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "3fa3de6ac7b7bde780f21e22c0524d2833c1a8cfdf9be46b7b2eaf2f76b6c442",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "teal",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "collar",
+       "buttons",
+       "casual wear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-36",
+   "status": "ok",
+   "elapsed_seconds": 17.887,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.6
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.199,
+     "crop_sha256": "a3364c7702f337f34e4756c9cfe7402ffbda5b8e4c460a7c65324abf496a9f1b",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "navy",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 2,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "pique cotton",
+       "contrast piping",
+       "brand logo",
+       "collared"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "a3364c7702f337f34e4756c9cfe7402ffbda5b8e4c460a7c65324abf496a9f1b",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "navy",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 2,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "pique cotton",
+       "contrast piping",
+       "brand logo",
+       "collared"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-37",
+   "status": "ok",
+   "elapsed_seconds": 20.179,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 10.159
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.855,
+     "crop_sha256": "220bd4efe11cfa392c2e94c95da8d3f79f3da28fbe09c58a1400f71041fd8693",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "summer",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-down",
+       "long-sleeve",
+       "classic",
+       "office"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "220bd4efe11cfa392c2e94c95da8d3f79f3da28fbe09c58a1400f71041fd8693",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "summer",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-down",
+       "long-sleeve",
+       "classic",
+       "office"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-38",
+   "status": "ok",
+   "elapsed_seconds": 28.72,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 14.619
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.931,
+     "crop_sha256": "61dfd19486d0362673a6a6a7949310772c65994d17599cd7864068041ac77278",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "beige",
+      "secondary_color": "blue",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "flannel",
+       "button-down",
+       "long-sleeve",
+       "checked",
+       "everyday"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "61dfd19486d0362673a6a6a7949310772c65994d17599cd7864068041ac77278",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "beige",
+      "secondary_color": "blue",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "flannel",
+       "button-down",
+       "long-sleeve",
+       "checked",
+       "everyday"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-39",
+   "status": "ok",
+   "elapsed_seconds": 23.971,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.691
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 15.141,
+     "crop_sha256": "a4b7112f92c8720062c73eb214fdf5f32defdfcbc8c8932d1bd299577292e609",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "green",
+      "secondary_color": "black",
+      "pattern": "geometric",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-down",
+       "long-sleeve",
+       "patterned",
+       "collared"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.85,
+      "pattern": 0.9,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "a4b7112f92c8720062c73eb214fdf5f32defdfcbc8c8932d1bd299577292e609",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "green",
+      "secondary_color": "black",
+      "pattern": "geometric",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-down",
+       "long-sleeve",
+       "patterned",
+       "collared"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-40",
+   "status": "ok",
+   "elapsed_seconds": 19.603,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.776
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.668,
+     "crop_sha256": "97fb7bc1415e5064eb5aa27b71f55b55e3eb7713d0c6b47497c91efbfcf5c41a",
+     "attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "green sweater",
+       "crew neck",
+       "long sleeve",
+       "textured fabric",
+       "loungewear",
+       "cozy"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "97fb7bc1415e5064eb5aa27b71f55b55e3eb7713d0c6b47497c91efbfcf5c41a",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "green sweater",
+       "crew neck",
+       "long sleeve",
+       "textured fabric",
+       "loungewear",
+       "cozy"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-41",
+   "status": "ok",
+   "elapsed_seconds": 19.288,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 10.832
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.306,
+     "crop_sha256": "0f112f053042d94a2decec8689422dee8bda40bc63139a642639d7ab63b11081",
+     "attributes": {
+      "category": "top",
+      "sub_category": "hoodie",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "quarter-zip",
+       "mock-neck",
+       "snowflake-logo",
+       "activewear",
+       "fleece-jacket"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.95,
+      "sub_category": 0.9,
+      "primary_color": 0.98,
+      "secondary_color": 0.95,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.98,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.88,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "0f112f053042d94a2decec8689422dee8bda40bc63139a642639d7ab63b11081",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "hoodie",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "quarter-zip",
+       "mock-neck",
+       "snowflake-logo",
+       "activewear",
+       "fleece-jacket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-42",
+   "status": "ok",
+   "elapsed_seconds": 22.254,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 10.517
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 11.589,
+     "crop_sha256": "3af788546cfac76cdea6c89202c59680eaaf82756fb12112c63d5321e10744a4",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "sportswear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm",
+       "windy"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "track pants",
+       "sweatpants",
+       "athletic",
+       "nike",
+       "logo",
+       "elastic waist",
+       "pocket"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.95,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.95,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.95,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "3af788546cfac76cdea6c89202c59680eaaf82756fb12112c63d5321e10744a4",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "sportswear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm",
+       "windy"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "track pants",
+       "sweatpants",
+       "athletic",
+       "nike",
+       "logo",
+       "elastic waist",
+       "pocket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-43",
+   "status": "ok",
+   "elapsed_seconds": 20.306,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 11.221
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.999,
+     "crop_sha256": "1f69e4917cb87b1d6a7a3e87dcf857781584cfc632b515f6572bacd4d1d0c346",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 2,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "heavy",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "blue jeans",
+       "denim trousers",
+       "casual wear",
+       "pocket details"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 1.0,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 1.0,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "1f69e4917cb87b1d6a7a3e87dcf857781584cfc632b515f6572bacd4d1d0c346",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 2,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "heavy",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "blue jeans",
+       "denim trousers",
+       "casual wear",
+       "pocket details"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-44",
+   "status": "ok",
+   "elapsed_seconds": 16.848,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.479
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 8.278,
+     "crop_sha256": "e90ec0cbb4833d6e9105329b03babfaa8fae41abe8ccc3e821f79db38551fc1e",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "summer"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "blue jeans",
+       "slim fit",
+       "denim trousers",
+       "casual wear",
+       "skinny jeans"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.99,
+      "material": 0.99,
+      "style": 0.95,
+      "fit": 0.92,
+      "formality_level": 0.95,
+      "comfort_level": 0.88,
+      "silhouette_level": 0.9,
+      "length": 0.98,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "e90ec0cbb4833d6e9105329b03babfaa8fae41abe8ccc3e821f79db38551fc1e",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "summer"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "blue jeans",
+       "slim fit",
+       "denim trousers",
+       "casual wear",
+       "skinny jeans"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-45",
+   "status": "ok",
+   "elapsed_seconds": 18.739,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.365
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.283,
+     "crop_sha256": "6740b1dab2981e98c6a71efcaf52e119cc9c36bf9ccd9fb56f6a89d236016e42",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "green trousers",
+       "colored denim",
+       "slim fit",
+       "casual pants",
+       "vibrant"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 1.0,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.85,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "6740b1dab2981e98c6a71efcaf52e119cc9c36bf9ccd9fb56f6a89d236016e42",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "green trousers",
+       "colored denim",
+       "slim fit",
+       "casual pants",
+       "vibrant"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-46",
+   "status": "ok",
+   "elapsed_seconds": 31.02,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.345
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 21.562,
+     "crop_sha256": "bf9d1599d0e3a270d12e5dbd646f204f749fba46cd302f89a394b733010a1631",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sun",
+       "light"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "light wash",
+       "cuffed hems",
+       "casual wear",
+       "summer style"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.95,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "bf9d1599d0e3a270d12e5dbd646f204f749fba46cd302f89a394b733010a1631",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sun",
+       "light"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "light wash",
+       "cuffed hems",
+       "casual wear",
+       "summer style"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-47",
+   "status": "ok",
+   "elapsed_seconds": 34.937,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 10.241
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 24.613,
+     "crop_sha256": "0192376a411ac9233b6c38063e49a3558df1d65ec7b0f848006825591c86f6b9",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "white",
+      "secondary_color": "pink",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "cargo shorts",
+       "plaid shorts",
+       "summer wear",
+       "casual shorts",
+       "multi pocket"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "0192376a411ac9233b6c38063e49a3558df1d65ec7b0f848006825591c86f6b9",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "white",
+      "secondary_color": "pink",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "cargo shorts",
+       "plaid shorts",
+       "summer wear",
+       "casual shorts",
+       "multi pocket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-48",
+   "status": "ok",
+   "elapsed_seconds": 23.212,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 11.54
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 11.595,
+     "crop_sha256": "f1a9cb18221b3b1035a29448b659a10dd43810a323d6506bce440a50fc69cf3c",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "vest",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "fall",
+       "spring",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "heavy",
+       "movement"
+      ],
+      "free_text_tags": [
+       "puffer",
+       "zipper",
+       "stand_collar",
+       "quilted",
+       "layered"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 1.0,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "f1a9cb18221b3b1035a29448b659a10dd43810a323d6506bce440a50fc69cf3c",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "vest",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "fall",
+       "spring",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "heavy",
+       "movement"
+      ],
+      "free_text_tags": [
+       "puffer",
+       "zipper",
+       "stand_collar",
+       "quilted",
+       "layered"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-49",
+   "status": "ok",
+   "elapsed_seconds": 20.947,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "Một số trường có độ tin cậy thấp (< 70%): secondary_color."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.088
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 11.764,
+     "crop_sha256": "487a953ad350fb67f3439c39de998f0cd11f8afbe19dc138bf07c3932caf282f",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "purple",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "cool",
+       "rainy",
+       "windy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "hooded",
+       "utility",
+       "pockets",
+       "drawstring",
+       "zipper"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.6,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "487a953ad350fb67f3439c39de998f0cd11f8afbe19dc138bf07c3932caf282f",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "purple",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "cool",
+       "rainy",
+       "windy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "hooded",
+       "utility",
+       "pockets",
+       "drawstring",
+       "zipper"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-50",
+   "status": "ok",
+   "elapsed_seconds": 27.788,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.453
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 19.246,
+     "crop_sha256": "11f2087ff268540472625a3ffcfbbc09b0c2fd1cee17186131a2fb665356f026",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold",
+       "mild"
+      ],
+      "functional_flags": [
+       "work",
+       "heavy"
+      ],
+      "free_text_tags": [
+       "suit jacket",
+       "pinstripe",
+       "business",
+       "professional",
+       "tailored"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "11f2087ff268540472625a3ffcfbbc09b0c2fd1cee17186131a2fb665356f026",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold",
+       "mild"
+      ],
+      "functional_flags": [
+       "work",
+       "heavy"
+      ],
+      "free_text_tags": [
+       "suit jacket",
+       "pinstripe",
+       "business",
+       "professional",
+       "tailored"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-51",
+   "status": "ok",
+   "elapsed_seconds": 22.683,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.857
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.744,
+     "crop_sha256": "65be3f3132251454b2091ca6fa55b6a24943c1d4aec6b46e452fb10a35c4f5bd",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "blazer",
+       "suit jacket",
+       "grey blazer",
+       "formal wear",
+       "business casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.85,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "65be3f3132251454b2091ca6fa55b6a24943c1d4aec6b46e452fb10a35c4f5bd",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "blazer",
+       "suit jacket",
+       "grey blazer",
+       "formal wear",
+       "business casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-52",
+   "status": "ok",
+   "elapsed_seconds": 22.027,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.249
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.666,
+     "crop_sha256": "2dfc6bd731425eccdff027df0ac27d5f7e85952f0ed03ed600d2f58e7bbb5a5b",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "windy"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "zipper jacket",
+       "collar",
+       "neutral",
+       "lightweight outerwear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "2dfc6bd731425eccdff027df0ac27d5f7e85952f0ed03ed600d2f58e7bbb5a5b",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "windy"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "zipper jacket",
+       "collar",
+       "neutral",
+       "lightweight outerwear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-53",
+   "status": "ok",
+   "elapsed_seconds": 23.344,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.497
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 14.689,
+     "crop_sha256": "e61608ac0a241b50c590ab17acb6184ab0b4a4e14e145b50f2d12cd6622bc10f",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "mesh",
+       "slip-on",
+       "breathable",
+       "lightweight",
+       "walking shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "e61608ac0a241b50c590ab17acb6184ab0b4a4e14e145b50f2d12cd6622bc10f",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "mesh",
+       "slip-on",
+       "breathable",
+       "lightweight",
+       "walking shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-54",
+   "status": "ok",
+   "elapsed_seconds": 26.518,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 11.478
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 14.919,
+     "crop_sha256": "fa66b91d692bccc1068abe9fc2df158854ded91b4a42d5bab6dc3fb1d2eb17f9",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "buckle strap",
+       "cork footbed",
+       "flat sandals",
+       "summer shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "fa66b91d692bccc1068abe9fc2df158854ded91b4a42d5bab6dc3fb1d2eb17f9",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "buckle strap",
+       "cork footbed",
+       "flat sandals",
+       "summer shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-55",
+   "status": "ok",
+   "elapsed_seconds": 23.234,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.185
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 13.954,
+     "crop_sha256": "b02770691310a0d4cb52551c348d20ab91a342c6a5a32ce24abc3455d62b9c14",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "slip_ons",
+      "primary_color": "dark_blue",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "perforated",
+       "casual shoes",
+       "comfortable",
+       "stitching details"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "b02770691310a0d4cb52551c348d20ab91a342c6a5a32ce24abc3455d62b9c14",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "slip_ons",
+      "primary_color": "dark_blue",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "perforated",
+       "casual shoes",
+       "comfortable",
+       "stitching details"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-56",
+   "status": "ok",
+   "elapsed_seconds": 24.97,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 10.418
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 14.455,
+     "crop_sha256": "2338b0fbd9537e58b26e3363af20a195ab9dc687a2a49c4ab0647ac5698ad5f6",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "athletic wear",
+       "casual sneakers",
+       "mesh sneakers",
+       "lace up"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.95,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "2338b0fbd9537e58b26e3363af20a195ab9dc687a2a49c4ab0647ac5698ad5f6",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "athletic wear",
+       "casual sneakers",
+       "mesh sneakers",
+       "lace up"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-57",
+   "status": "ok",
+   "elapsed_seconds": 33.554,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 8.876
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 24.603,
+     "crop_sha256": "df84655a7c949574cb210b76d6120fb3fcef470e129b5e586bb31dd65031ae0f",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "cap",
+      "primary_color": "grey",
+      "secondary_color": "red",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "sun",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "baseball cap",
+       "spider-man",
+       "embroidered",
+       "kids",
+       "graphic cap",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.9,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "df84655a7c949574cb210b76d6120fb3fcef470e129b5e586bb31dd65031ae0f",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "cap",
+      "primary_color": "grey",
+      "secondary_color": "red",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "sun",
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "baseball cap",
+       "spider-man",
+       "embroidered",
+       "kids",
+       "graphic cap",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-58",
+   "status": "ok",
+   "elapsed_seconds": 27.822,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "error",
+     "error_type": "ProviderError",
+     "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+     "elapsed_seconds": 9.353
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 18.383,
+     "crop_sha256": "f7088b9076a9b3433a6146eed990754b670d818ce15af712c7eaf6253365bfcc",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "ribbed",
+       "winter hat",
+       "knit",
+       "cuffed"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "f7088b9076a9b3433a6146eed990754b670d818ce15af712c7eaf6253365bfcc",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "ribbed",
+       "winter hat",
+       "knit",
+       "cuffed"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  }
+ ]
+}

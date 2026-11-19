@@ -1,0 +1,62 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-19T08:34:59.444153+00:00",
+ "detector": "gemini",
+ "detector_model": "gemini-3.6-flash",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "localization_dataset_version": "vision-real-review-v2",
+ "localization_sha256": "3832e8ac987c05c90ff16724c4e630c4dd5305fa89ec64bbffc0d02e9578258e",
+ "localization_results": [
+  {
+   "id": "worn-trousers",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 4.535
+  },
+  {
+   "id": "matching-sneaker-pair",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.989
+  },
+  {
+   "id": "worn-polo",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.608
+  },
+  {
+   "id": "single-derby",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 8.026
+  },
+  {
+   "id": "single-jeans",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Dịch vụ AI phát hiện trang phục tạm thời không khả dụng: HTTP 429.",
+   "elapsed_seconds": 11.991
+  },
+  {
+   "id": "blue-tshirt",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Không thể kết nối đến dịch vụ AI: Server disconnected without sending a response.",
+   "elapsed_seconds": 1635.484
+  },
+  {
+   "id": "red-tshirt",
+   "status": "error",
+   "error_type": "ProviderError",
+   "error_message": "Không thể kết nối đến dịch vụ AI: [Errno 11001] getaddrinfo failed",
+   "elapsed_seconds": 14.078
+  }
+ ]
+}
