@@ -193,6 +193,17 @@ def build_garment_composite(images: Sequence[bytes], max_pixels: int = COMPOSITE
     return _encode_jpeg(_scale_to_pixels(canvas, max_pixels))
 
 
+REVIEW_IMAGE_HEIGHT = 1024
+
+
+def normalize_for_review(image_bytes: bytes, height: int = REVIEW_IMAGE_HEIGHT) -> bytes:
+    """Re-encode a result as metadata-free JPEG at a fixed height for the blind bundle."""
+    with Image.open(BytesIO(image_bytes)) as source:
+        image = _flatten_rgb(source)
+    width = max(1, round(image.width * height / image.height))
+    return _encode_jpeg(image.resize((width, height), Image.Resampling.LANCZOS))
+
+
 def image_size(image_bytes: bytes) -> tuple[int, int]:
     with Image.open(BytesIO(image_bytes)) as image:
         return image.size

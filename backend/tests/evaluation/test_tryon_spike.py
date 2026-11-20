@@ -259,13 +259,16 @@ def test_review_page_hides_provider_identity_and_score_renders(tmp_path: Path) -
     # Real run files are named after the provider; the bundle must not leak that.
     runs = [
         {"case_id": "female-01", "provider": provider, "success": True, "repeat": 0, "total_latency_ms": ms,
-         "estimated_cost_usd": cost, "output_file": f"outputs/female-01_{provider}_r0.jpg", "calls": [{"stage": "vto"}]}
-        for provider, ms, cost in [("fashn", 9000, 0.075), ("flux", 5000, 0.0475)]
+         "estimated_cost_usd": cost, "output_file": f"outputs/female-01_{provider}_r0.{ext}", "calls": [{"stage": "vto"}]}
+        for provider, ms, cost, ext in [("fashn", 9000, 0.075, "png"), ("flux", 5000, 0.0475, "jpg")]
     ]
     for folder in ("outputs", "inputs"):
         (tmp_path / folder).mkdir()
+    # As in the live run, the models return different formats, sizes and colors.
+    native = {"fashn": ((864, 1157), (255, 0, 0), "PNG"), "flux": ((736, 1024), (0, 0, 255), "JPEG")}
     for run in runs:
-        (tmp_path / run["output_file"]).write_bytes(run["provider"].encode())
+        size, color, fmt = native[run["provider"]]
+        (tmp_path / run["output_file"]).write_bytes(_image(size, color, fmt=fmt))
     (tmp_path / "inputs" / "female-01_person.jpg").write_bytes(b"p")
     (tmp_path / "inputs" / "female-01_garment1.jpg").write_bytes(b"g")
     raw = tmp_path / "raw.json"
@@ -279,8 +282,12 @@ def test_review_page_hides_provider_identity_and_score_renders(tmp_path: Path) -
         assert revealing not in page and revealing not in shared_names
     assert page.count("<fieldset data-rating") == 2
     mapping = blind_labels("female-01", "s", ["fashn", "flux"])
+    assert sorted(p.name for p in (bundle / "images").iterdir()) == ["female-01_A.jpg", "female-01_B.jpg"]
     for label, provider in mapping.items():
-        assert (bundle / "images" / f"female-01_{label}.jpg").read_bytes() == provider.encode()
+        shown = Image.open(bundle / "images" / f"female-01_{label}.jpg")
+        assert shown.format == "JPEG" and shown.height == 1024
+        red, _, blue = shown.convert("RGB").getpixel((shown.width // 2, shown.height // 2))
+        assert (red > blue) == (provider == "fashn")  # each label shows its own provider's image
     assert sorted(p.name for p in (bundle / "inputs").iterdir()) == ["female-01_garment1.jpg", "female-01_person.jpg"]
 
     summary = script.render_markdown(summarize_runs(runs), {})

@@ -61,6 +61,7 @@ from tests.evaluation.tryon_spike import (  # noqa: E402
     blind_labels,
     build_garment_composite,
     fit_within_pixels,
+    normalize_for_review,
     run_fashn_case,
     run_flux_case,
     select_tryon_garments,
@@ -404,8 +405,10 @@ def command_review(args: argparse.Namespace) -> None:
             source = out_dir / run["output_file"]
             if not source.is_file():
                 raise SystemExit(f"Missing output image {source}; run review from the run's --out-dir.")
-            blind_name = f"images/{case_id}_{label}{source.suffix}"
-            shutil.copyfile(source, bundle / blind_name)
+            # Same format and height for every result: native PNG vs JPEG output or
+            # resolution would otherwise tell raters which model made which image.
+            blind_name = f"images/{case_id}_{label}.jpg"
+            (bundle / blind_name).write_bytes(normalize_for_review(source.read_bytes()))
             results.append(
                 f'<figure><img src="{blind_name}" alt="Kết quả {label}">'
                 f'<fieldset data-rating data-case="{case_id}" data-label="{label}"><legend>Ảnh {label}</legend>'
