@@ -18,6 +18,7 @@ EXPECTED_ENV_KEYS = {
     "YOLO_WORLD_IOU_THRESHOLD",
     "CONTEXT_PROVIDER",
     "CONTEXT_TIMEOUT_SECONDS",
+    "ENABLE_LLM_EXPLANATIONS",
     "WEATHER_PROVIDER",
     "WEATHER_TIMEOUT_SECONDS",
     "IMAGE_PROVIDER",
@@ -63,6 +64,7 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.yolo_world_iou_threshold == 0.45
     assert settings.context_provider == "fallback"
     assert settings.context_timeout_seconds == 15
+    assert settings.enable_llm_explanations is False
     assert settings.weather_provider == "disabled"
     assert settings.weather_timeout_seconds == 5
     assert settings.image_provider == "disabled"
