@@ -7,10 +7,10 @@ wardrobes. All images and run files go to a git-ignored output directory.
 Steps (from the repository root):
     # 1. Offline: pick the cases and print the estimated cost.
     python backend/scripts/spike_tryon_providers.py plan --user female=<uuid> --user male=<uuid>
-    # 2. Live (paid): render every case with both providers.
+    # 2. Live (paid, about $1.74 for the ten demo cases): render every case once per model.
     $env:FAL_KEY = "<key>"
-    python backend/scripts/spike_tryon_providers.py run --live --provider both
-    # 3. Offline: build the blind rating page for fashion raters.
+    python backend/scripts/spike_tryon_providers.py run --live
+    # 3. Offline: build the blind rating bundle (review/) for fashion raters.
     python backend/scripts/spike_tryon_providers.py review --raw <raw.json>
     # 4. Offline: latency, success and cost, plus un-blinded ratings.
     python backend/scripts/spike_tryon_providers.py score --raw <raw.json> --ratings <ratings.json>
@@ -26,6 +26,7 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 from typing import Any
 from uuid import uuid4
@@ -43,7 +44,8 @@ from app.core.dependencies import get_object_storage  # noqa: E402
 from app.models.entities import MediaAsset, OutfitItem, OutfitRecommendation, WardrobeItem  # noqa: E402
 from app.services.item_media import primary_media_ids  # noqa: E402
 from app.services.tryon_service import get_preset_avatar_bytes  # noqa: E402
-from app.services.tryon_spike import (  # noqa: E402
+from tests.evaluation.tryon_spike import (  # noqa: E402
+    ALL_PROVIDERS,
     FAL_BASE_URL,
     FASHN_MODEL_ID,
     FASHN_PRICE_PER_IMAGE_USD,
@@ -69,7 +71,6 @@ from app.services.tryon_spike import (  # noqa: E402
 SPIKE_VERSION = "tryon-provider-spike-v1"
 DEFAULT_OUT = ROOT / "data" / "private-tryon-spike"
 FLUX_ESTIMATE_PER_CASE_USD = FLUX_FIRST_INPUT_MEGAPIXEL_USD + FLUX_EXTRA_INPUT_MEGAPIXEL_USD + FLUX_OUTPUT_MEGAPIXEL_USD
-PROVIDERS = ("fashn", "flux")
 
 
 def _now() -> str:
@@ -194,11 +195,9 @@ def command_plan(args: argparse.Namespace) -> None:
     for case in cases:
         names = " + ".join(f"{g['category']}:{g['sub_category']}" for g in case["garments"])
         print(f"  {case['case_id']:<10} {case['source']:<17} {names}")
-    print(
-        f"Estimated cost per repeat: FASHN {fashn_calls} calls x ${FASHN_PRICE_PER_IMAGE_USD} = "
-        f"${fashn_calls * FASHN_PRICE_PER_IMAGE_USD:.2f}; FLUX {len(cases)} calls x ~${FLUX_ESTIMATE_PER_CASE_USD:.4f} = "
-        f"${len(cases) * FLUX_ESTIMATE_PER_CASE_USD:.2f}"
-    )
+    print("Estimated cost per repeat:")
+    print(f"  FASHN  {fashn_calls} calls x ${FASHN_PRICE_PER_IMAGE_USD} = ${fashn_calls * FASHN_PRICE_PER_IMAGE_USD:.2f}")
+    print(f"  FLUX   {len(cases)} calls x ~${FLUX_ESTIMATE_PER_CASE_USD:.4f} = ${len(cases) * FLUX_ESTIMATE_PER_CASE_USD:.2f}")
 
 
 def _load_garments(session: Session, storage: Any, case: dict[str, Any]) -> list[SpikeGarment]:
@@ -225,16 +224,30 @@ def _write_raw(path: Path, header: dict[str, Any], runs: list[dict[str, Any]]) -
     path.write_text(json.dumps({**header, "runs": runs}, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def parse_providers(value: str) -> list[str]:
+    providers = [item.strip().lower() for item in value.split(",") if item.strip()]
+    unknown = sorted(set(providers) - set(ALL_PROVIDERS))
+    if not providers or unknown:
+        raise SystemExit(f"--providers must list some of {', '.join(ALL_PROVIDERS)}; unknown: {', '.join(unknown)}")
+    return list(dict.fromkeys(providers))
+
+
+def provider_order(providers: list[str], index: int, repeat: int) -> list[str]:
+    """Rotate the call order per case and repeat so no provider always runs first."""
+    shift = (index + repeat) % len(providers)
+    return providers[shift:] + providers[:shift]
+
+
 def command_run(args: argparse.Namespace) -> None:
     if not args.live:
         raise SystemExit("Live runs call paid APIs. Re-run with --live to confirm.")
-    api_key = os.environ.get("FAL_KEY", "")
-    if not api_key.strip():
+    providers = parse_providers(args.providers)
+    fal_key = os.environ.get("FAL_KEY", "")
+    if not fal_key.strip():
         raise SystemExit("Set FAL_KEY in the environment (never commit it).")
     out_dir: Path = args.out_dir
     cases_path = args.cases or out_dir / "cases.json"
     cases_doc = json.loads(cases_path.read_text(encoding="utf-8"))
-    providers = list(PROVIDERS) if args.provider == "both" else [args.provider]
     for folder in ("inputs", "outputs", "runs"):
         (out_dir / folder).mkdir(parents=True, exist_ok=True)
 
@@ -244,6 +257,7 @@ def command_run(args: argparse.Namespace) -> None:
         "started_at": _now(),
         "cases_sha256": sha256(cases_path.read_bytes()).hexdigest(),
         "salt": cases_doc["salt"],
+        "providers": providers,
         "host": FAL_BASE_URL,
         "models": {"fashn": FASHN_MODEL_ID, "flux": FLUX_MODEL_ID},
         "fashn_mode": args.fashn_mode,
@@ -252,7 +266,7 @@ def command_run(args: argparse.Namespace) -> None:
     }
     runs: list[dict[str, Any]] = []
     consecutive_failures = {provider: 0 for provider in providers}
-    client = FalClient(api_key, timeout_seconds=args.timeout)
+    fal = FalClient(fal_key, timeout_seconds=args.timeout)
     storage = get_object_storage()
     try:
         with _session() as session:
@@ -270,16 +284,14 @@ def command_run(args: argparse.Namespace) -> None:
                         (out_dir / "inputs" / f"{case_id}_composite.jpg").write_bytes(
                             build_garment_composite([garment.image_bytes for garment in garments])
                         )
-                    # Alternate the provider order so neither always runs first.
-                    order = providers if (index + repeat) % 2 == 0 else list(reversed(providers))
-                    for provider in order:
+                    for provider in provider_order(providers, index, repeat):
                         if consecutive_failures[provider] >= args.max_consecutive_failures:
                             print(f"  {case_id} {provider}: skipped after repeated failures")
                             continue
                         run: CaseRun = (
-                            run_fashn_case(client, case_id, person, garments, mode=args.fashn_mode)
+                            run_fashn_case(fal, case_id, person, garments, mode=args.fashn_mode)
                             if provider == "fashn"
-                            else run_flux_case(client, case_id, person, garments)
+                            else run_flux_case(fal, case_id, person, garments)
                         )
                         output_file = None
                         if run.output_bytes:
@@ -291,15 +303,20 @@ def command_run(args: argparse.Namespace) -> None:
                         runs.append(record)
                         _write_raw(raw_path, header, runs)
                         status = "ok" if run.success else "FAILED"
-                        print(f"  {case_id} r{repeat} {provider:<5} {status:<6} {run.total_latency_ms / 1000:6.1f}s ${run.estimated_cost_usd:.4f}")
+                        print(f"  {case_id} r{repeat} {provider:<6} {status:<6} {run.total_latency_ms / 1000:6.1f}s ${run.estimated_cost_usd:.4f}")
     finally:
-        client.close()
+        fal.close()
         header["finished_at"] = _now()
         _write_raw(raw_path, header, runs)
     print(f"Raw results: {raw_path}")
 
 
-def _load_raw(paths: list[Path]) -> tuple[str, list[dict[str, Any]]]:
+def _load_raw(paths: list[Path]) -> tuple[str, list[dict[str, Any]], list[str]]:
+    """Salt, runs, and the provider set that fixes the blind labels.
+
+    The provider set is taken from the runs themselves, so `review` and `score`
+    agree as long as they are given the same raw files.
+    """
     salts: set[str] = set()
     runs: list[dict[str, Any]] = []
     for path in paths:
@@ -308,7 +325,8 @@ def _load_raw(paths: list[Path]) -> tuple[str, list[dict[str, Any]]]:
         runs.extend(document["runs"])
     if len(salts) != 1:
         raise SystemExit("Raw files come from different case plans (salts differ).")
-    return salts.pop(), runs
+    providers = sorted({str(run["provider"]) for run in runs})
+    return salts.pop(), runs, providers
 
 
 REVIEW_STYLE = """
@@ -351,9 +369,20 @@ def _score_select(name: str, label: str) -> str:
 
 
 def command_review(args: argparse.Namespace) -> None:
-    salt, runs = _load_raw(args.raw)
+    salt, runs, providers = _load_raw(args.raw)
     out_dir: Path = args.out_dir
     cases_doc = json.loads((args.cases or out_dir / "cases.json").read_text(encoding="utf-8"))
+    # Raters get only this folder: results are copied under blind names, because
+    # the files in outputs/ carry the provider name.
+    bundle = out_dir / "review"
+    if bundle.exists():
+        shutil.rmtree(bundle)
+    (bundle / "inputs").mkdir(parents=True)
+    (bundle / "images").mkdir()
+    for source in (out_dir / "inputs").glob("*_person.jpg"):
+        shutil.copyfile(source, bundle / "inputs" / source.name)
+    for source in (out_dir / "inputs").glob("*_garment*.jpg"):
+        shutil.copyfile(source, bundle / "inputs" / source.name)
     by_case: dict[str, dict[str, dict[str, Any]]] = {}
     for run in sorted(runs, key=lambda row: row.get("repeat", 0)):
         if run["success"]:
@@ -367,13 +396,18 @@ def command_review(args: argparse.Namespace) -> None:
             for n, g in enumerate(case["garments"], start=1)
         )
         results: list[str] = []
-        for label, provider in sorted(blind_labels(case_id, salt).items()):
+        for label, provider in sorted(blind_labels(case_id, salt, providers).items()):
             run = by_case.get(case_id, {}).get(provider)
             if run is None:
                 results.append(f'<figure><div class="missing">Ảnh {label}: không tạo được</div></figure>')
                 continue
+            source = out_dir / run["output_file"]
+            if not source.is_file():
+                raise SystemExit(f"Missing output image {source}; run review from the run's --out-dir.")
+            blind_name = f"images/{case_id}_{label}{source.suffix}"
+            shutil.copyfile(source, bundle / blind_name)
             results.append(
-                f'<figure><img src="{html.escape(run["output_file"])}" alt="Kết quả {label}">'
+                f'<figure><img src="{blind_name}" alt="Kết quả {label}">'
                 f'<fieldset data-rating data-case="{case_id}" data-label="{label}"><legend>Ảnh {label}</legend>'
                 f'{_score_select("garment_fidelity", "Giống món đồ thật (màu, họa tiết, kiểu)")}'
                 f'{_score_select("person_preservation", "Giữ nguyên người mẫu (mặt, dáng, nền)")}'
@@ -388,15 +422,15 @@ def command_review(args: argparse.Namespace) -> None:
     page = (
         '<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         f"<title>Chấm ảnh thử đồ</title><style>{REVIEW_STYLE}</style></head><body><main>"
-        "<h1>Chấm ảnh thử đồ</h1><p>Mỗi bộ có hai ảnh A và B từ hai cách tạo khác nhau, thứ tự được xáo ngẫu nhiên. "
+        "<h1>Chấm ảnh thử đồ</h1><p>Mỗi bộ có hai ảnh A và B được tạo bằng hai cách khác nhau, thứ tự được xáo riêng cho từng bộ. "
         "Chấm 1 (rất kém) đến 5 (rất tốt) cho từng tiêu chí, so với ảnh người mẫu gốc và ảnh món đồ.</p>"
         '<div class="bar"><input type="text" id="rater" placeholder="Tên người chấm" aria-label="Tên người chấm">'
         '<button type="button" onclick="exportJson()">Xuất kết quả</button></div>'
         f"{''.join(sections)}</main><script>{REVIEW_SCRIPT}</script></body></html>"
     )
-    page_path = out_dir / "review.html"
+    page_path = bundle / "index.html"
     page_path.write_text(page, encoding="utf-8")
-    print(f"Blind review page: {page_path}")
+    print(f"Blind review bundle (share only this folder): {bundle}")
 
 
 def _fmt_seconds(value: float | None) -> str:
@@ -433,10 +467,10 @@ def render_markdown(run_summary: dict[str, dict[str, Any]], rating_summary: dict
 
 
 def command_score(args: argparse.Namespace) -> None:
-    salt, runs = _load_raw(args.raw)
+    salt, runs, providers = _load_raw(args.raw)
     run_summary = summarize_runs(runs)
     ratings = [json.loads(path.read_text(encoding="utf-8")) for path in args.ratings or []]
-    rating_summary = summarize_ratings(ratings, salt) if ratings else {}
+    rating_summary = summarize_ratings(ratings, salt, providers) if ratings else {}
     print(render_markdown(run_summary, rating_summary))
     if args.json_out:
         args.json_out.write_text(
@@ -456,7 +490,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="Render every case through fal.ai (paid).")
     run.add_argument("--live", action="store_true", help="Required: confirms paid API calls.")
-    run.add_argument("--provider", choices=["fashn", "flux", "both"], default="both")
+    run.add_argument("--providers", default=",".join(ALL_PROVIDERS), help="Comma list of fashn, flux (default both).")
     run.add_argument("--repeats", type=int, default=1)
     run.add_argument("--fashn-mode", choices=["performance", "balanced", "quality"], default="balanced")
     run.add_argument("--timeout", type=float, default=180.0)

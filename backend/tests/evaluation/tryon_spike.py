@@ -1,16 +1,18 @@
-"""Pure helpers and HTTP clients for the try-on provider comparison spike.
+"""Clients and pure helpers for the try-on provider comparison spike.
 
-The spike compares two hosted try-on models served by fal.ai under one API key:
+Evaluation code only: the application never imports this module. Two arms,
+both served by fal.ai under one API key:
 
-* FASHN Try-On v1.6 (`fal-ai/fashn/tryon/v1.6`) accepts one garment per call, so an
-  upper + lower outfit needs two chained calls (the second call wears the first
-  call's output), mirroring the pass order of `tryon_service`.
-* FLUX VTO (`fal-ai/flux-pro/v1/vto`) accepts one garment reference image plus a
-  prompt; several garments must be merged into one composite image first, so an
-  outfit needs one call.
+* FASHN Try-On v1.6 via fal.ai (`fal-ai/fashn/tryon/v1.6`): a dedicated try-on
+  model, one garment per call, so an upper + lower outfit is two chained calls
+  (the second wears the first output), mirroring `tryon_service`.
+* FLUX VTO via fal.ai (`fal-ai/flux-pro/v1/vto`): a try-on variant of a general
+  image model; one garment reference image plus a prompt, so the garments are
+  merged into one left-to-right composite and an outfit is one call. fal serves
+  the first VTO version; Black Forest Labs recommends `vto-v2` (2026-07-17),
+  which is only on its own API, so FLUX may score below its latest version.
 
-Nothing here is used by the application request path. Prices are the figures
-published on the fal.ai model pages on 2026-11-20 and are estimates only.
+Prices are the figures published by fal.ai on 2026-11-20 and are estimates only.
 """
 
 from __future__ import annotations
@@ -39,13 +41,13 @@ FLUX_OUTPUT_MEGAPIXEL_USD = 0.005
 # only holds when one billed megapixel is 2**20 pixels.
 BILLED_MEGAPIXEL = 1_048_576
 
-PERSON_MAX_PIXELS = 1_000_000  # FLUX recommends < 1 MP; both providers get the same image
+PERSON_MAX_PIXELS = 1_000_000  # FLUX recommends < 1 MP; both arms get the same image
 COMPOSITE_MAX_PIXELS = 520_000  # FLUX recommends about 0.5 MP for the garment reference
 COMPOSITE_PADDING = 24
 ERROR_MESSAGE_LIMIT = 200
 
 Provider = Literal["fashn", "flux"]
-SpikeCategory = Literal["top", "outerwear", "bottom", "dress"]
+ALL_PROVIDERS: tuple[Provider, ...] = ("fashn", "flux")
 FashnCategory = Literal["tops", "bottoms", "one-pieces"]
 
 _FASHN_CATEGORY: dict[str, FashnCategory] = {
@@ -54,6 +56,9 @@ _FASHN_CATEGORY: dict[str, FashnCategory] = {
     "bottom": "bottoms",
     "dress": "one-pieces",
 }
+_PRESERVE = (
+    "Keep the person's face, hair, pose, body shape, footwear and background unchanged. "
+)
 
 
 @dataclass(frozen=True)
@@ -110,15 +115,14 @@ def describe_garment(ref: GarmentRef) -> str:
         words.append(ref.primary_color.replace("_", " ").lower())
     if ref.pattern and ref.pattern.lower() not in {"solid", "unknown", "plain"}:
         words.append(ref.pattern.replace("_", " ").lower())
-    noun = (ref.sub_category or ref.category).replace("_", " ").lower()
-    words.append(noun)
+    words.append((ref.sub_category or ref.category).replace("_", " ").lower())
     return " ".join(words)
 
 
 def build_flux_prompt(garments: Sequence[GarmentRef]) -> str:
     """Prompt that names each garment in the composite's left-to-right order."""
     if not garments:
-        raise ValueError("A FLUX try-on needs at least one garment.")
+        raise ValueError("A try-on needs at least one garment.")
     if len(garments) == 1:
         wear = f"Dress the person in the {describe_garment(garments[0])} shown in the reference image."
     else:
@@ -128,10 +132,7 @@ def build_flux_prompt(garments: Sequence[GarmentRef]) -> str:
             f"the {describe_garment(upper)} (left) on the upper body and "
             f"the {describe_garment(lower)} (right) on the lower body."
         )
-    return (
-        f"{wear} Keep the person's face, hair, pose, body shape, footwear and background unchanged. "
-        "A natural front-facing full-body studio photo."
-    )
+    return f"{wear} {_PRESERVE}A natural front-facing full-body studio photo."
 
 
 def _flatten_rgb(image: Image.Image) -> Image.Image:
@@ -275,9 +276,9 @@ class CaseRun:
         }
 
 
-class FalCallError(Exception):
+class ProviderCallError(Exception):
     def __init__(self, record: CallRecord) -> None:
-        super().__init__(record.error_message or record.error_type or "fal call failed")
+        super().__init__(record.error_message or record.error_type or "provider call failed")
         self.record = record
 
 
@@ -286,70 +287,55 @@ def _sanitize(message: str, secret: str) -> str:
     return " ".join(cleaned.split())[:ERROR_MESSAGE_LIMIT]
 
 
-class FalClient:
-    """Minimal synchronous client for `https://fal.run/<model_id>`."""
+class _JsonApiClient:
+    """Shared POST/download logic; subclasses set the auth header and base URL."""
 
     def __init__(
         self,
         api_key: str,
         *,
-        base_url: str = FAL_BASE_URL,
-        timeout_seconds: float = 180.0,
-        transport: httpx.BaseTransport | None = None,
-        clock: Callable[[], float] = perf_counter,
+        base_url: str,
+        auth_headers: Mapping[str, str],
+        timeout_seconds: float,
+        transport: httpx.BaseTransport | None,
+        clock: Callable[[], float],
     ) -> None:
-        if not api_key.strip():
-            raise ValueError("A fal.ai API key is required for live runs.")
-        self._api_key = api_key.strip()
+        self._api_key = api_key
         self._clock = clock
         self._http = httpx.Client(
             base_url=base_url.rstrip("/"),
             timeout=httpx.Timeout(timeout_seconds),
             transport=transport,
-            headers={"Authorization": f"Key {self._api_key}"},
+            headers=dict(auth_headers),
         )
-        # Output images live on third-party CDNs; never send the fal key there.
+        # Output images live on third-party CDNs; never send the API key there.
         self._download_http = httpx.Client(timeout=httpx.Timeout(timeout_seconds), transport=transport)
 
     def close(self) -> None:
         self._http.close()
         self._download_http.close()
 
-    def run(self, model_id: str, stage: str, payload: Mapping[str, Any]) -> tuple[dict[str, Any], CallRecord]:
+    def _post(self, path: str, model_id: str, stage: str, payload: Mapping[str, Any]) -> tuple[dict[str, Any], CallRecord]:
         started = self._clock()
         try:
-            response = self._http.post(f"/{model_id}", json=dict(payload))
+            response = self._http.post(path, json=dict(payload))
         except httpx.HTTPError as exc:
-            record = CallRecord(
-                model_id=model_id,
-                stage=stage,
-                http_status=None,
-                latency_ms=self._elapsed_ms(started),
-                error_type=type(exc).__name__,
-                error_message=_sanitize(str(exc), self._api_key),
-            )
-            raise FalCallError(record) from exc
+            raise ProviderCallError(
+                CallRecord(model_id, stage, None, self._elapsed_ms(started), type(exc).__name__, _sanitize(str(exc), self._api_key))
+            ) from exc
         latency_ms = self._elapsed_ms(started)
         if response.status_code >= 400:
-            record = CallRecord(
-                model_id=model_id,
-                stage=stage,
-                http_status=response.status_code,
-                latency_ms=latency_ms,
-                error_type="HTTPStatusError",
-                error_message=_sanitize(response.text, self._api_key),
+            raise ProviderCallError(
+                CallRecord(model_id, stage, response.status_code, latency_ms, "HTTPStatusError", _sanitize(response.text, self._api_key))
             )
-            raise FalCallError(record)
-        body = response.json()
+        try:
+            body = response.json()
+        except ValueError as exc:
+            raise ProviderCallError(
+                CallRecord(model_id, stage, response.status_code, latency_ms, "InvalidJSON", "response body is not JSON")
+            ) from exc
         seed = body.get("seed") if isinstance(body, dict) else None
-        record = CallRecord(
-            model_id=model_id,
-            stage=stage,
-            http_status=response.status_code,
-            latency_ms=latency_ms,
-            seed=seed if isinstance(seed, int) else None,
-        )
-        return body, record
+        return body, CallRecord(model_id, stage, response.status_code, latency_ms, seed=seed if isinstance(seed, int) else None)
 
     def download(self, url: str, stage: str, model_id: str) -> tuple[bytes, CallRecord]:
         started = self._clock()
@@ -362,19 +348,48 @@ class FalClient:
                 response.raise_for_status()
                 content, status = response.content, response.status_code
         except (httpx.HTTPError, ValueError, IndexError) as exc:
-            record = CallRecord(
-                model_id=model_id,
-                stage=stage,
-                http_status=getattr(getattr(exc, "response", None), "status_code", None),
-                latency_ms=self._elapsed_ms(started),
-                error_type=type(exc).__name__,
-                error_message=_sanitize(str(exc), self._api_key),
-            )
-            raise FalCallError(record) from exc
-        return content, CallRecord(model_id=model_id, stage=stage, http_status=status, latency_ms=self._elapsed_ms(started))
+            raise ProviderCallError(
+                CallRecord(
+                    model_id,
+                    stage,
+                    getattr(getattr(exc, "response", None), "status_code", None),
+                    self._elapsed_ms(started),
+                    type(exc).__name__,
+                    _sanitize(str(exc), self._api_key),
+                )
+            ) from exc
+        return content, CallRecord(model_id, stage, status, self._elapsed_ms(started))
 
     def _elapsed_ms(self, started: float) -> int:
         return max(0, round((self._clock() - started) * 1000))
+
+
+class FalClient(_JsonApiClient):
+    """Synchronous client for `https://fal.run/<model_id>`."""
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        base_url: str = FAL_BASE_URL,
+        timeout_seconds: float = 180.0,
+        transport: httpx.BaseTransport | None = None,
+        clock: Callable[[], float] = perf_counter,
+    ) -> None:
+        if not api_key.strip():
+            raise ValueError("A fal.ai API key is required for live runs.")
+        key = api_key.strip()
+        super().__init__(
+            key,
+            base_url=base_url,
+            auth_headers={"Authorization": f"Key {key}"},
+            timeout_seconds=timeout_seconds,
+            transport=transport,
+            clock=clock,
+        )
+
+    def run(self, model_id: str, stage: str, payload: Mapping[str, Any]) -> tuple[dict[str, Any], CallRecord]:
+        return self._post(f"/{model_id}", model_id, stage, payload)
 
 
 def _first_image_url(body: Mapping[str, Any]) -> str:
@@ -384,17 +399,19 @@ def _first_image_url(body: Mapping[str, Any]) -> str:
     return str(images[0]["url"])
 
 
+PARSE_STAGE_SUFFIX = ":parse"
+
+
 def _record_invalid_body(run: CaseRun, model_id: str, stage: str, exc: Exception) -> None:
+    """Record an unusable response body as its own entry; it is not another model call."""
     run.calls.append(
-        CallRecord(
-            model_id=model_id,
-            stage=stage,
-            http_status=None,
-            latency_ms=0,
-            error_type=type(exc).__name__,
-            error_message=str(exc)[:ERROR_MESSAGE_LIMIT],
-        )
+        CallRecord(model_id, f"{stage}{PARSE_STAGE_SUFFIX}", None, 0, type(exc).__name__, str(exc)[:ERROR_MESSAGE_LIMIT])
     )
+
+
+def _is_model_call(call: Mapping[str, Any]) -> bool:
+    stage = str(call.get("stage", ""))
+    return stage != "download" and not stage.endswith(PARSE_STAGE_SUFFIX)
 
 
 def run_fashn_case(
@@ -424,7 +441,7 @@ def run_fashn_case(
         }
         try:
             body, record = client.run(FASHN_MODEL_ID, stage, payload)
-        except FalCallError as exc:
+        except ProviderCallError as exc:
             run.calls.append(exc.record)
             break
         run.calls.append(record)
@@ -439,7 +456,7 @@ def run_fashn_case(
     if successes == len(garments) and output_url is not None:
         try:
             content, record = client.download(output_url, "download", FASHN_MODEL_ID)
-        except FalCallError as exc:
+        except ProviderCallError as exc:
             run.calls.append(exc.record)
         else:
             run.calls.append(record)
@@ -471,7 +488,7 @@ def run_flux_case(
     }
     try:
         body, record = client.run(FLUX_MODEL_ID, "vto", payload)
-    except FalCallError as exc:
+    except ProviderCallError as exc:
         run.calls.append(exc.record)
         run.total_latency_ms = composite_ms + exc.record.latency_ms
         return run
@@ -479,7 +496,7 @@ def run_flux_case(
     try:
         url = _first_image_url(body)
         content, download_record = client.download(url, "download", FLUX_MODEL_ID)
-    except FalCallError as exc:
+    except ProviderCallError as exc:
         run.calls.append(exc.record)
     except ValueError as exc:
         _record_invalid_body(run, FLUX_MODEL_ID, "vto", exc)
@@ -488,9 +505,7 @@ def run_flux_case(
         run.output_bytes = content
         run.output_size = image_size(content)
         run.success = True
-        run.estimated_cost_usd = estimate_flux_cost_usd(
-            [image_size(person_jpeg), image_size(composite)], run.output_size
-        )
+        run.estimated_cost_usd = estimate_flux_cost_usd([image_size(person_jpeg), image_size(composite)], run.output_size)
     run.total_latency_ms = composite_ms + sum(call.latency_ms for call in run.calls)
     return run
 
@@ -521,6 +536,7 @@ def summarize_runs(runs: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any
             label = f"{key}:{status}" if status else key
             failures[label] = failures.get(label, 0) + 1
         total_cost = round(sum(float(run["estimated_cost_usd"]) for run in rows), 4)
+        model_calls = [sum(1 for call in run["calls"] if _is_model_call(call)) for run in rows]
         summary[provider] = {
             "attempted": len(rows),
             "succeeded": len(ok),
@@ -528,11 +544,7 @@ def summarize_runs(runs: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any
             "latency_ms_p50": percentile(latencies, 50),
             "latency_ms_p95": percentile(latencies, 95),
             "latency_ms_max": max(latencies) if latencies else None,
-            "mean_model_calls": round(
-                sum(sum(1 for call in run["calls"] if call["stage"] != "download") for run in rows) / len(rows), 3
-            )
-            if rows
-            else None,
+            "mean_model_calls": round(sum(model_calls) / len(rows), 3) if rows else None,
             "estimated_cost_usd_total": total_cost,
             "estimated_cost_usd_per_success": round(total_cost / len(ok), 4) if ok else None,
             "failures": failures,
@@ -540,10 +552,10 @@ def summarize_runs(runs: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any
     return summary
 
 
-def blind_labels(case_id: str, salt: str) -> dict[str, Provider]:
-    """Deterministic A/B assignment so raters do not know which provider is which."""
-    flip = sha256(f"{salt}:{case_id}".encode()).digest()[0] % 2 == 1
-    return {"A": "flux", "B": "fashn"} if flip else {"A": "fashn", "B": "flux"}
+def blind_labels(case_id: str, salt: str, providers: Sequence[str]) -> dict[str, str]:
+    """Deterministic per-case permutation of providers onto labels A, B, C, ..."""
+    ordered = sorted(set(providers), key=lambda provider: sha256(f"{salt}:{case_id}:{provider}".encode()).hexdigest())
+    return {chr(ord("A") + index): provider for index, provider in enumerate(ordered)}
 
 
 RATING_CRITERIA = ("garment_fidelity", "person_preservation", "realism")
@@ -552,8 +564,12 @@ RATING_CRITERIA = ("garment_fidelity", "person_preservation", "realism")
 def summarize_ratings(
     rating_files: Sequence[Mapping[str, Any]],
     salt: str,
+    providers: Sequence[str],
 ) -> dict[str, dict[str, Any]]:
-    """Un-blind rater scores (1-5 per criterion) and average them per provider."""
+    """Un-blind rater scores (1-5 per criterion) and average them per provider.
+
+    `providers` MUST be the provider set the review page was built from.
+    """
     scores: dict[str, dict[str, list[int]]] = {}
     unacceptable: dict[str, list[bool]] = {}
     raters: set[str] = set()
@@ -561,7 +577,7 @@ def summarize_ratings(
         raters.add(str(document.get("rater", "")))
         for row in document.get("ratings", []):
             label = str(row["label"])
-            provider = blind_labels(str(row["case_id"]), salt).get(label)
+            provider = blind_labels(str(row["case_id"]), salt, providers).get(label)
             if provider is None:
                 raise ValueError(f"Unknown blind label '{label}'")
             for criterion in RATING_CRITERIA:

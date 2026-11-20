@@ -123,9 +123,9 @@ docker compose -f compose.prod.yaml config --quiet
 
 ## Phase 3 — Try-On Provider Spike
 
-**Status:** Approved by the owner on 2026-11-20.
+**Status:** Approved by the owner on 2026-11-20. On the same day the owner chose the minimal run (two arms, one repeat) and removed the Gemini arm: neither vendor publishes quantitative quality results, so the choice needs a measurement on the project's own outfits, while Gemini is better suited to placing an already rendered try-on into a scene than to try-on itself (see Out of scope).
 
-**Goal:** Decide, with measured evidence, whether to replace the FASHN VTON v1.5 Hugging Face ZeroGPU Space with a paid hosted model, by comparing FASHN Try-On v1.6 and FLUX VTO on real demo outfits for end-to-end latency, success rate, cost per outfit and blind human ratings. Serves thesis objective 1.2 "Phòng thử đồ trực tuyến". The current Space takes about 37 s per pass and fails on the second pass under the anonymous ZeroGPU quota (`../archive/reports/FASHN_VTON_SPIKE_REPORT.md`). 3D or 360-degree try-on is out of scope (`../01_product/PRD_MVP.md` 3.2).
+**Goal:** Decide, with measured evidence, whether to replace the FASHN VTON v1.5 Hugging Face ZeroGPU Space with FASHN Try-On v1.6 or FLUX VTO, by comparing them on real demo outfits for end-to-end latency, success rate, cost per outfit and blind human ratings. Serves thesis objective 1.2 "Phòng thử đồ trực tuyến". The current Space takes about 37 s per pass and fails on the second pass under the anonymous ZeroGPU quota (`../archive/reports/FASHN_VTON_SPIKE_REPORT.md`). 3D or 360-degree try-on is out of scope (`../01_product/PRD_MVP.md` 3.2).
 
 **Specification files:**
 
@@ -135,31 +135,35 @@ docker compose -f compose.prod.yaml config --quiet
 
 **Method:**
 
-- Both models are called through fal.ai with one key: `fal-ai/fashn/tryon/v1.6` (one garment per call, chained top then bottom, as `tryon_service` does) and `fal-ai/flux-pro/v1/vto` (one call with a left-to-right garment composite and a prompt built only from recorded attributes).
-- Cases are the persisted outfits of the two demo users, plus deterministic fills so each user has at least three upper + bottom cases and, when the wardrobe has dresses, three dress cases. Both providers get the same preset avatar, downscaled to at most 1 MP. Provider order alternates per case.
-- Latency is measured end to end per outfit, including the final image download. Failed calls are recorded, never dropped. Cost estimates use the fal.ai prices read on 2026-11-20.
-- Raters (fashion students or the advisor, at least three) score each result 1–5 for garment fidelity, person preservation and realism, and may flag it unacceptable, on a blind page where results are labelled A/B by a salted hash.
+- Both models are called through fal.ai with one key, and both get the same preset avatar downscaled to at most 1 MP:
+  - FASHN Try-On v1.6 (`fal-ai/fashn/tryon/v1.6`): one garment per call, chained top then bottom, as `tryon_service` does.
+  - FLUX VTO (`fal-ai/flux-pro/v1/vto`): one call with a left-to-right garment composite and a prompt built only from recorded attributes. fal serves the first VTO version; Black Forest Labs recommends `vto-v2` (2026-07-17), available only on its own API, so the report MUST state that FLUX may score below its latest version.
+- Cases are the persisted outfits of the two demo users, plus deterministic fills so each user has at least three upper + bottom cases and, when the wardrobe has dresses, three dress cases: ten cases for the current demo data, 20 rendered images per repeat. The call order alternates per case.
+- Latency is measured end to end per outfit, including the final image download. Failed calls and empty responses are recorded, never dropped. Cost estimates use the fal.ai prices read on 2026-11-20.
+- Raters (fashion students or the advisor, at least three) score each result 1–5 for garment fidelity, person preservation and realism, and may flag it unacceptable. They receive only the `review/` bundle, where results are labelled A/B by a salted per-case permutation and image files carry only those labels.
+
+**Out of scope:** Gemini image editing that places a finished try-on render into the requested occasion's scene (for example an outdoor cafe in the evening), as an optional, illustrative step after try-on. It needs its own phase after this decision, including a garment-preservation check before and after editing and a privacy note, because personal avatars would be sent to Google.
 
 **Checklist:**
 
-- [x] Add the spike clients and pure helpers (`backend/app/services/tryon_spike.py`) and the CLI (`backend/scripts/spike_tryon_providers.py` with `plan`, `run`, `review`, `score`). Output goes to the git-ignored `data/private-tryon-spike/`. The fal key is read only from `FAL_KEY` and is never sent to image CDNs or written to files.
-- [x] Add offline unit tests (`backend/tests/unit/test_tryon_spike.py`) for garment selection, prompt, composite, pixel budget, cost formula, chained calls, failure recording without the key, summaries, blind labels and the blind page.
-- [ ] Run `run --live --provider both --repeats 2` with a funded fal.ai key (about $1.70 per repeat for the ten demo cases).
-- [ ] Collect blind ratings from at least three raters with `review`, then score them with `score`.
-- [ ] Write `docs/archive/reports/TRYON_PROVIDER_SPIKE_<date>.md` with the score tables, failure list, example images and limitations (preset avatars only; garment crops, not product photos).
+- [x] Add the spike clients and pure helpers (`backend/tests/evaluation/tryon_spike.py`, not imported by the application) and the CLI (`backend/scripts/spike_tryon_providers.py` with `plan`, `run`, `review`, `score`). Output goes to the git-ignored `data/private-tryon-spike/`. The fal key comes only from `FAL_KEY`, is never sent to image CDNs, and is never written to files.
+- [x] Add offline tests (`backend/tests/evaluation/test_tryon_spike.py`) for garment selection, prompt, composite, pixel budget, cost formula, chained calls, failures and empty responses recorded without the key, summaries, the blind permutation, and a review bundle that leaks no provider name.
+- [ ] Run `run --live` once with a funded fal.ai key (one repeat by default, about $1.74 for the ten demo cases: FASHN 17 calls, $1.27; FLUX 10 calls, $0.47). A second repeat (`--repeats 2`) is optional and only tightens the latency percentiles.
+- [ ] Collect blind ratings from at least three raters with `review`, then score them with `score`, passing the same raw files to both.
+- [ ] Write `docs/archive/reports/TRYON_PROVIDER_SPIKE_<date>.md` with the score tables, failure list, example images and limitations (preset avatars only; garment crops, not product photos; both models measured through fal.ai; FLUX VTO v1, not v2).
 - [ ] Record the decision (keep the Space, switch to FASHN v1.6, or switch to FLUX VTO). If the provider changes, update `VIRTUAL_TRYON_SPEC.md` and `ALIGNMENT_BACKLOG.md` T-3 in that follow-up task.
 
 **Acceptance criteria:**
 
-- Every reported number states its denominator, model identifiers, host, run date, number of repeats and number of failed calls.
-- The blind page shows no provider or host name; the mapping is recovered only by `score`.
+- Every reported number states its denominator, model identifiers, hosts, run date, number of repeats and number of failed calls.
+- Nothing in the `review/` bundle names a provider, model or host; the mapping is recovered only by `score`.
 - No application table or object-storage bucket is written by the spike, and no secret appears in any output file.
 - Default verification runs without network access or credentials.
 
 **Executable Commands:**
 
 ```powershell
-cd backend; python -m pytest tests/unit/test_tryon_spike.py -q; cd ..
+cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
 ./scripts/verify_documentation.ps1
 ```
 

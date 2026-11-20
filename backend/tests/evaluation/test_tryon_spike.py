@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from collections import Counter
 import importlib.util
 from io import BytesIO
 import json
@@ -13,7 +14,8 @@ import httpx
 from PIL import Image
 import pytest
 
-from app.services.tryon_spike import (
+from tests.evaluation.tryon_spike import (
+    ALL_PROVIDERS,
     FASHN_MODEL_ID,
     FLUX_MODEL_ID,
     FalClient,
@@ -95,12 +97,12 @@ def test_select_garments_matches_tryon_service_rule() -> None:
     assert select_tryon_garments([shoes, bag]) == []
 
 
-def test_flux_prompt_names_garments_in_composite_order_from_recorded_attributes() -> None:
+def test_prompts_name_garments_from_recorded_attributes_only() -> None:
     upper = GarmentRef("t", "top", sub_category="button_down_shirt", primary_color="white", pattern="solid")
     lower = GarmentRef("b", "bottom", sub_category="chinos", primary_color="navy", pattern="striped")
-    prompt = build_flux_prompt([upper, lower])
-    assert "the white button down shirt (left) on the upper body" in prompt
-    assert "the navy striped chinos (right) on the lower body" in prompt
+    flux = build_flux_prompt([upper, lower])
+    assert "the white button down shirt (left) on the upper body" in flux
+    assert "the navy striped chinos (right) on the lower body" in flux
     dress = GarmentRef("d", "dress", sub_category="midi_dress", primary_color="unknown")
     assert "Dress the person in the midi dress shown" in build_flux_prompt([dress])
     with pytest.raises(ValueError):
@@ -180,6 +182,17 @@ def test_transport_error_is_recorded_as_a_failed_run() -> None:
     assert not run.success and run.calls[0].error_type == "ConnectTimeout" and run.estimated_cost_usd == 0.0
 
 
+def test_response_without_an_image_is_one_failed_model_call() -> None:
+    def no_image(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"images": [], "has_nsfw_concepts": [True]})
+
+    run = run_flux_case(FalClient(SECRET, transport=httpx.MockTransport(no_image)), "female-02",
+                        _image((80, 120), fmt="JPEG"), [_garment("dress")])
+    assert not run.success and run.estimated_cost_usd == 0.0
+    assert [c.stage for c in run.calls] == ["vto", "vto:parse"]
+    assert summarize_runs([run.to_dict(None)])["flux"]["mean_model_calls"] == 1
+
+
 def test_summaries_use_successful_outfits_for_latency_and_count_failures() -> None:
     def row(provider: str, ok: bool, ms: int, cost: float, status: int | None = None) -> dict[str, Any]:
         calls = [{"stage": "pass1:tops", "error_type": None if ok else "HTTPStatusError", "http_status": status}]
@@ -194,25 +207,46 @@ def test_summaries_use_successful_outfits_for_latency_and_count_failures() -> No
     assert percentile([], 50) is None
 
 
-def test_blind_labels_are_deterministic_balanced_and_unblind_correctly() -> None:
-    labels = [blind_labels(f"case-{i}", "salt")["A"] for i in range(200)]
-    assert labels == [blind_labels(f"case-{i}", "salt")["A"] for i in range(200)]
-    assert 70 < labels.count("flux") < 130
-    case = "female-01"
-    flux_label = next(label for label, provider in blind_labels(case, "s").items() if provider == "flux")
-    fashn_label = "B" if flux_label == "A" else "A"
-    ratings = [
-        {"rater": "r1", "ratings": [
-            {"case_id": case, "label": flux_label, "garment_fidelity": 4, "person_preservation": 5, "realism": 3},
-            {"case_id": case, "label": fashn_label, "garment_fidelity": 2, "realism": 2, "unacceptable": True},
-        ]}
-    ]
-    result = summarize_ratings(ratings, "s")
+def test_blind_labels_are_a_deterministic_balanced_permutation() -> None:
+    mappings = [blind_labels(f"case-{i}", "salt", ALL_PROVIDERS) for i in range(300)]
+    assert mappings == [blind_labels(f"case-{i}", "salt", ALL_PROVIDERS) for i in range(300)]
+    for mapping in mappings:
+        assert sorted(mapping) == ["A", "B"] and sorted(mapping.values()) == sorted(ALL_PROVIDERS)
+    flux_on_a = sum(1 for mapping in mappings if mapping["A"] == "flux")
+    assert 110 < flux_on_a < 190
+    # The permutation is generic, so a later arm only needs another provider name.
+    three = [blind_labels(f"case-{i}", "salt", ["x", "y", "z"]) for i in range(300)]
+    for provider in "xyz":
+        counts = Counter(label for mapping in three for label, value in mapping.items() if value == provider)
+        assert all(70 < counts[label] < 130 for label in "ABC")
+
+
+def test_ratings_unblind_with_the_same_provider_set() -> None:
+    case, providers = "female-01", list(ALL_PROVIDERS)
+    labels = {provider: label for label, provider in blind_labels(case, "s", providers).items()}
+    ratings = [{"rater": "r1", "ratings": [
+        {"case_id": case, "label": labels["flux"], "garment_fidelity": 4, "person_preservation": 5, "realism": 3},
+        {"case_id": case, "label": labels["fashn"], "garment_fidelity": 2, "realism": 2, "unacceptable": True},
+    ]}]
+    result = summarize_ratings(ratings, "s", providers)
     assert result["flux"]["mean_garment_fidelity"] == 4 and result["flux"]["unacceptable_rate"] == 0
     assert result["fashn"]["mean_garment_fidelity"] == 2 and result["fashn"]["unacceptable_rate"] == 1
     assert "mean_person_preservation" not in result["fashn"]
     with pytest.raises(ValueError):
-        summarize_ratings([{"ratings": [{"case_id": case, "label": "A", "realism": 6}]}], "s")
+        summarize_ratings([{"ratings": [{"case_id": case, "label": "A", "realism": 6}]}], "s", providers)
+    with pytest.raises(ValueError):
+        summarize_ratings([{"ratings": [{"case_id": case, "label": "C", "realism": 3}]}], "s", providers)
+
+
+def test_provider_order_rotates_and_provider_list_is_validated() -> None:
+    script = _load_script()
+    providers = ["fashn", "flux"]
+    assert [script.provider_order(providers, index, 0)[0] for index in range(4)] == ["fashn", "flux"] * 2
+    assert script.provider_order(providers, 0, 1) == ["flux", "fashn"]
+    assert script.parse_providers("flux, fashn,flux") == ["flux", "fashn"]
+    for bad in ("flux,gemini", ""):
+        with pytest.raises(SystemExit):
+            script.parse_providers(bad)
 
 
 def test_review_page_hides_provider_identity_and_score_renders(tmp_path: Path) -> None:
@@ -222,19 +256,32 @@ def test_review_page_hides_provider_identity_and_score_renders(tmp_path: Path) -
                                               "primary_color": "red", "pattern": "solid"}],
     }]}
     (tmp_path / "cases.json").write_text(json.dumps(cases), encoding="utf-8")
+    # Real run files are named after the provider; the bundle must not leak that.
     runs = [
         {"case_id": "female-01", "provider": provider, "success": True, "repeat": 0, "total_latency_ms": ms,
-         "estimated_cost_usd": cost, "output_file": f"outputs/female-01_{index}.jpg", "calls": [{"stage": "vto"}]}
-        for index, (provider, ms, cost) in enumerate([("fashn", 9000, 0.075), ("flux", 5000, 0.0475)])
+         "estimated_cost_usd": cost, "output_file": f"outputs/female-01_{provider}_r0.jpg", "calls": [{"stage": "vto"}]}
+        for provider, ms, cost in [("fashn", 9000, 0.075), ("flux", 5000, 0.0475)]
     ]
+    for folder in ("outputs", "inputs"):
+        (tmp_path / folder).mkdir()
+    for run in runs:
+        (tmp_path / run["output_file"]).write_bytes(run["provider"].encode())
+    (tmp_path / "inputs" / "female-01_person.jpg").write_bytes(b"p")
+    (tmp_path / "inputs" / "female-01_garment1.jpg").write_bytes(b"g")
     raw = tmp_path / "raw.json"
     raw.write_text(json.dumps({"salt": "s", "runs": runs}), encoding="utf-8")
 
     script.main(["review", "--raw", str(raw), "--out-dir", str(tmp_path)])
-    page = (tmp_path / "review.html").read_text(encoding="utf-8").lower()
-    for revealing in ("fashn", "flux", "fal.ai"):
-        assert revealing not in page
+    bundle = tmp_path / "review"
+    page = (bundle / "index.html").read_text(encoding="utf-8").lower()
+    shared_names = " ".join(path.name.lower() for path in bundle.rglob("*"))
+    for revealing in ("fashn", "flux", "fal.ai", "bfl"):
+        assert revealing not in page and revealing not in shared_names
     assert page.count("<fieldset data-rating") == 2
+    mapping = blind_labels("female-01", "s", ["fashn", "flux"])
+    for label, provider in mapping.items():
+        assert (bundle / "images" / f"female-01_{label}.jpg").read_bytes() == provider.encode()
+    assert sorted(p.name for p in (bundle / "inputs").iterdir()) == ["female-01_garment1.jpg", "female-01_person.jpg"]
 
     summary = script.render_markdown(summarize_runs(runs), {})
     assert "| flux | 1/1 | 5.0 s |" in summary and "| fashn | 1/1 | 9.0 s |" in summary
