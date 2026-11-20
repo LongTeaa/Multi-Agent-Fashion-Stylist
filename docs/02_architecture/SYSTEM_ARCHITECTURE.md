@@ -2,9 +2,9 @@
 
 ## 1. Architecture Decision
 
-The application is a monorepo containing a Next.js frontend, a FastAPI backend, a fixed LangGraph workflow, SQLite, and private object storage. External AI and weather providers MUST be accessed through service interfaces so that implementations can be replaced and tested independently.
+The application is a monorepo containing a Next.js frontend, a FastAPI backend, a five-node LangGraph workflow with bounded feedback loops, SQLite, and private object storage. External AI and weather providers MUST be accessed through service interfaces so that implementations can be replaced and tested independently.
 
-The MVP MUST use a fixed pipeline. The Coordinator executes validation, persistence, and response synthesis at the end of the workflow; it is not a dynamic router. Dynamic routing is outside MVP scope.
+Orchestration MUST keep the five-node graph defined in `MULTI_AGENT_SPEC.md` (`context`, `wardrobe`, `fashion`, `personalization`, `coordinator`) with bounded conditional feedback edges (`fashion <-> wardrobe` targeted relaxation up to 2 rounds and `coordinator critic -> fashion` critique reroute up to 1 round). The Coordinator validates grounding, executes final persistence once, and synthesizes the response; open-ended or unbounded dynamic routing remains outside scope.
 
 ## 2. Components
 
@@ -28,7 +28,7 @@ ChromaDB MUST NOT be a default MVP dependency. A semantic index MAY be introduce
 | :--- | :--- |
 | Frontend | Next.js App Router, TypeScript strict mode, Tailwind CSS |
 | Backend | Python 3.11+, FastAPI, Pydantic v2, SQLModel |
-| Workflow | LangGraph fixed state graph |
+| Workflow | LangGraph five-node state graph with bounded feedback loops (`MULTI_AGENT_SPEC.md`) |
 | Relational database | SQLite for development/MVP; migration path to PostgreSQL |
 | Object storage | MinIO; local-filesystem adapter for tests/offline demonstrations |
 | Item detection | `DETECTOR_BACKEND`: `auto` (follows `VISION_PROVIDER`), `fake`, `gemini`, or `yolo_world` (local ONNX model) |
@@ -47,7 +47,7 @@ Preview model identifiers MUST NOT be hardcoded in business logic. Model identif
 
 ### 4.2 Recommendation
 
-`context -> wardrobe retrieval -> fashion scoring -> personalization -> coordinator -> persistence -> response`
+`context -> wardrobe retrieval <-> fashion scoring (bounded relaxation <= 2) -> personalization -> coordinator critic (-> fashion reroute <= 1) -> persistence -> response`
 
 ### 4.3 Try-On
 
@@ -94,7 +94,7 @@ The complete, placeholder-only variable list is `.env.example` at the repository
 | Group | Examples |
 | :--- | :--- |
 | Application | `DATABASE_URL`, `FRONTEND_URL` |
-| Provider selection | `VISION_PROVIDER`, `DETECTOR_BACKEND`, `CONTEXT_PROVIDER`, `WEATHER_PROVIDER`, `IMAGE_PROVIDER`, `TRYON_PROVIDER` |
+| Provider selection | `VISION_PROVIDER`, `DETECTOR_BACKEND`, `CONTEXT_PROVIDER`, `ENABLE_LLM_EXPLANATIONS`, `WEATHER_PROVIDER`, `IMAGE_PROVIDER`, `TRYON_PROVIDER` |
 | Model identifiers | `LLM_MODEL`, `VISION_MODEL`, `VISION_FALLBACK_MODEL`, `DETECTOR_MODEL`, `IMAGE_MODEL`, `YOLO_WORLD_MODEL_PATH`, `FASHN_TRYON_SPACE` |
 | Timeouts and limits | `*_TIMEOUT_SECONDS`, `INGESTION_MAX_CONCURRENCY` |
 | Credentials | `GEMINI_API_KEY`, `GEMINI_API_KEYS`, `WEATHER_API_KEY`, `HF_TOKEN` |

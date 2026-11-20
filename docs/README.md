@@ -66,7 +66,7 @@ docs/
 
 ## 4. Normative Decisions
 
-- Orchestration MUST use a fixed pipeline. The Coordinator validates grounding and synthesizes the result; dynamic routing is outside the current scope.
+- Orchestration MUST retain the five-node LangGraph workflow (`context`, `wardrobe`, `fashion`, `personalization`, `coordinator`) with bounded conditional feedback loops defined in `02_architecture/MULTI_AGENT_SPEC.md` (`fashion <-> wardrobe` targeted relaxation `<= 2` rounds and `coordinator critic -> fashion` critique reroute `<= 1` round). Open-ended or unbounded dynamic routing remains outside the current scope.
 - Outfit ranking MUST follow the 3-tier model in `03_domain/FASHION_KNOWLEDGE_BASE.md` and MUST be deterministic. An LLM extracts context and writes explanations only.
 - Feedback MUST use a 1–5 rating only and SHOULD be requested after every 5–10 eligible outfits, according to the cadence policy.
 - Retrieval MUST use metadata filtering as the baseline. Full-text or semantic ranking is an optional measured enhancement.

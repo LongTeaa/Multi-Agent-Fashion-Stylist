@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 from sqlmodel import Session, select
 
 from app.agents.state import (
+    AgentTraceEvent,
+    ConstraintRelaxationPlan,
     GarmentConstraint,
+    MAX_RELAXATION_ROUNDS,
     OutfitItemSlot,
+    RelaxationRequest,
+    RelaxationStep,
+    SlotName,
     StylistContext,
     StylistGraphState,
+    normalize_relax_token,
 )
 from app.core.database import get_engine
 from app.models.entities import (
@@ -44,6 +52,49 @@ CANONICAL_SLOTS: list[str] = [
     "outerwear",
     "accessories",
 ]
+
+SLOT_VI_LABELS: dict[str, str] = {
+    "tops": "áo",
+    "bottoms": "quần",
+    "dresses": "đầm",
+    "footwear": "giày dép",
+    "outerwear": "áo khoác",
+    "accessories": "phụ kiện",
+}
+
+# Tier 1: shade expansion within the same requested color family
+RELAX_COLOR_FAMILIES: dict[str, list[str]] = {
+    "black": ["charcoal", "grey", "gray", "navy"],
+    "white": ["cream", "beige"],
+    "navy": ["black", "blue", "grey", "gray"],
+    "grey": ["black", "navy", "beige"],
+    "gray": ["black", "navy", "beige"],
+    "beige": ["cream", "white", "khaki", "brown", "tan"],
+    "cream": ["white", "beige"],
+    "brown": ["tan", "beige", "khaki", "black"],
+    "blue": ["navy", "light_blue", "denim_blue"],
+}
+
+# Tier 2: equivalent sub-categories strictly within the same WardrobeCategory
+# NEVER map across categories (e.g. TOP -> DRESS is forbidden).
+SUBCATEGORY_EQUIVALENTS: dict[tuple[WardrobeCategory, str], list[str]] = {
+    (WardrobeCategory.BOTTOM, "trousers"): ["chinos", "slacks", "kaki"],
+    (WardrobeCategory.BOTTOM, "chinos"): ["trousers", "kaki", "jeans"],
+    (WardrobeCategory.BOTTOM, "jeans"): ["chinos", "kaki"],
+    (WardrobeCategory.TOP, "shirt"): ["polo", "blouse"],
+    (WardrobeCategory.TOP, "polo"): ["shirt", "t-shirt", "t_shirt"],
+    (WardrobeCategory.TOP, "t_shirt"): ["polo"],
+    (WardrobeCategory.TOP, "t-shirt"): ["polo"],
+    (WardrobeCategory.FOOTWEAR, "oxford"): ["loafers", "derby", "boots"],
+    (WardrobeCategory.FOOTWEAR, "loafers"): ["oxford", "sneakers"],
+    (WardrobeCategory.FOOTWEAR, "sneakers"): ["loafers"],
+    (WardrobeCategory.OUTERWEAR, "blazer"): ["jacket", "cardigan", "coat"],
+    (WardrobeCategory.OUTERWEAR, "jacket"): ["blazer", "cardigan", "coat"],
+    (WardrobeCategory.DRESS, "shirt_dress"): ["casual_dress", "dress", "midi_dress"],
+    (WardrobeCategory.DRESS, "formal_dress"): ["midi_dress", "maxi_dress", "dress"],
+    (WardrobeCategory.DRESS, "midi_dress"): ["casual_dress", "shirt_dress", "dress"],
+    (WardrobeCategory.DRESS, "maxi_dress"): ["midi_dress", "casual_dress", "dress"],
+}
 
 # Keywords identifying which category a garment constraint belongs to
 CATEGORY_KEYWORD_MAP: dict[WardrobeCategory, list[str]] = {
@@ -380,19 +431,135 @@ def get_category_for_raw_token(token: str) -> WardrobeCategory | None:
     return None
 
 
-def _is_constraint_for_category(token: str, category: WardrobeCategory) -> bool:
-    """Check whether a constraint belongs to a specific wardrobe category."""
-    token_lower = token.lower()
-    for cat, kws in CATEGORY_KEYWORD_MAP.items():
-        if cat != category and any(kw in token_lower for kw in kws):
-            return False
-    return True
+def _extract_avoid_filters(
+    context: StylistContext,
+) -> tuple[dict[WardrobeCategory, list[str]], list[GarmentConstraint]]:
+    """Extract per-category must_avoid tokens and compound exclusions (never relaxed)."""
+    targeted_must_avoid: dict[WardrobeCategory, list[str]] = {cat: [] for cat in WardrobeCategory}
+    compound_exclusions: list[GarmentConstraint] = []
+
+    if context.structured_must_avoid:
+        for c in context.structured_must_avoid:
+            if (c.category is not None or c.sub_category is not None) and c.color is not None:
+                compound_exclusions.append(c)
+            elif c.category is not None and c.sub_category is not None:
+                targeted_must_avoid[c.category].append(c.sub_category)
+            elif c.category is not None and c.is_category_only:
+                compound_exclusions.append(c)
+            elif c.color is not None:
+                for cat in WardrobeCategory:
+                    targeted_must_avoid[cat].append(c.color)
+    else:
+        for raw_a in context.must_avoid:
+            a = raw_a.strip()
+            if not a:
+                continue
+            norm = normalize_constraint_token(a)
+            target_cat = get_category_for_raw_token(a)
+            if target_cat is not None:
+                targeted_must_avoid[target_cat].append(norm)
+            elif len(norm.split()) <= 2 and not any(
+                kw in norm.lower() for kw in ["thời tiết", "phù hợp", "trang phục", "quần áo"]
+            ):
+                for cat in WardrobeCategory:
+                    targeted_must_avoid[cat].append(norm)
+
+    return targeted_must_avoid, compound_exclusions
+
+
+def _filter_compound_exclusions(
+    matches: list[Any],
+    compound_exclusions: list[GarmentConstraint],
+) -> list[Any]:
+    if not compound_exclusions:
+        return matches
+    filtered_matches = []
+    for match in matches:
+        item = match.item
+        excluded = False
+        for excl in compound_exclusions:
+            cat_match = excl.category is None or item.category == excl.category
+            sub_match = excl.sub_category is None or (excl.sub_category.lower() in item.sub_category.lower())
+            color_match = excl.color is None or (
+                item.primary_color.lower() == excl.color.lower()
+                or (item.secondary_color and item.secondary_color.lower() == excl.color.lower())
+            )
+            if cat_match and sub_match and color_match:
+                excluded = True
+                break
+        if not excluded:
+            filtered_matches.append(match)
+    return filtered_matches
+
+
+def _build_outfit_item_slot(
+    item: WardrobeItem,
+    category: WardrobeCategory,
+    media_id: str | None = None,
+) -> OutfitItemSlot:
+    """Build an OutfitItemSlot preserving nullable garment profile attributes."""
+    image_url = f"/api/v1/media/{media_id}" if media_id else None
+    return OutfitItemSlot(
+        item_id=item.id,
+        slot_role=OutfitSlotRole(category.value),
+        name=format_localized_item_name(item),
+        sub_category=item.sub_category,
+        primary_color=item.primary_color,
+        secondary_color=item.secondary_color,
+        style=item.style,
+        category=category,
+        formality_level=getattr(item, "formality_level", 3),
+        comfort_level=getattr(item, "comfort_level", 3),
+        silhouette_level=getattr(item, "silhouette_level", None),
+        length=getattr(item, "length", None),
+        weather_suitability=list(item.weather_suitability),
+        pattern=item.pattern,
+        material=item.material,
+        fit=item.fit,
+        functional_flags=list(item.functional_flags),
+        image_url=image_url,
+        times_worn=item.times_worn or 0,
+        last_worn_at=item.last_worn_at.isoformat() if item.last_worn_at else None,
+    )
+
+
+def _apply_saved_avoid_filter(
+    session: Session,
+    user_id: str,
+    candidate_pool: dict[str, list[OutfitItemSlot]],
+    context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+) -> dict[str, list[OutfitItemSlot]]:
+    preferences = session.get(UserPreference, user_id)
+    if preferences and (preferences.avoid_colors or preferences.avoid_styles):
+        from app.agents.personalization_agent import check_outfit_avoid_violations
+        from app.agents.fashion_agent import constraint_matches_item
+
+        clean = {
+            slot: [
+                item
+                for item in items
+                if not check_outfit_avoid_violations([item], preferences.avoid_colors, preferences.avoid_styles)
+            ]
+            for slot, items in candidate_pool.items()
+        }
+        complete = clean["footwear"] and (clean["dresses"] or (clean["tops"] and clean["bottoms"]))
+        required_available = all(
+            any(constraint_matches_item(constraint, item, active_relaxations) for items in clean.values() for item in items)
+            for constraint in context.structured_must_have
+        )
+        if complete and required_available:
+            return clean
+    return candidate_pool
 
 
 def retrieve_candidate_pool(
     session: Session,
     user_id: str,
     context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    *,
+    disable_personalization: bool = False,
 ) -> tuple[dict[str, list[OutfitItemSlot]], list[str], list[str]]:
     """Retrieve active wardrobe items grouped into 6 canonical slots with category-scoped must_have."""
     errors: list[str] = []
@@ -409,11 +576,9 @@ def retrieve_candidate_pool(
 
     # Process must_have and must_avoid using structured constraints if available
     targeted_must_have: dict[WardrobeCategory, list[str]] = {cat: [] for cat in WardrobeCategory}
-    targeted_must_avoid: dict[WardrobeCategory, list[str]] = {cat: [] for cat in WardrobeCategory}
     general_color_hints: list[str] = []
     required_colors: list[str] = []
     required_garment_colors: list[tuple[WardrobeCategory, str, str]] = []
-    compound_exclusions: list[GarmentConstraint] = []
 
     # Category-only generic tokens that must NOT filter full-text searchable text
     category_only_tokens = {"shoes", "áo", "quần", "giày", "dép", "top", "bottom", "footwear"}
@@ -421,7 +586,13 @@ def retrieve_candidate_pool(
     if context.structured_must_have:
         for c in context.structured_must_have:
             if c.is_category_only:
-                # Slot existence is guaranteed by category retrieval; do not filter text
+                # Slot existence is guaranteed by category retrieval; do not filter by category text,
+                # but still retain explicit material/color hints (e.g. "đầm đỏ").
+                if c.category is not None and c.material is not None:
+                    targeted_must_have[c.category].append(c.material)
+                if c.color is not None:
+                    general_color_hints.append(c.color)
+                    required_colors.append(c.color)
                 continue
             if c.category is not None:
                 if c.sub_category is not None:
@@ -453,29 +624,7 @@ def retrieve_candidate_pool(
                     for cat in WardrobeCategory:
                         targeted_must_have[cat].append(norm)
 
-    if context.structured_must_avoid:
-        for c in context.structured_must_avoid:
-            # Compound exclusion (garment + color e.g. "áo polo đen"): filter post-retrieval
-            if (c.category is not None or c.sub_category is not None) and c.color is not None:
-                compound_exclusions.append(c)
-            elif c.category is not None and c.sub_category is not None:
-                targeted_must_avoid[c.category].append(c.sub_category)
-            elif c.color is not None:
-                for cat in WardrobeCategory:
-                    targeted_must_avoid[cat].append(c.color)
-    else:
-        for raw_a in context.must_avoid:
-            a = raw_a.strip()
-            if not a:
-                continue
-            norm = normalize_constraint_token(a)
-            target_cat = get_category_for_raw_token(a)
-            if target_cat is not None:
-                targeted_must_avoid[target_cat].append(norm)
-            else:
-                if len(norm.split()) <= 2 and not any(kw in norm.lower() for kw in ["thời tiết", "phù hợp", "trang phục", "quần áo"]):
-                    for cat in WardrobeCategory:
-                        targeted_must_avoid[cat].append(norm)
+    targeted_must_avoid, compound_exclusions = _extract_avoid_filters(context)
 
     formality_min = context.target_formality_range[0] if len(context.target_formality_range) >= 1 else 1
     formality_max = context.target_formality_range[1] if len(context.target_formality_range) >= 2 else 5
@@ -528,24 +677,7 @@ def retrieve_candidate_pool(
             matches = [match for match in matches if "weather" not in match.relaxed_constraints]
 
         # Post-retrieval filtering for compound exclusions
-        if compound_exclusions:
-            filtered_matches = []
-            for match in matches:
-                item = match.item
-                excluded = False
-                for excl in compound_exclusions:
-                    cat_match = excl.category is None or item.category == excl.category
-                    sub_match = excl.sub_category is None or (excl.sub_category.lower() in item.sub_category.lower())
-                    color_match = excl.color is None or (
-                        item.primary_color.lower() == excl.color.lower()
-                        or (item.secondary_color and item.secondary_color.lower() == excl.color.lower())
-                    )
-                    if cat_match and sub_match and color_match:
-                        excluded = True
-                        break
-                if not excluded:
-                    filtered_matches.append(match)
-            matches = filtered_matches
+        matches = _filter_compound_exclusions(matches, compound_exclusions)
 
         slots: list[OutfitItemSlot] = []
         capped_matches = matches[:15]  # Capped at 15 items per slot
@@ -557,34 +689,7 @@ def retrieve_candidate_pool(
                 for rel in match.relaxed_constraints:
                     rel_name = "thời tiết" if rel == "weather" else "độ trang trọng"
                     detailed_relaxations.append(f"{rel_name} ({cat.value})")
-
-            media_id = media_ids.get(item.id)
-            image_url = f"/api/v1/media/{media_id}" if media_id else None
-            name = format_localized_item_name(item)
-
-            slot = OutfitItemSlot(
-                item_id=item.id,
-                slot_role=OutfitSlotRole(cat.value),
-                name=name,
-                sub_category=item.sub_category,
-                primary_color=item.primary_color,
-                secondary_color=item.secondary_color,
-                style=item.style,
-                category=cat,
-                formality_level=getattr(item, "formality_level", 3),
-                comfort_level=getattr(item, "comfort_level", 3),
-                silhouette_level=getattr(item, "silhouette_level", None),
-                length=getattr(item, "length", None),
-                weather_suitability=list(item.weather_suitability),
-                pattern=item.pattern,
-                material=item.material,
-                fit=item.fit,
-                functional_flags=list(item.functional_flags),
-                image_url=image_url,
-                times_worn=item.times_worn or 0,
-                last_worn_at=item.last_worn_at.isoformat() if item.last_worn_at else None,
-            )
-            slots.append(slot)
+            slots.append(_build_outfit_item_slot(item, cat, media_id=media_ids.get(item.id)))
         candidate_pool[slot_name] = slots
 
     # Pre-flight Outfit Feasibility Check
@@ -645,21 +750,192 @@ def retrieve_candidate_pool(
             f"Đã nới lỏng điều kiện tìm kiếm: {', '.join(unique_relaxations)}."
         )
 
-    # Apply saved exclusions before the bounded combinatorial search. Retain the
-    # original pool only when no complete clean branch can satisfy required items.
-    preferences = session.get(UserPreference, user_id)
-    if preferences and (preferences.avoid_colors or preferences.avoid_styles):
-        from app.agents.personalization_agent import check_outfit_avoid_violations
-        from app.agents.fashion_agent import constraint_matches_item
-        clean = {slot: [item for item in items if not check_outfit_avoid_violations(
-            [item], preferences.avoid_colors, preferences.avoid_styles)]
-            for slot, items in candidate_pool.items()}
-        complete = clean["footwear"] and (clean["dresses"] or (clean["tops"] and clean["bottoms"]))
-        required_available = all(any(constraint_matches_item(constraint, item)
-            for items in clean.values() for item in items) for constraint in context.structured_must_have)
-        if complete and required_available:
-            candidate_pool = clean
+    # Apply saved exclusions before the bounded combinatorial search (unless disabled for ablation).
+    # Retain the original pool only when no complete clean branch can satisfy required items.
+    if not disable_personalization:
+        candidate_pool = _apply_saved_avoid_filter(
+            session, user_id, candidate_pool, context, active_relaxations=active_relaxations
+        )
     return candidate_pool, errors, warnings
+
+
+def _merge_slot_items(
+    existing: list[OutfitItemSlot],
+    new_slots: list[OutfitItemSlot],
+    limit: int = 15,
+) -> list[OutfitItemSlot]:
+    """Merge newly relaxed items ahead of existing candidates so a full slot never starves relaxation."""
+    existing_ids = {item.item_id for item in existing}
+    seen_ids: set[str] = set()
+    prioritized: list[OutfitItemSlot] = []
+    for slot in new_slots:
+        if slot.item_id not in existing_ids and slot.item_id not in seen_ids:
+            seen_ids.add(slot.item_id)
+            prioritized.append(slot)
+    for slot in existing:
+        if slot.item_id not in seen_ids:
+            seen_ids.add(slot.item_id)
+            prioritized.append(slot)
+    return prioritized[: max(limit, len(existing))]
+
+
+def apply_relaxation_request(
+    session: Session,
+    user_id: str,
+    context: StylistContext,
+    current_pool: dict[str, list[OutfitItemSlot]],
+    request: RelaxationRequest,
+    relaxation_round: int,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    *,
+    disable_personalization: bool = False,
+) -> tuple[dict[str, list[OutfitItemSlot]], list[RelaxationStep], int, list[str]]:
+    """Execute one targeted relaxation round preserving category boundaries and must_avoid invariants."""
+    next_round = relaxation_round + 1
+    updated_pool: dict[str, list[OutfitItemSlot]] = {
+        slot: list(current_pool.get(slot, [])) for slot in CANONICAL_SLOTS
+    }
+    updated_steps: list[RelaxationStep] = list(active_relaxations or ())
+    applied_keys = {
+        (step.category, step.action, normalize_relax_token(step.original_value))
+        for step in updated_steps
+    }
+    new_warnings: list[str] = []
+
+    targeted_must_avoid, compound_exclusions = _extract_avoid_filters(context)
+    style_hints = list(dict.fromkeys(s.strip() for s in context.style_hints if s.strip()))[:10]
+    formality_min = context.target_formality_range[0] if len(context.target_formality_range) >= 1 else 1
+    formality_max = context.target_formality_range[1] if len(context.target_formality_range) >= 2 else 5
+    text_query = " ".join(context.vibe_keywords).strip() if context.vibe_keywords else None
+    enable_full_text = bool(text_query)
+
+    def _query_category(
+        cat: WardrobeCategory,
+        must_have_tokens: list[str],
+        color_hints: list[str],
+    ) -> list[OutfitItemSlot]:
+        cat_query = WardrobeRetrievalQuery(
+            categories=[cat],
+            color_hints=list(dict.fromkeys(color_hints))[:10],
+            style_hints=style_hints,
+            weather_condition=context.weather_condition,
+            formality_min=formality_min,
+            formality_max=formality_max,
+            must_have=list(dict.fromkeys(must_have_tokens))[:10],
+            must_avoid=list(dict.fromkeys(targeted_must_avoid[cat]))[:10],
+            text_query=text_query,
+            enable_full_text=enable_full_text,
+            limit_per_category=15,
+        )
+        matches = retrieve_wardrobe_items(session=session, user_id=user_id, query=cat_query).get(cat, [])
+        matches = _filter_compound_exclusions(matches, compound_exclusions)
+        capped_matches = matches[:15]
+        media_ids = primary_media_ids(session, user_id, [m.item.id for m in capped_matches])
+        return [_build_outfit_item_slot(m.item, cat, media_id=media_ids.get(m.item.id)) for m in capped_matches]
+
+    plans: list[ConstraintRelaxationPlan] = list(request.constraint_plans)
+    if not plans:
+        plans = [
+            ConstraintRelaxationPlan(
+                slot=CATEGORY_TO_SLOT[c.category],  # type: ignore[arg-type]
+                constraint=c,
+                allowed_actions=list(request.allowed_actions),
+            )
+            for c in request.blocked_constraints
+            if c.category is not None
+        ]
+
+    for plan in plans:
+        c = plan.constraint
+        if c.category is None:
+            continue
+        slot_name: SlotName = plan.slot
+        plan_actions = set(plan.allowed_actions)
+        constraint_relax_material = "material_relax" in plan_actions
+
+        if "color_family" in plan_actions and c.color is not None:
+            norm_col = normalize_relax_token(c.color)
+            relaxed_cols = RELAX_COLOR_FAMILIES.get(norm_col)
+            key = (c.category, "color_family", norm_col)
+            if relaxed_cols and key not in applied_keys:
+                col_vi = COLOR_VI_MAP.get(norm_col, c.color)
+                reason = f"Linh hoạt mở rộng màu '{col_vi}' sang các sắc độ cùng nhóm."
+                step = RelaxationStep(
+                    round=next_round,
+                    slot=slot_name,
+                    action="color_family",
+                    category=c.category,
+                    original_value=c.color,
+                    relaxed_values=list(relaxed_cols),
+                    reason_vi=reason,
+                )
+                updated_steps.append(step)
+                applied_keys.add(key)
+                new_warnings.append(reason)
+                mh: list[str] = []
+                if c.sub_category is not None:
+                    mh.append(c.sub_category)
+                if c.material is not None and not constraint_relax_material:
+                    mh.append(c.material)
+                new_slots = _query_category(c.category, mh, [c.color, *relaxed_cols])
+                updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
+
+        if "material_relax" in plan_actions and c.material is not None:
+            norm_mat = normalize_relax_token(c.material)
+            key = (c.category, "material_relax", norm_mat)
+            if key not in applied_keys:
+                reason = f"Linh hoạt bỏ ràng buộc chất liệu '{c.material}' trong nhóm {c.category.value}."
+                step = RelaxationStep(
+                    round=next_round,
+                    slot=slot_name,
+                    action="material_relax",
+                    category=c.category,
+                    original_value=c.material,
+                    relaxed_values=[],
+                    reason_vi=reason,
+                )
+                updated_steps.append(step)
+                applied_keys.add(key)
+                new_warnings.append(reason)
+                mh = [c.sub_category] if c.sub_category is not None else []
+                hints = [c.color] if c.color is not None else []
+                new_slots = _query_category(c.category, mh, hints)
+                updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
+
+        if "subcategory_equivalent" in plan_actions and c.sub_category is not None:
+            norm_sub = normalize_relax_token(c.sub_category)
+            equiv_subs = SUBCATEGORY_EQUIVALENTS.get((c.category, norm_sub)) or SUBCATEGORY_EQUIVALENTS.get(
+                (c.category, c.sub_category.strip().lower())
+            )
+            key = (c.category, "subcategory_equivalent", norm_sub)
+            if equiv_subs and key not in applied_keys:
+                sub_vi = SUB_CATEGORY_VI_MAP.get(c.sub_category.lower(), c.sub_category)
+                reason = f"Linh hoạt mở rộng kiểu '{sub_vi}' sang kiểu tương đương trong cùng danh mục."
+                step = RelaxationStep(
+                    round=next_round,
+                    slot=slot_name,
+                    action="subcategory_equivalent",
+                    category=c.category,
+                    original_value=c.sub_category,
+                    relaxed_values=list(equiv_subs),
+                    reason_vi=reason,
+                )
+                updated_steps.append(step)
+                applied_keys.add(key)
+                new_warnings.append(reason)
+                hints = [c.color] if c.color is not None else []
+                for eq_sub in equiv_subs:
+                    mh = [eq_sub]
+                    if c.material is not None and not constraint_relax_material:
+                        mh.append(c.material)
+                    new_slots = _query_category(c.category, mh, hints)
+                    updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
+
+    if not disable_personalization:
+        updated_pool = _apply_saved_avoid_filter(
+            session, user_id, updated_pool, context, active_relaxations=updated_steps
+        )
+    return updated_pool, updated_steps, next_round, new_warnings
 
 
 def wardrobe_agent_node(
@@ -686,15 +962,90 @@ def wardrobe_agent_node(
 
     existing_errors = list(state.get("errors", []))
     existing_warnings = list(state.get("warnings", []))
+    existing_trace = list(state.get("agent_trace", []))
+    relaxation_request = state.get("relaxation_request")
+    relaxation_round = int(state.get("relaxation_round", 0))
+    active_relaxations = list(state.get("active_relaxations", []))
+    disable_personalization = bool(state.get("disable_personalization", False))
+
+    if relaxation_request is not None:
+        current_pool = state.get("candidate_pool", candidate_pool)
+        if session is not None:
+            pool, updated_steps, next_round, relax_warnings = apply_relaxation_request(
+                session,
+                user_id,
+                context,
+                current_pool,
+                relaxation_request,
+                relaxation_round,
+                active_relaxations,
+                disable_personalization=disable_personalization,
+            )
+        else:
+            with Session(get_engine()) as db_session:
+                pool, updated_steps, next_round, relax_warnings = apply_relaxation_request(
+                    db_session,
+                    user_id,
+                    context,
+                    current_pool,
+                    relaxation_request,
+                    relaxation_round,
+                    active_relaxations,
+                    disable_personalization=disable_personalization,
+                )
+
+        slot_labels = ", ".join(
+            SLOT_VI_LABELS.get(slot, slot) for slot in relaxation_request.bottleneck_slots
+        )
+        trace_event = AgentTraceEvent(
+            round=next_round,
+            sender="wardrobe",
+            receiver="fashion",
+            event_type="RELAXATION_APPLIED",
+            summary_vi=f"Đã nới lỏng có kiểm soát vòng {next_round} cho nhóm {slot_labels}.",
+        )
+        updated_warnings = list(dict.fromkeys(existing_warnings + relax_warnings))
+        return {
+            "candidate_pool": pool,
+            "relaxation_round": next_round,
+            "relaxation_request": None,
+            "active_relaxations": updated_steps,
+            "warnings": updated_warnings,
+            "base_warnings": updated_warnings,
+            "agent_trace": existing_trace + [trace_event],
+        }
 
     if session is not None:
-        pool, errors, warnings = retrieve_candidate_pool(session, user_id, context)
+        pool, errors, warnings = retrieve_candidate_pool(
+            session,
+            user_id,
+            context,
+            active_relaxations=active_relaxations,
+            disable_personalization=disable_personalization,
+        )
     else:
         with Session(get_engine()) as db_session:
-            pool, errors, warnings = retrieve_candidate_pool(db_session, user_id, context)
+            pool, errors, warnings = retrieve_candidate_pool(
+                db_session,
+                user_id,
+                context,
+                active_relaxations=active_relaxations,
+                disable_personalization=disable_personalization,
+            )
 
+    trace_event = AgentTraceEvent(
+        round=relaxation_round,
+        sender="wardrobe",
+        receiver="end" if errors else "fashion",
+        event_type="WARDROBE_EMPTY" if errors else "CANDIDATE_POOL_BUILT",
+        summary_vi="Tủ đồ trống." if errors else "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục.",
+    )
+    updated_warnings = list(dict.fromkeys(existing_warnings + warnings))
     return {
         "candidate_pool": pool,
         "errors": existing_errors + errors,
-        "warnings": existing_warnings + warnings,
+        "warnings": updated_warnings,
+        "base_warnings": updated_warnings,
+        "relaxation_request": None,
+        "agent_trace": existing_trace + [trace_event],
     }

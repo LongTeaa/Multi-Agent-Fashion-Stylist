@@ -1,0 +1,260 @@
+{
+  "dataset_version": "judge-calibration-v1",
+  "notes": "Calibration fixture for Cross-Family LLM-as-a-Judge: 16 clear good/bad pointwise cases (min_good=4.0, max_bad=2.0) and 10 obvious pairwise comparisons run bidirectionally (A,B) and (B,A). Optional 'human_score' fields allow computing human-vs-judge agreement.",
+  "pointwise_samples": [
+    {
+      "id": "cal_good_01",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Sáng mai phỏng vấn xin việc ở công ty, trời mát, cần lịch sự.",
+      "weather_condition": "cool",
+      "profile_summary": "minimalist_neutral",
+      "items": [
+        {"name": "Áo sơ mi trắng", "category": "top", "sub_category": "shirt", "primary_color": "white", "material": "cotton", "style": "formal", "fit": "regular", "formality_level": 5},
+        {"name": "Quần tây đen", "category": "bottom", "sub_category": "trousers", "primary_color": "black", "material": "wool", "style": "formal", "fit": "regular", "formality_level": 5},
+        {"name": "Giày Oxford đen", "category": "footwear", "sub_category": "oxford", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5},
+        {"name": "Áo Blazer xanh navy", "category": "outerwear", "sub_category": "blazer", "primary_color": "navy", "material": "wool", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Phối [Áo sơ mi] trắng, [Quần tây] đen, [Giày Oxford] đen cùng [Áo Blazer] xanh navy mang lại vẻ ngoài trang trọng, chỉn chu cho buổi phỏng vấn sáng trời mát."
+    },
+    {
+      "id": "cal_good_02",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Chiều nay đi dạo phố với bạn, trời nắng nóng 35 độ, ưu tiên thoải mái.",
+      "weather_condition": "hot",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo thun trắng", "category": "top", "sub_category": "t-shirt", "primary_color": "white", "material": "cotton", "style": "minimalist", "fit": "regular", "formality_level": 2},
+        {"name": "Quần short kaki", "category": "bottom", "sub_category": "shorts", "primary_color": "khaki", "material": "cotton", "style": "casual", "fit": "relaxed", "formality_level": 1},
+        {"name": "Giày sneaker trắng", "category": "footwear", "sub_category": "sneakers", "primary_color": "white", "material": "leather", "style": "minimalist", "fit": "regular", "formality_level": 2}
+      ],
+      "explanation_vi": "Bộ đồ gồm [Áo thun] trắng, [Quần short] màu khaki và [Giày sneaker] trắng gọn nhẹ, thoải mái cho buổi dạo phố chiều nắng nóng."
+    },
+    {
+      "id": "cal_good_03",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Tối nay đi ăn cưới ở nhà hàng, trời mát, muốn thanh lịch.",
+      "weather_condition": "cool",
+      "profile_summary": "formal_polished",
+      "items": [
+        {"name": "Đầm dạ hội đỏ đô", "category": "dress", "sub_category": "formal_dress", "primary_color": "burgundy", "material": "silk", "style": "formal", "fit": "slim", "formality_level": 5},
+        {"name": "Giày cao gót đen", "category": "footwear", "sub_category": "heels", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Kết hợp [Đầm dạ hội] màu đỏ đô cùng [Giày cao gót] đen tôn dáng thanh lịch và trang trọng cho tiệc cưới buổi tối."
+    },
+    {
+      "id": "cal_good_04",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Tối nay chạy xe máy ngoài trời mưa, cần giữ ấm và tránh ướt.",
+      "weather_condition": "rainy",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo thun ô-liu", "category": "top", "sub_category": "t-shirt", "primary_color": "olive", "material": "cotton", "style": "casual", "fit": "regular", "formality_level": 2},
+        {"name": "Quần jeans xanh", "category": "bottom", "sub_category": "jeans", "primary_color": "denim_blue", "material": "denim", "style": "casual", "fit": "regular", "formality_level": 2},
+        {"name": "Giày boots nâu", "category": "footwear", "sub_category": "boots", "primary_color": "brown", "material": "leather", "style": "smart_casual", "fit": "regular", "formality_level": 3, "functional_flags": ["water_resistant", "rain"]},
+        {"name": "Áo khoác jacket xanh navy", "category": "outerwear", "sub_category": "jacket", "primary_color": "navy", "material": "nylon", "style": "casual", "fit": "regular", "formality_level": 2, "functional_flags": ["water_resistant", "rain"]}
+      ],
+      "explanation_vi": "Phối [Áo thun] ô-liu, [Quần jeans] xanh, [Giày boots] nâu và [Áo khoác jacket] xanh navy chống thấm nước phù hợp đi xe máy dưới mưa."
+    },
+    {
+      "id": "cal_good_05",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Chiều nay đi cafe với bạn, trời mát, thích phong cách smart casual gọn gàng.",
+      "weather_condition": "cool",
+      "profile_summary": "minimalist_neutral",
+      "items": [
+        {"name": "Áo Polo trắng", "category": "top", "sub_category": "polo", "primary_color": "white", "material": "cotton", "style": "smart_casual", "fit": "regular", "formality_level": 3},
+        {"name": "Quần Chinos xanh navy", "category": "bottom", "sub_category": "chinos", "primary_color": "navy", "material": "cotton", "style": "smart_casual", "fit": "regular", "formality_level": 3},
+        {"name": "Giày sneaker trắng", "category": "footwear", "sub_category": "sneakers", "primary_color": "white", "material": "leather", "style": "minimalist", "fit": "regular", "formality_level": 2}
+      ],
+      "explanation_vi": "Phối [Áo Polo] trắng, [Quần Chinos] xanh navy và [Giày sneaker] trắng hài hòa, trẻ trung và lịch sự vừa phải cho buổi cafe chiều."
+    },
+    {
+      "id": "cal_good_06",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Sáng mai đi cafe ngồi ngoài trời ở Đà Lạt trời hơi lạnh.",
+      "weather_condition": "cold",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo len màu be", "category": "top", "sub_category": "sweater", "primary_color": "beige", "material": "knit", "style": "minimalist", "fit": "relaxed", "formality_level": 3},
+        {"name": "Quần tây đen", "category": "bottom", "sub_category": "trousers", "primary_color": "black", "material": "polyester", "style": "formal", "fit": "regular", "formality_level": 4},
+        {"name": "Giày lười nâu", "category": "footwear", "sub_category": "loafers", "primary_color": "brown", "material": "leather", "style": "smart_casual", "fit": "regular", "formality_level": 3},
+        {"name": "Áo cardigan kem", "category": "outerwear", "sub_category": "cardigan", "primary_color": "cream", "material": "knit", "style": "smart_casual", "fit": "relaxed", "formality_level": 3}
+      ],
+      "explanation_vi": "Set [Áo len] màu be, [Quần tây] đen, [Giày lười] nâu cùng lớp khoác [Áo cardigan] kem ấm áp, tông màu trung tính hài hòa cho sáng lạnh Đà Lạt."
+    },
+    {
+      "id": "cal_good_07",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Ngày mai đi làm văn phòng, tránh mặc quần jean.",
+      "weather_condition": "cool",
+      "profile_summary": "formal_polished",
+      "items": [
+        {"name": "Áo sơ mi xanh nhạt", "category": "top", "sub_category": "shirt", "primary_color": "light_blue", "material": "cotton", "style": "smart_casual", "fit": "slim", "formality_level": 4},
+        {"name": "Quần tây xám", "category": "bottom", "sub_category": "trousers", "primary_color": "grey", "material": "polyester", "style": "formal", "fit": "slim", "formality_level": 4},
+        {"name": "Giày lười nâu", "category": "footwear", "sub_category": "loafers", "primary_color": "brown", "material": "leather", "style": "smart_casual", "fit": "regular", "formality_level": 4}
+      ],
+      "explanation_vi": "Phối [Áo sơ mi] xanh nhạt, [Quần tây] xám và [Giày lười] nâu đúng chuẩn công sở gọn gàng, không dùng quần jeans theo đúng yêu cầu."
+    },
+    {
+      "id": "cal_good_08",
+      "label": "good",
+      "expected_min_score": 4.0,
+      "human_score": null,
+      "query": "Tối mai hẹn hò ăn tối trời ấm, mặc thanh lịch.",
+      "weather_condition": "warm",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo kiểu kem", "category": "top", "sub_category": "blouse", "primary_color": "cream", "material": "silk", "style": "formal", "fit": "regular", "formality_level": 4},
+        {"name": "Chân váy midi xanh navy", "category": "bottom", "sub_category": "midi_skirt", "primary_color": "navy", "material": "cotton", "style": "smart_casual", "fit": "regular", "formality_level": 3},
+        {"name": "Giày cao gót đen", "category": "footwear", "sub_category": "heels", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Kết hợp [Áo kiểu] màu kem, [Chân váy midi] xanh navy và [Giày cao gót] đen mang lại tổng thể nữ tính, thanh lịch cho buổi hẹn tối."
+    },
+    {
+      "id": "cal_bad_01",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Sáng mai phỏng vấn xin việc quan trọng ở tập đoàn tài chính, cần thật trang trọng.",
+      "weather_condition": "cool",
+      "profile_summary": "formal_polished",
+      "items": [
+        {"name": "Áo thun graphic xám", "category": "top", "sub_category": "t-shirt", "primary_color": "grey", "material": "cotton", "style": "streetwear", "fit": "oversized", "formality_level": 1},
+        {"name": "Quần short kaki", "category": "bottom", "sub_category": "shorts", "primary_color": "khaki", "material": "cotton", "style": "casual", "fit": "relaxed", "formality_level": 1},
+        {"name": "Dép quai ngang đen", "category": "footwear", "sub_category": "slides", "primary_color": "black", "material": "rubber", "style": "casual", "fit": "regular", "formality_level": 1}
+      ],
+      "explanation_vi": "Phối [Áo thun] xám, [Quần short] kaki và [Dép quai ngang] đen thoải mái."
+    },
+    {
+      "id": "cal_bad_02",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Trưa nay đi dạo công viên ngoài trời nắng nóng 37 độ.",
+      "weather_condition": "hot",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo len xám", "category": "top", "sub_category": "sweater", "primary_color": "grey", "material": "wool", "style": "minimalist", "fit": "regular", "formality_level": 3},
+        {"name": "Quần tây len đen", "category": "bottom", "sub_category": "trousers", "primary_color": "black", "material": "wool", "style": "formal", "fit": "regular", "formality_level": 5},
+        {"name": "Giày boots nâu", "category": "footwear", "sub_category": "boots", "primary_color": "brown", "material": "leather", "style": "smart_casual", "fit": "regular", "formality_level": 3},
+        {"name": "Áo măng tô len", "category": "outerwear", "sub_category": "coat", "primary_color": "camel", "material": "wool", "style": "smart_casual", "fit": "relaxed", "formality_level": 4, "functional_flags": ["heavy"]}
+      ],
+      "explanation_vi": "Phối [Áo len] xám, [Quần tây] đen, [Giày boots] nâu và [Áo măng tô] len cho buổi trưa nắng nóng."
+    },
+    {
+      "id": "cal_bad_03",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Tối nay dự đám cưới bạn thân ở nhà hàng sang trọng.",
+      "weather_condition": "cool",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo ba lỗ hồng", "category": "top", "sub_category": "tanktop", "primary_color": "pink", "material": "cotton", "style": "casual", "fit": "slim", "formality_level": 1},
+        {"name": "Quần short kaki", "category": "bottom", "sub_category": "shorts", "primary_color": "khaki", "material": "cotton", "style": "casual", "fit": "relaxed", "formality_level": 1},
+        {"name": "Dép sandal be", "category": "footwear", "sub_category": "sandals", "primary_color": "beige", "material": "rubber", "style": "casual", "fit": "regular", "formality_level": 1}
+      ],
+      "explanation_vi": "Gợi ý [Áo ba lỗ] hồng, [Quần short] kaki cùng [Dép sandal] màu be đơn giản."
+    },
+    {
+      "id": "cal_bad_04",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Sáng mai đi làm, tuyệt đối không mặc màu đen.",
+      "weather_condition": "cool",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo sơ mi trắng", "category": "top", "sub_category": "shirt", "primary_color": "white", "material": "cotton", "style": "formal", "fit": "regular", "formality_level": 4},
+        {"name": "Quần tây đen", "category": "bottom", "sub_category": "trousers", "primary_color": "black", "material": "wool", "style": "formal", "fit": "regular", "formality_level": 5},
+        {"name": "Giày Oxford đen", "category": "footwear", "sub_category": "oxford", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Phối [Áo sơ mi] trắng, [Quần tây] đen và [Giày Oxford] đen cho ngày đi làm."
+    },
+    {
+      "id": "cal_bad_05",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Tối nay trời rét 12 độ ở Hà Nội, đi ngoài trời nên mặc gì?",
+      "weather_condition": "cold",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo ba lỗ hồng", "category": "top", "sub_category": "tanktop", "primary_color": "pink", "material": "cotton", "style": "casual", "fit": "slim", "formality_level": 1},
+        {"name": "Quần short kaki", "category": "bottom", "sub_category": "shorts", "primary_color": "khaki", "material": "cotton", "style": "casual", "fit": "relaxed", "formality_level": 1},
+        {"name": "Dép sandal be", "category": "footwear", "sub_category": "sandals", "primary_color": "beige", "material": "rubber", "style": "casual", "fit": "regular", "formality_level": 1}
+      ],
+      "explanation_vi": "Phối [Áo ba lỗ] hồng với [Quần short] kaki và [Dép sandal] be rất thoáng cho trời rét 12 độ."
+    },
+    {
+      "id": "cal_bad_06",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Chiều nay đi họp khách hàng, cần lịch sự.",
+      "weather_condition": "cool",
+      "profile_summary": "formal_polished",
+      "items": [
+        {"name": "Đầm dạ hội đỏ đô", "category": "dress", "sub_category": "formal_dress", "primary_color": "burgundy", "material": "silk", "style": "formal", "fit": "slim", "formality_level": 5},
+        {"name": "Giày sneaker trắng", "category": "footwear", "sub_category": "sneakers", "primary_color": "white", "material": "leather", "style": "minimalist", "fit": "regular", "formality_level": 2},
+        {"name": "Áo Hoodie xám", "category": "outerwear", "sub_category": "hoodie", "primary_color": "grey", "material": "cotton", "style": "streetwear", "fit": "oversized", "formality_level": 1}
+      ],
+      "explanation_vi": "Phối [Đầm dạ hội] đỏ đô với [Giày sneaker] trắng và [Áo Hoodie] xám oversized cá tính."
+    },
+    {
+      "id": "cal_bad_07",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Đi chạy xe máy ngoài trời mưa bão, mặc sao cho an toàn?",
+      "weather_condition": "rainy",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Đầm dạ hội đỏ đô", "category": "dress", "sub_category": "formal_dress", "primary_color": "burgundy", "material": "silk", "style": "formal", "fit": "slim", "formality_level": 5},
+        {"name": "Giày cao gót đen", "category": "footwear", "sub_category": "heels", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Phối [Đầm dạ hội] đỏ đô lụa cùng [Giày cao gót] đen đi xe máy trời mưa."
+    },
+    {
+      "id": "cal_bad_08",
+      "label": "bad",
+      "expected_max_score": 2.0,
+      "human_score": null,
+      "query": "Đi cafe cuối tuần mặc gì nhẹ nhàng?",
+      "weather_condition": "warm",
+      "profile_summary": "none",
+      "items": [
+        {"name": "Áo thun trắng", "category": "top", "sub_category": "t-shirt", "primary_color": "white", "material": "cotton", "style": "minimalist", "fit": "regular", "formality_level": 2},
+        {"name": "Quần tây đen", "category": "bottom", "sub_category": "trousers", "primary_color": "black", "material": "polyester", "style": "formal", "fit": "regular", "formality_level": 4},
+        {"name": "Giày cao gót đen", "category": "footwear", "sub_category": "heels", "primary_color": "black", "material": "leather", "style": "formal", "fit": "regular", "formality_level": 5}
+      ],
+      "explanation_vi": "Lựa chọn [Áo thun] trắng, [Quần tây] đen và [Giày cao gót] đen kèm [Thắt lưng da cá sấu] và [Áo khoác dạ] dù trời ấm."
+    }
+  ],
+  "pairwise_samples": [
+    {"id": "pair_cal_01", "good_id": "cal_good_01", "bad_id": "cal_bad_01", "expected_winner": "good"},
+    {"id": "pair_cal_02", "good_id": "cal_good_02", "bad_id": "cal_bad_02", "expected_winner": "good"},
+    {"id": "pair_cal_03", "good_id": "cal_good_03", "bad_id": "cal_bad_03", "expected_winner": "good"},
+    {"id": "pair_cal_04", "good_id": "cal_good_04", "bad_id": "cal_bad_07", "expected_winner": "good"},
+    {"id": "pair_cal_05", "good_id": "cal_good_05", "bad_id": "cal_bad_01", "expected_winner": "good"},
+    {"id": "pair_cal_06", "good_id": "cal_good_06", "bad_id": "cal_bad_05", "expected_winner": "good"},
+    {"id": "pair_cal_07", "good_id": "cal_good_07", "bad_id": "cal_bad_04", "expected_winner": "good", "query": "Ngày mai đi làm văn phòng, tuyệt đối không mặc màu đen."},
+    {"id": "pair_cal_08", "good_id": "cal_good_08", "bad_id": "cal_bad_06", "expected_winner": "good"},
+    {"id": "pair_cal_09", "good_id": "cal_good_03", "bad_id": "cal_bad_06", "expected_winner": "good"},
+    {"id": "pair_cal_10", "good_id": "cal_good_02", "bad_id": "cal_bad_08", "expected_winner": "good"}
+  ]
+}

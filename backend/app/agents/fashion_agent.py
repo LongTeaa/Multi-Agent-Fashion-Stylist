@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import logging
 from datetime import datetime
 from typing import Any
@@ -11,13 +12,28 @@ from app.agents.fashion_scoring import (
     outfit_tie_breaker_key,
 )
 from app.agents.state import (
+    AgentTraceEvent,
+    ConstraintRelaxationPlan,
+    CritiqueSignal,
     EvaluatedOutfit,
     GarmentConstraint,
+    MAX_RELAXATION_ROUNDS,
     OutfitItemSlot,
+    RelaxAction,
+    RelaxationRequest,
+    RelaxationStep,
+    SlotName,
     StylistContext,
     StylistGraphState,
+    is_relaxation_loop_enabled,
+    normalize_relax_token,
 )
-from app.models.entities import OutfitSlotRole
+from app.agents.wardrobe_agent import (
+    CATEGORY_TO_SLOT,
+    RELAX_COLOR_FAMILIES,
+    SUBCATEGORY_EQUIVALENTS,
+)
+from app.models.entities import OutfitSlotRole, WardrobeCategory
 
 MAX_CATEGORY_POOL = 15
 MAX_GENERATED_COMBINATIONS = 500
@@ -36,56 +52,274 @@ ROLE_ORDER: dict[OutfitSlotRole, int] = {
 }
 
 
-_SUBCATEGORY_ALIASES = {
-    "jean": "jeans",
-    "sneaker": "sneakers",
-    "sandal": "sandals",
-}
-
-
-def _normalized_value(value: str) -> str:
-    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
-    return _SUBCATEGORY_ALIASES.get(normalized, normalized)
-
-
 def constraint_matches_item(
     constraint: GarmentConstraint,
     item: OutfitItemSlot,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
 ) -> bool:
-    """Return whether one item satisfies every populated constraint field."""
+    """Return whether one item satisfies every populated constraint field, accounting for active relaxations."""
+    # INVARIANT: category is NEVER relaxed.
     if constraint.category is not None and item.category != constraint.category:
         return False
+
+    steps = [s for s in (active_relaxations or ()) if s.category == item.category]
+
     if constraint.sub_category is not None:
-        if _normalized_value(item.sub_category) != _normalized_value(constraint.sub_category):
-            return False
+        target_sub = normalize_relax_token(constraint.sub_category)
+        item_sub = normalize_relax_token(item.sub_category)
+        # Generic 'dress' constraint accepts specific dress taxonomy subtypes (formal_dress, midi_dress, ...)
+        if not (constraint.category == WardrobeCategory.DRESS and target_sub == "dress" and item.category == WardrobeCategory.DRESS):
+            allowed_subs = {target_sub}
+            for s in steps:
+                if s.action == "subcategory_equivalent" and normalize_relax_token(s.original_value) == target_sub:
+                    allowed_subs.update(normalize_relax_token(v) for v in s.relaxed_values)
+            if item_sub not in allowed_subs:
+                return False
+
     if constraint.color is not None:
-        colors = {_normalized_value(item.primary_color)}
+        target_col = normalize_relax_token(constraint.color)
+        colors = {normalize_relax_token(item.primary_color)}
         if item.secondary_color:
-            colors.add(_normalized_value(item.secondary_color))
-        if _normalized_value(constraint.color) not in colors:
+            colors.add(normalize_relax_token(item.secondary_color))
+        allowed_colors = {target_col}
+        for s in steps:
+            if s.action == "color_family" and normalize_relax_token(s.original_value) == target_col:
+                allowed_colors.update(normalize_relax_token(v) for v in s.relaxed_values)
+        if not (colors & allowed_colors):
             return False
+
     if constraint.material is not None:
-        if _normalized_value(item.material) != _normalized_value(constraint.material):
+        target_mat = normalize_relax_token(constraint.material)
+        material_relaxed = any(
+            s.action == "material_relax" and normalize_relax_token(s.original_value) == target_mat
+            for s in steps
+        )
+        if not material_relaxed and normalize_relax_token(item.material) != target_mat:
             return False
+
     return True
 
 
 def outfit_satisfies_explicit_constraints(
     items: list[OutfitItemSlot],
     context: StylistContext,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
 ) -> bool:
-    """Enforce query-level must-have and must-avoid bindings on a complete outfit."""
+    """Enforce query-level must-have (with active relaxations) and strict must-avoid bindings."""
     if any(
-        not any(constraint_matches_item(constraint, item) for item in items)
+        not any(constraint_matches_item(constraint, item, active_relaxations) for item in items)
         for constraint in context.structured_must_have
     ):
         return False
+    # INVARIANT: structured_must_avoid is NEVER relaxed.
     if any(
-        any(constraint_matches_item(constraint, item) for item in items)
+        any(constraint_matches_item(constraint, item, None) for item in items)
         for constraint in context.structured_must_avoid
     ):
         return False
     return True
+
+
+def _has_direct_avoid_conflict(
+    constraint: GarmentConstraint,
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> tuple[bool, bool]:
+    """Return whether constraint color or sub_category is directly banned by structured_must_avoid."""
+    color_banned = False
+    sub_banned = False
+    c_col = normalize_relax_token(constraint.color) if constraint.color is not None else None
+    c_sub = normalize_relax_token(constraint.sub_category) if constraint.sub_category is not None else None
+    for avoid in avoid_constraints:
+        cat_match = avoid.category is None or constraint.category is None or avoid.category == constraint.category
+        if not cat_match:
+            continue
+        if c_col is not None and avoid.color is not None and normalize_relax_token(avoid.color) == c_col:
+            if avoid.sub_category is None or (c_sub is not None and normalize_relax_token(avoid.sub_category) == c_sub):
+                color_banned = True
+        if c_sub is not None and avoid.sub_category is not None and normalize_relax_token(avoid.sub_category) == c_sub:
+            if avoid.color is None:
+                sub_banned = True
+    return color_banned, sub_banned
+
+
+def _has_subcategory_equivalents(category: WardrobeCategory, sub_category: str) -> bool:
+    norm_sub = normalize_relax_token(sub_category)
+    raw_sub = sub_category.strip().lower()
+    return (
+        (category, norm_sub) in SUBCATEGORY_EQUIVALENTS
+        or (category, raw_sub) in SUBCATEGORY_EQUIVALENTS
+    )
+
+
+def _plan_empty_slot_actions(
+    c: GarmentConstraint,
+    applied: set[tuple[WardrobeCategory, str, str]],
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> list[RelaxAction]:
+    """Plan minimal relaxation actions for a must-have constraint whose category pool is empty."""
+    if c.category is None:
+        return []
+    actions: list[RelaxAction] = []
+    color_conflict, sub_conflict = _has_direct_avoid_conflict(c, avoid_constraints)
+    if c.material is not None and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+        actions.append("material_relax")
+    # Only widen sub_category when no material constraint is pending relaxation,
+    # preserving exact garment subtype (e.g. linen shirt -> cotton shirt before polo).
+    if c.sub_category is not None and not actions and not sub_conflict:
+        norm_sub = normalize_relax_token(c.sub_category)
+        if _has_subcategory_equivalents(c.category, c.sub_category) and (
+            c.category, "subcategory_equivalent", norm_sub
+        ) not in applied:
+            actions.append("subcategory_equivalent")
+    if c.color is not None and not actions and not color_conflict:
+        norm_col = normalize_relax_token(c.color)
+        if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+            actions.append("color_family")
+    return actions
+
+
+def _plan_non_empty_slot_actions(
+    c: GarmentConstraint,
+    slot_items: list[OutfitItemSlot],
+    applied: set[tuple[WardrobeCategory, str, str]],
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> list[RelaxAction]:
+    """Plan minimal relaxation actions strictly scoped to one blocked constraint."""
+    if c.category is None:
+        return []
+    actions: list[RelaxAction] = []
+    color_conflict, sub_conflict = _has_direct_avoid_conflict(c, avoid_constraints)
+    has_sub_match = c.sub_category is None or any(
+        normalize_relax_token(it.sub_category) == normalize_relax_token(c.sub_category)
+        for it in slot_items
+    )
+    has_mat_match = c.material is None or any(
+        normalize_relax_token(it.material) == normalize_relax_token(c.material)
+        for it in slot_items
+    )
+
+    if c.color is not None and not color_conflict and has_sub_match and has_mat_match:
+        norm_col = normalize_relax_token(c.color)
+        if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+            actions.append("color_family")
+    if c.material is not None and not has_mat_match and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+        actions.append("material_relax")
+    if c.sub_category is not None and not sub_conflict and not has_sub_match:
+        norm_sub = normalize_relax_token(c.sub_category)
+        if _has_subcategory_equivalents(c.category, c.sub_category) and (
+            c.category, "subcategory_equivalent", norm_sub
+        ) not in applied:
+            actions.append("subcategory_equivalent")
+
+    # Fallback if exact sub+color+mat combination still blocks (e.g. matching sub_category items have wrong color AND wrong material)
+    if not actions:
+        if c.color is not None and not color_conflict:
+            norm_col = normalize_relax_token(c.color)
+            if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+                actions.append("color_family")
+        if c.material is not None and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+            actions.append("material_relax")
+        if c.sub_category is not None and not sub_conflict:
+            norm_sub = normalize_relax_token(c.sub_category)
+            if _has_subcategory_equivalents(c.category, c.sub_category) and (
+                c.category, "subcategory_equivalent", norm_sub
+            ) not in applied:
+                actions.append("subcategory_equivalent")
+    return actions
+
+
+def diagnose_bottleneck(
+    candidate_pool: dict[str, list[OutfitItemSlot]],
+    combinations: list[list[OutfitItemSlot]],
+    context: StylistContext,
+    relaxation_round: int,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+) -> RelaxationRequest | None:
+    """Diagnose an unsatisfiable constraint bottleneck and propose one bounded per-constraint RelaxationRequest."""
+    if relaxation_round >= MAX_RELAXATION_ROUNDS or not context.structured_must_have:
+        return None
+
+    applied = {
+        (s.category, s.action, normalize_relax_token(s.original_value))
+        for s in (active_relaxations or ())
+    }
+
+    # Case 1: combinations is empty (a required slot failed strict must_have in retrieval_service).
+    # If no structured_must_have locks that empty slot, the user's wardrobe truly lacks the category -> return None.
+    if not combinations:
+        constraint_plans: list[ConstraintRelaxationPlan] = []
+        for c in context.structured_must_have:
+            if c.category is None:
+                continue
+            slot_name: SlotName = CATEGORY_TO_SLOT[c.category]  # type: ignore[assignment]
+            if candidate_pool.get(slot_name):
+                continue
+            c_actions = _plan_empty_slot_actions(c, applied, context.structured_must_avoid)
+            if c_actions:
+                constraint_plans.append(
+                    ConstraintRelaxationPlan(
+                        slot=slot_name,
+                        constraint=c,
+                        allowed_actions=c_actions,
+                    )
+                )
+
+        if not constraint_plans:
+            return None
+
+        return RelaxationRequest(
+            issue_code="MISSING_SLOT",
+            bottleneck_slots=list(dict.fromkeys(p.slot for p in constraint_plans)),
+            blocked_constraints=[p.constraint for p in constraint_plans],
+            allowed_actions=list(dict.fromkeys(a for p in constraint_plans for a in p.allowed_actions)),
+            constraint_plans=constraint_plans,
+            reason_vi="Không tìm thấy đúng kiểu dáng/chất liệu yêu cầu trong tủ đồ, đề xuất tìm kiểu tương đương cùng nhóm.",
+        )
+
+    # Case 2: combinations exist, but all failed outfit_satisfies_explicit_constraints.
+    unsatisfied_constraints = [
+        c
+        for c in context.structured_must_have
+        if not any(
+            any(constraint_matches_item(c, item, active_relaxations) for item in combo)
+            for combo in combinations
+        )
+    ]
+    if not unsatisfied_constraints:
+        return None
+
+    constraint_plans = []
+    for c in unsatisfied_constraints:
+        if c.category is None:
+            continue
+        slot_name = CATEGORY_TO_SLOT[c.category]  # type: ignore[assignment]
+        slot_items = candidate_pool.get(slot_name, [])
+        if not slot_items:
+            # Must-have slot was emptied by strict retrieval while another branch (e.g. dress) still
+            # generated combinations; diagnose within c.category without ever crossing branches.
+            c_actions = _plan_empty_slot_actions(c, applied, context.structured_must_avoid)
+        else:
+            c_actions = _plan_non_empty_slot_actions(c, slot_items, applied, context.structured_must_avoid)
+        if c_actions:
+            constraint_plans.append(
+                ConstraintRelaxationPlan(
+                    slot=slot_name,
+                    constraint=c,
+                    allowed_actions=c_actions,
+                )
+            )
+
+    if not constraint_plans:
+        return None
+
+    return RelaxationRequest(
+        issue_code="CONSTRAINT_UNSATISFIED",
+        bottleneck_slots=list(dict.fromkeys(p.slot for p in constraint_plans)),
+        blocked_constraints=[p.constraint for p in constraint_plans],
+        allowed_actions=list(dict.fromkeys(a for p in constraint_plans for a in p.allowed_actions)),
+        constraint_plans=constraint_plans,
+        reason_vi="Tủ đồ chưa có món khớp chính xác đồng thời mọi thuộc tính yêu cầu, đề xuất nới lỏng màu sắc hoặc kiểu tương đương.",
+    )
 
 
 def _balanced_product(pools: list[list[OutfitItemSlot]]) -> list[list[OutfitItemSlot]]:
@@ -208,13 +442,20 @@ def evaluate_and_rank_combinations(
     top_k: int = TOP_K_OUTFITS,
     reference_time: datetime | None = None,
     recent_window_hours: int = 48,
+    active_relaxations: Sequence[RelaxationStep] | None = None,
+    critique: CritiqueSignal | None = None,
 ) -> tuple[list[EvaluatedOutfit], list[str]]:
     """Score every combination, apply deterministic tie-breaking with recent wear data, and return top-k."""
     evaluated_outfits: list[EvaluatedOutfit] = []
     all_warnings: list[str] = []
 
+    soft_avoid_ids = set(critique.soft_avoid_item_ids) if critique else set()
+    req_func_tags = {t.lower().strip() for t in critique.require_functional_tags} if critique else set()
+
     for combo in combinations:
-        if context is not None and not outfit_satisfies_explicit_constraints(combo, context):
+        if context is not None and not outfit_satisfies_explicit_constraints(
+            combo, context, active_relaxations=active_relaxations
+        ):
             continue
         combo_id = "+".join(item.item_id for item in combo)
         score, component_scores, warnings = calculate_composite_fashion_score(combo, context)
@@ -223,15 +464,28 @@ def evaluate_and_rank_combinations(
         aesthetic_score = component_scores.get("aesthetic_score", score)
         if context is not None:
             from app.agents.context_scoring import (
-                calculate_context_composite_score, calculate_functional_fit, calculate_weather_comfort_fit,
+                calculate_context_composite_score,
+                calculate_functional_fit,
+                calculate_weather_comfort_fit,
             )
+
             shortlist_score, _ = calculate_context_composite_score(
                 formality_fit=component_scores["formality_score"],
                 weather_comfort_fit=calculate_weather_comfort_fit(combo, context.weather_condition, context.environment),
                 functional_fit=calculate_functional_fit(combo, context.target_functional_tags),
-                aesthetic_score=aesthetic_score, personal_fit=.5, weight_profile=context.weight_profile,
+                aesthetic_score=aesthetic_score,
+                personal_fit=0.5,
+                weight_profile=context.weight_profile,
             )
-            component_scores["context_shortlist_score"] = shortlist_score
+            if soft_avoid_ids:
+                avoid_hits = sum(1 for item in combo if item.item_id in soft_avoid_ids)
+                if avoid_hits:
+                    shortlist_score = max(0.0, shortlist_score - 0.15 * avoid_hits)
+            if req_func_tags:
+                combo_flags = {f.lower().strip() for item in combo for f in item.functional_flags}
+                if req_func_tags & combo_flags:
+                    shortlist_score = min(1.0, shortlist_score + 0.10)
+            component_scores["context_shortlist_score"] = round(shortlist_score, 4)
         evaluated = EvaluatedOutfit(
             items=combo,
             fashion_score=aesthetic_score,
@@ -257,13 +511,30 @@ def evaluate_and_rank_combinations(
     unique_warnings = list(dict.fromkeys(all_warnings))
     from app.agents.outfit_diversity import core_signature
 
+    filtered_for_critique = evaluated_outfits
+    if soft_avoid_ids:
+        non_avoided = [
+            o for o in filtered_for_critique if not any(item.item_id in soft_avoid_ids for item in o.items)
+        ]
+        if non_avoided:
+            filtered_for_critique = non_avoided
+    if req_func_tags:
+        functional_matched = [
+            o
+            for o in filtered_for_critique
+            if req_func_tags & {f.lower().strip() for item in o.items for f in item.functional_flags}
+        ]
+        if functional_matched:
+            filtered_for_critique = functional_matched
+
     unique_outfits: list[EvaluatedOutfit] = []
     seen: set[frozenset[str]] = set()
-    for outfit in evaluated_outfits:
+    for outfit in filtered_for_critique:
         signature = core_signature(outfit.items)
         if signature not in seen:
             seen.add(signature)
             unique_outfits.append(outfit)
+
     return unique_outfits[:top_k], unique_warnings
 
 
@@ -271,7 +542,7 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
     """LangGraph node execution function for the Fashion Agent.
 
     Consumes candidate_pool, generates combinations, scores them,
-    and populates evaluated_outfits.
+    and populates evaluated_outfits (or emits a RelaxationRequest on bottlenecks).
     """
     context = state.get("context")
     candidate_pool = state.get("candidate_pool", {})
@@ -282,13 +553,42 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
 
     existing_errors = list(state.get("errors", []))
     existing_warnings = list(state.get("warnings", []))
+    existing_trace = list(state.get("agent_trace", []))
+    enable_loops = is_relaxation_loop_enabled(state)
+    relaxation_round = int(state.get("relaxation_round", 0))
+    active_relaxations = list(state.get("active_relaxations", []))
+    critique = state.get("critique")
 
     combinations = generate_outfit_combinations(candidate_pool)
 
     if not combinations:
+        if enable_loops:
+            relax_req = diagnose_bottleneck(
+                candidate_pool,
+                [],
+                context,
+                relaxation_round,
+                active_relaxations=active_relaxations,
+            )
+            if relax_req is not None:
+                trace_event = AgentTraceEvent(
+                    round=relaxation_round,
+                    sender="fashion",
+                    receiver="wardrobe",
+                    event_type="RELAXATION_REQUESTED",
+                    summary_vi=relax_req.reason_vi,
+                )
+                return {
+                    "evaluated_outfits": [],
+                    "relaxation_request": relax_req,
+                    "critique": None,
+                    "agent_trace": existing_trace + [trace_event],
+                }
         logger.warning("No complete combinations from candidate pool: %s", {k: len(v) for k, v in candidate_pool.items()})
         return {
             "evaluated_outfits": [],
+            "relaxation_request": None,
+            "critique": None,
             "errors": existing_errors + [NO_COMPLETE_OUTFIT_ERROR],
             "warnings": existing_warnings + [NO_COMPLETE_OUTFIT_WARNING],
         }
@@ -299,17 +599,55 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
         context,
         top_k=MAX_EVALUATED_OUTFITS,
         reference_time=ref_time,
+        active_relaxations=active_relaxations,
+        critique=critique,
     )
 
     if not top_evaluated:
+        if enable_loops:
+            relax_req = diagnose_bottleneck(
+                candidate_pool,
+                combinations,
+                context,
+                relaxation_round,
+                active_relaxations=active_relaxations,
+            )
+            if relax_req is not None:
+                trace_event = AgentTraceEvent(
+                    round=relaxation_round,
+                    sender="fashion",
+                    receiver="wardrobe",
+                    event_type="RELAXATION_REQUESTED",
+                    summary_vi=relax_req.reason_vi,
+                )
+                return {
+                    "evaluated_outfits": [],
+                    "relaxation_request": relax_req,
+                    "critique": None,
+                    "agent_trace": existing_trace + [trace_event],
+                }
         logger.warning("0 evaluated out of %d combos", len(combinations))
         return {
             "evaluated_outfits": [],
+            "relaxation_request": None,
+            "critique": None,
             "errors": existing_errors + [NO_COMPLETE_OUTFIT_ERROR],
             "warnings": existing_warnings + [NO_COMPLETE_OUTFIT_WARNING],
         }
 
+    trace_event = AgentTraceEvent(
+        round=relaxation_round,
+        sender="fashion",
+        receiver="personalization",
+        event_type="EVALUATED_OUTFITS_PRODUCED",
+        summary_vi=f"Đã chấm điểm và lọc ra {len(top_evaluated)} bộ trang phục ứng viên.",
+    )
+    base_warnings = list(state.get("base_warnings", existing_warnings))
     return {
         "evaluated_outfits": top_evaluated,
-        "warnings": existing_warnings + warnings,
+        "warnings": list(dict.fromkeys(base_warnings + warnings)),
+        "fashion_warnings": list(warnings),
+        "relaxation_request": None,
+        "critique": None,
+        "agent_trace": existing_trace + [trace_event],
     }

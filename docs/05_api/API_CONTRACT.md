@@ -186,7 +186,16 @@ Response data:
   ],
   "feedback_prompt_eligible": false,
   "feedback_target_outfit_id": null,
-  "warnings": []
+  "warnings": [],
+  "agent_trace": [
+    {
+      "round": 0,
+      "sender": "context",
+      "receiver": "wardrobe",
+      "event_type": "CONTEXT_EXTRACTED",
+      "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+    }
+  ]
 }
 ```
 
