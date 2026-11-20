@@ -675,9 +675,16 @@ def personalization_agent_node(
         summary_vi=f"Đã xếp hạng Top {len(ranked)} phương án cá nhân hóa.",
     )
 
+    if "base_warnings" in state:
+        prior_warnings = list(dict.fromkeys(
+            list(state.get("base_warnings", [])) + list(state.get("fashion_warnings", []))
+        ))
+    else:
+        prior_warnings = existing_warnings
+
     return {
         "ranked_outfits": ranked,
-        "warnings": existing_warnings + warnings,
+        "warnings": list(dict.fromkeys(prior_warnings + warnings)),
         "conflict_notes": conflict_notes,
         "agent_trace": existing_trace + [trace_event],
     }

@@ -5,11 +5,11 @@ import type { StylistChatResponseData } from '@/types/chat';
 import { OutfitCard, normalizeStylistItems } from '@/components/outfits/OutfitCard';
 
 const AGENT_LABELS: Record<string, string> = {
-  context: 'Context Agent',
-  wardrobe: 'Wardrobe Agent',
-  fashion: 'Fashion Agent',
-  personalization: 'Personalization Agent',
-  coordinator: 'Coordinator Critic',
+  context: 'Phân tích ngữ cảnh',
+  wardrobe: 'Truy vấn tủ đồ',
+  fashion: 'Phối đồ & chấm điểm',
+  personalization: 'Cá nhân hóa',
+  coordinator: 'Kiểm duyệt & tổng hợp',
   end: 'Hoàn tất',
 };
 

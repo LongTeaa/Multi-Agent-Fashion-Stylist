@@ -642,9 +642,11 @@ def fashion_agent_node(state: StylistGraphState) -> dict[str, Any]:
         event_type="EVALUATED_OUTFITS_PRODUCED",
         summary_vi=f"Đã chấm điểm và lọc ra {len(top_evaluated)} bộ trang phục ứng viên.",
     )
+    base_warnings = list(state.get("base_warnings", existing_warnings))
     return {
         "evaluated_outfits": top_evaluated,
-        "warnings": existing_warnings + warnings,
+        "warnings": list(dict.fromkeys(base_warnings + warnings)),
+        "fashion_warnings": list(warnings),
         "relaxation_request": None,
         "critique": None,
         "agent_trace": existing_trace + [trace_event],

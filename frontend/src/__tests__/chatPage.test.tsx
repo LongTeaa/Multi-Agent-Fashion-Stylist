@@ -388,7 +388,7 @@ describe('Chat Page & Components Integration', () => {
           sender: 'context',
           receiver: 'wardrobe',
           event_type: 'CONTEXT_EXTRACTED',
-          summary_vi: 'Đã trích xuất StylistContext.',
+          summary_vi: 'Đã phân tích ngữ cảnh và ràng buộc yêu cầu.',
         },
         {
           round: 0,
@@ -402,7 +402,7 @@ describe('Chat Page & Components Integration', () => {
           sender: 'wardrobe',
           receiver: 'fashion',
           event_type: 'RELAXATION_APPLIED',
-          summary_vi: 'Đã thực thi nới lỏng có kiểm soát vòng 1.',
+          summary_vi: 'Đã nới lỏng có kiểm soát vòng 1 cho nhóm áo.',
         },
       ],
     });
@@ -418,7 +418,7 @@ describe('Chat Page & Components Integration', () => {
     });
 
     expect(screen.getByText(/Nhật ký phối hợp Multi-Agent/i)).toBeDefined();
-    expect(screen.getByText(/Fashion Agent → Wardrobe Agent/i)).toBeDefined();
+    expect(screen.getByText(/Phối đồ & chấm điểm → Truy vấn tủ đồ/i)).toBeDefined();
     expect(screen.getByText(/Đề xuất mở rộng kiểu dáng tương đương/i)).toBeDefined();
     expect(screen.getByText('Vòng 1')).toBeDefined();
   });

@@ -313,13 +313,19 @@ class StylistGraphState(TypedDict, total=False):
     enable_agent_loops: bool
     enable_relaxation_loop: bool | None
     enable_critique_loop: bool | None
+    enable_llm_explanations: bool | None
     disable_personalization: bool
+    context_llm_failed: bool
+    base_warnings: list[str]
+    fashion_warnings: list[str]
     relaxation_round: int
     relaxation_request: RelaxationRequest | None
     active_relaxations: list[RelaxationStep]
     critique_round: int
     critique: CritiqueSignal | None
     previous_ranked_outfits: list[RankedOutfit]
+    previous_conflict_notes: list[ConflictNote]
+    previous_warnings: list[str]
     coordinator_decision: Literal["approve", "reroute_fashion", "fail"] | None
     conflict_notes: list[ConflictNote]
     agent_trace: list[AgentTraceEvent]

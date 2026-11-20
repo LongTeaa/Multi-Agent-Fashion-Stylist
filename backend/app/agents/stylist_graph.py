@@ -152,7 +152,7 @@ def create_stylist_graph(
                 sender="context",
                 receiver="end" if needs_clar else "wardrobe",
                 event_type="CLARIFICATION_REQUESTED" if needs_clar else "CONTEXT_EXTRACTED",
-                summary_vi="Yêu cầu làm rõ ngữ cảnh." if needs_clar else "Đã trích xuất StylistContext.",
+                summary_vi="Yêu cầu làm rõ ngữ cảnh." if needs_clar else "Đã phân tích ngữ cảnh và ràng buộc yêu cầu.",
             )
         ]
         return result

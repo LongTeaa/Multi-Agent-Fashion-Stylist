@@ -1120,3 +1120,215 @@ def test_critic_kept_original_description_matches_trigger_issue(db_session: Sess
     assert "lặp đồ" not in kept_notes[0].description_vi
 
 
+def test_strict_llm_explanation_validator_rejects_ungrounded_attributes_and_claims():
+    """Review #3: validator must reject wrong color, wrong material, unowned garments outside [...], and unsupported functional claims."""
+    shirt = _make_slot("t_s1", OutfitSlotRole.TOP, name="Áo sơ mi trắng", color="white")
+    shirt.material = "cotton"
+    shirt.sub_category = "shirt"
+    trousers = _make_slot("b_t1", OutfitSlotRole.BOTTOM, name="Quần tây đen", color="black")
+    trousers.material = "wool"
+    trousers.sub_category = "trousers"
+    oxford = _make_slot("f_o1", OutfitSlotRole.FOOTWEAR, name="Giày oxford đen", color="black")
+    oxford.material = "leather"
+    oxford.sub_category = "oxford"
+    outfit = _make_ranked_outfit(1, [shirt, trousers, oxford], composite_score=0.86)
+    context = _make_context(occasion="work", weather_condition="rainy", time_of_day="morning")
+    deterministic = generate_grounded_explanation_vi(outfit, context)
+
+    class _StaticLLM:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+        def generate_outfit_explanation(self, **kwargs) -> str:
+            return self.text
+
+    # 1. Exact reviewer counterexample (wrong color, wrong material, unowned bag, unsupported waterproof claim)
+    reviewer_counter = (
+        "[Áo sơ mi] màu đỏ chất lụa kết hợp [Quần tây] và [Giày oxford], "
+        "phối thêm túi xách da và chống thấm mưa tốt."
+    )
+    assert generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(reviewer_counter)) == deterministic
+
+    # 2. Wrong color outside brackets
+    wrong_color = "Bộ [Áo sơ mi] màu đỏ, [Quần tây] đen và [Giày oxford] đen gọn gàng cho buổi họp."
+    assert generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(wrong_color)) == deterministic
+
+    # 3. Wrong material outside brackets
+    wrong_material = "Bộ [Áo sơ mi] chất lụa trắng, [Quần tây] đen và [Giày oxford] đen lịch sự."
+    assert generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(wrong_material)) == deterministic
+
+    # 4. Unowned accessory mentioned outside brackets
+    unowned_item = "Bộ [Áo sơ mi] trắng, [Quần tây] đen và [Giày oxford] đen phối cùng túi xách nhỏ."
+    assert generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(unowned_item)) == deterministic
+
+    # 5. Unsupported waterproof claim when functional_flags lacks water_resistant/rain
+    unsupported_flag = "Bộ [Áo sơ mi] trắng, [Quần tây] đen và [Giày oxford] đen chống thấm mưa tốt."
+    assert generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(unsupported_flag)) == deterministic
+
+    # 6. Grounded text referencing ONLY real attributes passes; waterproof passes when functional_flags includes water_resistant
+    oxford.functional_flags = ["water_resistant", "rain"]
+    grounded_with_flag = (
+        "Bộ [Áo sơ mi] cotton trắng, [Quần tây] đen và [Giày oxford] da đen chống thấm nước tốt cho ngày mưa."
+    )
+    accepted = generate_grounded_explanation_vi(outfit, context, llm_provider=_StaticLLM(grounded_with_flag))
+    assert "chống thấm nước tốt cho ngày mưa" in accepted
+
+
+def test_coordinator_llm_explanation_is_opt_in_and_skips_after_context_failure(db_session: Session):
+    """Coordinator defaults to deterministic explanations (0 extra LLM calls) and skips LLM when context provider failed."""
+    user = User(id="user_llm_optin")
+    db_session.add(user)
+    db_session.commit()
+    _seed_wardrobe_item(db_session, "t_opt", "user_llm_optin", WardrobeCategory.TOP)
+    _seed_wardrobe_item(db_session, "b_opt", "user_llm_optin", WardrobeCategory.BOTTOM)
+    _seed_wardrobe_item(db_session, "s_opt", "user_llm_optin", WardrobeCategory.FOOTWEAR)
+
+    top = _make_slot("t_opt", OutfitSlotRole.TOP, name="Áo sơ mi trắng", color="white")
+    bottom = _make_slot("b_opt", OutfitSlotRole.BOTTOM, name="Quần tây đen", color="black")
+    shoe = _make_slot("s_opt", OutfitSlotRole.FOOTWEAR, name="Giày oxford đen", color="black")
+
+    class _CountingLLM:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def generate_outfit_explanations(self, **kwargs) -> list[str]:
+            self.calls += 1
+            return ["Bộ [Áo sơ mi] trắng, [Quần tây] đen và [Giày oxford] đen gọn gàng cho buổi họp."]
+
+    def _base_state(req_id: str, **extra: object) -> StylistGraphState:
+        st: StylistGraphState = {
+            "user_id": "user_llm_optin",
+            "request_id": req_id,
+            "user_query": "Đi họp sáng nay mặc gì?",
+            "context": _make_context(occasion="work", weather_condition="cool"),
+            "candidate_pool": {"tops": [top], "bottoms": [bottom], "footwear": [shoe]},
+            "ranked_outfits": [_make_ranked_outfit(1, [top, bottom, shoe], composite_score=0.88)],
+            "enable_agent_loops": False,
+            "errors": [],
+            "warnings": [],
+        }
+        st.update(extra)  # type: ignore[typeddict-item]
+        return st
+
+    # Default (config enable_llm_explanations=False): 0 LLM calls
+    llm_default = _CountingLLM()
+    res_default = coordinator_node(_base_state("req-opt-default"), session=db_session, llm_provider=llm_default)
+    assert res_default["grounding_validated"] is True
+    assert llm_default.calls == 0
+
+    # Opt-in enabled + context healthy: 1 batched LLM call
+    llm_enabled = _CountingLLM()
+    res_enabled = coordinator_node(
+        _base_state("req-opt-enabled", enable_llm_explanations=True),
+        session=db_session,
+        llm_provider=llm_enabled,
+    )
+    assert res_enabled["grounding_validated"] is True
+    assert llm_enabled.calls == 1
+    assert "gọn gàng cho buổi họp" in res_enabled["ranked_outfits"][0].explanation_vi
+
+    # Opt-in enabled + context provider failed: 0 LLM calls
+    llm_skipped = _CountingLLM()
+    res_skipped = coordinator_node(
+        _base_state("req-opt-ctx-fail", enable_llm_explanations=True, context_llm_failed=True),
+        session=db_session,
+        llm_provider=llm_skipped,
+    )
+    assert res_skipped["grounding_validated"] is True
+    assert llm_skipped.calls == 0
+
+
+def test_critic_kept_original_restores_original_conflict_notes_and_major_slot_worn_check(db_session: Session):
+    """CRITIC_KEPT_ORIGINAL restores round-0 conflict_notes/warnings; ALL_RECENTLY_WORN ignores accessories & formats count."""
+    from datetime import datetime, timedelta, timezone
+    from app.agents.coordinator import evaluate_critic_signal
+    from app.agents.state import AgentTraceEvent, ConflictNote
+
+    ref_time = datetime(2026, 9, 12, 10, 0, 0, tzinfo=timezone.utc)
+    worn_iso = (ref_time - timedelta(hours=12)).isoformat()
+
+    top = _make_slot("t_m1", OutfitSlotRole.TOP, name="Áo sơ mi trắng", color="white")
+    bottom = _make_slot("b_m1", OutfitSlotRole.BOTTOM, name="Quần tây đen", color="black")
+    shoe = _make_slot("s_m1", OutfitSlotRole.FOOTWEAR, name="Giày oxford đen", color="black")
+    acc_worn = _make_slot("a_m1", OutfitSlotRole.ACCESSORY, name="Đồng hồ nâu", color="brown")
+    acc_worn.last_worn_at = worn_iso
+    acc_fresh = _make_slot("a_m2", OutfitSlotRole.ACCESSORY, name="Thắt lưng đen", color="black")
+
+    # 1. Recently worn accessory ONLY must NOT trigger ALL_RECENTLY_WORN (aligned with MAJOR_SLOT_ROLES)
+    outfit_acc_worn = _make_ranked_outfit(1, [top, bottom, shoe, acc_worn], composite_score=0.85)
+    signal_acc = evaluate_critic_signal(
+        [outfit_acc_worn],
+        {"tops": [top], "bottoms": [bottom], "footwear": [shoe], "accessories": [acc_worn, acc_fresh]},
+        _make_context(occasion="work"),
+        reference_time=ref_time,
+    )
+    assert signal_acc is None
+
+    # 2. Single outfit with recently worn major item uses singular wording (not "Cả 3 phương án đầu")
+    top_worn = _make_slot("t_m2", OutfitSlotRole.TOP, name="Áo polo trắng", color="white")
+    top_worn.last_worn_at = worn_iso
+    outfit_single = _make_ranked_outfit(1, [top_worn, bottom, shoe], composite_score=0.85)
+    signal_single = evaluate_critic_signal(
+        [outfit_single],
+        {"tops": [top_worn, top], "bottoms": [bottom], "footwear": [shoe]},
+        _make_context(occasion="work"),
+        reference_time=ref_time,
+    )
+    assert signal_single is not None
+    assert signal_single.issue_code == "ALL_RECENTLY_WORN"
+    assert "Cả 3 phương án" not in signal_single.reason_vi
+
+    # 3. CRITIC_KEPT_ORIGINAL restores previous_conflict_notes instead of leaking discarded retry notes
+    user = User(id="user_keep_notes")
+    db_session.add(user)
+    db_session.commit()
+    _seed_wardrobe_item(db_session, "t_m1", "user_keep_notes", WardrobeCategory.TOP)
+    _seed_wardrobe_item(db_session, "b_m1", "user_keep_notes", WardrobeCategory.BOTTOM)
+    _seed_wardrobe_item(db_session, "s_m1", "user_keep_notes", WardrobeCategory.FOOTWEAR)
+
+    orig_note = ConflictNote(
+        conflict_type="RECENT_WEAR_VS_BEST_FIT",
+        description_vi="Ghi chú vòng gốc.",
+        resolution_vi="Xử lý vòng gốc.",
+    )
+    discarded_retry_note = ConflictNote(
+        conflict_type="PROFILE_AVOID_VS_REQUEST",
+        description_vi="Ghi chú vòng retry bị bỏ.",
+        resolution_vi="Không được giữ lại.",
+    )
+    orig_outfit = _make_ranked_outfit(1, [top, bottom, shoe], composite_score=0.90)
+    retry_outfit = _make_ranked_outfit(1, [top, bottom, shoe], composite_score=0.70)
+
+    state: StylistGraphState = {
+        "user_id": "user_keep_notes",
+        "request_id": "req-keep-notes",
+        "user_query": "Đi làm sáng nay",
+        "context": _make_context(occasion="work"),
+        "candidate_pool": {"tops": [top], "bottoms": [bottom], "footwear": [shoe]},
+        "ranked_outfits": [retry_outfit],
+        "previous_ranked_outfits": [orig_outfit],
+        "previous_conflict_notes": [orig_note],
+        "previous_warnings": ["Cảnh báo vòng gốc."],
+        "conflict_notes": [discarded_retry_note],
+        "warnings": ["Cảnh báo vòng retry bị bỏ."],
+        "enable_agent_loops": True,
+        "critique_round": 1,
+        "agent_trace": [
+            AgentTraceEvent(
+                round=0,
+                sender="coordinator",
+                receiver="fashion",
+                event_type="CRITIQUE_ALL_RECENTLY_WORN",
+                summary_vi="Phản biện lặp đồ.",
+            )
+        ],
+        "errors": [],
+    }
+    res = coordinator_node(state, session=db_session)
+    assert res["grounding_validated"] is True
+    note_descs = [n.description_vi for n in res["conflict_notes"]]
+    assert "Ghi chú vòng gốc." in note_descs
+    assert "Ghi chú vòng retry bị bỏ." not in note_descs
+    assert res["warnings"] == ["Cảnh báo vòng gốc."]
+
+

@@ -53,6 +53,15 @@ CANONICAL_SLOTS: list[str] = [
     "accessories",
 ]
 
+SLOT_VI_LABELS: dict[str, str] = {
+    "tops": "áo",
+    "bottoms": "quần",
+    "dresses": "đầm",
+    "footwear": "giày dép",
+    "outerwear": "áo khoác",
+    "accessories": "phụ kiện",
+}
+
 # Tier 1: shade expansion within the same requested color family
 RELAX_COLOR_FAMILIES: dict[str, list[str]] = {
     "black": ["charcoal", "grey", "gray", "navy"],
@@ -964,19 +973,24 @@ def wardrobe_agent_node(
                     db_session, user_id, context, current_pool, relaxation_request, relaxation_round, active_relaxations
                 )
 
+        slot_labels = ", ".join(
+            SLOT_VI_LABELS.get(slot, slot) for slot in relaxation_request.bottleneck_slots
+        )
         trace_event = AgentTraceEvent(
             round=next_round,
             sender="wardrobe",
             receiver="fashion",
             event_type="RELAXATION_APPLIED",
-            summary_vi=f"Đã thực thi nới lỏng có kiểm soát vòng {next_round} cho {relaxation_request.bottleneck_slots}.",
+            summary_vi=f"Đã nới lỏng có kiểm soát vòng {next_round} cho nhóm {slot_labels}.",
         )
+        updated_warnings = list(dict.fromkeys(existing_warnings + relax_warnings))
         return {
             "candidate_pool": pool,
             "relaxation_round": next_round,
             "relaxation_request": None,
             "active_relaxations": updated_steps,
-            "warnings": existing_warnings + relax_warnings,
+            "warnings": updated_warnings,
+            "base_warnings": updated_warnings,
             "agent_trace": existing_trace + [trace_event],
         }
 
@@ -995,12 +1009,14 @@ def wardrobe_agent_node(
         sender="wardrobe",
         receiver="end" if errors else "fashion",
         event_type="WARDROBE_EMPTY" if errors else "CANDIDATE_POOL_BUILT",
-        summary_vi="Tủ đồ trống." if errors else "Đã truy vấn candidate_pool gồm 6 danh mục.",
+        summary_vi="Tủ đồ trống." if errors else "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục.",
     )
+    updated_warnings = list(dict.fromkeys(existing_warnings + warnings))
     return {
         "candidate_pool": pool,
         "errors": existing_errors + errors,
-        "warnings": existing_warnings + warnings,
+        "warnings": updated_warnings,
+        "base_warnings": updated_warnings,
         "relaxation_request": None,
         "agent_trace": existing_trace + [trace_event],
     }

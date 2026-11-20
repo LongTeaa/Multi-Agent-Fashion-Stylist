@@ -889,5 +889,6 @@ def context_agent_node(
         context = context.model_copy(update={"client_session_id": client_session_id})
     return {
         "context": context,
+        "context_llm_failed": CONTEXT_FALLBACK_WARNING in warnings,
         "warnings": list(state.get("warnings", [])) + warnings,
     }

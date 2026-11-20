@@ -5,9 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 import logging
+import re
 from typing import Any
 from sqlmodel import Session, select
 
+from app.agents.context_agent import CONTEXT_FALLBACK_WARNING
 from app.agents.state import (
     AgentTraceEvent,
     ConflictNote,
@@ -21,8 +23,10 @@ from app.agents.state import (
     normalize_relax_token,
 )
 from app.agents.fashion_agent import outfit_satisfies_explicit_constraints
-from app.agents.wardrobe_agent import CATEGORY_TO_SLOT
 from app.agents.fashion_scoring import count_recently_worn_items
+from app.agents.personalization_agent import MAJOR_SLOT_ROLES
+from app.agents.wardrobe_agent import CATEGORY_TO_SLOT
+from app.core.config import get_settings
 from app.core.database import get_engine
 from app.models.entities import (
     OutfitItem,
@@ -274,14 +278,219 @@ _FORBIDDEN_EXPLANATION_PHRASES: tuple[str, ...] = (
     "mềm mại",
 )
 
+# Canonical color mentions (longest-first during scanning with span masking) -> acceptable item color tokens
+_EXPLANATION_COLOR_TERMS: list[tuple[str, frozenset[str]]] = [
+    ("xanh da trời", frozenset({"blue", "light_blue", "sky_blue"})),
+    ("xanh dương", frozenset({"blue", "light_blue", "denim_blue", "sky_blue", "navy", "navy_blue"})),
+    ("xanh denim", frozenset({"denim_blue", "blue", "light_blue", "navy"})),
+    ("xanh navy", frozenset({"navy", "navy_blue", "dark_blue", "blue"})),
+    ("xanh nhạt", frozenset({"light_blue", "blue", "sky_blue"})),
+    ("xanh đậm", frozenset({"navy", "navy_blue", "dark_blue", "blue"})),
+    ("xanh lam", frozenset({"blue", "light_blue", "navy", "navy_blue"})),
+    ("xanh rêu", frozenset({"olive", "green", "dark_green"})),
+    ("xanh lá", frozenset({"green", "olive", "dark_green", "mint"})),
+    ("đỏ rượu", frozenset({"burgundy", "maroon", "red"})),
+    ("đỏ đô", frozenset({"burgundy", "maroon", "red"})),
+    ("da cam", frozenset({"orange", "coral"})),
+    ("màu trắng", frozenset({"white", "off_white", "ivory"})),
+    ("màu đen", frozenset({"black", "charcoal"})),
+    ("màu xám", frozenset({"grey", "gray", "charcoal", "silver"})),
+    ("màu ghi", frozenset({"grey", "gray", "charcoal", "silver"})),
+    ("màu nâu", frozenset({"brown", "tan", "camel"})),
+    ("màu be", frozenset({"beige", "cream", "khaki", "tan"})),
+    ("màu kem", frozenset({"cream", "beige", "ivory", "off_white"})),
+    ("màu đỏ", frozenset({"red", "burgundy", "maroon"})),
+    ("màu vàng", frozenset({"yellow", "mustard", "gold"})),
+    ("màu hồng", frozenset({"pink", "pastel_pink", "rose"})),
+    ("màu tím", frozenset({"purple", "lavender", "violet"})),
+    ("màu cam", frozenset({"orange", "coral"})),
+    ("màu xanh", frozenset({"blue", "light_blue", "denim_blue", "navy", "navy_blue", "green", "olive"})),
+    ("burgundy", frozenset({"burgundy", "maroon", "red"})),
+    ("navy", frozenset({"navy", "navy_blue", "dark_blue"})),
+    ("olive", frozenset({"olive", "green", "dark_green"})),
+    ("khaki", frozenset({"khaki", "kaki", "beige", "tan"})),
+    ("kaki", frozenset({"khaki", "kaki", "beige", "tan"})),
+    ("beige", frozenset({"beige", "cream", "khaki", "tan"})),
+    ("cream", frozenset({"cream", "beige", "ivory", "off_white"})),
+    ("camel", frozenset({"camel", "brown", "tan", "beige"})),
+    ("trắng", frozenset({"white", "off_white", "ivory"})),
+    ("đen", frozenset({"black", "charcoal"})),
+    ("xám", frozenset({"grey", "gray", "charcoal", "silver"})),
+    ("ghi", frozenset({"grey", "gray", "charcoal", "silver"})),
+    ("nâu", frozenset({"brown", "tan", "camel"})),
+    ("kem", frozenset({"cream", "beige", "ivory", "off_white"})),
+    ("be", frozenset({"beige", "cream", "khaki", "tan"})),
+    ("đỏ", frozenset({"red", "burgundy", "maroon"})),
+    ("vàng", frozenset({"yellow", "mustard", "gold"})),
+    ("hồng", frozenset({"pink", "pastel_pink", "rose"})),
+    ("tím", frozenset({"purple", "lavender", "violet"})),
+    ("cam", frozenset({"orange", "coral"})),
+    ("rêu", frozenset({"olive", "green", "dark_green"})),
+]
+
+# Canonical material mentions (longest-first) -> acceptable item material tokens
+_EXPLANATION_MATERIAL_TERMS: list[tuple[str, frozenset[str]]] = [
+    ("lụa tơ tằm", frozenset({"silk", "satin"})),
+    ("tơ tằm", frozenset({"silk", "satin"})),
+    ("chất lụa", frozenset({"silk", "satin"})),
+    ("vải lụa", frozenset({"silk", "satin"})),
+    ("lụa", frozenset({"silk", "satin"})),
+    ("silk", frozenset({"silk", "satin"})),
+    ("satin", frozenset({"satin", "silk"})),
+    ("da lộn", frozenset({"suede", "leather"})),
+    ("suede", frozenset({"suede", "leather"})),
+    ("chất da", frozenset({"leather", "faux_leather", "suede"})),
+    ("bằng da", frozenset({"leather", "faux_leather", "suede"})),
+    ("vải da", frozenset({"leather", "faux_leather", "suede"})),
+    ("da thật", frozenset({"leather"})),
+    ("da bóng", frozenset({"leather", "faux_leather"})),
+    ("leather", frozenset({"leather", "faux_leather", "suede"})),
+    ("vải lanh", frozenset({"linen"})),
+    ("vải đũi", frozenset({"linen"})),
+    ("linen", frozenset({"linen"})),
+    ("lanh", frozenset({"linen"})),
+    ("đũi", frozenset({"linen"})),
+    ("vải bông", frozenset({"cotton"})),
+    ("cotton", frozenset({"cotton"})),
+    ("dệt kim", frozenset({"knit", "wool"})),
+    ("chất len", frozenset({"wool", "knit", "cashmere"})),
+    ("vải len", frozenset({"wool", "knit", "cashmere"})),
+    ("cashmere", frozenset({"cashmere", "wool"})),
+    ("wool", frozenset({"wool", "knit", "cashmere"})),
+    ("knit", frozenset({"knit", "wool"})),
+    ("len", frozenset({"wool", "knit", "cashmere"})),
+    ("vải bò", frozenset({"denim"})),
+    ("vải jean", frozenset({"denim"})),
+    ("denim", frozenset({"denim"})),
+    ("nhung", frozenset({"velvet", "corduroy"})),
+    ("velvet", frozenset({"velvet"})),
+    ("vải nỉ", frozenset({"fleece"})),
+    ("chất nỉ", frozenset({"fleece"})),
+    ("fleece", frozenset({"fleece"})),
+    ("nỉ", frozenset({"fleece"})),
+    ("polyester", frozenset({"polyester"})),
+    ("vải dù", frozenset({"nylon", "polyester"})),
+    ("nylon", frozenset({"nylon"})),
+    ("vải bố", frozenset({"canvas"})),
+    ("canvas", frozenset({"canvas"})),
+    ("cao su", frozenset({"rubber"})),
+    ("rubber", frozenset({"rubber"})),
+]
+
+# Garment/accessory mentions outside [...] -> acceptable normalized sub_categories or categories
+_EXPLANATION_GARMENT_TERMS: list[tuple[str, frozenset[str]]] = [
+    ("túi xách", frozenset({"bag"})),
+    ("túi đeo", frozenset({"bag"})),
+    ("ví cầm tay", frozenset({"bag"})),
+    ("ba lô", frozenset({"bag"})),
+    ("balo", frozenset({"bag"})),
+    ("clutch", frozenset({"bag"})),
+    ("đồng hồ", frozenset({"watch"})),
+    ("kính mắt", frozenset({"glasses"})),
+    ("kính râm", frozenset({"glasses"})),
+    ("mắt kính", frozenset({"glasses"})),
+    ("thắt lưng", frozenset({"belt"})),
+    ("dây nịt", frozenset({"belt"})),
+    ("khăn choàng", frozenset({"scarf"})),
+    ("khăn quàng", frozenset({"scarf"})),
+    ("cà vạt", frozenset({"tie"})),
+    ("vòng cổ", frozenset({"jewelry"})),
+    ("khuyên tai", frozenset({"jewelry"})),
+    ("mũ", frozenset({"hat"})),
+    ("nón", frozenset({"hat"})),
+    ("áo khoác", frozenset({"outerwear", "jacket", "coat", "blazer", "cardigan", "hoodie"})),
+    ("trench coat", frozenset({"coat", "jacket"})),
+    ("măng tô", frozenset({"coat"})),
+    ("áo choàng", frozenset({"coat"})),
+    ("blazer", frozenset({"blazer"})),
+    ("áo vest", frozenset({"blazer", "vest"})),
+    ("veston", frozenset({"blazer"})),
+    ("cardigan", frozenset({"cardigan"})),
+    ("hoodie", frozenset({"hoodie"})),
+    ("jacket", frozenset({"jacket"})),
+    ("chân váy", frozenset({"skirt", "pleated_skirt", "pencil_skirt", "mini_skirt", "midi_skirt", "a_line_skirt"})),
+    ("váy đầm", frozenset({"dress"})),
+    ("váy liền", frozenset({"dress"})),
+    ("đầm", frozenset({"dress"})),
+    ("quần jeans", frozenset({"jeans"})),
+    ("quần jean", frozenset({"jeans"})),
+    ("quần bò", frozenset({"jeans"})),
+    ("quần tây", frozenset({"trousers"})),
+    ("quần âu", frozenset({"trousers"})),
+    ("quần chinos", frozenset({"chinos"})),
+    ("quần kaki", frozenset({"chinos"})),
+    ("quần short", frozenset({"shorts"})),
+    ("quần đùi", frozenset({"shorts"})),
+    ("áo sơ mi", frozenset({"shirt"})),
+    ("áo polo", frozenset({"polo"})),
+    ("áo thun", frozenset({"t_shirt"})),
+    ("áo phông", frozenset({"t_shirt"})),
+    ("áo len", frozenset({"sweater"})),
+    ("áo kiểu", frozenset({"blouse"})),
+    ("áo ba lỗ", frozenset({"tanktop"})),
+    ("áo hai dây", frozenset({"tanktop"})),
+    ("giày cao gót", frozenset({"heels"})),
+    ("giày oxford", frozenset({"oxford"})),
+    ("giày tây", frozenset({"oxford", "loafers"})),
+    ("giày lười", frozenset({"loafers"})),
+    ("giày thể thao", frozenset({"sneakers"})),
+    ("giày sneaker", frozenset({"sneakers"})),
+    ("sneaker", frozenset({"sneakers"})),
+    ("giày bốt", frozenset({"boots"})),
+    ("giày boots", frozenset({"boots"})),
+    ("boots", frozenset({"boots"})),
+    ("giày sandal", frozenset({"sandals"})),
+    ("sandal", frozenset({"sandals"})),
+    ("dép", frozenset({"slides", "sandals"})),
+]
+
+# Functional capability claims -> required canonical flags in outfit items' functional_flags
+_FUNCTIONAL_CLAIM_REQUIREMENTS: list[tuple[tuple[str, ...], frozenset[str]]] = [
+    (
+        ("chống thấm", "chống nước", "không thấm", "kháng nước", "chống mưa", "đi mưa tốt", "chịu mưa"),
+        frozenset({"water_resistant", "rain"}),
+    ),
+    (
+        ("giữ ấm", "chống rét", "chống lạnh", "giữ nhiệt"),
+        frozenset({"warmth", "thermal", "heavy", "windproof"}),
+    ),
+    (
+        ("chống nắng", "chống tia uv", "chống uv", "che nắng"),
+        frozenset({"sun", "uv_protection"}),
+    ),
+    (
+        ("chống gió", "cản gió"),
+        frozenset({"windproof", "protection"}),
+    ),
+    (
+        ("thoáng khí", "thấm hút", "hút ẩm", "nhanh khô"),
+        frozenset({"breathable", "moisture_wicking", "quick_dry"}),
+    ),
+    (
+        ("co giãn", "dễ vận động", "thoải mái vận động"),
+        frozenset({"stretch", "movement"}),
+    ),
+]
+
+
+def _scan_terms_masked(text: str, term_table: list[tuple[str, frozenset[str]]]) -> list[tuple[str, frozenset[str]]]:
+    """Find longest-first word-bounded matches while masking consumed spans to prevent substring double-hits."""
+    matched: list[tuple[str, frozenset[str]]] = []
+    remaining = text
+    for term, canonicals in term_table:
+        pattern = re.compile(rf"(?<!\w){re.escape(term)}(?!\w)")
+        if pattern.search(remaining):
+            matched.append((term, canonicals))
+            remaining = pattern.sub(" ", remaining)
+    return matched
+
 
 def _validate_grounded_llm_explanation(
     candidate_text: str,
     item_allowed_brackets: list[set[str]],
+    outfit: RankedOutfit | None = None,
 ) -> bool:
-    """Verify an LLM-generated explanation references only canonical outfit items and avoids forbidden claims."""
-    import re
-
+    """Verify an LLM-generated explanation matches canonical outfit items, real attributes, and functional_flags."""
     cleaned = candidate_text.strip()
     if len(cleaned) < 15 or len(cleaned) > 600:
         return False
@@ -289,16 +498,68 @@ def _validate_grounded_llm_explanation(
     if any(forbidden in lowered for forbidden in _FORBIDDEN_EXPLANATION_PHRASES):
         return False
 
-    # Every outfit item must have at least one of its canonical [Name] bracket forms present
+    # 1. Every outfit item must have at least one of its canonical [Name] bracket forms present
     for group in item_allowed_brackets:
         if not any(token in lowered for token in group):
             return False
 
-    # No extra [...] bracketed garment names outside the outfit's allowed brackets may be hallucinated
+    # 2. No extra [...] bracketed garment names outside the outfit's allowed brackets may be hallucinated
     found_brackets = {f"[{m.strip().lower()}]" for m in re.findall(r"\[([^\[\]]+)\]", cleaned)}
     all_allowed = set().union(*item_allowed_brackets) if item_allowed_brackets else set()
     if not found_brackets.issubset(all_allowed):
         return False
+
+    if outfit is None:
+        return True
+
+    # Strip validated [...] spans so prose checks target free-text claims without tripping on canonical names
+    prose = re.sub(r"\[[^\[\]]+\]", " ", lowered)
+
+    # 3. Color grounding: every color mentioned in prose must exist on at least one item in the outfit
+    outfit_colors: set[str] = set()
+    outfit_subcats: set[str] = set()
+    outfit_materials: set[str] = set()
+    outfit_flags: set[str] = set()
+    for item in outfit.items:
+        if item.primary_color and item.primary_color.strip().lower() != "unknown":
+            outfit_colors.add(normalize_relax_token(item.primary_color))
+        if item.secondary_color and item.secondary_color.strip().lower() != "unknown":
+            outfit_colors.add(normalize_relax_token(item.secondary_color))
+        if item.sub_category:
+            outfit_subcats.add(normalize_relax_token(item.sub_category))
+        outfit_subcats.add(normalize_relax_token(item.category.value))
+        if item.material and item.material.strip().lower() != "unknown":
+            outfit_materials.add(normalize_relax_token(item.material))
+        for flag in item.functional_flags or ():
+            outfit_flags.add(normalize_relax_token(flag))
+
+    for term, acceptable_colors in _scan_terms_masked(prose, _EXPLANATION_COLOR_TERMS):
+        if term == "kaki" and "chinos" in outfit_subcats:
+            continue
+        if not (outfit_colors & acceptable_colors):
+            return False
+
+    # 4. Material grounding: every material mentioned in prose must exist on at least one item in the outfit
+    for _, acceptable_materials in _scan_terms_masked(prose, _EXPLANATION_MATERIAL_TERMS):
+        if not (outfit_materials & acceptable_materials):
+            return False
+
+    # Guard standalone Vietnamese 'da' (leather) while ignoring skin/color idioms ('làn da', 'tôn da', 'da cam', 'da trời')
+    leather_prose = re.sub(r"(?:làn|tôn|sáng|màu)\s+da\b|\bda\s+(?:trời|cam)\b", " ", prose)
+    if re.search(r"(?<!\w)da(?!\w)", leather_prose):
+        if not (outfit_materials & {"leather", "faux_leather", "suede"}):
+            return False
+
+    # 5. Garment/accessory grounding: no unowned garment or accessory mentioned outside [...]
+    for _, acceptable_keys in _scan_terms_masked(prose, _EXPLANATION_GARMENT_TERMS):
+        if not (outfit_subcats & acceptable_keys):
+            return False
+
+    # 6. Functional capability claims must be backed by actual functional_flags on the outfit
+    for claim_phrases, required_flags in _FUNCTIONAL_CLAIM_REQUIREMENTS:
+        if any(phrase in lowered for phrase in claim_phrases):
+            if not (outfit_flags & required_flags):
+                return False
 
     return True
 
@@ -423,7 +684,7 @@ def _finalize_llm_explanation(
 ) -> str | None:
     """Validate an LLM explanation and append mandatory transparency notes if omitted."""
     if not isinstance(llm_text, str) or not _validate_grounded_llm_explanation(
-        llm_text, prepared.item_allowed_brackets
+        llm_text, prepared.item_allowed_brackets, outfit=outfit
     ):
         return None
     final_llm = llm_text.strip()
@@ -598,15 +859,21 @@ def evaluate_critic_signal(
     if not canonical_outfits:
         return None
 
-    # Rule 1: ALL_RECENTLY_WORN (every top candidate contains at least one item worn within 48h,
-    # while the candidate_pool still has an unworn replacement in that same slot).
+    # Rule 1: ALL_RECENTLY_WORN (every top candidate contains at least one MAJOR item worn within 48h,
+    # aligned with personalization_agent's MAJOR_SLOT_ROLES, while candidate_pool has an unworn replacement).
     if all(
-        count_recently_worn_items(outfit.items, reference_time=reference_time, recent_window_hours=48) > 0
+        count_recently_worn_items(
+            [item for item in outfit.items if item.slot_role in MAJOR_SLOT_ROLES],
+            reference_time=reference_time,
+            recent_window_hours=48,
+        ) > 0
         for outfit in canonical_outfits
     ):
         soft_avoid_ids: list[str] = []
         for outfit in canonical_outfits:
             for item in outfit.items:
+                if item.slot_role not in MAJOR_SLOT_ROLES:
+                    continue
                 if count_recently_worn_items([item], reference_time=reference_time, recent_window_hours=48) == 0:
                     continue
                 pool_slot = CATEGORY_TO_SLOT.get(item.category, "")
@@ -619,10 +886,18 @@ def evaluate_critic_signal(
                 if has_unworn_alt and item.item_id not in soft_avoid_ids:
                     soft_avoid_ids.append(item.item_id)
         if soft_avoid_ids:
+            count = len(canonical_outfits)
+            if count == 1:
+                worn_reason = "Phương án đề xuất chứa món chính vừa mặc trong 48h trong khi tủ vẫn còn món chưa mặc."
+            else:
+                worn_reason = (
+                    f"Cả {count} phương án đầu đều chứa món chính vừa mặc trong 48h "
+                    "trong khi tủ vẫn còn món chưa mặc."
+                )
             return CritiqueSignal(
                 issue_code="ALL_RECENTLY_WORN",
                 soft_avoid_item_ids=soft_avoid_ids,
-                reason_vi="Cả 3 phương án đầu đều chứa món vừa mặc trong 48h trong khi tủ vẫn còn món chưa mặc.",
+                reason_vi=worn_reason,
             )
 
     # Rule 2: CONTEXT_GAP (rainy context expects water_resistant, pool has one, top outfits lack it).
@@ -775,6 +1050,9 @@ def coordinator_node(
             new_score = canonical_outfits[0].composite_score
             if prev_score - new_score > 0.05:
                 canonical_outfits = previous_ranked_outfits
+                conflict_notes = list(state.get("previous_conflict_notes", []))
+                if "previous_warnings" in state:
+                    existing_warnings = list(state.get("previous_warnings", []))
                 conflict_notes.append(
                     ConflictNote(
                         conflict_type="CRITIC_KEPT_ORIGINAL",
@@ -802,6 +1080,8 @@ def coordinator_node(
                     "critique": signal,
                     "critique_round": critique_round + 1,
                     "previous_ranked_outfits": canonical_outfits,
+                    "previous_conflict_notes": conflict_notes,
+                    "previous_warnings": existing_warnings,
                     "warnings": existing_warnings,
                     "errors": existing_errors,
                     "conflict_notes": conflict_notes,
@@ -825,13 +1105,24 @@ def coordinator_node(
                 "errors": existing_errors + [GROUNDING_VALIDATION_FAILED],
             }
 
-        # 5. Generate Grounded Explanations (single batched LLM call when supported)
+        # 5. Generate Grounded Explanations (deterministic by default; opt-in batched LLM when healthy)
+        enable_llm_explanations = state.get("enable_llm_explanations")
+        if enable_llm_explanations is None:
+            enable_llm_explanations = get_settings().enable_llm_explanations
+        context_llm_failed = bool(state.get("context_llm_failed")) or (
+            CONTEXT_FALLBACK_WARNING in existing_warnings
+        )
+        effective_llm_provider = (
+            llm_provider
+            if (enable_llm_explanations and not context_llm_failed)
+            else None
+        )
         explanations = generate_grounded_explanations_batch(
             canonical_outfits,
             context,
             active_relaxations=active_relaxations,
             conflict_notes=conflict_notes,
-            llm_provider=llm_provider,
+            llm_provider=effective_llm_provider,
         )
         for outfit, explanation in zip(canonical_outfits, explanations):
             outfit.explanation_vi = explanation
