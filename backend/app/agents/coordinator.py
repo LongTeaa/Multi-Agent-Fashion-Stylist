@@ -854,6 +854,8 @@ def evaluate_critic_signal(
     candidate_pool: dict[str, list[OutfitItemSlot]],
     context: StylistContext,
     reference_time: datetime | None = None,
+    *,
+    disable_personalization: bool = False,
 ) -> CritiqueSignal | None:
     """Evaluate top ranked outfits for repetition or functional gaps before DB persistence."""
     if not canonical_outfits:
@@ -861,7 +863,8 @@ def evaluate_critic_signal(
 
     # Rule 1: ALL_RECENTLY_WORN (every top candidate contains at least one MAJOR item worn within 48h,
     # aligned with personalization_agent's MAJOR_SLOT_ROLES, while candidate_pool has an unworn replacement).
-    if all(
+    # Bypassed when personalization ablation (disable_personalization=True) is active.
+    if not disable_personalization and all(
         count_recently_worn_items(
             [item for item in outfit.items if item.slot_role in MAJOR_SLOT_ROLES],
             reference_time=reference_time,
@@ -1066,6 +1069,7 @@ def coordinator_node(
                 candidate_pool,
                 context,
                 reference_time=state.get("reference_time"),
+                disable_personalization=bool(state.get("disable_personalization", False)),
             )
             if signal is not None:
                 reroute_trace = AgentTraceEvent(

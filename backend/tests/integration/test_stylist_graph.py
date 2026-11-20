@@ -1064,3 +1064,83 @@ def test_merge_slot_items_prioritizes_newly_relaxed_items_when_slot_at_capacity(
     merged = _merge_slot_items(existing, relaxed, limit=15)
     assert len(merged) == 15
     assert merged[0].item_id == "relaxed-match-1"
+
+
+def test_execute_stylist_recommendation_preserves_enable_llm_explanations_flag(
+    migrated_database: tuple[object, object],
+) -> None:
+    """execute_stylist_recommendation must forward enable_llm_explanations to Coordinator."""
+    _, engine = migrated_database
+    user_id = f"user_llm_flag_{uuid4().hex[:8]}"
+
+    class _MockStylistLLM:
+        def __init__(self) -> None:
+            self.explanation_calls = 0
+
+        def extract_context(self, *, query: str, location: str | None, current_date: object) -> dict[str, object]:
+            return {
+                "occasion": "daily_work",
+                "time_of_day": "morning",
+                "event_date": str(current_date),
+                "location_text": location,
+                "environment": "indoor",
+                "weather_condition": "cool",
+                "temperature_celsius": None,
+                "target_formality_range": [3, 4],
+                "style_hints": ["smart_casual"],
+                "vibe_keywords": [],
+                "must_have": [],
+                "must_avoid": [],
+                "weather_source": "default",
+                "needs_clarification": False,
+                "clarification_question": None,
+                "confidence": 0.9,
+            }
+
+        def generate_outfit_explanations(self, *, outfits: list[dict[str, object]], **kwargs: object) -> list[str]:
+            self.explanation_calls += 1
+            return [
+                f"Phối {', '.join(entry['items_description'])} gọn gàng cho ngày làm việc."
+                for entry in outfits
+            ]
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-llm-flag", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="smart_casual", formality=4)
+        _add_wardrobe_item(session, item_id="bot-llm-flag", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="trousers", color="navy", style="smart_casual", formality=4)
+        _add_wardrobe_item(session, item_id="shoe-llm-flag", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="loafers", color="brown", style="smart_casual", formality=3)
+        session.commit()
+
+        llm_on = _MockStylistLLM()
+        res_on = execute_stylist_recommendation(
+            {
+                "request_id": "req-llm-exp-on",
+                "user_id": user_id,
+                "user_query": "Sáng nay đi làm mặc gì?",
+                "enable_llm_explanations": True,
+            },
+            session=session,
+            clock=_fixed_clock,
+            llm_provider=llm_on,
+        )
+        assert res_on["errors"] == []
+        assert res_on["grounding_validated"] is True
+        assert llm_on.explanation_calls == 1
+        assert "gọn gàng cho ngày làm việc" in res_on["ranked_outfits"][0].explanation_vi
+
+        llm_off = _MockStylistLLM()
+        res_off = execute_stylist_recommendation(
+            {
+                "request_id": "req-llm-exp-off",
+                "user_id": user_id,
+                "user_query": "Sáng nay đi làm mặc gì?",
+                "enable_llm_explanations": False,
+            },
+            session=session,
+            clock=_fixed_clock,
+            llm_provider=llm_off,
+        )
+        assert res_off["errors"] == []
+        assert res_off["grounding_validated"] is True
+        assert llm_off.explanation_calls == 0

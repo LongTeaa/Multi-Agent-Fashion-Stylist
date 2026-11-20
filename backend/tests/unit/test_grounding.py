@@ -1331,4 +1331,28 @@ def test_critic_kept_original_restores_original_conflict_notes_and_major_slot_wo
     assert "Ghi chú vòng retry bị bỏ." not in note_descs
     assert res["warnings"] == ["Cảnh báo vòng gốc."]
 
+    # 4. disable_personalization=True skips ALL_RECENTLY_WORN but preserves situational CONTEXT_GAP
+    signal_no_pers = evaluate_critic_signal(
+        [outfit_single],
+        {"tops": [top_worn, top], "bottoms": [bottom], "footwear": [shoe]},
+        _make_context(occasion="work"),
+        reference_time=ref_time,
+        disable_personalization=True,
+    )
+    assert signal_no_pers is None
+
+    jacket_rain = _make_slot("o_rain", OutfitSlotRole.OUTERWEAR, name="Áo khoác dù", color="navy")
+    jacket_rain.functional_flags = ["water_resistant", "rain"]
+    rain_ctx = _make_context(occasion="work", weather_condition="rainy")
+    rain_ctx.target_functional_tags = ["water_resistant", "rain"]
+    signal_rain_no_pers = evaluate_critic_signal(
+        [outfit_single],
+        {"tops": [top_worn, top], "bottoms": [bottom], "footwear": [shoe], "outerwear": [jacket_rain]},
+        rain_ctx,
+        reference_time=ref_time,
+        disable_personalization=True,
+    )
+    assert signal_rain_no_pers is not None
+    assert signal_rain_no_pers.issue_code == "CONTEXT_GAP"
+
 

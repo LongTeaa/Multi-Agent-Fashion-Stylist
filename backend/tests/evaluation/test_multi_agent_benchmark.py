@@ -564,3 +564,22 @@ def test_disable_personalization_ablation_skips_saved_avoid_and_recent_wear_pena
         top1_nopers_ids = {it.item_id for it in no_pers["ranked_outfits"][0].items}
         assert "top-white-worn" in top1_nopers_ids
         assert all(n.conflict_type != "RECENT_WEAR_VS_BEST_FIT" for n in no_pers["conflict_notes"])
+
+        # Even with Loop 2 Critic enabled (as in M-NoPersonalization), disable_personalization=True must NOT
+        # trigger ALL_RECENTLY_WORN rerouting on wear history.
+        no_pers_with_loops = execute_stylist_recommendation(
+            {
+                "request_id": "req-pers-off-loops",
+                "user_id": user_id,
+                "user_query": "Đi phỏng vấn sáng nay mặc gì?",
+                "enable_agent_loops": True,
+                "enable_critique_loop": True,
+                "disable_personalization": True,
+            },
+            session=session,
+            clock=lambda: fixed_now,
+        )
+        assert no_pers_with_loops["errors"] == []
+        assert no_pers_with_loops["critique_round"] == 0
+        assert all(ev.event_type != "CRITIQUE_ALL_RECENTLY_WORN" for ev in no_pers_with_loops["agent_trace"])
+        assert "top-white-worn" in {it.item_id for it in no_pers_with_loops["ranked_outfits"][0].items}

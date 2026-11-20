@@ -193,7 +193,7 @@ Response data:
       "sender": "context",
       "receiver": "wardrobe",
       "event_type": "CONTEXT_EXTRACTED",
-      "summary_vi": "Đã trích xuất StylistContext."
+      "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
     }
   ]
 }

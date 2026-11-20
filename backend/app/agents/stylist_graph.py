@@ -239,6 +239,7 @@ def execute_stylist_recommendation(
         "enable_agent_loops": state.get("enable_agent_loops", True),
         "enable_relaxation_loop": state.get("enable_relaxation_loop"),
         "enable_critique_loop": state.get("enable_critique_loop"),
+        "enable_llm_explanations": state.get("enable_llm_explanations"),
         "disable_personalization": bool(state.get("disable_personalization", False)),
         "relaxation_round": 0,
         "relaxation_request": None,
