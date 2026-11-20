@@ -558,6 +558,8 @@ def retrieve_candidate_pool(
     user_id: str,
     context: StylistContext,
     active_relaxations: Sequence[RelaxationStep] | None = None,
+    *,
+    disable_personalization: bool = False,
 ) -> tuple[dict[str, list[OutfitItemSlot]], list[str], list[str]]:
     """Retrieve active wardrobe items grouped into 6 canonical slots with category-scoped must_have."""
     errors: list[str] = []
@@ -748,11 +750,12 @@ def retrieve_candidate_pool(
             f"Đã nới lỏng điều kiện tìm kiếm: {', '.join(unique_relaxations)}."
         )
 
-    # Apply saved exclusions before the bounded combinatorial search. Retain the
-    # original pool only when no complete clean branch can satisfy required items.
-    candidate_pool = _apply_saved_avoid_filter(
-        session, user_id, candidate_pool, context, active_relaxations=active_relaxations
-    )
+    # Apply saved exclusions before the bounded combinatorial search (unless disabled for ablation).
+    # Retain the original pool only when no complete clean branch can satisfy required items.
+    if not disable_personalization:
+        candidate_pool = _apply_saved_avoid_filter(
+            session, user_id, candidate_pool, context, active_relaxations=active_relaxations
+        )
     return candidate_pool, errors, warnings
 
 
@@ -784,6 +787,8 @@ def apply_relaxation_request(
     request: RelaxationRequest,
     relaxation_round: int,
     active_relaxations: Sequence[RelaxationStep] | None = None,
+    *,
+    disable_personalization: bool = False,
 ) -> tuple[dict[str, list[OutfitItemSlot]], list[RelaxationStep], int, list[str]]:
     """Execute one targeted relaxation round preserving category boundaries and must_avoid invariants."""
     next_round = relaxation_round + 1
@@ -926,9 +931,10 @@ def apply_relaxation_request(
                     new_slots = _query_category(c.category, mh, hints)
                     updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
 
-    updated_pool = _apply_saved_avoid_filter(
-        session, user_id, updated_pool, context, active_relaxations=updated_steps
-    )
+    if not disable_personalization:
+        updated_pool = _apply_saved_avoid_filter(
+            session, user_id, updated_pool, context, active_relaxations=updated_steps
+        )
     return updated_pool, updated_steps, next_round, new_warnings
 
 
@@ -960,17 +966,32 @@ def wardrobe_agent_node(
     relaxation_request = state.get("relaxation_request")
     relaxation_round = int(state.get("relaxation_round", 0))
     active_relaxations = list(state.get("active_relaxations", []))
+    disable_personalization = bool(state.get("disable_personalization", False))
 
     if relaxation_request is not None:
         current_pool = state.get("candidate_pool", candidate_pool)
         if session is not None:
             pool, updated_steps, next_round, relax_warnings = apply_relaxation_request(
-                session, user_id, context, current_pool, relaxation_request, relaxation_round, active_relaxations
+                session,
+                user_id,
+                context,
+                current_pool,
+                relaxation_request,
+                relaxation_round,
+                active_relaxations,
+                disable_personalization=disable_personalization,
             )
         else:
             with Session(get_engine()) as db_session:
                 pool, updated_steps, next_round, relax_warnings = apply_relaxation_request(
-                    db_session, user_id, context, current_pool, relaxation_request, relaxation_round, active_relaxations
+                    db_session,
+                    user_id,
+                    context,
+                    current_pool,
+                    relaxation_request,
+                    relaxation_round,
+                    active_relaxations,
+                    disable_personalization=disable_personalization,
                 )
 
         slot_labels = ", ".join(
@@ -996,12 +1017,20 @@ def wardrobe_agent_node(
 
     if session is not None:
         pool, errors, warnings = retrieve_candidate_pool(
-            session, user_id, context, active_relaxations=active_relaxations
+            session,
+            user_id,
+            context,
+            active_relaxations=active_relaxations,
+            disable_personalization=disable_personalization,
         )
     else:
         with Session(get_engine()) as db_session:
             pool, errors, warnings = retrieve_candidate_pool(
-                db_session, user_id, context, active_relaxations=active_relaxations
+                db_session,
+                user_id,
+                context,
+                active_relaxations=active_relaxations,
+                disable_personalization=disable_personalization,
             )
 
     trace_event = AgentTraceEvent(

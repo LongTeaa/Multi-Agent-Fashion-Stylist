@@ -360,3 +360,207 @@ def test_cross_family_judge_bidirectional_bias_calibration_and_cache(tmp_path: P
     assert judge_cached.api_calls == 0
     assert judge_cached.cache_hits == len(cal_data["pointwise_samples"]) + 2 * len(cal_data["pairwise_samples"])
     assert cal_res_2["pointwise_accuracy"] == 1.0
+
+
+def test_aborted_live_run_error_is_not_swallowed_by_context_or_explanation_fallbacks(
+    migrated_database: tuple[object, object],
+):
+    """AbortedLiveRunError must propagate past context_agent and coordinator fallbacks and mark run_complete=False."""
+    _, engine = migrated_database
+
+    class _AlwaysFailingProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def extract_context(self, **kwargs):
+            self.calls += 1
+            raise RuntimeError("Simulated 429 quota exceeded")
+
+        def generate_outfit_explanations(self, **kwargs):
+            self.calls += 1
+            raise RuntimeError("Simulated 429 quota exceeded")
+
+    failing_provider = _AlwaysFailingProvider()
+    bundle = load_benchmark_bundle()
+    report = run_benchmark(
+        bundle=bundle,
+        split="dev",
+        systems=["M-Full"],
+        include_stress=False,
+        llm_provider_override=failing_provider,
+        engine_override=engine,
+    )
+    assert report["metadata"]["run_complete"] is False
+    assert report["metadata"]["aborted_reason"] is not None
+    assert "consecutive provider failures" in report["metadata"]["aborted_reason"]
+    # Stopped right at default max_consecutive_failures=3 instead of running all 20 dev cases
+    assert failing_provider.calls == 3
+
+
+def test_judge_config_from_env_isolates_provider_keys_and_base_urls(monkeypatch: pytest.MonkeyPatch):
+    """JudgeConfig.from_env must never send OPENAI_API_KEY to Anthropic/Gemini and must use provider-specific base URLs."""
+    monkeypatch.delenv("BENCH_JUDGE_PROVIDER", raising=False)
+    monkeypatch.delenv("BENCH_JUDGE_BASE_URL", raising=False)
+    monkeypatch.delenv("BENCH_JUDGE_MODEL", raising=False)
+    monkeypatch.delenv("BENCH_JUDGE_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-only")
+
+    anth = JudgeConfig.from_env(provider="anthropic")
+    assert anth.base_url == "https://api.anthropic.com/v1"
+    assert anth.api_key == ""  # Never falls back to OPENAI_API_KEY
+
+    gem = JudgeConfig.from_env(provider="gemini")
+    assert gem.base_url == "https://generativelanguage.googleapis.com/v1beta"
+    assert gem.api_key == ""  # Never falls back to OPENAI_API_KEY
+    assert gem.model.startswith("gemini")
+
+    oai = JudgeConfig.from_env(provider="openai_compatible")
+    assert oai.base_url == "https://api.openai.com/v1"
+    assert oai.api_key == "sk-openai-only"
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-real")
+    monkeypatch.setenv("GEMINI_API_KEY", "gm-real")
+    assert JudgeConfig.from_env(provider="anthropic").api_key == "sk-ant-real"
+    assert JudgeConfig.from_env(provider="gemini").api_key == "gm-real"
+
+
+def test_disable_personalization_ablation_skips_saved_avoid_and_recent_wear_penalty(
+    migrated_database: tuple[object, object],
+):
+    """M-NoPersonalization must bypass both wardrobe_agent's _apply_saved_avoid_filter and recent wear penalty."""
+    from datetime import datetime, timedelta, timezone
+    from uuid import uuid4
+    from app.agents.stylist_graph import execute_stylist_recommendation
+    from app.models.entities import User, UserPreference, WardrobeCategory, WardrobeItem
+    from app.services.retrieval_document_service import refresh_retrieval_document
+
+    _, engine = migrated_database
+    fixed_now = datetime(2026, 9, 12, 10, 0, 0, tzinfo=timezone.utc)
+    user_id = f"user_nopers_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.add(
+            UserPreference(
+                user_id=user_id,
+                styles=["casual"],
+                color_palettes=["neutral"],
+                priorities=["comfort"],
+                avoid_colors=["white"],  # Saved profile avoid color
+            )
+        )
+        session.flush()
+
+        # Best-scoring shirt is white AND worn 12h ago; alternative shirt is poor formal/color match
+        items = [
+            WardrobeItem(
+                id="top-white-worn",
+                user_id=user_id,
+                category=WardrobeCategory.TOP,
+                sub_category="shirt",
+                primary_color="white",
+                pattern="solid",
+                material="cotton",
+                style="formal",
+                fit="regular",
+                formality_level=5,
+                comfort_level=5,
+                weather_suitability=["cool", "warm"],
+                functional_flags=["work"],
+                last_worn_at=fixed_now - timedelta(hours=12),
+                is_user_confirmed=True,
+                is_active=True,
+            ),
+            WardrobeItem(
+                id="top-orange-alt",
+                user_id=user_id,
+                category=WardrobeCategory.TOP,
+                sub_category="shirt",
+                primary_color="orange",
+                pattern="floral",
+                material="cotton",
+                style="streetwear",
+                fit="oversized",
+                formality_level=4,
+                comfort_level=2,
+                weather_suitability=["cool", "warm"],
+                functional_flags=[],
+                is_user_confirmed=True,
+                is_active=True,
+            ),
+            WardrobeItem(
+                id="bot-black",
+                user_id=user_id,
+                category=WardrobeCategory.BOTTOM,
+                sub_category="trousers",
+                primary_color="black",
+                pattern="solid",
+                material="wool",
+                style="formal",
+                fit="regular",
+                formality_level=5,
+                comfort_level=4,
+                weather_suitability=["cool", "warm"],
+                functional_flags=["work"],
+                is_user_confirmed=True,
+                is_active=True,
+            ),
+            WardrobeItem(
+                id="shoe-black",
+                user_id=user_id,
+                category=WardrobeCategory.FOOTWEAR,
+                sub_category="oxford",
+                primary_color="black",
+                pattern="solid",
+                material="leather",
+                style="formal",
+                fit="regular",
+                formality_level=5,
+                comfort_level=4,
+                weather_suitability=["cool", "warm"],
+                functional_flags=["work"],
+                is_user_confirmed=True,
+                is_active=True,
+            ),
+        ]
+        for it in items:
+            session.add(it)
+        session.flush()
+        for it in items:
+            refresh_retrieval_document(session, it)
+        session.commit()
+
+        # With personalization enabled: saved avoid_colors=['white'] filters out top-white-worn!
+        with_pers = execute_stylist_recommendation(
+            {
+                "request_id": "req-pers-on",
+                "user_id": user_id,
+                "user_query": "Đi phỏng vấn sáng nay mặc gì?",
+                "enable_agent_loops": False,
+                "disable_personalization": False,
+            },
+            session=session,
+            clock=lambda: fixed_now,
+        )
+        assert with_pers["errors"] == []
+        top1_pers_ids = {it.item_id for it in with_pers["ranked_outfits"][0].items}
+        assert "top-orange-alt" in top1_pers_ids
+
+        # With disable_personalization=True: NEITHER saved avoid NOR 48h wear penalty applies -> top-white-worn wins with 0 wear penalty!
+        no_pers = execute_stylist_recommendation(
+            {
+                "request_id": "req-pers-off",
+                "user_id": user_id,
+                "user_query": "Đi phỏng vấn sáng nay mặc gì?",
+                "enable_agent_loops": False,
+                "disable_personalization": True,
+            },
+            session=session,
+            clock=lambda: fixed_now,
+        )
+        assert no_pers["errors"] == []
+        top1_nopers_ids = {it.item_id for it in no_pers["ranked_outfits"][0].items}
+        assert "top-white-worn" in top1_nopers_ids
+        assert all(n.conflict_type != "RECENT_WEAR_VS_BEST_FIT" for n in no_pers["conflict_notes"])

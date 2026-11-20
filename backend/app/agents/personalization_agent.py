@@ -397,6 +397,8 @@ def rerank_evaluated_outfits(
     context: StylistContext | None = None,
     reference_time: datetime | None = None,
     max_output: int = 3,
+    *,
+    disable_recent_wear: bool = False,
 ) -> tuple[list[RankedOutfit], list[str]]:
     """Rerank the complete bounded Fashion Agent pool into 1 to 3 results.
 
@@ -484,9 +486,12 @@ def rerank_evaluated_outfits(
 
         avoid_penalty = (0.10 * len(violations)) if is_relaxed else 0.0
 
-        wear_penalty, wear_notes = calculate_recent_wear_penalty(
-            cand.items, recent_data, reference_time
-        )
+        if disable_recent_wear:
+            wear_penalty, wear_notes = 0.0, []
+        else:
+            wear_penalty, wear_notes = calculate_recent_wear_penalty(
+                cand.items, recent_data, reference_time
+            )
         wear_penalties.append(wear_penalty)
 
         raw_preference = (
@@ -610,10 +615,11 @@ def personalization_agent_node(
         return {"ranked_outfits": []}
 
     # Load user data with session unless explicitly disabled for ablation evaluation
+    disable_personalization = bool(state.get("disable_personalization", False))
     preferences: UserPreference | None = None
     recent_wear_data: dict[str, Any] = {}
 
-    if not state.get("disable_personalization", False):
+    if not disable_personalization:
         try:
             if session is not None:
                 preferences, recent_wear_data = get_user_personalization_data(
@@ -639,6 +645,7 @@ def personalization_agent_node(
         context=context,
         reference_time=reference_time,
         max_output=3,
+        disable_recent_wear=disable_personalization,
     )
 
     conflict_notes: list[ConflictNote] = []
@@ -652,7 +659,7 @@ def personalization_agent_node(
                 resolution_vi="Ưu tiên đáp ứng đúng hoàn cảnh của câu hỏi hiện tại.",
             )
         )
-    if ranked:
+    if ranked and not disable_personalization:
         top_wear_penalty, _ = calculate_recent_wear_penalty(
             ranked[0].items, recent_wear_data, reference_time
         )

@@ -99,11 +99,14 @@ class JudgeConfig:
             or os.environ.get("BENCH_JUDGE_PROVIDER")
             or "openai_compatible"
         ).strip().lower()
-        default_base = (
-            "https://api.anthropic.com/v1"
-            if eff_provider == "anthropic"
-            else "https://api.openai.com/v1"
-        )
+        provider_defaults: dict[str, tuple[str, str, str]] = {
+            "openai_compatible": ("https://api.openai.com/v1", "gpt-4.1-mini", "OPENAI_API_KEY"),
+            "anthropic": ("https://api.anthropic.com/v1", "claude-sonnet-4-20250514", "ANTHROPIC_API_KEY"),
+            "gemini": ("https://generativelanguage.googleapis.com/v1beta", "gemini-2.5-flash", "GEMINI_API_KEY"),
+        }
+        if eff_provider not in provider_defaults:
+            raise ValueError(f"Unsupported judge provider: '{eff_provider}'")
+        default_base, default_model, provider_key_env = provider_defaults[eff_provider]
         eff_base = (
             base_url
             or os.environ.get("BENCH_JUDGE_BASE_URL")
@@ -112,17 +115,15 @@ class JudgeConfig:
         eff_model = (
             model
             or os.environ.get("BENCH_JUDGE_MODEL")
-            or ("claude-sonnet-4-20250514" if eff_provider == "anthropic" else "gpt-4.1-mini")
+            or default_model
         ).strip()
         eff_key = (
             os.environ.get(api_key_env)
             or os.environ.get("BENCH_JUDGE_API_KEY")
-            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get(provider_key_env)
             or ""
         ).strip()
         timeout = float(os.environ.get("BENCH_JUDGE_TIMEOUT_SECONDS", "25"))
-        if eff_provider not in {"openai_compatible", "anthropic", "gemini"}:
-            raise ValueError(f"Unsupported judge provider: '{eff_provider}'")
         return cls(
             provider=eff_provider,  # type: ignore[arg-type]
             base_url=eff_base,

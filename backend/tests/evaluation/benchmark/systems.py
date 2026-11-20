@@ -44,8 +44,12 @@ from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.retrieval_document_service import refresh_retrieval_document
 
 
-class AbortedLiveRunError(RuntimeError):
-    """Raised when consecutive provider failures exceed the configured threshold."""
+class AbortedLiveRunError(BaseException):
+    """Raised when consecutive provider failures exceed the configured threshold.
+
+    Inherits from BaseException so production fallback ``except Exception:`` handlers
+    (e.g. in context_agent or coordinator batch explanations) never swallow an abort.
+    """
 
 
 class TelemetryLLMProbe:
@@ -834,6 +838,7 @@ def run_multi_agent_system(
         "enable_agent_loops": config.enable_agent_loops,
         "enable_relaxation_loop": config.enable_relaxation_loop,
         "enable_critique_loop": config.enable_critique_loop,
+        "enable_llm_explanations": llm_probe is not None,
         "disable_personalization": config.disable_personalization,
     }
 
