@@ -13,9 +13,11 @@ from app.agents.fashion_scoring import (
 )
 from app.agents.state import (
     AgentTraceEvent,
+    ConstraintRelaxationPlan,
     CritiqueSignal,
     EvaluatedOutfit,
     GarmentConstraint,
+    MAX_RELAXATION_ROUNDS,
     OutfitItemSlot,
     RelaxAction,
     RelaxationRequest,
@@ -24,26 +26,21 @@ from app.agents.state import (
     StylistContext,
     StylistGraphState,
     is_relaxation_loop_enabled,
+    normalize_relax_token,
 )
-from app.agents.wardrobe_agent import RELAX_COLOR_FAMILIES, SUBCATEGORY_EQUIVALENTS
+from app.agents.wardrobe_agent import (
+    CATEGORY_TO_SLOT,
+    RELAX_COLOR_FAMILIES,
+    SUBCATEGORY_EQUIVALENTS,
+)
 from app.models.entities import OutfitSlotRole, WardrobeCategory
 
 MAX_CATEGORY_POOL = 15
 MAX_GENERATED_COMBINATIONS = 500
 TOP_K_OUTFITS = 5
 MAX_EVALUATED_OUTFITS = 50
-MAX_RELAXATION_ROUNDS = 2
 NO_COMPLETE_OUTFIT_ERROR = "NO_COMPLETE_OUTFIT"
 NO_COMPLETE_OUTFIT_WARNING = "Không thể ghép được bộ trang phục hoàn chỉnh từ các món đồ trong tủ đồ."
-
-CATEGORY_TO_SLOT_NAME: dict[WardrobeCategory, SlotName] = {
-    WardrobeCategory.TOP: "tops",
-    WardrobeCategory.BOTTOM: "bottoms",
-    WardrobeCategory.DRESS: "dresses",
-    WardrobeCategory.FOOTWEAR: "footwear",
-    WardrobeCategory.OUTERWEAR: "outerwear",
-    WardrobeCategory.ACCESSORY: "accessories",
-}
 
 ROLE_ORDER: dict[OutfitSlotRole, int] = {
     OutfitSlotRole.TOP: 0,
@@ -53,18 +50,6 @@ ROLE_ORDER: dict[OutfitSlotRole, int] = {
     OutfitSlotRole.OUTERWEAR: 3,
     OutfitSlotRole.ACCESSORY: 4,
 }
-
-
-_SUBCATEGORY_ALIASES = {
-    "jean": "jeans",
-    "sneaker": "sneakers",
-    "sandal": "sandals",
-}
-
-
-def _normalized_value(value: str) -> str:
-    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
-    return _SUBCATEGORY_ALIASES.get(normalized, normalized)
 
 
 def constraint_matches_item(
@@ -80,36 +65,36 @@ def constraint_matches_item(
     steps = [s for s in (active_relaxations or ()) if s.category == item.category]
 
     if constraint.sub_category is not None:
-        target_sub = _normalized_value(constraint.sub_category)
-        item_sub = _normalized_value(item.sub_category)
+        target_sub = normalize_relax_token(constraint.sub_category)
+        item_sub = normalize_relax_token(item.sub_category)
         # Generic 'dress' constraint accepts specific dress taxonomy subtypes (formal_dress, midi_dress, ...)
         if not (constraint.category == WardrobeCategory.DRESS and target_sub == "dress" and item.category == WardrobeCategory.DRESS):
             allowed_subs = {target_sub}
             for s in steps:
-                if s.action == "subcategory_equivalent" and _normalized_value(s.original_value) == target_sub:
-                    allowed_subs.update(_normalized_value(v) for v in s.relaxed_values)
+                if s.action == "subcategory_equivalent" and normalize_relax_token(s.original_value) == target_sub:
+                    allowed_subs.update(normalize_relax_token(v) for v in s.relaxed_values)
             if item_sub not in allowed_subs:
                 return False
 
     if constraint.color is not None:
-        target_col = _normalized_value(constraint.color)
-        colors = {_normalized_value(item.primary_color)}
+        target_col = normalize_relax_token(constraint.color)
+        colors = {normalize_relax_token(item.primary_color)}
         if item.secondary_color:
-            colors.add(_normalized_value(item.secondary_color))
+            colors.add(normalize_relax_token(item.secondary_color))
         allowed_colors = {target_col}
         for s in steps:
-            if s.action == "color_family" and _normalized_value(s.original_value) == target_col:
-                allowed_colors.update(_normalized_value(v) for v in s.relaxed_values)
+            if s.action == "color_family" and normalize_relax_token(s.original_value) == target_col:
+                allowed_colors.update(normalize_relax_token(v) for v in s.relaxed_values)
         if not (colors & allowed_colors):
             return False
 
     if constraint.material is not None:
-        target_mat = _normalized_value(constraint.material)
+        target_mat = normalize_relax_token(constraint.material)
         material_relaxed = any(
-            s.action == "material_relax" and _normalized_value(s.original_value) == target_mat
+            s.action == "material_relax" and normalize_relax_token(s.original_value) == target_mat
             for s in steps
         )
-        if not material_relaxed and _normalized_value(item.material) != target_mat:
+        if not material_relaxed and normalize_relax_token(item.material) != target_mat:
             return False
 
     return True
@@ -142,19 +127,105 @@ def _has_direct_avoid_conflict(
     """Return whether constraint color or sub_category is directly banned by structured_must_avoid."""
     color_banned = False
     sub_banned = False
-    c_col = _normalized_value(constraint.color) if constraint.color is not None else None
-    c_sub = _normalized_value(constraint.sub_category) if constraint.sub_category is not None else None
+    c_col = normalize_relax_token(constraint.color) if constraint.color is not None else None
+    c_sub = normalize_relax_token(constraint.sub_category) if constraint.sub_category is not None else None
     for avoid in avoid_constraints:
         cat_match = avoid.category is None or constraint.category is None or avoid.category == constraint.category
         if not cat_match:
             continue
-        if c_col is not None and avoid.color is not None and _normalized_value(avoid.color) == c_col:
-            if avoid.sub_category is None or (c_sub is not None and _normalized_value(avoid.sub_category) == c_sub):
+        if c_col is not None and avoid.color is not None and normalize_relax_token(avoid.color) == c_col:
+            if avoid.sub_category is None or (c_sub is not None and normalize_relax_token(avoid.sub_category) == c_sub):
                 color_banned = True
-        if c_sub is not None and avoid.sub_category is not None and _normalized_value(avoid.sub_category) == c_sub:
+        if c_sub is not None and avoid.sub_category is not None and normalize_relax_token(avoid.sub_category) == c_sub:
             if avoid.color is None:
                 sub_banned = True
     return color_banned, sub_banned
+
+
+def _has_subcategory_equivalents(category: WardrobeCategory, sub_category: str) -> bool:
+    norm_sub = normalize_relax_token(sub_category)
+    raw_sub = sub_category.strip().lower()
+    return (
+        (category, norm_sub) in SUBCATEGORY_EQUIVALENTS
+        or (category, raw_sub) in SUBCATEGORY_EQUIVALENTS
+    )
+
+
+def _plan_empty_slot_actions(
+    c: GarmentConstraint,
+    applied: set[tuple[WardrobeCategory, str, str]],
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> list[RelaxAction]:
+    """Plan minimal relaxation actions for a must-have constraint whose category pool is empty."""
+    if c.category is None:
+        return []
+    actions: list[RelaxAction] = []
+    color_conflict, sub_conflict = _has_direct_avoid_conflict(c, avoid_constraints)
+    if c.material is not None and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+        actions.append("material_relax")
+    # Only widen sub_category when no material constraint is pending relaxation,
+    # preserving exact garment subtype (e.g. linen shirt -> cotton shirt before polo).
+    if c.sub_category is not None and not actions and not sub_conflict:
+        norm_sub = normalize_relax_token(c.sub_category)
+        if _has_subcategory_equivalents(c.category, c.sub_category) and (
+            c.category, "subcategory_equivalent", norm_sub
+        ) not in applied:
+            actions.append("subcategory_equivalent")
+    if c.color is not None and not actions and not color_conflict:
+        norm_col = normalize_relax_token(c.color)
+        if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+            actions.append("color_family")
+    return actions
+
+
+def _plan_non_empty_slot_actions(
+    c: GarmentConstraint,
+    slot_items: list[OutfitItemSlot],
+    applied: set[tuple[WardrobeCategory, str, str]],
+    avoid_constraints: Sequence[GarmentConstraint],
+) -> list[RelaxAction]:
+    """Plan minimal relaxation actions strictly scoped to one blocked constraint."""
+    if c.category is None:
+        return []
+    actions: list[RelaxAction] = []
+    color_conflict, sub_conflict = _has_direct_avoid_conflict(c, avoid_constraints)
+    has_sub_match = c.sub_category is None or any(
+        normalize_relax_token(it.sub_category) == normalize_relax_token(c.sub_category)
+        for it in slot_items
+    )
+    has_mat_match = c.material is None or any(
+        normalize_relax_token(it.material) == normalize_relax_token(c.material)
+        for it in slot_items
+    )
+
+    if c.color is not None and not color_conflict and has_sub_match and has_mat_match:
+        norm_col = normalize_relax_token(c.color)
+        if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+            actions.append("color_family")
+    if c.material is not None and not has_mat_match and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+        actions.append("material_relax")
+    if c.sub_category is not None and not sub_conflict and not has_sub_match:
+        norm_sub = normalize_relax_token(c.sub_category)
+        if _has_subcategory_equivalents(c.category, c.sub_category) and (
+            c.category, "subcategory_equivalent", norm_sub
+        ) not in applied:
+            actions.append("subcategory_equivalent")
+
+    # Fallback if exact sub+color+mat combination still blocks (e.g. matching sub_category items have wrong color AND wrong material)
+    if not actions:
+        if c.color is not None and not color_conflict:
+            norm_col = normalize_relax_token(c.color)
+            if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
+                actions.append("color_family")
+        if c.material is not None and (c.category, "material_relax", normalize_relax_token(c.material)) not in applied:
+            actions.append("material_relax")
+        if c.sub_category is not None and not sub_conflict:
+            norm_sub = normalize_relax_token(c.sub_category)
+            if _has_subcategory_equivalents(c.category, c.sub_category) and (
+                c.category, "subcategory_equivalent", norm_sub
+            ) not in applied:
+                actions.append("subcategory_equivalent")
+    return actions
 
 
 def diagnose_bottleneck(
@@ -164,61 +235,44 @@ def diagnose_bottleneck(
     relaxation_round: int,
     active_relaxations: Sequence[RelaxationStep] | None = None,
 ) -> RelaxationRequest | None:
-    """Diagnose an unsatisfiable constraint bottleneck and propose one bounded RelaxationRequest."""
+    """Diagnose an unsatisfiable constraint bottleneck and propose one bounded per-constraint RelaxationRequest."""
     if relaxation_round >= MAX_RELAXATION_ROUNDS or not context.structured_must_have:
         return None
 
     applied = {
-        (s.category, s.action, _normalized_value(s.original_value))
+        (s.category, s.action, normalize_relax_token(s.original_value))
         for s in (active_relaxations or ())
     }
 
     # Case 1: combinations is empty (a required slot failed strict must_have in retrieval_service).
     # If no structured_must_have locks that empty slot, the user's wardrobe truly lacks the category -> return None.
     if not combinations:
-        blocked_slots: list[SlotName] = []
-        blocked_constraints: list[GarmentConstraint] = []
-        allowed_actions: list[RelaxAction] = []
-
+        constraint_plans: list[ConstraintRelaxationPlan] = []
         for c in context.structured_must_have:
             if c.category is None:
                 continue
-            slot_name = CATEGORY_TO_SLOT_NAME[c.category]
+            slot_name: SlotName = CATEGORY_TO_SLOT[c.category]  # type: ignore[assignment]
             if candidate_pool.get(slot_name):
                 continue
-
-            _, sub_conflict = _has_direct_avoid_conflict(c, context.structured_must_avoid)
-            added_for_c = False
-            if c.material is not None and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
-                if "material_relax" not in allowed_actions:
-                    allowed_actions.append("material_relax")
-                added_for_c = True
-            # Only widen sub_category when no material constraint is pending relaxation,
-            # preserving exact garment subtype (e.g. linen shirt -> cotton shirt before polo).
-            if c.sub_category is not None and not added_for_c and not sub_conflict:
-                norm_sub = _normalized_value(c.sub_category)
-                raw_sub = c.sub_category.strip().lower()
-                has_equiv = (
-                    (c.category, norm_sub) in SUBCATEGORY_EQUIVALENTS
-                    or (c.category, raw_sub) in SUBCATEGORY_EQUIVALENTS
+            c_actions = _plan_empty_slot_actions(c, applied, context.structured_must_avoid)
+            if c_actions:
+                constraint_plans.append(
+                    ConstraintRelaxationPlan(
+                        slot=slot_name,
+                        constraint=c,
+                        allowed_actions=c_actions,
+                    )
                 )
-                if has_equiv and (c.category, "subcategory_equivalent", norm_sub) not in applied:
-                    if "subcategory_equivalent" not in allowed_actions:
-                        allowed_actions.append("subcategory_equivalent")
-                    added_for_c = True
 
-            if added_for_c:
-                blocked_slots.append(slot_name)
-                blocked_constraints.append(c)
-
-        if not blocked_slots or not allowed_actions:
+        if not constraint_plans:
             return None
 
         return RelaxationRequest(
             issue_code="MISSING_SLOT",
-            bottleneck_slots=list(dict.fromkeys(blocked_slots)),
-            blocked_constraints=blocked_constraints,
-            allowed_actions=allowed_actions,
+            bottleneck_slots=list(dict.fromkeys(p.slot for p in constraint_plans)),
+            blocked_constraints=[p.constraint for p in constraint_plans],
+            allowed_actions=list(dict.fromkeys(a for p in constraint_plans for a in p.allowed_actions)),
+            constraint_plans=constraint_plans,
             reason_vi="Không tìm thấy đúng kiểu dáng/chất liệu yêu cầu trong tủ đồ, đề xuất tìm kiểu tương đương cùng nhóm.",
         )
 
@@ -234,90 +288,36 @@ def diagnose_bottleneck(
     if not unsatisfied_constraints:
         return None
 
-    bottleneck_slots: list[SlotName] = []
-    blocked_constraints: list[GarmentConstraint] = []
-    allowed_actions: list[RelaxAction] = []
-
+    constraint_plans = []
     for c in unsatisfied_constraints:
         if c.category is None:
             continue
-        slot_name = CATEGORY_TO_SLOT_NAME[c.category]
-        # Only relax if this category actually has candidates; never jump top+bottom <-> dress.
-        if not candidate_pool.get(slot_name):
-            continue
-
-        added_for_c = False
-        color_conflict, sub_conflict = _has_direct_avoid_conflict(c, context.structured_must_avoid)
-        slot_items = candidate_pool[slot_name]
-        # Check whether an item in slot already satisfies sub_category (and material) so we only
-        # relax what is actually blocking instead of firing unnecessary subcategory relaxations.
-        has_sub_match = c.sub_category is None or any(
-            _normalized_value(it.sub_category) == _normalized_value(c.sub_category)
-            for it in slot_items
-        )
-        has_mat_match = c.material is None or any(
-            _normalized_value(it.material) == _normalized_value(c.material)
-            for it in slot_items
-        )
-
-        if c.color is not None and not color_conflict and has_sub_match and has_mat_match:
-            norm_col = _normalized_value(c.color)
-            if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
-                if "color_family" not in allowed_actions:
-                    allowed_actions.append("color_family")
-                added_for_c = True
-        if c.material is not None and not has_mat_match and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
-            if "material_relax" not in allowed_actions:
-                allowed_actions.append("material_relax")
-            added_for_c = True
-        if c.sub_category is not None and not sub_conflict and not has_sub_match:
-            norm_sub = _normalized_value(c.sub_category)
-            raw_sub = c.sub_category.strip().lower()
-            has_equiv = (
-                (c.category, norm_sub) in SUBCATEGORY_EQUIVALENTS
-                or (c.category, raw_sub) in SUBCATEGORY_EQUIVALENTS
-            )
-            if has_equiv and (c.category, "subcategory_equivalent", norm_sub) not in applied:
-                if "subcategory_equivalent" not in allowed_actions:
-                    allowed_actions.append("subcategory_equivalent")
-                added_for_c = True
-
-        # Fallback if exact sub+color+mat combination still blocks (e.g. matching sub_category items have wrong color AND wrong material)
-        if not added_for_c:
-            if c.color is not None and not color_conflict:
-                norm_col = _normalized_value(c.color)
-                if norm_col in RELAX_COLOR_FAMILIES and (c.category, "color_family", norm_col) not in applied:
-                    if "color_family" not in allowed_actions:
-                        allowed_actions.append("color_family")
-                    added_for_c = True
-            if c.material is not None and (c.category, "material_relax", _normalized_value(c.material)) not in applied:
-                if "material_relax" not in allowed_actions:
-                    allowed_actions.append("material_relax")
-                added_for_c = True
-            if c.sub_category is not None and not sub_conflict:
-                norm_sub = _normalized_value(c.sub_category)
-                raw_sub = c.sub_category.strip().lower()
-                has_equiv = (
-                    (c.category, norm_sub) in SUBCATEGORY_EQUIVALENTS
-                    or (c.category, raw_sub) in SUBCATEGORY_EQUIVALENTS
+        slot_name = CATEGORY_TO_SLOT[c.category]  # type: ignore[assignment]
+        slot_items = candidate_pool.get(slot_name, [])
+        if not slot_items:
+            # Must-have slot was emptied by strict retrieval while another branch (e.g. dress) still
+            # generated combinations; diagnose within c.category without ever crossing branches.
+            c_actions = _plan_empty_slot_actions(c, applied, context.structured_must_avoid)
+        else:
+            c_actions = _plan_non_empty_slot_actions(c, slot_items, applied, context.structured_must_avoid)
+        if c_actions:
+            constraint_plans.append(
+                ConstraintRelaxationPlan(
+                    slot=slot_name,
+                    constraint=c,
+                    allowed_actions=c_actions,
                 )
-                if has_equiv and (c.category, "subcategory_equivalent", norm_sub) not in applied:
-                    if "subcategory_equivalent" not in allowed_actions:
-                        allowed_actions.append("subcategory_equivalent")
-                    added_for_c = True
+            )
 
-        if added_for_c:
-            bottleneck_slots.append(slot_name)
-            blocked_constraints.append(c)
-
-    if not bottleneck_slots or not allowed_actions:
+    if not constraint_plans:
         return None
 
     return RelaxationRequest(
         issue_code="CONSTRAINT_UNSATISFIED",
-        bottleneck_slots=list(dict.fromkeys(bottleneck_slots)),
-        blocked_constraints=blocked_constraints,
-        allowed_actions=allowed_actions,
+        bottleneck_slots=list(dict.fromkeys(p.slot for p in constraint_plans)),
+        blocked_constraints=[p.constraint for p in constraint_plans],
+        allowed_actions=list(dict.fromkeys(a for p in constraint_plans for a in p.allowed_actions)),
+        constraint_plans=constraint_plans,
         reason_vi="Tủ đồ chưa có món khớp chính xác đồng thời mọi thuộc tính yêu cầu, đề xuất nới lỏng màu sắc hoặc kiểu tương đương.",
     )
 

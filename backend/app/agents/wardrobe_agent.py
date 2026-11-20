@@ -1,5 +1,4 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
@@ -7,13 +6,16 @@ from sqlmodel import Session, select
 
 from app.agents.state import (
     AgentTraceEvent,
+    ConstraintRelaxationPlan,
     GarmentConstraint,
+    MAX_RELAXATION_ROUNDS,
     OutfitItemSlot,
     RelaxationRequest,
     RelaxationStep,
     SlotName,
     StylistContext,
     StylistGraphState,
+    normalize_relax_token,
 )
 from app.core.database import get_engine
 from app.models.entities import (
@@ -51,8 +53,6 @@ CANONICAL_SLOTS: list[str] = [
     "accessories",
 ]
 
-MAX_RELAXATION_ROUNDS = 2
-
 # Tier 1: shade expansion within the same requested color family
 RELAX_COLOR_FAMILIES: dict[str, list[str]] = {
     "black": ["charcoal", "grey", "gray", "navy"],
@@ -81,6 +81,10 @@ SUBCATEGORY_EQUIVALENTS: dict[tuple[WardrobeCategory, str], list[str]] = {
     (WardrobeCategory.FOOTWEAR, "sneakers"): ["loafers"],
     (WardrobeCategory.OUTERWEAR, "blazer"): ["jacket", "cardigan", "coat"],
     (WardrobeCategory.OUTERWEAR, "jacket"): ["blazer", "cardigan", "coat"],
+    (WardrobeCategory.DRESS, "shirt_dress"): ["casual_dress", "dress", "midi_dress"],
+    (WardrobeCategory.DRESS, "formal_dress"): ["midi_dress", "maxi_dress", "dress"],
+    (WardrobeCategory.DRESS, "midi_dress"): ["casual_dress", "shirt_dress", "dress"],
+    (WardrobeCategory.DRESS, "maxi_dress"): ["midi_dress", "casual_dress", "dress"],
 }
 
 # Keywords identifying which category a garment constraint belongs to
@@ -418,11 +422,6 @@ def get_category_for_raw_token(token: str) -> WardrobeCategory | None:
     return None
 
 
-def _norm_relax_token(value: str) -> str:
-    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
-    return {"jean": "jeans", "sneaker": "sneakers", "sandal": "sandals"}.get(normalized, normalized)
-
-
 def _extract_avoid_filters(
     context: StylistContext,
 ) -> tuple[dict[WardrobeCategory, list[str]], list[GarmentConstraint]]:
@@ -576,7 +575,13 @@ def retrieve_candidate_pool(
     if context.structured_must_have:
         for c in context.structured_must_have:
             if c.is_category_only:
-                # Slot existence is guaranteed by category retrieval; do not filter text
+                # Slot existence is guaranteed by category retrieval; do not filter by category text,
+                # but still retain explicit material/color hints (e.g. "đầm đỏ").
+                if c.category is not None and c.material is not None:
+                    targeted_must_have[c.category].append(c.material)
+                if c.color is not None:
+                    general_color_hints.append(c.color)
+                    required_colors.append(c.color)
                 continue
             if c.category is not None:
                 if c.sub_category is not None:
@@ -747,13 +752,19 @@ def _merge_slot_items(
     new_slots: list[OutfitItemSlot],
     limit: int = 15,
 ) -> list[OutfitItemSlot]:
-    seen_ids = {item.item_id for item in existing}
-    merged = list(existing)
+    """Merge newly relaxed items ahead of existing candidates so a full slot never starves relaxation."""
+    existing_ids = {item.item_id for item in existing}
+    seen_ids: set[str] = set()
+    prioritized: list[OutfitItemSlot] = []
     for slot in new_slots:
-        if slot.item_id not in seen_ids and len(merged) < limit:
+        if slot.item_id not in existing_ids and slot.item_id not in seen_ids:
             seen_ids.add(slot.item_id)
-            merged.append(slot)
-    return merged
+            prioritized.append(slot)
+    for slot in existing:
+        if slot.item_id not in seen_ids:
+            seen_ids.add(slot.item_id)
+            prioritized.append(slot)
+    return prioritized[: max(limit, len(existing))]
 
 
 def apply_relaxation_request(
@@ -772,7 +783,7 @@ def apply_relaxation_request(
     }
     updated_steps: list[RelaxationStep] = list(active_relaxations or ())
     applied_keys = {
-        (step.category, step.action, _norm_relax_token(step.original_value))
+        (step.category, step.action, normalize_relax_token(step.original_value))
         for step in updated_steps
     }
     new_warnings: list[str] = []
@@ -808,14 +819,28 @@ def apply_relaxation_request(
         media_ids = primary_media_ids(session, user_id, [m.item.id for m in capped_matches])
         return [_build_outfit_item_slot(m.item, cat, media_id=media_ids.get(m.item.id)) for m in capped_matches]
 
-    for c in request.blocked_constraints:
+    plans: list[ConstraintRelaxationPlan] = list(request.constraint_plans)
+    if not plans:
+        plans = [
+            ConstraintRelaxationPlan(
+                slot=CATEGORY_TO_SLOT[c.category],  # type: ignore[arg-type]
+                constraint=c,
+                allowed_actions=list(request.allowed_actions),
+            )
+            for c in request.blocked_constraints
+            if c.category is not None
+        ]
+
+    for plan in plans:
+        c = plan.constraint
         if c.category is None:
             continue
-        slot_name: SlotName = CATEGORY_TO_SLOT[c.category]  # type: ignore[assignment]
-        cat_avoid_material = "material_relax" in request.allowed_actions
+        slot_name: SlotName = plan.slot
+        plan_actions = set(plan.allowed_actions)
+        constraint_relax_material = "material_relax" in plan_actions
 
-        if "color_family" in request.allowed_actions and c.color is not None:
-            norm_col = _norm_relax_token(c.color)
+        if "color_family" in plan_actions and c.color is not None:
+            norm_col = normalize_relax_token(c.color)
             relaxed_cols = RELAX_COLOR_FAMILIES.get(norm_col)
             key = (c.category, "color_family", norm_col)
             if relaxed_cols and key not in applied_keys:
@@ -836,13 +861,13 @@ def apply_relaxation_request(
                 mh: list[str] = []
                 if c.sub_category is not None:
                     mh.append(c.sub_category)
-                if c.material is not None and not cat_avoid_material:
+                if c.material is not None and not constraint_relax_material:
                     mh.append(c.material)
                 new_slots = _query_category(c.category, mh, [c.color, *relaxed_cols])
                 updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
 
-        if "material_relax" in request.allowed_actions and c.material is not None:
-            norm_mat = _norm_relax_token(c.material)
+        if "material_relax" in plan_actions and c.material is not None:
+            norm_mat = normalize_relax_token(c.material)
             key = (c.category, "material_relax", norm_mat)
             if key not in applied_keys:
                 reason = f"Linh hoạt bỏ ràng buộc chất liệu '{c.material}' trong nhóm {c.category.value}."
@@ -863,8 +888,8 @@ def apply_relaxation_request(
                 new_slots = _query_category(c.category, mh, hints)
                 updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)
 
-        if "subcategory_equivalent" in request.allowed_actions and c.sub_category is not None:
-            norm_sub = _norm_relax_token(c.sub_category)
+        if "subcategory_equivalent" in plan_actions and c.sub_category is not None:
+            norm_sub = normalize_relax_token(c.sub_category)
             equiv_subs = SUBCATEGORY_EQUIVALENTS.get((c.category, norm_sub)) or SUBCATEGORY_EQUIVALENTS.get(
                 (c.category, c.sub_category.strip().lower())
             )
@@ -887,7 +912,7 @@ def apply_relaxation_request(
                 hints = [c.color] if c.color is not None else []
                 for eq_sub in equiv_subs:
                     mh = [eq_sub]
-                    if c.material is not None and not cat_avoid_material:
+                    if c.material is not None and not constraint_relax_material:
                         mh.append(c.material)
                     new_slots = _query_category(c.category, mh, hints)
                     updated_pool[slot_name] = _merge_slot_items(updated_pool[slot_name], new_slots)

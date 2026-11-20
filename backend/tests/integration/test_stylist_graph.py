@@ -912,3 +912,155 @@ def test_loop2_critic_reroutes_on_rainy_context_gap(
         assert result["critique_round"] == 1
         assert result["coordinator_decision"] == "approve"
         assert any("water_resistant" in item.functional_flags for item in result["ranked_outfits"][0].items)
+
+
+def test_loop1_relaxation_applies_actions_strictly_per_constraint(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Review #2: material_relax on top must NOT widen top to polo or strip leather from footwear."""
+    _, engine = migrated_database
+    user_id = f"user_per_constraint_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        # Shirt is cotton (needs material_relax only), polo is cotton (must NOT satisfy shirt!),
+        # chinos (needs subcategory_equivalent for trousers), leather brown oxford (needs color_family only)
+        _add_wardrobe_item(session, item_id="top-shirt-cotton", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", material="cotton", style="smart_casual", formality=4)
+        _add_wardrobe_item(session, item_id="top-polo-cotton", user_id=user_id, category=WardrobeCategory.TOP, sub_category="polo", color="white", material="cotton", style="smart_casual", formality=4)
+        _add_wardrobe_item(session, item_id="bot-chinos-navy", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="navy", material="cotton", style="smart_casual", formality=3)
+        _add_wardrobe_item(session, item_id="shoe-oxford-leather-brown", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="brown", material="leather", style="formal", formality=4)
+        _add_wardrobe_item(session, item_id="shoe-oxford-canvas-black", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="black", material="canvas", style="casual", formality=2)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-per-constraint-01",
+                "user_id": user_id,
+                "user_query": "Đi làm hôm nay, muốn mặc áo sơ mi linen và quần tây.",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        steps = result["active_relaxations"]
+        assert any(s.category == WardrobeCategory.TOP and s.action == "material_relax" for s in steps)
+        assert any(s.category == WardrobeCategory.BOTTOM and s.action == "subcategory_equivalent" for s in steps)
+        # Crucially: TOP must NOT have received subcategory_equivalent from BOTTOM
+        assert not any(s.category == WardrobeCategory.TOP and s.action == "subcategory_equivalent" for s in steps)
+        # Every recommended outfit must keep the cotton shirt, never substitute polo
+        for outfit in result["ranked_outfits"]:
+            top_items = [it for it in outfit.items if it.category == WardrobeCategory.TOP]
+            assert all(it.sub_category == "shirt" for it in top_items)
+            assert all(it.item_id != "top-polo-cotton" for it in outfit.items)
+
+
+def test_loop1_relaxation_does_not_leak_material_relax_to_leather_footwear(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Review #2: material_relax on top/linen must NOT strip leather requirement from another constraint."""
+    _, engine = migrated_database
+    user_id = f"user_mat_leak_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="top-shirt-cotton", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", material="cotton", style="formal", formality=4)
+        _add_wardrobe_item(session, item_id="bot-trousers-navy", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="trousers", color="navy", material="wool", style="formal", formality=4)
+        _add_wardrobe_item(session, item_id="shoe-oxford-leather-navy", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="navy", material="leather", style="formal", formality=5)
+        _add_wardrobe_item(session, item_id="shoe-oxford-canvas-black", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="oxford", color="black", material="canvas", style="formal", formality=5)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-mat-leak-01",
+                "user_id": user_id,
+                "user_query": "Đi họp hôm nay, muốn mặc áo sơ mi linen và giày da màu đen.",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        steps = result["active_relaxations"]
+        assert any(s.category == WardrobeCategory.TOP and s.action == "material_relax" for s in steps)
+        assert any(s.category == WardrobeCategory.FOOTWEAR and s.action == "color_family" for s in steps)
+        # Footwear should keep leather (relax black -> navy), NOT relax leather to canvas!
+        assert not any(s.category == WardrobeCategory.FOOTWEAR and s.action == "material_relax" for s in steps)
+        for outfit in result["ranked_outfits"]:
+            shoes = [it for it in outfit.items if it.category == WardrobeCategory.FOOTWEAR]
+            assert all(it.material == "leather" for it in shoes)
+            assert all(it.item_id == "shoe-oxford-leather-navy" for it in shoes)
+
+
+def test_loop1_case2_relaxes_empty_must_have_slot_even_when_dress_branch_exists(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Case 2 empty must-have slot must still trigger relaxation when dress branch makes combinations non-empty."""
+    _, engine = migrated_database
+    user_id = f"user_case2_empty_{uuid4().hex[:8]}"
+
+    with Session(engine) as session:
+        session.add(User(id=user_id))
+        session.flush()
+        _add_wardrobe_item(session, item_id="dress-existing", user_id=user_id, category=WardrobeCategory.DRESS, sub_category="casual_dress", color="beige", style="smart_casual", formality=3)
+        _add_wardrobe_item(session, item_id="top-shirt-white", user_id=user_id, category=WardrobeCategory.TOP, sub_category="shirt", color="white", style="smart_casual", formality=4)
+        # Only chinos (no trousers), so initial strict retrieval empties bottoms while dress+footwear still forms combos
+        _add_wardrobe_item(session, item_id="bot-chinos-khaki", user_id=user_id, category=WardrobeCategory.BOTTOM, sub_category="chinos", color="khaki", style="smart_casual", formality=3)
+        _add_wardrobe_item(session, item_id="shoe-loafers-brown", user_id=user_id, category=WardrobeCategory.FOOTWEAR, sub_category="loafers", color="brown", style="smart_casual", formality=3)
+        session.commit()
+
+        result = execute_stylist_recommendation(
+            {
+                "request_id": "req-case2-empty-slot",
+                "user_id": user_id,
+                "user_query": "Đi làm hôm nay, tôi muốn mặc áo sơ mi và quần tây.",
+            },
+            session=session,
+            clock=_fixed_clock,
+        )
+
+        assert result["errors"] == []
+        assert result["grounding_validated"] is True
+        assert result["relaxation_round"] == 1
+        assert any(s.category == WardrobeCategory.BOTTOM and s.action == "subcategory_equivalent" for s in result["active_relaxations"])
+        top1_ids = {it.item_id for it in result["ranked_outfits"][0].items}
+        assert "top-shirt-white" in top1_ids
+        assert "bot-chinos-khaki" in top1_ids
+
+
+def test_merge_slot_items_prioritizes_newly_relaxed_items_when_slot_at_capacity() -> None:
+    """_merge_slot_items must surface newly relaxed items even when the existing slot already has 15 items."""
+    from app.agents.state import OutfitItemSlot
+    from app.agents.wardrobe_agent import _merge_slot_items
+    from app.models.entities import OutfitSlotRole
+
+    existing = [
+        OutfitItemSlot(
+            item_id=f"existing-{i}",
+            slot_role=OutfitSlotRole.TOP,
+            name=f"Áo {i}",
+            primary_color="white",
+            style="casual",
+            category=WardrobeCategory.TOP,
+            sub_category="t-shirt",
+        )
+        for i in range(15)
+    ]
+    relaxed = [
+        OutfitItemSlot(
+            item_id="relaxed-match-1",
+            slot_role=OutfitSlotRole.TOP,
+            name="Áo sơ mi",
+            primary_color="navy",
+            style="smart_casual",
+            category=WardrobeCategory.TOP,
+            sub_category="shirt",
+        ),
+    ]
+    merged = _merge_slot_items(existing, relaxed, limit=15)
+    assert len(merged) == 15
+    assert merged[0].item_id == "relaxed-match-1"

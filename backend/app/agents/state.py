@@ -200,6 +200,28 @@ RelaxAction = Literal[
     "subcategory_equivalent",
 ]
 
+MAX_RELAXATION_ROUNDS = 2
+
+_RELAX_TOKEN_ALIASES: dict[str, str] = {
+    "jean": "jeans",
+    "sneaker": "sneakers",
+    "sandal": "sandals",
+}
+
+
+def normalize_relax_token(value: str) -> str:
+    """Canonical normalization shared by bottleneck diagnosis, constraint matching, and relaxation application."""
+    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+    return _RELAX_TOKEN_ALIASES.get(normalized, normalized)
+
+
+class ConstraintRelaxationPlan(BaseModel):
+    """Per-constraint relaxation actions so one constraint's action never leaks to another."""
+
+    slot: SlotName
+    constraint: GarmentConstraint
+    allowed_actions: list[RelaxAction] = Field(min_length=1)
+
 
 class RelaxationRequest(BaseModel):
     """Feedback message from Fashion Agent back to Wardrobe Agent (Loop 1)."""
@@ -208,6 +230,7 @@ class RelaxationRequest(BaseModel):
     bottleneck_slots: list[SlotName] = Field(min_length=1)
     blocked_constraints: list[GarmentConstraint] = Field(default_factory=list)
     allowed_actions: list[RelaxAction] = Field(min_length=1)
+    constraint_plans: list[ConstraintRelaxationPlan] = Field(default_factory=list)
     reason_vi: str
 
 

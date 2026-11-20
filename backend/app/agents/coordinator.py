@@ -18,11 +18,10 @@ from app.agents.state import (
     StylistContext,
     StylistGraphState,
     is_critique_loop_enabled,
+    normalize_relax_token,
 )
-from app.agents.fashion_agent import (
-    _normalized_value,
-    outfit_satisfies_explicit_constraints,
-)
+from app.agents.fashion_agent import outfit_satisfies_explicit_constraints
+from app.agents.wardrobe_agent import CATEGORY_TO_SLOT
 from app.agents.fashion_scoring import count_recently_worn_items
 from app.core.database import get_engine
 from app.models.entities import (
@@ -376,30 +375,30 @@ def _prepare_grounded_explanation(
             if not matching_items:
                 continue
             if step.action == "color_family":
-                relaxed_cols = {_normalized_value(v) for v in step.relaxed_values}
-                orig_col = _normalized_value(step.original_value)
+                relaxed_cols = {normalize_relax_token(v) for v in step.relaxed_values}
+                orig_col = normalize_relax_token(step.original_value)
                 if any(
-                    _normalized_value(it.primary_color) in relaxed_cols
-                    and _normalized_value(it.primary_color) != orig_col
+                    normalize_relax_token(it.primary_color) in relaxed_cols
+                    and normalize_relax_token(it.primary_color) != orig_col
                     for it in matching_items
                 ):
                     relax_notes.append(
                         "Đã linh hoạt chọn màu hiện có trong tủ thay cho màu yêu cầu ban đầu."
                     )
             elif step.action == "subcategory_equivalent":
-                relaxed_subs = {_normalized_value(v) for v in step.relaxed_values}
-                orig_sub = _normalized_value(step.original_value)
+                relaxed_subs = {normalize_relax_token(v) for v in step.relaxed_values}
+                orig_sub = normalize_relax_token(step.original_value)
                 if any(
-                    _normalized_value(it.sub_category) in relaxed_subs
-                    and _normalized_value(it.sub_category) != orig_sub
+                    normalize_relax_token(it.sub_category) in relaxed_subs
+                    and normalize_relax_token(it.sub_category) != orig_sub
                     for it in matching_items
                 ):
                     relax_notes.append(
                         "Đã linh hoạt chọn kiểu dáng tương đương hiện có trong tủ."
                     )
             elif step.action == "material_relax":
-                orig_mat = _normalized_value(step.original_value)
-                if any(_normalized_value(it.material) != orig_mat for it in matching_items):
+                orig_mat = normalize_relax_token(step.original_value)
+                if any(normalize_relax_token(it.material) != orig_mat for it in matching_items):
                     relax_notes.append(
                         "Đã linh hoạt mở rộng chất liệu có sẵn trong tủ."
                     )
@@ -599,15 +598,6 @@ def evaluate_critic_signal(
     if not canonical_outfits:
         return None
 
-    slot_map: dict[WardrobeCategory, str] = {
-        WardrobeCategory.TOP: "tops",
-        WardrobeCategory.BOTTOM: "bottoms",
-        WardrobeCategory.DRESS: "dresses",
-        WardrobeCategory.FOOTWEAR: "footwear",
-        WardrobeCategory.OUTERWEAR: "outerwear",
-        WardrobeCategory.ACCESSORY: "accessories",
-    }
-
     # Rule 1: ALL_RECENTLY_WORN (every top candidate contains at least one item worn within 48h,
     # while the candidate_pool still has an unworn replacement in that same slot).
     if all(
@@ -619,7 +609,7 @@ def evaluate_critic_signal(
             for item in outfit.items:
                 if count_recently_worn_items([item], reference_time=reference_time, recent_window_hours=48) == 0:
                     continue
-                pool_slot = slot_map.get(item.category, "")
+                pool_slot = CATEGORY_TO_SLOT.get(item.category, "")
                 slot_candidates = candidate_pool.get(pool_slot, [])
                 has_unworn_alt = any(
                     cand.item_id != item.item_id
