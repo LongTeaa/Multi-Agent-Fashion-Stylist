@@ -459,3 +459,42 @@ def test_compound_avoid_clauses_and_mandatory_triggers():
     c3 = extract_context(q3)
     assert any(cs.category == WardrobeCategory.DRESS and cs.is_category_only for cs in c3.structured_must_have)
     assert any(cs.color == "black" for cs in c3.structured_must_avoid)
+
+
+def test_dress_compound_phrases_take_precedence_over_top_and_bottom():
+    """Verify compound dress phrases are parsed as DRESS, not top/shirt, top/t-shirt, or bottom/jeans."""
+    c_shirt_dress = extract_context("tôi muốn mặc đầm sơ mi đi cafe")
+    assert len(c_shirt_dress.structured_must_have) == 1
+    assert c_shirt_dress.structured_must_have[0].category == WardrobeCategory.DRESS
+    assert c_shirt_dress.structured_must_have[0].sub_category == "shirt_dress"
+
+    c_tee_dress = extract_context("muốn mặc đầm thun đi chơi cuối tuần")
+    assert len(c_tee_dress.structured_must_have) == 1
+    assert c_tee_dress.structured_must_have[0].category == WardrobeCategory.DRESS
+    assert c_tee_dress.structured_must_have[0].is_category_only is True
+
+    c_avoid_jean_dress = extract_context("đi cafe tối nay, không mặc váy jean")
+    assert len(c_avoid_jean_dress.structured_must_avoid) == 1
+    assert c_avoid_jean_dress.structured_must_avoid[0].category == WardrobeCategory.DRESS
+    assert c_avoid_jean_dress.structured_must_avoid[0].sub_category != "jeans"
+
+    # Skirts remain BOTTOM/skirt and are never captured by generic dress rules
+    c_skirt = extract_context("đi cafe cuối tuần, không mặc chân váy jean")
+    assert len(c_skirt.structured_must_avoid) == 1
+    assert c_skirt.structured_must_avoid[0].category == WardrobeCategory.BOTTOM
+    assert c_skirt.structured_must_avoid[0].sub_category == "skirt"
+
+    # False-positive guards: 'đầm ấm' and 'dress shirt' must NOT be parsed as DRESS
+    c_warm_family = extract_context("đi tiệc gia đình đầm ấm, muốn mặc áo sơ mi trắng")
+    assert any(
+        cs.category == WardrobeCategory.TOP and cs.sub_category == "shirt"
+        for cs in c_warm_family.structured_must_have
+    )
+    assert all(cs.category != WardrobeCategory.DRESS for cs in c_warm_family.structured_must_have)
+
+    c_dress_shirt = extract_context("đi phỏng vấn, muốn mặc dress shirt trắng")
+    assert any(
+        cs.category == WardrobeCategory.TOP and cs.sub_category == "shirt"
+        for cs in c_dress_shirt.structured_must_have
+    )
+    assert all(cs.category != WardrobeCategory.DRESS for cs in c_dress_shirt.structured_must_have)

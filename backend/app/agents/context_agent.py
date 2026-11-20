@@ -397,7 +397,7 @@ def extract_functional_tags(text: str) -> list[str]:
     return list(dict.fromkeys(tags))
 
 
-SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]] = [
+SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str | None, str | None]] = [
     # Outerwear (Checked first to prevent 'áo' from capturing jacket/blazer/vest)
     (["áo khoác", "khoác", "jacket"], WardrobeCategory.OUTERWEAR, "jacket", None),
     (["áo blazer", "blazer"], WardrobeCategory.OUTERWEAR, "blazer", None),
@@ -408,8 +408,15 @@ SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]]
     # Bottoms - Skirts (Checked before Dresses to prevent 'chân váy' from being classified as dress)
     (["chân váy chữ a", "chân váy xếp ly", "chân váy bút chì", "chân váy ngắn", "chân váy dài", "chân váy", "skirt", "skirts"], WardrobeCategory.BOTTOM, "skirt", None),
 
-    # Dresses (specific floral phrases stay before generic category rules)
+    # Dresses (Checked BEFORE Footwear/Bottoms/Tops so compound dress phrases like 'đầm sơ mi',
+    # 'đầm thun', 'váy jean' never fall into top/shirt, top/t-shirt, or bottom/jeans;
+    # generic 'đầm'/'váy'/'váy đầm'/'dress' keeps sub_category=None -> is_category_only=True)
+    (["đầm sơ mi", "váy sơ mi", "shirt dress"], WardrobeCategory.DRESS, "shirt_dress", None),
+    (["đầm dạ hội", "váy dạ hội", "evening dress", "formal dress"], WardrobeCategory.DRESS, "formal_dress", None),
+    (["đầm maxi", "váy maxi", "maxi dress"], WardrobeCategory.DRESS, "maxi_dress", None),
+    (["đầm midi", "váy midi", "midi dress"], WardrobeCategory.DRESS, "midi_dress", None),
     (["đầm hoa", "váy hoa"], WardrobeCategory.DRESS, "dress", None),
+    (["váy đầm", "đầm", "váy", "dress"], WardrobeCategory.DRESS, None, None),
 
     # Footwear
     (["giày da", "giày tây da", "giày tây", "giày oxford", "oxford"], WardrobeCategory.FOOTWEAR, "oxford", "leather"),
@@ -434,7 +441,6 @@ SPECIFIC_GARMENT_DEFS: list[tuple[list[str], WardrobeCategory, str, str | None]]
 ]
 
 GENERIC_CATEGORY_DEFS: list[tuple[list[str], WardrobeCategory]] = [
-    (["váy đầm", "đầm", "váy", "dress"], WardrobeCategory.DRESS),
     (["áo"], WardrobeCategory.TOP),
     (["quần"], WardrobeCategory.BOTTOM),
     (["giày", "dép"], WardrobeCategory.FOOTWEAR),
@@ -481,6 +487,20 @@ def _parse_single_constraint(phrase: str) -> GarmentConstraint | None:
     # 1. Check specific garments (longest keywords first)
     for kws, cat, sub, mat in SPECIFIC_GARMENT_DEFS:
         for kw in sorted(kws, key=len, reverse=True):
+            if sub is None:
+                # Generic category-level entry placed ahead of lower-precedence garments (e.g. 'đầm'/'váy')
+                if not re.search(rf"\b{re.escape(kw)}\b", p):
+                    continue
+                if kw == "đầm" and re.search(r"\bđầm\s+ấm\b", p):
+                    continue
+                if kw == "dress" and re.search(r"\bdress\s+(?:shirt|pants|trousers|shoes)\b", p):
+                    continue
+                matched_cat = cat
+                matched_sub = None
+                matched_mat = mat
+                matched_garment_kw = kw
+                is_category_only = True
+                break
             if kw in p:
                 matched_cat = cat
                 matched_sub = sub
