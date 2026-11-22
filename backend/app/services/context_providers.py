@@ -18,7 +18,7 @@ from app.services.weather_providers import EVENT_HOURS, temperature_condition
 def build_gemini_generation_config(
     model: str | None,
     *,
-    thinking_level: str | None = "low",
+    thinking_level: str | None = "minimal",
 ) -> dict[str, Any]:
     """Build Gemini generationConfig for JSON output with bounded thinking latency on Gemini 3 models."""
     cfg: dict[str, Any] = {"response_mime_type": "application/json"}
@@ -140,7 +140,7 @@ class GeminiContextProvider:
         initial_backoff_seconds: float = 1.0,
         explanation_timeout_seconds: float | None = None,
         request_delay_seconds: float = 0.0,
-        thinking_level: str | None = "low",
+        thinking_level: str | None = "minimal",
         sleep_fn: Callable[[float], None] = time.sleep,
     ) -> None:
         if key_pool is not None:

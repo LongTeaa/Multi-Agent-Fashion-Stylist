@@ -717,7 +717,7 @@ def run_single_prompt_gemini_baseline(
     max_retries: int = 0,
     initial_backoff_seconds: float = 1.0,
     request_delay_seconds: float = 0.0,
-    thinking_level: str | None = "low",
+    thinking_level: str | None = "minimal",
     cache: JsonlResultCache | None = None,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:

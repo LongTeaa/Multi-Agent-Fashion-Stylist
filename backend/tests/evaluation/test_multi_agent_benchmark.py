@@ -1257,7 +1257,7 @@ def test_gemini_context_provider_sends_thinking_level_for_gemini3_and_parses_jso
     )
     out = provider.extract_context(query="Phỏng vấn sáng nay", location=None, current_date=date(2026, 11, 22))
     assert out["occasion"] == "interview"
-    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
     assert seen_keys == ["key-exhausted", "key-healthy-2"]
     assert sleeps == []
     status = pool.get_pool_status()
@@ -1353,6 +1353,6 @@ def test_b2_single_prompt_sends_thinking_level_for_gemini3_and_rotates_past_dail
             sleep_fn=sleeps.append,
         )
     assert res["status"] == "ok"
-    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
     assert seen_keys == ["key-daily-dead", "key-live-ok"]
     assert sleeps == []
