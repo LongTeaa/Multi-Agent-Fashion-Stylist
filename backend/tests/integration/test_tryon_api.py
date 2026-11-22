@@ -866,3 +866,183 @@ def test_virtual_tryon_quota_or_provider_failure_falls_back_to_moodboard(
     finally:
         app.dependency_overrides.clear()
 
+
+
+def _outfit_fake_provider(model: str = "fake-outfit-vto") -> object:
+    """Fake provider that also renders a whole outfit in one call."""
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+    from app.services.providers import OutfitTryOnRequest, TryOnResult
+
+    class _OutfitFake(FakeTryOnProvider):
+        provider_name = "fake_outfit"
+
+        def __init__(self) -> None:
+            super().__init__(model=model)
+            self.outfit_requests: list[OutfitTryOnRequest] = []
+
+        def try_on_outfit(self, request: OutfitTryOnRequest) -> TryOnResult:
+            self.outfit_requests.append(request)
+            buffer = BytesIO()
+            Image.new("RGB", (736, 1024), "#c9d6df").save(buffer, format="WEBP")
+            return TryOnResult(image_bytes=buffer.getvalue(), mime_type="image/webp",
+                               provider=self.provider_name, model=self.model)
+
+    return _OutfitFake()
+
+
+def test_outfit_capable_provider_renders_the_whole_outfit_in_one_call(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.core.dependencies import get_tryon_provider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+    provider = _outfit_fake_provider()
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_tryon_provider] = lambda: provider
+
+    try:
+        data = _render_tryon(TestClient(app), user_id, outfit_id, "preset-female")
+        assert data["fallback_used"] is False
+        assert provider.history == []  # no per-garment passes
+        (request,) = provider.outfit_requests
+        assert [(g.category, g.sub_category, g.primary_color) for g in request.garments] == [
+            ("tops", "polo", "white"),
+            ("bottoms", "chinos", "navy"),
+        ]
+        with Session(engine) as session:
+            render = session.get(TryOnRender, data["tryon_id"])
+            assert render is not None
+            assert (render.provider, render.model, render.render_mode) == ("fake_outfit", "fake-outfit-vto", "virtual_tryon")
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_render_cache_is_scoped_to_the_provider_model(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.core.dependencies import get_tryon_provider
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id)
+    old_model, new_model = FakeTryOnProvider(model="old-vton"), FakeTryOnProvider(model="new-vton")
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+
+    try:
+        client = TestClient(app)
+        app.dependency_overrides[get_tryon_provider] = lambda: old_model
+        first = _render_tryon(client, user_id, outfit_id, "preset-male")
+        # After switching providers, the old model's render is not served from the cache.
+        app.dependency_overrides[get_tryon_provider] = lambda: new_model
+        switched = _render_tryon(client, user_id, outfit_id, "preset-male")
+        assert switched["tryon_id"] != first["tryon_id"] and len(new_model.history) == 2
+        # Each model still hits its own cached render.
+        app.dependency_overrides[get_tryon_provider] = lambda: old_model
+        again = _render_tryon(client, user_id, outfit_id, "preset-male")
+        assert again["tryon_id"] == first["tryon_id"] and again["duration_ms"] == 0
+    finally:
+        app.dependency_overrides.clear()
+
+
+def _ids_by_sub_category(engine: object, user_id: str) -> dict[str, str]:
+    with Session(engine) as session:
+        return {item.sub_category: item.id for item in session.exec(select(WardrobeItem).where(WardrobeItem.user_id == user_id))}
+
+
+@pytest.mark.parametrize(
+    ("items", "expected_roles"),
+    [
+        (
+            (
+                (OutfitSlotRole.TOP, WardrobeCategory.TOP, "polo", "white"),
+                (OutfitSlotRole.OUTERWEAR, WardrobeCategory.OUTERWEAR, "jacket", "brown"),
+                (OutfitSlotRole.BOTTOM, WardrobeCategory.BOTTOM, "chinos", "navy"),
+                (OutfitSlotRole.FOOTWEAR, WardrobeCategory.FOOTWEAR, "sneakers", "white"),
+                (OutfitSlotRole.ACCESSORY, WardrobeCategory.ACCESSORY, "beanie", "grey"),
+            ),
+            [("outer", "jacket"), ("upper", "polo"), ("lower", "chinos"), ("footwear", "sneakers"), ("headwear", "beanie")],
+        ),
+        (
+            (
+                (OutfitSlotRole.DRESS, WardrobeCategory.DRESS, "midi dress", "red"),
+                (OutfitSlotRole.OUTERWEAR, WardrobeCategory.OUTERWEAR, "blazer", "white"),
+                (OutfitSlotRole.FOOTWEAR, WardrobeCategory.FOOTWEAR, "flats", "beige"),
+                (OutfitSlotRole.ACCESSORY, WardrobeCategory.ACCESSORY, "watch", "silver"),
+            ),
+            [("one_piece", "midi dress"), ("outer", "blazer"), ("footwear", "flats")],
+        ),
+    ],
+)
+def test_whole_outfit_provider_wears_layers_footwear_and_headwear_but_not_other_accessories(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+    items: tuple[tuple[OutfitSlotRole, WardrobeCategory, str, str], ...],
+    expected_roles: list[tuple[str, str]],
+) -> None:
+    from app.core.dependencies import get_tryon_provider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id, custom_items=items)
+    ids = _ids_by_sub_category(engine, user_id)
+    provider = _outfit_fake_provider()
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_tryon_provider] = lambda: provider
+
+    try:
+        client = TestClient(app)
+        data = _render_tryon(client, user_id, outfit_id, "preset-male")
+        (request,) = provider.outfit_requests
+        assert [(g.role, g.sub_category) for g in request.garments] == expected_roles
+        worn = sorted(ids[sub] for _, sub in expected_roles)
+        assert sorted(data["rendered_item_ids"]) == worn
+        assert "watch" not in [g.sub_category for g in request.garments]
+        # Polling and cache hits report the same worn items.
+        polled = client.get(f"/api/v1/tryons/{data['tryon_id']}", headers={"X-User-Id": user_id}).json()["data"]
+        assert sorted(polled["rendered_item_ids"]) == worn
+        cached = _render_tryon(client, user_id, outfit_id, "preset-male")
+        assert cached["duration_ms"] == 0 and sorted(cached["rendered_item_ids"]) == worn
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_garment_pass_provider_keeps_one_upper_layer_and_no_footwear(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    from app.core.dependencies import get_tryon_provider
+    from app.services.fakes.tryon_fakes import FakeTryOnProvider
+
+    _, engine = migrated_database
+    user_id = str(uuid4())
+    storage = _storage(tmp_path)
+    items = (
+        (OutfitSlotRole.TOP, WardrobeCategory.TOP, "polo", "white"),
+        (OutfitSlotRole.OUTERWEAR, WardrobeCategory.OUTERWEAR, "jacket", "brown"),
+        (OutfitSlotRole.BOTTOM, WardrobeCategory.BOTTOM, "chinos", "navy"),
+        (OutfitSlotRole.FOOTWEAR, WardrobeCategory.FOOTWEAR, "sneakers", "white"),
+    )
+    outfit_id = _seed_outfit(engine=engine, storage=storage, user_id=user_id, custom_items=items)
+    ids = _ids_by_sub_category(engine, user_id)
+    provider = FakeTryOnProvider(model="fake-pass-vton")
+    app.dependency_overrides[get_db_session] = _override_session(engine)
+    app.dependency_overrides[get_object_storage] = lambda: storage
+    app.dependency_overrides[get_tryon_provider] = lambda: provider
+
+    try:
+        data = _render_tryon(TestClient(app), user_id, outfit_id, "preset-male")
+        assert [r.category for r in provider.history] == ["tops", "bottoms"]
+        assert sorted(data["rendered_item_ids"]) == sorted([ids["jacket"], ids["chinos"]])
+    finally:
+        app.dependency_overrides.clear()

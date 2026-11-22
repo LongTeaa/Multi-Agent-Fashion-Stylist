@@ -24,6 +24,8 @@ class TryOnResponseData(BaseModel):
     duration_ms: int = Field(default=0, ge=0)
     status: Literal["processing", "ready", "failed"] = "ready"
     error_code: str | None = None
+    # Wardrobe items actually worn in a virtual try-on render; empty for moodboards and lookbooks.
+    rendered_item_ids: list[str] = Field(default_factory=list)
 
 
 class TryOnAvatarResponse(BaseModel):

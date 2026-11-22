@@ -1,0 +1,167 @@
+{
+  "rater": "R3",
+  "rater_role": "friend of the owner, not a fashion specialist",
+  "exported_at": "2026-11-22T10:59:21.624Z",
+  "ratings": [
+    {
+      "case_id": "female-01",
+      "label": "A",
+      "garment_fidelity": 4,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-01",
+      "label": "B",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-02",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-02",
+      "label": "B",
+      "garment_fidelity": 5,
+      "person_preservation": 4,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-03",
+      "label": "A",
+      "garment_fidelity": 4,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-03",
+      "label": "B",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-04",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-04",
+      "label": "B",
+      "garment_fidelity": 3,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-05",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-05",
+      "label": "B",
+      "garment_fidelity": 3,
+      "person_preservation": 5,
+      "realism": 3,
+      "unacceptable": true
+    },
+    {
+      "case_id": "female-06",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "female-06",
+      "label": "B",
+      "garment_fidelity": 3,
+      "person_preservation": 5,
+      "realism": 4,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-01",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-01",
+      "label": "B",
+      "garment_fidelity": 3,
+      "person_preservation": 5,
+      "realism": 4,
+      "unacceptable": true
+    },
+    {
+      "case_id": "male-02",
+      "label": "A",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-02",
+      "label": "B",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 4,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-03",
+      "label": "A",
+      "garment_fidelity": 3,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-03",
+      "label": "B",
+      "garment_fidelity": 5,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-04",
+      "label": "A",
+      "garment_fidelity": 4,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    },
+    {
+      "case_id": "male-04",
+      "label": "B",
+      "garment_fidelity": 4,
+      "person_preservation": 5,
+      "realism": 5,
+      "unacceptable": false
+    }
+  ]
+}

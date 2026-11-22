@@ -4,7 +4,7 @@
 
 The application supports two visual presentation modes for a selected outfit:
 1. **Illustrative Lookbook / Moodboard Fallback:** Produces a catalog lookbook image or structured item moodboard.
-2. **2D Photorealistic Virtual Try-On (VTON):** Inpaints garments onto a full-body person or standard preset model using a pixel-space diffusion model (such as `fashn-ai/fashn-vton-1.5`).
+2. **2D Photorealistic Virtual Try-On (VTON):** Renders the outfit's garments onto a full-body person or standard preset model. The default provider is FLUX VTO on fal.ai (`fal-ai/flux-pro/v1/vto`), selected over FASHN Try-On v1.6 by the 2026-11-22 provider spike (`../archive/reports/TRYON_PROVIDER_SPIKE_2026-11-22.md`); the FASHN VTON v1.5 Hugging Face adapter remains available.
 
 The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tailor-grade fit simulation on the user's body. The UI MUST display the Vietnamese label `Ảnh mặc thử AI` (for virtual try-on), `Ảnh minh họa AI` (for lookbook), or `Moodboard dự phòng` according to render kind.
 
@@ -21,9 +21,13 @@ The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tai
   - `tops`: Shirts, t-shirts, polos, hoodies, jackets, coats (`top`, `outerwear`).
   - `bottoms`: Pants, jeans, trousers, skirts, shorts (`bottom`).
   - `one-pieces`: Dresses, jumpsuits (`dress`).
-  - `footwear` and `accessory` items MUST NOT be submitted to the diffusion inpainting model; they MUST be rendered as coordinated outfit item cards alongside the person image in the UI.
+  - Garment-pass providers (FASHN): `footwear` and `accessory` items MUST NOT be submitted; one upper garment is worn (outerwear over a top) plus the bottom, or a dress alone.
+  - Whole-outfit providers (FLUX VTO): the render wears outerwear over the inner top, or over a dress, plus the bottom, the first footwear item and the first headwear accessory (taxonomy type `hat`: hat, cap, beanie, beret). At least one body garment is required. Other accessories (bags, watches, jewelry, belts) MUST NOT be submitted.
+  - Items not worn in the render MUST be shown as coordinated outfit item cards alongside the person image; the API reports worn items in `rendered_item_ids` (`../05_api/API_CONTRACT.md`, section 8.1).
 
 The Gemini image adapter uses the same `GEMINI_API_KEY` as Vision, with a separate `IMAGE_MODEL` identifier. Set `IMAGE_PROVIDER=gemini` to enable it. The adapter sends the outfit's private item crops as inline reference images and reads generated image bytes from the Gemini response. A provider error, invalid image response, or timeout follows the moodboard fallback path.
+
+The FLUX VTO adapter (`TRYON_PROVIDER=flux`) calls `https://fal.run/<FLUX_VTO_MODEL>` (default `fal-ai/flux-pro/v1/vto`) with `FAL_KEY`. Startup of the try-on dependency MUST fail with a configuration error when `FAL_KEY` is missing. The key MUST be sent only to fal.ai, never to the CDN that serves the result image. Each HTTP call MUST be bounded by `TRYON_TIMEOUT_SECONDS`. An HTTP error, a response without an image, a non-image result or a transport error MUST raise a provider error with a fixed user-facing message (no provider response text), and a timeout MUST raise a timeout; both follow the moodboard fallback path. The adapter re-encodes the result as WebP.
 
 The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space endpoint (`FASHN_TRYON_SPACE=fashn-ai/fashn-vton-1.5`) with optional `HF_TOKEN`. Each provider pass MUST be bounded by `TRYON_TIMEOUT_SECONDS`; on expiry the adapter MUST cancel the remote job and raise a timeout, which follows the moodboard fallback path.
 
@@ -31,7 +35,7 @@ The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space e
 
 ```text
 authorize outfit and items
-  -> check try-on cache by (user_id, avatar_id, sorted_item_ids)
+  -> check try-on cache by (user_id, avatar_id, provider model, sorted_item_ids)
   -> on cache hit: return cached render (HTTP 200)
   -> on cache miss:
      -> if async mode: create pending tryon_render, dispatch background task, return HTTP 202
@@ -39,8 +43,9 @@ authorize outfit and items
         -> resolve person image (preset or avatar source stream)
         -> load primary garment crops
         -> determine execution sequence:
-           - single item or one-piece: 1 pass
-           - top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
+           - provider supports whole-outfit rendering (FLUX VTO): 1 call with every chosen garment
+           - otherwise, single item or one-piece: 1 pass
+           - otherwise, top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
         -> on provider error, quota exhaustion, or timeout:
            - generate deterministic moodboard from item crops with fallback_used=true
         -> persist final media asset to tryon-private bucket
@@ -50,6 +55,10 @@ authorize outfit and items
 ## 4. Prompt and Resolution Requirements
 
 For prompt-based providers (Gemini), the prompt SHOULD describe a standard adult mannequin/model, full-length catalog composition, neutral background, and each garment by slot. It MUST omit null/default attributes and MUST NOT add brands, accessories, or garments absent from the outfit.
+
+The provider model is part of the render cache key, so changing provider or model never serves another model's render; `force_refresh` still bypasses the cache.
+
+For FLUX VTO, the person image MUST be downscaled to at most 1 MP. With one upper and one lower garment, or a one-piece, the garments MUST be placed left to right, upper body first, on a white canvas of at most about 0.5 MP, and the prompt MUST name each garment in that order and ask to keep the person's face, hair, pose, body shape, footwear and background unchanged (the layout measured in the 2026-11-22 spike). When the outfit adds layers, footwear or headwear, the garments MUST be placed in equal cells on a white grid (2×2 for three or four items, 3×2 for five or six) in the order outer layer, inner layer or dress, bottom, footwear, headwear, and the prompt MUST follow the provider's multi-garment form ("The person of image 1, maintaining exactly their face and pose, wearing ... of image 2."), describing the inner layer as worn under the outer layer and asking to keep the footwear only when no footwear is rendered. Prompts MUST use only the recorded color, non-plain pattern and sub-category, and MUST NOT add brands, accessories or garments absent from the outfit. Evidence for the grid layout: `../archive/reports/TRYON_EXTRAS_CHECK_2026-11-22.md`.
 
 For pixel-space diffusion providers (FASHN VTON), output resolution is determined by the model architecture ($576 \times 864$ or aspect-ratio adapted $576 \times 717$). Prompt-based targets SHOULD have at least 1024 pixels on the long edge or use the selected provider's documented limit.
 
@@ -64,7 +73,8 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 
 - The responsive modal MUST contain the main image, item list, and render-kind label.
 - Available actions: switch avatar (preset model vs personal avatar), regenerate / try-on, before/after comparison slider, mark outfit as worn (`recordOutfitWorn`), and close.
-- When an outfit contains both `top` and `outerwear`, the UI SHOULD provide a toggle to preview either the outer layer or inner top.
+- The modal MUST list the items worn in the render (from `rendered_item_ids`) separately from the items shown beside it. Without `rendered_item_ids` (moodboard, lookbook), body garments are listed as worn and footwear and accessories beside it.
+- The first request MUST send every outfit item. When an outfit contains both `top` and `outerwear` and the render did not wear both, the UI SHOULD provide a toggle to preview either the outer layer or the inner top.
 - Rating MUST NOT be forced inside the modal. It MAY appear when cadence allows or when the user opens it manually.
 - Functional icons MUST have text or an accessible label. Decorative emoji MUST NOT appear in headings or button labels.
 

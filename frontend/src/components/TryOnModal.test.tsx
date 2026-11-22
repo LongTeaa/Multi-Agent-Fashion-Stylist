@@ -319,17 +319,18 @@ describe('TryOnModal', () => {
     expect(screen.getByText('Ướm áo khoác ngoài')).toBeDefined();
     expect(screen.getByText('Ướm áo trong')).toBeDefined();
 
-    // Footwear & accessories section visible
-    expect(screen.getByText('Phối kèm (Giày & Phụ kiện)')).toBeDefined();
+    // Without rendered_item_ids the slot rule applies: footwear and accessories sit beside the image
+    expect(screen.getByText('Phối kèm (không hiện trên ảnh)')).toBeDefined();
     expect(screen.getByText('Giày oxford')).toBeDefined();
     expect(screen.getByText('Đồng hồ da')).toBeDefined();
 
-    // Defaults to inner top ('top') with active/inactive badges
+    // The first request sends every item; the server picks the layers its provider can render,
+    // and a single-layer provider wears the outerwear (shown as the active layer).
     expect(api.createTryOn).toHaveBeenNthCalledWith(
       1,
       'outfit-layered',
       expect.objectContaining({
-        itemIds: ['top-1', 'bottom-1', 'shoe-1', 'acc-1'],
+        itemIds: ['top-1', 'outer-1', 'bottom-1', 'shoe-1', 'acc-1'],
       })
     );
     expect(screen.getByText('Đang ướm')).toBeDefined();

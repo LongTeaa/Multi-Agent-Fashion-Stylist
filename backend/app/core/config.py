@@ -49,9 +49,11 @@ class Settings(BaseSettings):
     weather_timeout_seconds: PositiveInt = 5
     image_provider: Literal["disabled", "fake", "gemini"] = "disabled"
     image_timeout_seconds: Literal[8] = 8
-    tryon_provider: Literal["disabled", "fake", "fashn"] = "disabled"
+    tryon_provider: Literal["disabled", "fake", "fashn", "flux"] = "disabled"
     fashn_tryon_space: str = "fashn-ai/fashn-vton-1.5"
     hf_token: SecretStr | None = None
+    fal_key: SecretStr | None = None
+    flux_vto_model: str = "fal-ai/flux-pro/v1/vto"
     tryon_timeout_seconds: PositiveInt = 90
     llm_model: str | None = None
     vision_model: str | None = None

@@ -16,6 +16,8 @@ import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnAvatar, TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
 import { generateUUIDv4 } from '@/lib/uuid';
 
+type LayerChoice = 'auto' | 'outerwear' | 'top';
+
 const SLOT_NAMES: Record<string, string> = {
   top: 'Áo trong',
   bottom: 'Quần / Chân váy',
@@ -62,11 +64,13 @@ export function TryOnModal({
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>('preset-male');
   const [showOriginalAvatar, setShowOriginalAvatar] = useState<boolean>(false);
 
-  // Outerwear vs Inner Top layering selection (if both exist)
+  // Outerwear vs inner top. 'auto' sends every item: a provider that renders layers wears
+  // both, one that renders a single upper garment picks the outerwear. An explicit choice
+  // is only offered when the render did not include both layers.
   const hasTop = items.some((i) => i.slot === 'top');
   const hasOuterwear = items.some((i) => i.slot === 'outerwear');
   const hasBothTops = hasTop && hasOuterwear;
-  const [selectedTopSlot, setSelectedTopSlot] = useState<'outerwear' | 'top'>('top');
+  const [selectedTopSlot, setSelectedTopSlot] = useState<LayerChoice>('auto');
 
   // Avatar upload sub-dialog
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -84,7 +88,7 @@ export function TryOnModal({
   const itemsRef = useRef<TryOnDisplayItem[]>(items);
   const hasBothTopsRef = useRef<boolean>(hasBothTops);
   const selectedAvatarIdRef = useRef<string>(selectedAvatarId);
-  const selectedTopSlotRef = useRef<'outerwear' | 'top'>(selectedTopSlot);
+  const selectedTopSlotRef = useRef<LayerChoice>(selectedTopSlot);
   const uploadInputId = useId();
 
   useEffect(() => {
@@ -129,7 +133,7 @@ export function TryOnModal({
   const generate = useCallback(
     async (
       avatarIdToUse?: string,
-      topSlotToUse?: 'outerwear' | 'top',
+      topSlotToUse?: LayerChoice,
       forceRefresh = false
     ) => {
       if (abortControllerRef.current) {
@@ -149,7 +153,7 @@ export function TryOnModal({
       // Filter items if layering choice is present
       const relevantItemIds = currentItems
         .filter((item) => {
-          if (bothTopsPresent) {
+          if (bothTopsPresent && activeTopSlot !== 'auto') {
             if (activeTopSlot === 'outerwear' && item.slot === 'top') return false;
             if (activeTopSlot === 'top' && item.slot === 'outerwear') return false;
           }
@@ -199,7 +203,7 @@ export function TryOnModal({
     setResult(null);
     setError(null);
     setShowOriginalAvatar(false);
-    setSelectedTopSlot('top');
+    setSelectedTopSlot('auto');
   }
 
   if (isBookmarked !== previousIsBookmarked) {
@@ -355,9 +359,29 @@ export function TryOnModal({
       ? 'Moodboard dự phòng'
       : 'Ảnh minh họa AI';
 
-  // Partition outfit items
-  const garmentItems = items.filter((i) => ['top', 'bottom', 'dress', 'outerwear'].includes(i.slot));
-  const coordinateItems = items.filter((i) => ['footwear', 'accessory'].includes(i.slot));
+  // Partition outfit items. A virtual try-on reports which items it actually rendered;
+  // otherwise fall back to the slot rule (body garments worn, footwear and accessories beside).
+  const wornIds =
+    result?.render_kind === 'virtual_tryon' && result.rendered_item_ids && result.rendered_item_ids.length > 0
+      ? new Set(result.rendered_item_ids)
+      : null;
+  const slotRendered = (slot: string) => items.some((i) => i.slot === slot && wornIds?.has(i.id));
+  const bothLayersWorn = wornIds !== null && slotRendered('top') && slotRendered('outerwear');
+  const showLayerChoice = hasBothTops && !bothLayersWorn;
+  const activeTopSlot: 'outerwear' | 'top' =
+    wornIds !== null && slotRendered('top') && !slotRendered('outerwear')
+      ? 'top'
+      : wornIds !== null && slotRendered('outerwear')
+      ? 'outerwear'
+      : selectedTopSlot === 'top'
+      ? 'top'
+      : 'outerwear';
+  const isUpperLayer = (slot: string) => slot === 'top' || slot === 'outerwear';
+  const garmentItems = wornIds
+    ? items.filter((i) => wornIds.has(i.id) || (showLayerChoice && isUpperLayer(i.slot)))
+    : items.filter((i) => ['top', 'bottom', 'dress', 'outerwear'].includes(i.slot));
+  const garmentIds = new Set(garmentItems.map((i) => i.id));
+  const coordinateItems = items.filter((i) => !garmentIds.has(i.id));
 
   const modalContent = (
     <div
@@ -600,8 +624,8 @@ export function TryOnModal({
                 </div>
               )}
 
-              {/* Layering choice if top + outerwear exist */}
-              {hasBothTops && (
+              {/* Layering choice when the render shows only one of top and outerwear */}
+              {showLayerChoice && (
                 <div className="mb-3 rounded-xl bg-[#F7F5F0] p-2.5 border border-[#E5DFD3]">
                   <p className="text-xs font-semibold text-[#1A1918] mb-1.5">
                     Bộ đồ có cả áo khoác và áo trong:
@@ -614,7 +638,7 @@ export function TryOnModal({
                         void generate(selectedAvatarId, 'outerwear');
                       }}
                       className={`rounded-lg py-1 px-2 text-xs font-semibold transition ${
-                        selectedTopSlot === 'outerwear'
+                        activeTopSlot === 'outerwear'
                           ? 'bg-[#1A1918] text-white'
                           : 'bg-white text-[#5C564E] hover:bg-[#EFECE5]'
                       }`}
@@ -628,7 +652,7 @@ export function TryOnModal({
                         void generate(selectedAvatarId, 'top');
                       }}
                       className={`rounded-lg py-1 px-2 text-xs font-semibold transition ${
-                        selectedTopSlot === 'top'
+                        activeTopSlot === 'top'
                           ? 'bg-[#1A1918] text-white'
                           : 'bg-white text-[#5C564E] hover:bg-[#EFECE5]'
                       }`}
@@ -645,10 +669,8 @@ export function TryOnModal({
               </h3>
               <div className="mt-2 space-y-2">
                 {garmentItems.map((item) => {
-                  const isLayeredUpperItem =
-                    hasBothTops && (item.slot === 'top' || item.slot === 'outerwear');
-                  const isActiveUpperLayer =
-                    isLayeredUpperItem && item.slot === selectedTopSlot;
+                  const isLayeredUpperItem = showLayerChoice && isUpperLayer(item.slot);
+                  const isActiveUpperLayer = isLayeredUpperItem && item.slot === activeTopSlot;
                   return (
                     <div
                       key={item.id}
@@ -697,7 +719,7 @@ export function TryOnModal({
                 <div className="mt-3.5 pt-3 border-t border-[#EFECE6]">
                   <div className="flex items-center justify-between mb-1.5">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-[#736E65]">
-                      Phối kèm (Giày & Phụ kiện)
+                      Phối kèm (không hiện trên ảnh)
                     </h3>
                     <span className="text-[10px] text-[#9C5234] font-medium bg-[#F9F4F0] px-2 py-0.5 rounded-full">
                       Phối cùng bộ
