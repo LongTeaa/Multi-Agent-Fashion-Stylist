@@ -240,6 +240,33 @@ def _create_isolated_temp_engine(tmp_dir: Path) -> Engine:
     return engine
 
 
+def _format_profile_summary_for_judge(
+    profile_id: str | None,
+    profile_spec: dict[str, Any] | None,
+) -> str:
+    """Format full profile preferences for LLM Judge so it can judge taste and avoid rules."""
+    if not profile_id or not profile_spec:
+        return "không có"
+    parts: list[str] = []
+    if profile_spec.get("styles"):
+        parts.append(f"phong_cách={','.join(profile_spec['styles'])}")
+    if profile_spec.get("color_palettes"):
+        parts.append(f"bảng_màu={','.join(profile_spec['color_palettes'])}")
+    if profile_spec.get("priorities"):
+        parts.append(f"ưu_tiên={','.join(profile_spec['priorities'])}")
+    if profile_spec.get("avoid_colors"):
+        parts.append(f"tránh_màu={','.join(profile_spec['avoid_colors'])}")
+    if profile_spec.get("avoid_styles"):
+        parts.append(f"tránh_phong_cách={','.join(profile_spec['avoid_styles'])}")
+    if profile_spec.get("fit_preferences"):
+        parts.append(f"dáng={','.join(profile_spec['fit_preferences'])}")
+    learned = (profile_spec.get("learned_feature_weights") or {}).get("weights") or {}
+    if learned:
+        learned_str = ", ".join(f"{k}:{v:+.1f}" for k, v in sorted(learned.items()))
+        parts.append(f"trọng_số_học=({learned_str})")
+    return f"{profile_id} ({'; '.join(parts)})" if parts else str(profile_id)
+
+
 def _aggregate_system_summary(
     *,
     system_id: str,
@@ -258,6 +285,7 @@ def _aggregate_system_summary(
     tot_ground = sum(la.valid_grounding_outfits for la in layer_a_by_case.values())
     tot_struct = sum(la.valid_structure_outfits for la in layer_a_by_case.values())
     tot_fact = sum(la.factual_explanations for la in layer_a_by_case.values())
+    tot_bracket = sum(la.canonical_bracket_outfits for la in layer_a_by_case.values())
     tot_avoid_chk = sum(la.must_avoid_checked_outfits for la in layer_a_by_case.values())
     tot_avoid_ok = sum(la.must_avoid_compliant_outfits for la in layer_a_by_case.values())
     tot_bounded_ok = sum(1 for la in layer_a_by_case.values() if la.bounded_and_persist_passed)
@@ -288,6 +316,7 @@ def _aggregate_system_summary(
         if res.get("status") == "ok" and (d := compute_top3_core_diversity(res.get("outfits", []))) is not None
     ]
     prof_groups: dict[str, list[frozenset[str]]] = defaultdict(list)
+    contrastive_groups: dict[str, list[frozenset[str]]] = defaultdict(list)
     wear_cases = 0
     wear_avoided = 0
     for case in cases:
@@ -299,6 +328,9 @@ def _aggregate_system_summary(
         pg = case.get("profile_sensitivity_group")
         if pg:
             prof_groups[str(pg)].append(top1_core)
+        cp = case.get("contrastive_pair_id")
+        if cp:
+            contrastive_groups[str(cp)].append(top1_core)
         if case.get("wear_history"):
             wear_cases += 1
             hist_set = {str(x) for x in case["wear_history"][0].get("item_ids", [])}
@@ -313,6 +345,15 @@ def _aggregate_system_summary(
                 prof_pairs += 1
                 if sigs[i] != sigs[j]:
                     prof_diff += 1
+
+    contrast_pairs = 0
+    contrast_diff = 0
+    for sigs in contrastive_groups.values():
+        for i in range(len(sigs)):
+            for j in range(i + 1, len(sigs)):
+                contrast_pairs += 1
+                if sigs[i] != sigs[j]:
+                    contrast_diff += 1
 
     # B4 Explanations
     llm_exp_total = 0
@@ -351,6 +392,7 @@ def _aggregate_system_summary(
             "outfit_structure_validity_rate": round(tot_struct / tot_outfits, 4) if tot_outfits else 1.0,
             "must_avoid_compliance_rate": round(tot_avoid_ok / tot_avoid_chk, 4) if tot_avoid_chk else 1.0,
             "explanation_factuality_rate": round(tot_fact / tot_outfits, 4) if tot_outfits else 1.0,
+            "canonical_bracket_rate": round(tot_bracket / tot_outfits, 4) if tot_outfits else 1.0,
             "bounded_and_persist_rate": round(tot_bounded_ok / n_cases, 4) if n_cases else 1.0,
         },
         "functional": {
@@ -369,7 +411,11 @@ def _aggregate_system_summary(
             "b3_personalization": {
                 "top3_core_diversity": round(sum(diversities) / len(diversities), 4) if diversities else None,
                 "profile_differentiation_rate": round(prof_diff / prof_pairs, 4) if prof_pairs else None,
+                "profile_differentiation_ratio": f"{prof_diff}/{prof_pairs}" if prof_pairs else "N/A",
+                "contrastive_pair_diff_rate": round(contrast_diff / contrast_pairs, 4) if contrast_pairs else None,
+                "contrastive_pair_diff_ratio": f"{contrast_diff}/{contrast_pairs}" if contrast_pairs else "N/A",
                 "recent_wear_avoid_rate": round(wear_avoided / wear_cases, 4) if wear_cases else None,
+                "recent_wear_avoid_ratio": f"{wear_avoided}/{wear_cases}" if wear_cases else "N/A",
             },
             "b4_explanation": {
                 "explanation_llm_accepted_rate": round(llm_exp_accepted / llm_exp_total, 4) if llm_exp_total else None,
@@ -592,7 +638,11 @@ def run_benchmark(
                 if res.get("status") != "ok" or not res.get("outfits"):
                     continue
                 case = case_lookup[cid]
-                prof_summary = str(case.get("profile_id") or "none")
+                pid = case.get("profile_id")
+                prof_summary = _format_profile_summary_for_judge(
+                    str(pid) if pid else None,
+                    profiles_map.get(str(pid)) if pid else None,
+                )
                 weather_cond = str((res.get("context") or {}).get("weather_condition") or (case.get("expected_context") or {}).get("weather_condition") or "cool")
                 outfit_scores: list[float] = []
                 for outfit in res["outfits"]:
@@ -629,10 +679,15 @@ def run_benchmark(
                     if not mr.get("outfits") or not orr.get("outfits"):
                         continue
                     case = case_lookup[cid]
+                    pid = case.get("profile_id")
+                    prof_summary = _format_profile_summary_for_judge(
+                        str(pid) if pid else None,
+                        profiles_map.get(str(pid)) if pid else None,
+                    )
                     comp = judge.compare_pair_bidirectional(
                         query=str(case["query"]),
                         weather_condition=str((mr.get("context") or {}).get("weather_condition") or ""),
-                        profile_summary=str(case.get("profile_id") or "none"),
+                        profile_summary=prof_summary,
                         a_items=list(mr["outfits"][0]["items"]),
                         a_exp=str(mr["outfits"][0]["explanation_vi"]),
                         b_items=list(orr["outfits"][0]["items"]),
@@ -699,7 +754,7 @@ def run_benchmark(
                 ablated_ndcg=judge_case_ndcg.get(ab_id) if judge else None,
             )
 
-    # Noise Robustness comparison
+    # Noise Robustness comparison (Pass delta + Top-1 Ranking Stability / Core Jaccard)
     noise_robustness: dict[str, Any] = {}
     if noise_exec is not None:
         for sys_id in noise_exec["results"]:
@@ -711,6 +766,28 @@ def run_benchmark(
                 for cid in noise_exec["results"][sys_id]
                 if not noise_exec["func_fails"][sys_id][cid] and noise_exec["layer_a"][sys_id][cid].passed
             )
+            clean_res_map = rep_exec["results"].get(sys_id, {})
+            noisy_res_map = noise_exec["results"][sys_id]
+            compared_ok = 0
+            exact_same = 0
+            jaccards: list[float] = []
+            for cid, nres in noisy_res_map.items():
+                cres = clean_res_map.get(cid)
+                if not cres or cres.get("status") != "ok" or nres.get("status") != "ok":
+                    continue
+                if not cres.get("outfits") or not nres.get("outfits"):
+                    continue
+                c_core = core_item_ids(cres["outfits"][0].get("items", []))
+                n_core = core_item_ids(nres["outfits"][0].get("items", []))
+                compared_ok += 1
+                if c_core == n_core:
+                    exact_same += 1
+                union = c_core | n_core
+                jaccards.append((len(c_core & n_core) / len(union)) if union else 1.0)
+            stability_rate = round(exact_same / compared_ok, 4) if compared_ok else None
+            flip_rate = round(1.0 - stability_rate, 4) if stability_rate is not None else None
+            mean_jaccard = round(sum(jaccards) / len(jaccards), 4) if jaccards else None
+
             clean_la_r = (clean_s.get("layer_a") or {}).get("case_pass_rate", 0.0)
             clean_fn_r = (clean_s.get("functional") or {}).get("pass_rate", 0.0)
             noisy_fn_r = round(n_fn / n_cases, 4) if n_cases else 0.0
@@ -720,6 +797,10 @@ def run_benchmark(
                 "clean_func_rate": clean_fn_r,
                 "noisy_func_rate": noisy_fn_r,
                 "delta_func_rate": round(noisy_fn_r - clean_fn_r, 4),
+                "top1_compared_cases": compared_ok,
+                "top1_exact_stability_rate": stability_rate,
+                "top1_flip_rate": flip_rate,
+                "top1_mean_core_jaccard": mean_jaccard,
             }
 
     # Stress summary (strictly separated)
@@ -747,10 +828,12 @@ def run_benchmark(
     if stress_exec is not None:
         all_failures.extend(stress_exec["failures"])
 
+    n_dev = sum(1 for c in rep_cases if c.get("split") == "dev")
+    n_hold = sum(1 for c in rep_cases if c.get("split") == "holdout")
     threats = [
         "Tủ đồ chuẩn (30 món nữ, 27 món nam) mô phỏng cấu trúc và tỷ lệ nhãn 'unknown' thực tế; khuyến nghị xuất thêm dữ liệu từ DB người dùng thực qua --export-wardrobe-from-db sau khi hoàn tất nạp 58 ảnh demo.",
-        "Điểm chất lượng thời trang (Lớp B B2/B4) được chấm bởi LLM-as-a-Judge thay cho hội đồng chuyên gia dệt may chấm tay 100%; cần luôn kiểm tra cùng kết quả Calibration và Position Consistency.",
-        "Quy mô mẫu 40 kịch bản (28 dev / 12 holdout) phù hợp kiểm chứng đồ án nhưng độ rộng khoảng tin cậy 95% (Wilson/Bootstrap CI) vẫn cần được trình bày song song với tỷ lệ phần trăm.",
+        "Điểm chất lượng thời trang (Lớp B B2/B4) được chấm bởi LLM-as-a-Judge thay cho hội đồng chuyên gia dệt may chấm tay 100%; cần luôn kiểm tra cùng kết quả Calibration, Human-vs-Judge Spearman và Position Consistency.",
+        f"Quy mô mẫu {len(rep_cases)} kịch bản ({n_dev} dev / {n_hold} holdout) phù hợp kiểm chứng đồ án nhưng độ rộng khoảng tin cậy 95% (Wilson/Bootstrap CI) và mẫu số từng nhóm con vẫn cần được trình bày song song với tỷ lệ phần trăm.",
     ]
     if judge is not None and judge.same_family_bias:
         threats.insert(

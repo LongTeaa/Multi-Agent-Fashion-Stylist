@@ -498,3 +498,21 @@ def test_dress_compound_phrases_take_precedence_over_top_and_bottom():
         for cs in c_dress_shirt.structured_must_have
     )
     assert all(cs.category != WardrobeCategory.DRESS for cs in c_dress_shirt.structured_must_have)
+
+
+def test_business_partner_and_work_errand_occasions_and_chin_chu():
+    """Verify 'gặp đối tác', 'đi công việc', and standard spelling 'chỉn chu' map to work/polished context."""
+    c_partner = extract_context("Tối nay đi xe máy ngoài trời mưa gặp đối tác, mặc sao vừa ấm áp lại không bị ướt?")
+    assert c_partner.occasion == "daily_work"
+    assert c_partner.target_formality_range == [3, 4]
+    assert c_partner.weather_condition == "rainy"
+
+    c_errand = extract_context("Tối nay đi công việc ngoài trời lạnh 13 độ, cần giữ ấm.")
+    assert c_errand.occasion == "daily_work"
+    assert c_errand.target_formality_range == [3, 4]
+    assert c_errand.weather_condition == "cold"
+
+    c_chin_chu = extract_context("Đi cafe với bạn, cần chỉn chu một chút.")
+    assert c_chin_chu.target_formality_range == [3, 4]
+    assert "smart_casual" in c_chin_chu.style_hints
+

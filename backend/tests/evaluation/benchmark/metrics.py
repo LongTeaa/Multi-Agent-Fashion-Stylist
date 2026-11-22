@@ -175,6 +175,7 @@ class LayerAResult:
     valid_grounding_outfits: int = 0
     valid_structure_outfits: int = 0
     factual_explanations: int = 0
+    canonical_bracket_outfits: int = 0
     must_avoid_checked_outfits: int = 0
     must_avoid_compliant_outfits: int = 0
     bounded_and_persist_passed: bool = True
@@ -326,12 +327,14 @@ def verify_layer_a_for_case(
             if not avoid_violated:
                 res.must_avoid_compliant_outfits += 1
 
-        # 4. Explanation factuality (strict bracket check + forbidden phrases)
+        # 4. Explanation factuality (fair cross-system grounding) vs canonical [bracket] syntax
         exp_text = str(outfit.get("explanation_vi") or "").strip()
         exp_ok = len(exp_text) >= 10
+        bracket_syntax_ok = exp_ok
         lowered = exp_text.lower()
         if any(phrase in lowered for phrase in _FORBIDDEN_EXPLANATION_PHRASES):
             exp_ok = False
+            bracket_syntax_ok = False
             res.violations.append(f"Rank {rank}: explanation contains forbidden subjective claim")
 
         if matched_db_rows and grounding_ok:
@@ -340,22 +343,31 @@ def verify_layer_a_for_case(
             found_brackets = {f"[{m.strip().lower()}]" for m in re.findall(r"\[([^\[\]]+)\]", exp_text)}
             if found_brackets and not found_brackets.issubset(all_allowed):
                 exp_ok = False
+                bracket_syntax_ok = False
                 res.violations.append(
                     f"Rank {rank}: explanation hallucinated brackets {sorted(found_brackets - all_allowed)}"
                 )
             for grp in allowed_groups:
-                if not any(tok in lowered for tok in grp):
-                    # Allow fallback check: single-prompt LLM may write bracketed item IDs or names; missing canonical bracket counts as factuality gap
-                    exp_ok = False
-                    res.violations.append(
-                        f"Rank {rank}: explanation omits canonical garment bracket {sorted(grp)[0]}"
-                    )
-                    break
+                has_bracket = any(tok in lowered for tok in grp)
+                if not has_bracket:
+                    bracket_syntax_ok = False
+                    # Fair factuality check: accept plain-text reference to an actual garment name/label
+                    # (e.g., for B2 Single-Prompt LLM) without failing Layer A purely for missing square brackets.
+                    plain_tokens = {tok.strip("[]") for tok in grp if tok.strip("[]")}
+                    if not any(pt in lowered for pt in plain_tokens):
+                        exp_ok = False
+                        res.violations.append(
+                            f"Rank {rank}: explanation omits garment reference {sorted(grp)[0]}"
+                        )
+                        break
         elif not grounding_ok:
             exp_ok = False
+            bracket_syntax_ok = False
 
         if exp_ok:
             res.factual_explanations += 1
+        if bracket_syntax_ok:
+            res.canonical_bracket_outfits += 1
 
     return res
 
@@ -452,6 +464,39 @@ def check_case_functional_assertions(
                     f"Top 1 explanation missing any of {must_contain_any}"
                 )
 
+        # Optional stronger domain assertions (formality range, rain/outdoor flags, cold outerwear)
+        major_items = [
+            it
+            for it in top1.get("items", [])
+            if str(it.get("slot") or it.get("slot_role") or "") in {"top", "bottom", "dress", "footwear", "outerwear"}
+            and it.get("formality_level") is not None
+        ]
+        if major_items:
+            avg_form = sum(float(it["formality_level"]) for it in major_items) / len(major_items)
+            if "top1_min_avg_formality" in assertions and avg_form < float(assertions["top1_min_avg_formality"]):
+                failures.append(
+                    f"Top 1 avg formality {avg_form:.2f} < min {assertions['top1_min_avg_formality']}"
+                )
+            if "top1_max_avg_formality" in assertions and avg_form > float(assertions["top1_max_avg_formality"]):
+                failures.append(
+                    f"Top 1 avg formality {avg_form:.2f} > max {assertions['top1_max_avg_formality']}"
+                )
+
+        req_flags = [str(fl).lower().strip() for fl in assertions.get("top1_requires_any_functional_flags", [])]
+        if req_flags:
+            all_flags = {
+                str(fl).lower().strip()
+                for it in top1.get("items", [])
+                for fl in (it.get("functional_flags") or [])
+            }
+            if not (all_flags & set(req_flags)):
+                failures.append(
+                    f"Top 1 missing any required functional_flags {req_flags} (got {sorted(all_flags)})"
+                )
+
+        if assertions.get("top1_requires_outerwear") is True and "outerwear" not in top1_cats:
+            failures.append(f"Top 1 missing required outerwear slot (got {sorted(top1_cats)})")
+
     return failures
 
 
@@ -487,12 +532,15 @@ def compute_context_metrics(
                 gemini_used_count += 1
 
         ctx = res.get("context") or {}
-        for f in fields:
-            if f not in expected:
-                continue
-            field_totals[f] += 1
-            if ctx.get(f) == expected[f]:
-                field_hits[f] += 1
+        # Systems without a structured context extractor (B0 none, B2 single_prompt_llm) only report clarification.
+        has_structured_ctx = ctx_used not in {"none", "single_prompt_llm"}
+        if has_structured_ctx:
+            for f in fields:
+                if f not in expected:
+                    continue
+                field_totals[f] += 1
+                if ctx.get(f) == expected[f]:
+                    field_hits[f] += 1
 
         if "needs_clarification" in expected:
             exp_clar = bool(expected["needs_clarification"])

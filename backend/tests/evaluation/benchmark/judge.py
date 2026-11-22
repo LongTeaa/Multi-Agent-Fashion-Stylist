@@ -429,7 +429,12 @@ def run_judge_calibration(
         )
         f_score = float(scored["fashion_quality_score"])
         label = str(sample["label"])
-        passed = (f_score >= 3.5) if label == "good" else (f_score <= 2.5)
+        if label == "good":
+            passed = f_score >= 3.5
+        elif label == "mediocre":
+            passed = 2.5 <= f_score <= 3.75
+        else:
+            passed = f_score <= 2.5
         if passed:
             pointwise_hits += 1
         if sample.get("human_score") is not None:

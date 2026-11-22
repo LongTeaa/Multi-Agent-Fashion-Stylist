@@ -110,7 +110,24 @@ def extract_occasion(text: str) -> str:
         return "interview"
     if has(["đám cưới", "tiệc cưới", "lễ cưới", "ăn cưới", "dự cưới", "wedding"]):
         return "wedding"
-    if any(k in t for k in ["đi làm", "công sở", "văn phòng", "công ty", "đi dạy", "họp", "làm việc"]):
+    if any(
+        k in t
+        for k in [
+            "đi làm",
+            "công sở",
+            "văn phòng",
+            "công ty",
+            "đi dạy",
+            "họp",
+            "làm việc",
+            "gặp đối tác",
+            "đối tác",
+            "đi công việc",
+            "công tác",
+            "hội nghị",
+            "gặp khách hàng",
+        ]
+    ):
         if not any(neg in t for neg in ["nghỉ làm", "không đi làm", "không phải đi làm", "chưa đi làm"]):
             return "daily_work"
     if has(["tiệc", "party", "dạ hội", "sinh nhật", "quán bar", "pub", "club"]):
@@ -282,9 +299,9 @@ def extract_formality_range(text: str, occasion: str) -> list[int]:
         base_range = [1, 2]
 
     # Modifiers
-    if any(k in t for k in ["lịch sự nhẹ", "thanh lịch nhẹ", "chỉnh chu nhẹ"]):
+    if any(k in t for k in ["lịch sự nhẹ", "thanh lịch nhẹ", "chỉnh chu nhẹ", "chỉn chu nhẹ"]):
         base_range = [2, 3]
-    elif any(k in t for k in ["trang trọng", "chỉnh chu", "lịch thiệp", "sang trọng", "lịch sự"]):
+    elif any(k in t for k in ["trang trọng", "chỉnh chu", "chỉn chu", "lịch thiệp", "sang trọng", "lịch sự"]):
         base_range = [max(base_range[0], 3), min(5, max(base_range[1], 4))]
     elif any(k in t for k in ["thoải mái", "đơn giản", "tiện lợi", "thoải mái nhất"]):
         base_range = [max(1, base_range[0] - 1), max(2, base_range[1] - 1)]
@@ -299,7 +316,7 @@ def extract_style_hints(text: str) -> list[str]:
     """Extract style hints: smart_casual, minimalist, streetwear, vintage, casual, formal."""
     t = text.lower()
     styles = []
-    if any(k in t for k in ["smart casual", "smart_casual", "lịch sự nhẹ", "thanh lịch", "lịch sự", "chỉnh chu"]):
+    if any(k in t for k in ["smart casual", "smart_casual", "lịch sự nhẹ", "thanh lịch", "lịch sự", "chỉnh chu", "chỉn chu"]):
         styles.append("smart_casual")
     if any(k in t for k in ["tối giản", "minimalist", "minimalism", "đơn giản"]):
         styles.append("minimalist")
@@ -327,6 +344,7 @@ def extract_vibe_keywords(text: str) -> list[str]:
         "ấm áp",
         "trẻ trung",
         "tinh tế",
+        "chỉn chu",
         "chỉnh chu",
         "nhẹ nhàng",
         "nổi bật",

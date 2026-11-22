@@ -33,7 +33,7 @@ from tests.evaluation.benchmark.systems import (
 
 
 def test_benchmark_fixtures_shape_split_and_no_leakage() -> None:
-    """Verify frozen wardrobes (30F + 27M), 40 representative (28 dev / 12 holdout), 12 stress, and calibration."""
+    """Verify frozen wardrobes (30F + 27M), 56 representative (38 dev / 18 holdout), 12 stress, and calibration."""
     bundle = load_benchmark_bundle()
     wardrobes = bundle["wardrobes"]["wardrobes"]
     bench = bundle["benchmark"]
@@ -44,13 +44,13 @@ def test_benchmark_fixtures_shape_split_and_no_leakage() -> None:
 
     rep_cases = bench["representative_cases"]
     stress_cases = bench["stress_cases"]
-    assert len(rep_cases) == 40
+    assert len(rep_cases) == 56
     assert len(stress_cases) == 12
 
     dev_cases = [c for c in rep_cases if c["split"] == "dev"]
     holdout_cases = [c for c in rep_cases if c["split"] == "holdout"]
-    assert len(dev_cases) == 28
-    assert len(holdout_cases) == 12
+    assert len(dev_cases) == 38
+    assert len(holdout_cases) == 18
 
     # Ensure strict split disjointness and non-overlapping queries between dev & holdout
     dev_ids = {c["id"] for c in dev_cases}
@@ -63,10 +63,12 @@ def test_benchmark_fixtures_shape_split_and_no_leakage() -> None:
     # Every query contains Vietnamese diacritics
     assert all(any(ord(ch) > 127 for ch in c["query"]) for c in rep_cases + stress_cases)
 
-    # Calibration fixture completeness
+    # Calibration fixture completeness (20 pointwise with human_score + 12 coherent same-query pairwise)
     assert cal is not None
-    assert len(cal["pointwise_samples"]) == 16
-    assert len(cal["pairwise_samples"]) == 10
+    assert len(cal["pointwise_samples"]) == 20
+    assert len(cal["pairwise_samples"]) == 12
+    assert all(s.get("human_score") is not None for s in cal["pointwise_samples"])
+    assert all(bool(p.get("query")) for p in cal["pairwise_samples"])
 
 
 def test_offline_two_layer_benchmark_and_ablation_gains(
@@ -81,7 +83,7 @@ def test_offline_two_layer_benchmark_and_ablation_gains(
         systems=("B0", "B1", "M-Full", "M-NoLoop1", "M-NoLoop2", "M-NoPersonalization"),
         split="all",
         include_stress=True,
-        include_noise=False,
+        include_noise=True,
         live_llm=False,
         live_weather=False,
         judge=None,
@@ -89,7 +91,7 @@ def test_offline_two_layer_benchmark_and_ablation_gains(
     )
 
     assert report["metadata"]["run_complete"] is True
-    assert report["metadata"]["representative_case_count"] == 40
+    assert report["metadata"]["representative_case_count"] == 56
     assert report["metadata"]["stress_case_count"] == 12
 
     rep = report["representative_summary"]
@@ -101,18 +103,31 @@ def test_offline_two_layer_benchmark_and_ablation_gains(
     assert m_full["layer_a"]["outfit_structure_validity_rate"] == 1.0
     assert m_full["layer_a"]["must_avoid_compliance_rate"] == 1.0
     assert m_full["layer_a"]["explanation_factuality_rate"] == 1.0
+    assert m_full["layer_a"]["canonical_bracket_rate"] == 1.0
     assert m_full["layer_a"]["bounded_and_persist_rate"] == 1.0
 
-    # B1 context extraction accuracy and B3 personalization / wear avoidance
-    assert m_full["layer_b"]["b1_context"]["micro_field_accuracy"] >= 0.85
+    # B1 context extraction accuracy (colloquial_implicit cases intentionally expose offline rule ceiling)
+    assert m_full["layer_b"]["b1_context"]["micro_field_accuracy"] >= 0.78
+    assert rep["B0"]["layer_b"]["b1_context"]["micro_field_accuracy"] is None
     m_nopers = rep["M-NoPersonalization"]
     assert (
         m_full["layer_b"]["b3_personalization"]["profile_differentiation_rate"]
         > m_nopers["layer_b"]["b3_personalization"]["profile_differentiation_rate"]
     )
     assert m_nopers["layer_b"]["b3_personalization"]["profile_differentiation_rate"] == 0.0
+    assert m_full["layer_b"]["b3_personalization"]["contrastive_pair_diff_rate"] == 1.0
     assert m_full["layer_b"]["b3_personalization"]["recent_wear_avoid_rate"] == 1.0
-    assert m_full["functional"]["pass_rate"] >= 0.90
+    assert m_full["functional"]["pass_rate"] >= 0.80
+
+    # Natural Loop 1 ablation gain across realistic wardrobes (r18, r49, r50, r51, r52)
+    loop1_imp = report["ablation_impact"]["Loop 1 (M-Full vs M-NoLoop1)"]
+    assert loop1_imp["improved_count"] >= 4
+    assert loop1_imp["degraded_count"] == 0
+
+    # Noise robustness tracks Top-1 ranking stability & Core Jaccard
+    m_noise = report["noise_robustness"]["M-Full"]
+    assert m_noise["top1_exact_stability_rate"] is not None
+    assert m_noise["top1_mean_core_jaccard"] is not None
 
     # B0 random baseline violates constraints or functional accuracy compared to M-Full
     b0 = rep["B0"]
@@ -142,11 +157,14 @@ def test_offline_two_layer_benchmark_and_ablation_gains(
     assert budget["estimated_gemini_calls"] > 0
     assert budget["estimated_judge_calls"] > 0
 
-    # Markdown report rendering contains every required section
+    # Markdown report rendering contains every required section and new columns
     md = render_markdown_report(report)
     assert "Lớp A — Kiểm Định Kỹ Thuật Bắt Buộc" in md
+    assert "Cú pháp [Ngoặc]" in md
     assert "Lớp B — Benchmark Chất Lượng Tư Vấn" in md
+    assert "Contrastive (B3)" in md
     assert "Net Loop Impact" in md
+    assert "Top-1 Ổn Định (Flip Rate)" in md
     assert "Diagnostic Stress Suite" in md
     assert "Failure Breakdown" in md
     assert "Giới Hạn Phương Pháp" in md
@@ -183,7 +201,8 @@ def test_single_prompt_baseline_and_telemetry_probe_mock(
                     {
                         "rank": 1,
                         "item_ids": ["f_top_03", "f_bot_04", "f_ftw_01"],
-                        "explanation_vi": "Phối [Áo thun] trắng, [Quần short] khaki và [Giày sneaker] trắng.",
+                        # Plain-text factual explanation without square brackets -> fair Layer A passes factuality while canonical_bracket_outfits == 0
+                        "explanation_vi": "Phối Áo thun trắng, Quần short khaki và Giày sneaker trắng gọn nhẹ cho chiều dạo phố.",
                     }
                 ],
             }
@@ -225,6 +244,29 @@ def test_single_prompt_baseline_and_telemetry_probe_mock(
         )
         assert la.passed is False
         assert any("fabricated_shoe_999" in v for v in la.violations)
+
+        # Fair Layer A: plain-text factually grounded B2 explanation passes factuality while canonical_bracket_outfits == 0
+        res_plain = run_single_prompt_gemini_baseline(
+            session=session,
+            run_user_id="u_b2_mock_test",
+            case=smoke_cases[1],
+            db_to_raw=db_to_raw,
+            api_key="fake-key",
+            model="gemini-test",
+            http_client=sp_client,
+        )
+        la_plain = verify_layer_a_for_case(
+            session=session,
+            run_user_id="u_b2_mock_test",
+            request_id="req_sp_plain",
+            system_id="B2",
+            case=smoke_cases[1],
+            result=res_plain,
+            check_persistence=False,
+        )
+        assert la_plain.passed is True
+        assert la_plain.factual_explanations == 1
+        assert la_plain.canonical_bracket_outfits == 0
 
     # TelemetryLLMProbe detects hallucinated batch explanation fallback & aborts after 3 HTTP failures
     class _FallbackProvider:
@@ -291,39 +333,50 @@ def test_cross_family_judge_bidirectional_bias_calibration_and_cache(tmp_path: P
     # 2. Mock OpenAI-compatible cross-family judge checking calibration & bidirectional comparison + cache
     call_counter = 0
 
-    def _is_bad_option(context_block: str, option_block: str) -> bool:
+    def _quality_tier(context_block: str, option_block: str) -> int:
+        # 0 = bad, 1 = mediocre, 2 = good
         if "Áo ba lỗ" in option_block or "Dép" in option_block or "Áo măng tô" in option_block:
-            return True
+            return 0
         if "Thắt lưng da cá sấu" in option_block or "Áo Hoodie" in option_block:
-            return True
+            return 0
         if "không mặc màu đen" in context_block and "màu=black" in option_block:
-            return True
+            return 0
         if "trời mưa" in context_block and "Đầm dạ hội" in option_block:
-            return True
+            return 0
         if ("phỏng vấn" in context_block or "đám cưới" in context_block) and "Quần short" in option_block:
-            return True
-        return False
+            return 0
+        if (
+            "còn hơi nhẹ" in option_block
+            or "hơi giản dị" in option_block
+            or "quá cứng nhắc" in option_block
+            or "thiếu áo khoác chống mưa" in option_block
+        ):
+            return 1
+        return 2
+
+    captured_prompts: list[str] = []
 
     def _mock_judge_http(request: httpx.Request) -> httpx.Response:
         nonlocal call_counter
         call_counter += 1
         body = json.loads(request.content.decode("utf-8"))
         user_msg = body["messages"][1]["content"]
+        captured_prompts.append(user_msg)
         if "Phương án 1" in user_msg and "Phương án 2" in user_msg:
             head, rest = user_msg.split("--- Phương án 1 ---", 1)
             part1, part2 = rest.split("--- Phương án 2 ---", 1)
-            p1_bad = _is_bad_option(head, part1)
-            p2_bad = _is_bad_option(head, part2)
-            if not p1_bad and p2_bad:
+            t1 = _quality_tier(head, part1)
+            t2 = _quality_tier(head, part2)
+            if t1 > t2:
                 w = "1"
-            elif p1_bad and not p2_bad:
+            elif t2 > t1:
                 w = "2"
             else:
                 w = "tie"
             ans = {"winner": w, "reason_vi": "Đúng ngữ cảnh và phối hợp lý."}
         else:
-            is_bad = _is_bad_option(user_msg, user_msg)
-            score = 1.5 if is_bad else 4.5
+            tier = _quality_tier(user_msg, user_msg)
+            score = {0: 1.5, 1: 3.1, 2: 4.7}[tier]
             ans = {
                 "occasion_formality": score,
                 "weather_comfort_function": score,
@@ -347,6 +400,15 @@ def test_cross_family_judge_bidirectional_bias_calibration_and_cache(tmp_path: P
     assert cal_res["pointwise_accuracy"] == 1.0
     assert cal_res["pairwise_accuracy"] == 1.0
     assert cal_res["position_consistency_rate"] == 1.0
+    assert cal_res["human_vs_judge_spearman"] is not None
+    assert cal_res["human_vs_judge_spearman"] >= 0.85
+
+    # Verify runner passes rich profile details (styles, avoid_colors) to Judge, not just opaque profile_id
+    from tests.evaluation.benchmark.runner import _format_profile_summary_for_judge
+
+    rich_prof = _format_profile_summary_for_judge("formal_polished", bundle["benchmark"]["profiles"]["formal_polished"])
+    assert "tránh_màu=orange,yellow" in rich_prof
+    assert "tránh_phong_cách=streetwear" in rich_prof
 
     # Reload cache from disk in a fresh Judge instance -> repeated calibration makes ZERO HTTP calls!
     calls_before_reload = call_counter

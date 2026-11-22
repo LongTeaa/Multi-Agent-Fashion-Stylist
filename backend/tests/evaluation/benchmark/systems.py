@@ -209,8 +209,15 @@ def seed_case_user(
     """
     from uuid import NAMESPACE_URL, uuid5
 
+    user_prefix = hashlib.sha256(run_user_id.encode("utf-8")).hexdigest()[:8]
+
     def _db_item_uuid(raw_id: str) -> str:
-        return str(uuid5(NAMESPACE_URL, f"bench-item:{run_user_id}:{raw_id}"))
+        # Order-preserving unique ID (<= 36 chars): guarantees identical tie-breaking order
+        # across distinct benchmark run_user_ids for profile sensitivity & noise comparisons.
+        candidate = f"{user_prefix}-{raw_id}"
+        if len(candidate) <= 36:
+            return candidate
+        return f"{user_prefix}-{raw_id[:20]}-{hashlib.sha256(raw_id.encode('utf-8')).hexdigest()[:6]}"
 
     session.add(User(id=run_user_id, email=f"{run_user_id[:20]}@bench.local"))
     session.flush()
