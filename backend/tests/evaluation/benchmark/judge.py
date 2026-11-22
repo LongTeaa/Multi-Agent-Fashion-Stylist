@@ -1,12 +1,14 @@
 """Cross-Family LLM-as-a-Judge client, bidirectional comparison, calibration, and JSONL cache."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import time
 from typing import Any, Literal
 
 import httpx
@@ -15,7 +17,7 @@ from app.services.gemini_provider import _extract_json_from_gemini_response
 from tests.evaluation.benchmark.metrics import compute_spearman_rho
 
 
-JUDGE_PROMPT_VERSION = "judge-rubric-v1"
+JUDGE_PROMPT_VERSION = "judge-rubric-v2"
 
 
 def is_same_family_gemini(model: str) -> bool:
@@ -84,6 +86,10 @@ class JudgeConfig:
     api_key: str = ""
     model: str = "gpt-4.1-mini"
     timeout_seconds: float = 25.0
+    max_retries: int = 3
+    initial_backoff_seconds: float = 1.5
+    max_tokens: int = 220
+    reasoning_effort: str | None = None
 
     @classmethod
     def from_env(
@@ -93,6 +99,8 @@ class JudgeConfig:
         base_url: str | None = None,
         model: str | None = None,
         api_key_env: str = "BENCH_JUDGE_API_KEY",
+        reasoning_effort: str | None = None,
+        max_tokens: int | None = None,
     ) -> JudgeConfig:
         eff_provider = (
             provider
@@ -124,12 +132,29 @@ class JudgeConfig:
             or ""
         ).strip()
         timeout = float(os.environ.get("BENCH_JUDGE_TIMEOUT_SECONDS", "25"))
+        eff_reasoning = (
+            (reasoning_effort or os.environ.get("BENCH_JUDGE_REASONING_EFFORT") or "")
+            .strip()
+            .lower()
+            or None
+        )
+        raw_max_tokens = os.environ.get("BENCH_JUDGE_MAX_TOKENS", "").strip()
+        if max_tokens is not None:
+            eff_max_tokens = int(max_tokens)
+        elif raw_max_tokens:
+            eff_max_tokens = int(raw_max_tokens)
+        elif eff_reasoning and eff_reasoning != "none":
+            eff_max_tokens = 1024
+        else:
+            eff_max_tokens = 220
         return cls(
             provider=eff_provider,  # type: ignore[arg-type]
             base_url=eff_base,
             api_key=eff_key,
             model=eff_model,
             timeout_seconds=timeout,
+            max_tokens=eff_max_tokens,
+            reasoning_effort=eff_reasoning,
         )
 
 
@@ -160,13 +185,113 @@ class CrossFamilyJudgeClient:
         *,
         cache: JsonlResultCache | None = None,
         http_client: httpx.Client | None = None,
+        sleep_fn: Callable[[float], None] = time.sleep,
     ) -> None:
         self.config = config
         self.cache = cache or JsonlResultCache(None)
         self._client = http_client
+        self._sleep = sleep_fn
         self.same_family_bias = is_same_family_gemini(config.model) or config.provider == "gemini"
         self.api_calls = 0
         self.cache_hits = 0
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
+
+    @staticmethod
+    def _parse_retry_after(response: httpx.Response) -> float | None:
+        raw = response.headers.get("Retry-After")
+        if not raw:
+            return None
+        try:
+            return min(30.0, max(0.5, float(raw.strip())))
+        except ValueError:
+            return None
+
+    def _record_usage(self, body: dict[str, Any]) -> None:
+        if self.config.provider == "openai_compatible":
+            usage = body.get("usage") or {}
+            self.total_prompt_tokens += int(usage.get("prompt_tokens") or 0)
+            self.total_completion_tokens += int(usage.get("completion_tokens") or 0)
+        elif self.config.provider == "anthropic":
+            usage = body.get("usage") or {}
+            self.total_prompt_tokens += int(usage.get("input_tokens") or 0)
+            self.total_completion_tokens += int(usage.get("output_tokens") or 0)
+        else:
+            usage = body.get("usageMetadata") or {}
+            self.total_prompt_tokens += int(usage.get("promptTokenCount") or 0)
+            self.total_completion_tokens += int(usage.get("candidatesTokenCount") or 0)
+
+    def _send_single_request(
+        self,
+        client: httpx.Client,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> httpx.Response:
+        if self.config.provider == "openai_compatible":
+            url = f"{self.config.base_url}/chat/completions"
+            headers = {"Content-Type": "application/json"}
+            if self.config.api_key:
+                headers["Authorization"] = f"Bearer {self.config.api_key}"
+            if "openrouter.ai" in self.config.base_url.lower():
+                headers["X-Title"] = "Multi-Agent-Fashion-Stylist-Eval"
+            eff_max_tokens = (
+                max(self.config.max_tokens, 1024)
+                if (self.config.reasoning_effort and self.config.reasoning_effort != "none")
+                else self.config.max_tokens
+            )
+            payload: dict[str, Any] = {
+                "model": self.config.model,
+                "temperature": 0.0,
+                "max_tokens": eff_max_tokens,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            }
+            if self.config.reasoning_effort:
+                payload["reasoning"] = {"effort": self.config.reasoning_effort}
+            resp = client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
+            if resp.status_code == 400 and "response_format" in payload:
+                # Compatibility retry for local OpenAI-compatible servers that reject response_format
+                payload_no_rf = {k: v for k, v in payload.items() if k != "response_format"}
+                resp = client.post(url, headers=headers, json=payload_no_rf, timeout=self.config.timeout_seconds)
+            return resp
+
+        if self.config.provider == "anthropic":
+            url = f"{self.config.base_url}/messages"
+            headers = {
+                "Content-Type": "application/json",
+                "x-api-key": self.config.api_key,
+                "anthropic-version": "2023-06-01",
+            }
+            payload = {
+                "model": self.config.model,
+                "max_tokens": max(256, self.config.max_tokens),
+                "temperature": 0.0,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_prompt}],
+            }
+            return client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
+
+        # Explicit gemini fallback (will carry SAME_FAMILY_JUDGE_BIAS flag)
+        url = f"{self.config.base_url}/models/{self.config.model}:generateContent"
+        headers = {"x-goog-api-key": self.config.api_key}
+        payload = {
+            "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}],
+            "generationConfig": {"response_mime_type": "application/json", "temperature": 0.0},
+        }
+        return client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
+
+    def _parse_provider_response(self, body: dict[str, Any]) -> dict[str, Any]:
+        if self.config.provider == "openai_compatible":
+            content = body["choices"][0]["message"]["content"]
+            return _extract_json_object(str(content))
+        if self.config.provider == "anthropic":
+            blocks = body.get("content", [])
+            text = " ".join(b.get("text", "") for b in blocks if isinstance(b, dict))
+            return _extract_json_object(text)
+        return json.loads(_extract_json_from_gemini_response(body))
 
     def _post_json_prompt(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         self.api_calls += 1
@@ -177,60 +302,32 @@ class CrossFamilyJudgeClient:
         )
         client = self._client or client_cm
         assert client is not None
+        max_attempts = max(1, int(self.config.max_retries) + 1)
         try:
-            if self.config.provider == "openai_compatible":
-                url = f"{self.config.base_url}/chat/completions"
-                headers = {"Content-Type": "application/json"}
-                if self.config.api_key:
-                    headers["Authorization"] = f"Bearer {self.config.api_key}"
-                payload = {
-                    "model": self.config.model,
-                    "temperature": 0.0,
-                    "response_format": {"type": "json_object"},
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                }
-                resp = client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
-                if resp.status_code == 400 and "response_format" in payload:
-                    # Compatibility retry for local OpenAI-compatible servers that reject response_format
-                    payload_no_rf = {k: v for k, v in payload.items() if k != "response_format"}
-                    resp = client.post(url, headers=headers, json=payload_no_rf, timeout=self.config.timeout_seconds)
-                resp.raise_for_status()
-                content = resp.json()["choices"][0]["message"]["content"]
-                return _extract_json_object(str(content))
+            for attempt in range(max_attempts):
+                try:
+                    resp = self._send_single_request(client, system_prompt, user_prompt)
+                except (httpx.TimeoutException, httpx.TransportError):
+                    if attempt + 1 < max_attempts:
+                        self._sleep(self.config.initial_backoff_seconds * (2 ** attempt))
+                        continue
+                    raise
 
-            if self.config.provider == "anthropic":
-                url = f"{self.config.base_url}/messages"
-                headers = {
-                    "Content-Type": "application/json",
-                    "x-api-key": self.config.api_key,
-                    "anthropic-version": "2023-06-01",
-                }
-                payload = {
-                    "model": self.config.model,
-                    "max_tokens": 512,
-                    "temperature": 0.0,
-                    "system": system_prompt,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                }
-                resp = client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
-                resp.raise_for_status()
-                blocks = resp.json().get("content", [])
-                text = " ".join(b.get("text", "") for b in blocks if isinstance(b, dict))
-                return _extract_json_object(text)
+                if resp.status_code in {429, 500, 502, 503, 504} and attempt + 1 < max_attempts:
+                    retry_after = self._parse_retry_after(resp)
+                    wait = (
+                        retry_after
+                        if retry_after is not None
+                        else self.config.initial_backoff_seconds * (2 ** attempt)
+                    )
+                    self._sleep(wait)
+                    continue
 
-            # Explicit gemini fallback (will carry SAME_FAMILY_JUDGE_BIAS flag)
-            url = f"{self.config.base_url}/models/{self.config.model}:generateContent"
-            headers = {"x-goog-api-key": self.config.api_key}
-            payload = {
-                "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}],
-                "generationConfig": {"response_mime_type": "application/json", "temperature": 0.0},
-            }
-            resp = client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
-            resp.raise_for_status()
-            return json.loads(_extract_json_from_gemini_response(resp.json()))
+                resp.raise_for_status()
+                body = resp.json()
+                self._record_usage(body)
+                return self._parse_provider_response(body)
+            raise RuntimeError("Exhausted Judge retry attempts.")
         finally:
             if client_cm is not None:
                 client_cm.close()
@@ -250,6 +347,7 @@ class CrossFamilyJudgeClient:
                 "kind": "pointwise",
                 "ver": JUDGE_PROMPT_VERSION,
                 "model": self.config.model,
+                "reasoning": self.config.reasoning_effort,
                 "q": query,
                 "w": weather_condition,
                 "p": profile_summary,
@@ -283,7 +381,8 @@ class CrossFamilyJudgeClient:
             "2. weather_comfort_function (độ hợp thời tiết, thoải mái, an toàn vận động/chống mưa)\n"
             "3. aesthetic_harmony (hài hòa màu sắc, tỷ lệ phom dáng, phong cách)\n"
             "4. explanation_usefulness (lời giải thích trung thực với các món thực tế, rõ ràng, hữu ích)\n"
-            'Trả về đúng JSON: {"occasion_formality": number, "weather_comfort_function": number, '
+            'Trả về đúng JSON (rationale_vi ngắn gọn tối đa 1 câu <= 30 từ): '
+            '{"occasion_formality": number, "weather_comfort_function": number, '
             '"aesthetic_harmony": number, "explanation_usefulness": number, "rationale_vi": "..."}'
         )
 
@@ -322,6 +421,7 @@ class CrossFamilyJudgeClient:
                 "kind": "pairwise_dir",
                 "ver": JUDGE_PROMPT_VERSION,
                 "model": self.config.model,
+                "reasoning": self.config.reasoning_effort,
                 "order": order_tag,
                 "q": query,
                 "w": weather_condition,
@@ -350,7 +450,8 @@ class CrossFamilyJudgeClient:
             f"Thời tiết: {weather_condition or 'không rõ'} | Sở thích: {profile_summary or 'không có'}\n\n"
             f"--- Phương án 1 ---\n{_format_items_for_judge(opt1_items)}\nGiải thích: {opt1_exp}\n\n"
             f"--- Phương án 2 ---\n{_format_items_for_judge(opt2_items)}\nGiải thích: {opt2_exp}\n\n"
-            'Chọn phương án tốt hơn ("1", "2", hoặc "tie"). Trả về JSON: {"winner": "1"|"2"|"tie", "reason_vi": "..."}'
+            'Chọn phương án tốt hơn ("1", "2", hoặc "tie"). Trả về JSON (reason_vi ngắn gọn tối đa 1 câu <= 30 từ): '
+            '{"winner": "1"|"2"|"tie", "reason_vi": "..."}'
         )
         parsed = self._post_json_prompt(system_prompt, user_prompt)
         raw_w = str(parsed.get("winner", "tie")).strip().lower()
@@ -409,13 +510,17 @@ class CrossFamilyJudgeClient:
 def run_judge_calibration(
     judge: CrossFamilyJudgeClient,
     calibration_data: dict[str, Any],
+    *,
+    human_ratings_by_id: dict[str, list[float]] | None = None,
 ) -> dict[str, Any]:
     """Run pointwise + bidirectional pairwise calibration over judge_calibration_v1.json."""
     samples_by_id: dict[str, dict[str, Any]] = {}
     pointwise_hits = 0
     pointwise_details: list[dict[str, Any]] = []
-    human_scores: list[float] = []
-    judge_scores_for_human: list[float] = []
+    ref_human_scores: list[float] = []
+    judge_scores_for_ref: list[float] = []
+    real_human_scores: list[float] = []
+    judge_scores_for_real: list[float] = []
 
     for sample in calibration_data.get("pointwise_samples", []):
         sid = str(sample["id"])
@@ -438,8 +543,12 @@ def run_judge_calibration(
         if passed:
             pointwise_hits += 1
         if sample.get("human_score") is not None:
-            human_scores.append(float(sample["human_score"]))
-            judge_scores_for_human.append(f_score)
+            ref_human_scores.append(float(sample["human_score"]))
+            judge_scores_for_ref.append(f_score)
+        if human_ratings_by_id and human_ratings_by_id.get(sid):
+            vals = [float(v) for v in human_ratings_by_id[sid]]
+            real_human_scores.append(round(sum(vals) / len(vals), 4))
+            judge_scores_for_real.append(f_score)
         pointwise_details.append(
             {
                 "id": sid,
@@ -472,16 +581,34 @@ def run_judge_calibration(
 
     n_pw = len(pointwise_details)
     n_pair = len(pairwise_list)
+    rubric_ref_rho = compute_spearman_rho(ref_human_scores, judge_scores_for_ref)
+    if human_ratings_by_id and len(real_human_scores) >= 2:
+        human_score_source = "blind_human_raters"
+        human_vs_judge_spearman = compute_spearman_rho(real_human_scores, judge_scores_for_real)
+        real_human_rater_count = max((len(v) for v in human_ratings_by_id.values()), default=0)
+    else:
+        human_score_source = "reference_rubric_rating_v2"
+        human_vs_judge_spearman = rubric_ref_rho
+        real_human_rater_count = 0
+
     return {
         "dataset_version": calibration_data.get("dataset_version"),
         "judge_model": judge.config.model,
         "judge_provider": judge.config.provider,
+        "judge_reasoning_effort": judge.config.reasoning_effort,
         "same_family_judge_bias": judge.same_family_bias,
         "pointwise_accuracy": round(pointwise_hits / n_pw, 4) if n_pw else 0.0,
         "pointwise_hits": f"{pointwise_hits}/{n_pw}",
         "pairwise_accuracy": round(pairwise_hits / n_pair, 4) if n_pair else 0.0,
         "pairwise_hits": f"{pairwise_hits}/{n_pair}",
         "position_consistency_rate": round(consistent_pairs / n_pair, 4) if n_pair else 0.0,
-        "human_vs_judge_spearman": compute_spearman_rho(human_scores, judge_scores_for_human),
+        "rubric_reference_spearman": rubric_ref_rho,
+        "human_score_source": human_score_source,
+        "human_vs_judge_spearman": human_vs_judge_spearman,
+        "real_human_rater_count": real_human_rater_count,
+        "judge_usage_tokens": {
+            "prompt_tokens": judge.total_prompt_tokens,
+            "completion_tokens": judge.total_completion_tokens,
+        },
         "details": pointwise_details,
     }

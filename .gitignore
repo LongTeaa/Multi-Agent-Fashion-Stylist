@@ -31,6 +31,8 @@ data/storage/
 data/private-vision-review/
 data/private-tryon-spike/
 data/demo-wardrobe/
+data/eval_cache/
+data/private-judge-calibration-review/
 backend/data
 
 # Logs and operating-system files

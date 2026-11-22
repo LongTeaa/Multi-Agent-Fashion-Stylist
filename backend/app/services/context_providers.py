@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timezone, timedelta
 import json
+import time
 from typing import Any
 
 import httpx
 from pydantic import SecretStr
 
+from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.providers import WeatherContextResult
 from app.services.weather_providers import EVENT_HOURS, temperature_condition
@@ -18,17 +21,87 @@ class GeminiContextProvider:
     def __init__(
         self,
         *,
-        api_key: SecretStr,
+        api_key: SecretStr | None = None,
         model: str,
         timeout_seconds: float = 15.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
+        key_pool: GeminiKeyPool | None = None,
+        max_retries: int = 0,
+        initial_backoff_seconds: float = 1.0,
+        explanation_timeout_seconds: float | None = None,
+        request_delay_seconds: float = 0.0,
+        sleep_fn: Callable[[float], None] = time.sleep,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiContextProvider requires either 'api_key' or 'key_pool'.")
         self.model = model
         self.timeout_seconds = timeout_seconds
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
         self._client = client
+        self.max_retries = max(0, int(max_retries))
+        self.initial_backoff_seconds = max(0.0, float(initial_backoff_seconds))
+        self.explanation_timeout_seconds = explanation_timeout_seconds
+        self.request_delay_seconds = max(0.0, float(request_delay_seconds))
+        self._sleep = sleep_fn
+
+    @staticmethod
+    def _parse_retry_after(response: httpx.Response) -> float | None:
+        raw = response.headers.get("Retry-After")
+        if not raw:
+            return None
+        try:
+            return min(120.0, max(1.0, float(raw.strip())))
+        except ValueError:
+            return None
+
+    def _post_gemini_json(self, *, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        """Execute a Gemini generateContent POST with optional key-pool rotation and bounded retries."""
+        url = f"{self.base_url}/models/{self.model}:generateContent"
+        max_attempts = max(1, self.max_retries + 1)
+        for attempt in range(max_attempts):
+            if self.request_delay_seconds > 0:
+                self._sleep(self.request_delay_seconds)
+            current_key = self.key_pool.get_next_key()
+            headers = {"x-goog-api-key": current_key.get_secret_value()}
+            if self._client is not None:
+                response = self._client.post(
+                    url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
+                )
+            else:
+                with httpx.Client(timeout=timeout) as client:
+                    response = client.post(url, headers=headers, json=payload)
+
+            if response.status_code == 429:
+                retry_after = self._parse_retry_after(response)
+                self.key_pool.mark_rate_limited(current_key, custom_cooldown=retry_after)
+                if attempt + 1 < max_attempts:
+                    if self.key_pool.active_keys_count == 0:
+                        wait = (
+                            retry_after
+                            if retry_after is not None
+                            else self.initial_backoff_seconds * (2 ** attempt)
+                        )
+                        self._sleep(wait)
+                    continue
+                response.raise_for_status()
+
+            if response.status_code in {500, 502, 503, 504} and attempt + 1 < max_attempts:
+                self._sleep(self.initial_backoff_seconds * (2 ** attempt))
+                continue
+
+            response.raise_for_status()
+            return response.json()
+        raise RuntimeError("Exhausted Gemini retry attempts.")
 
     def extract_context(
         self,
@@ -59,21 +132,9 @@ class GeminiContextProvider:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"response_mime_type": "application/json"},
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         try:
-            if self._client is not None:
-                response = self._client.post(
-                    url,
-                    headers=headers,
-                    json=payload,
-                    timeout=self.timeout_seconds,
-                )
-            else:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            return json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=self.timeout_seconds)
+            return json.loads(_extract_json_from_gemini_response(raw_json))
         except httpx.TimeoutException as exc:
             raise TimeoutError("Context provider timed out.") from exc
         except (httpx.HTTPError, json.JSONDecodeError, KeyError, TypeError) as exc:
@@ -114,17 +175,14 @@ class GeminiContextProvider:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"response_mime_type": "application/json"},
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
-        req_timeout = min(self.timeout_seconds, 6.0)
+        req_timeout = (
+            float(self.explanation_timeout_seconds)
+            if self.explanation_timeout_seconds is not None
+            else min(self.timeout_seconds, 6.0)
+        )
         try:
-            if self._client is not None:
-                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
-            else:
-                with httpx.Client(timeout=req_timeout) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=req_timeout)
+            parsed = json.loads(_extract_json_from_gemini_response(raw_json))
             text = parsed.get("explanation_vi", "")
             return str(text).strip() if isinstance(text, str) else ""
         except Exception as exc:
@@ -175,17 +233,14 @@ class GeminiContextProvider:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"response_mime_type": "application/json"},
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
-        req_timeout = min(self.timeout_seconds, 8.0)
+        req_timeout = (
+            float(self.explanation_timeout_seconds)
+            if self.explanation_timeout_seconds is not None
+            else min(self.timeout_seconds, 8.0)
+        )
         try:
-            if self._client is not None:
-                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
-            else:
-                with httpx.Client(timeout=req_timeout) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=req_timeout)
+            parsed = json.loads(_extract_json_from_gemini_response(raw_json))
             raw_list = parsed.get("explanations")
             if not isinstance(raw_list, list):
                 raise ValueError("Missing 'explanations' list in Gemini batch response.")

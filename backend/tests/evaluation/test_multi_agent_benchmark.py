@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 import httpx
+from pydantic import SecretStr
+import pytest
 from sqlmodel import Session
 
 from app.agents.coordinator import generate_grounded_explanation_vi
@@ -645,3 +648,569 @@ def test_disable_personalization_ablation_skips_saved_avoid_and_recent_wear_pena
         assert no_pers_with_loops["critique_round"] == 0
         assert all(ev.event_type != "CRITIQUE_ALL_RECENTLY_WORN" for ev in no_pers_with_loops["agent_trace"])
         assert "top-white-worn" in {it.item_id for it in no_pers_with_loops["ranked_outfits"][0].items}
+
+
+def test_load_dotenv_defaults_reads_bench_judge_without_overriding_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_load_dotenv_defaults loads unset BENCH_JUDGE_* vars safely without overriding os.environ or loading Gemini keys."""
+    from scripts.evaluate_multi_agent_chatbot import _load_dotenv_defaults
+
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "# Comment line",
+                "GEMINI_API_KEY=should-not-touch",
+                'BENCH_JUDGE_PROVIDER="openai_compatible"',
+                "BENCH_JUDGE_BASE_URL='https://openrouter.ai/api/v1'",
+                "BENCH_JUDGE_MODEL=openai/gpt-4.1",
+                "BENCH_JUDGE_API_KEY=sk-or-test-123",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.delenv("BENCH_JUDGE_PROVIDER", raising=False)
+    monkeypatch.delenv("BENCH_JUDGE_BASE_URL", raising=False)
+    monkeypatch.setenv("BENCH_JUDGE_MODEL", "explicit-override-model")
+    monkeypatch.delenv("BENCH_JUDGE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    loaded = _load_dotenv_defaults(env_file)
+    assert set(loaded) == {"BENCH_JUDGE_PROVIDER", "BENCH_JUDGE_BASE_URL", "BENCH_JUDGE_API_KEY"}
+    assert os.environ["BENCH_JUDGE_PROVIDER"] == "openai_compatible"
+    assert os.environ["BENCH_JUDGE_BASE_URL"] == "https://openrouter.ai/api/v1"
+    assert os.environ["BENCH_JUDGE_API_KEY"] == "sk-or-test-123"
+    assert os.environ["BENCH_JUDGE_MODEL"] == "explicit-override-model"
+    assert "GEMINI_API_KEY" not in os.environ
+
+
+def test_judge_client_retries_on_429_and_503_and_tracks_usage_tokens() -> None:
+    """CrossFamilyJudgeClient retries boundedly on 429/503, sends OpenRouter title/max_tokens, and sums usage tokens."""
+    attempts = 0
+    captured_headers: list[dict[str, str]] = []
+    captured_bodies: list[dict[str, Any]] = []
+    sleeps: list[float] = []
+
+    def _mock_transport(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        captured_headers.append(dict(request.headers))
+        captured_bodies.append(json.loads(request.content.decode("utf-8")))
+        if attempts == 1:
+            return httpx.Response(429, headers={"Retry-After": "1"})
+        if attempts == 2:
+            return httpx.Response(503)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "occasion_formality": 4,
+                                    "weather_comfort_function": 4,
+                                    "aesthetic_harmony": 5,
+                                    "explanation_usefulness": 4,
+                                    "rationale_vi": "Gọn gàng đúng bối cảnh.",
+                                }
+                            )
+                        }
+                    }
+                ],
+                "usage": {"prompt_tokens": 310, "completion_tokens": 45},
+            },
+        )
+
+    client = CrossFamilyJudgeClient(
+        JudgeConfig(
+            provider="openai_compatible",
+            base_url="https://openrouter.ai/api/v1",
+            api_key="or-key",
+            model="openai/gpt-4.1",
+            max_retries=3,
+            initial_backoff_seconds=1.5,
+            max_tokens=220,
+        ),
+        http_client=httpx.Client(transport=httpx.MockTransport(_mock_transport)),
+        sleep_fn=sleeps.append,
+    )
+    res = client.score_outfit_pointwise(
+        query="Đi phỏng vấn sáng nay",
+        weather_condition="cool",
+        profile_summary="không có",
+        items=[{"name": "Áo sơ mi", "category": "top", "sub_category": "shirt"}],
+        explanation_vi="Phối [Áo sơ mi] cho buổi phỏng vấn.",
+    )
+    assert attempts == 3
+    assert sleeps == [1.0, 3.0]
+    assert captured_headers[0].get("x-title") == "Multi-Agent-Fashion-Stylist-Eval"
+    assert captured_bodies[0].get("max_tokens") == 220
+    assert client.total_prompt_tokens == 310
+    assert client.total_completion_tokens == 45
+    assert res["fashion_quality_score"] == round((4 + 4 + 5) / 3.0, 4)
+
+
+def test_run_benchmark_skips_judge_when_aborted(
+    migrated_database: tuple[object, object],
+) -> None:
+    """When run_benchmark aborts mid-run, Judge must NOT be called to score partial results."""
+    _, engine = migrated_database
+    judge_http_calls = 0
+
+    def _spy_judge_http(request: httpx.Request) -> httpx.Response:
+        nonlocal judge_http_calls
+        judge_http_calls += 1
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    class _FailProvider:
+        def extract_context(self, **kwargs: Any) -> dict[str, Any]:
+            raise RuntimeError("Simulated outage")
+
+    spy_judge = CrossFamilyJudgeClient(
+        JudgeConfig(provider="openai_compatible", base_url="https://mock.local/v1", api_key="k", model="gpt-4.1"),
+        http_client=httpx.Client(transport=httpx.MockTransport(_spy_judge_http)),
+    )
+    bundle = load_benchmark_bundle()
+    report = run_benchmark(
+        bundle=bundle,
+        split="dev",
+        systems=["M-Full"],
+        include_stress=False,
+        live_llm=True,
+        llm_provider_override=_FailProvider(),
+        judge=spy_judge,
+        calibrate_judge=False,
+        engine_override=engine,
+    )
+    assert report["metadata"]["run_complete"] is False
+    assert judge_http_calls == 0
+    assert spy_judge.api_calls == 0
+
+
+def test_b2_single_prompt_aborts_after_three_consecutive_provider_errors(
+    migrated_database: tuple[object, object],
+) -> None:
+    """System B2 must abort cleanly after 3 consecutive PROVIDER_ERROR responses."""
+    _, engine = migrated_database
+    b2_calls = 0
+
+    def _always_429(request: httpx.Request) -> httpx.Response:
+        nonlocal b2_calls
+        b2_calls += 1
+        return httpx.Response(429)
+
+    bundle = load_benchmark_bundle()
+    report = run_benchmark(
+        bundle=bundle,
+        split="dev",
+        systems=["B2"],
+        include_stress=False,
+        live_llm=True,
+        single_prompt_http_client=httpx.Client(transport=httpx.MockTransport(_always_429)),
+        single_prompt_api_key="test-key",
+        single_prompt_model="gemini-test",
+        engine_override=engine,
+    )
+    assert report["metadata"]["run_complete"] is False
+    assert "3 consecutive B2 provider failures" in str(report["metadata"]["aborted_reason"])
+    assert b2_calls == 3
+
+
+def test_gemini_context_provider_rotates_key_pool_on_429() -> None:
+    """GeminiContextProvider marks rate-limited keys in GeminiKeyPool and rotates immediately without sleeping."""
+    from datetime import date
+    from app.services.context_providers import GeminiContextProvider
+    from app.services.gemini_key_pool import GeminiKeyPool
+
+    seen_keys: list[str] = []
+    sleeps: list[float] = []
+
+    def _mock_gemini(request: httpx.Request) -> httpx.Response:
+        k = request.headers.get("x-goog-api-key", "")
+        seen_keys.append(k)
+        if k == "key-11111111":
+            return httpx.Response(429)
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": json.dumps({"occasion": "cafe"})}]}}]},
+        )
+
+    pool = GeminiKeyPool([SecretStr("key-11111111"), SecretStr("key-22222222")], cooldown_seconds=60.0)
+    provider = GeminiContextProvider(
+        model="gemini-test",
+        key_pool=pool,
+        max_retries=2,
+        client=httpx.Client(transport=httpx.MockTransport(_mock_gemini)),
+        sleep_fn=sleeps.append,
+    )
+    parsed = provider.extract_context(query="Đi cafe chiều", location=None, current_date=date(2026, 11, 22))
+    assert parsed["occasion"] == "cafe"
+    assert seen_keys == ["key-11111111", "key-22222222"]
+    assert pool.is_cooling(SecretStr("key-11111111")) is True
+    assert sleeps == []
+
+
+def test_judge_receives_canonical_expected_weather_not_system_extracted_weather(
+    migrated_database: tuple[object, object],
+) -> None:
+    """Judge must always receive expected_context weather (or 'không nêu rõ'), never system-predicted weather."""
+    _, engine = migrated_database
+    bundle = load_benchmark_bundle()
+    r01 = next(c for c in bundle["benchmark"]["representative_cases"] if c["id"] == "r01")
+
+    case_hot = {
+        **r01,
+        "id": "r01_hot",
+        "expected_context": {"occasion": "interview", "weather_condition": "hot"},
+    }
+    case_unset = {
+        **r01,
+        "id": "r01_unset",
+        "expected_context": {"occasion": "interview"},
+    }
+
+    class _WrongWeatherLLM:
+        def extract_context(self, **kwargs: Any) -> dict[str, Any]:
+            # Intentionally misclassify weather as 'cold' to prove Judge does not inherit system bias
+            return {
+                "occasion": "interview",
+                "time_of_day": "morning",
+                "weather_condition": "cold",
+                "target_formality_range": [4, 5],
+                "weather_source": "default",
+                "needs_clarification": False,
+                "confidence": 0.9,
+            }
+
+        def generate_outfit_explanations(self, *, outfits: list[dict[str, Any]], **kwargs: Any) -> list[str]:
+            return [
+                "Phối " + ", ".join(o["items_description"]) + " gọn gàng cho buổi phỏng vấn."
+                for o in outfits
+            ]
+
+    captured_prompts: list[str] = []
+
+    def _capture_judge(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        user_msg = body["messages"][1]["content"]
+        captured_prompts.append(user_msg)
+        if "Phương án 1" in user_msg:
+            ans = {"winner": "1", "reason_vi": "Đạt yêu cầu."}
+        else:
+            ans = {
+                "occasion_formality": 4,
+                "weather_comfort_function": 4,
+                "aesthetic_harmony": 4,
+                "explanation_usefulness": 4,
+                "rationale_vi": "Hợp lý.",
+            }
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(ans)}}]})
+
+    judge = CrossFamilyJudgeClient(
+        JudgeConfig(provider="openai_compatible", base_url="https://mock.local/v1", api_key="k", model="gpt-4.1"),
+        http_client=httpx.Client(transport=httpx.MockTransport(_capture_judge)),
+    )
+    run_benchmark(
+        bundle={
+            "benchmark": {**bundle["benchmark"], "representative_cases": [case_hot, case_unset]},
+            "wardrobes": bundle["wardrobes"],
+            "calibration": bundle["calibration"],
+        },
+        systems=("B0", "M-Full"),
+        split="all",
+        include_stress=False,
+        live_llm=True,
+        llm_provider_override=_WrongWeatherLLM(),
+        judge=judge,
+        calibrate_judge=False,
+        engine_override=engine,
+    )
+
+    assert len(captured_prompts) > 0
+    assert any("Thời tiết/bối cảnh ghi nhận: hot" in p for p in captured_prompts)
+    assert any("Thời tiết/bối cảnh ghi nhận: không nêu rõ" in p for p in captured_prompts)
+    assert all("Thời tiết/bối cảnh ghi nhận: cold" not in p for p in captured_prompts)
+    assert all("Thời tiết: cold" not in p for p in captured_prompts)
+
+
+def test_cached_llm_wrapper_and_b2_cache_deduplicate_live_calls(
+    migrated_database: tuple[object, object],
+    tmp_path: Path,
+) -> None:
+    """llm_cache.jsonl deduplicates both M-Full CachedLLMWrapper and B2 single-prompt calls across repeated runs."""
+    _, engine = migrated_database
+    bundle = load_benchmark_bundle()
+    r01 = next(c for c in bundle["benchmark"]["representative_cases"] if c["id"] == "r01")
+    mini_bundle = {
+        "benchmark": {**bundle["benchmark"], "representative_cases": [r01]},
+        "wardrobes": bundle["wardrobes"],
+        "calibration": bundle["calibration"],
+    }
+
+    m_live_calls = 0
+    b2_live_calls = 0
+
+    class _CountingMFullProvider:
+        def extract_context(self, **kwargs: Any) -> dict[str, Any]:
+            nonlocal m_live_calls
+            m_live_calls += 1
+            return {
+                "occasion": "interview",
+                "time_of_day": "morning",
+                "weather_condition": "cool",
+                "target_formality_range": [4, 5],
+                "weather_source": "default",
+                "needs_clarification": False,
+                "confidence": 0.95,
+            }
+
+        def generate_outfit_explanations(self, *, outfits: list[dict[str, Any]], **kwargs: Any) -> list[str]:
+            nonlocal m_live_calls
+            m_live_calls += 1
+            return [
+                "Phối " + ", ".join(o["items_description"]) + " đúng chuẩn phỏng vấn sáng."
+                for o in outfits
+            ]
+
+    def _counting_b2_http(request: httpx.Request) -> httpx.Response:
+        nonlocal b2_live_calls
+        b2_live_calls += 1
+        payload = {
+            "status": "ok",
+            "outfits": [
+                {
+                    "rank": 1,
+                    "item_ids": ["f_top_01", "f_bot_01", "f_ftw_02"],
+                    "explanation_vi": "Phối [Áo sơ mi] trắng, [Quần tây] đen và [Giày búp bê] đen cho phỏng vấn.",
+                }
+            ],
+        }
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]},
+        )
+
+    cache_file = tmp_path / "llm_cache.jsonl"
+    report1 = run_benchmark(
+        bundle=mini_bundle,
+        systems=("B2", "M-Full"),
+        split="all",
+        include_stress=False,
+        live_llm=True,
+        llm_provider_override=_CountingMFullProvider(),
+        single_prompt_http_client=httpx.Client(transport=httpx.MockTransport(_counting_b2_http)),
+        single_prompt_api_key="test-key",
+        single_prompt_model="gemini-test",
+        llm_cache=JsonlResultCache(cache_file),
+        engine_override=engine,
+    )
+    assert m_live_calls == 2
+    assert b2_live_calls == 1
+    assert report1["metadata"]["llm_cache_hits"] == 0
+
+    report2 = run_benchmark(
+        bundle=mini_bundle,
+        systems=("B2", "M-Full"),
+        split="all",
+        include_stress=False,
+        live_llm=True,
+        llm_provider_override=_CountingMFullProvider(),
+        single_prompt_http_client=httpx.Client(transport=httpx.MockTransport(_counting_b2_http)),
+        single_prompt_api_key="test-key",
+        single_prompt_model="gemini-test",
+        llm_cache=JsonlResultCache(cache_file),
+    )
+    assert m_live_calls == 2  # Zero new M-Full live calls!
+    assert b2_live_calls == 1  # Zero new B2 live calls!
+    assert report2["metadata"]["llm_cache_hits"] == 3
+    m_b4 = report2["representative_summary"]["M-Full"]["layer_b"]["b4_explanation"]
+    assert m_b4["explanation_llm_accepted_rate"] == 1.0
+
+
+def test_blind_calibration_html_build_and_human_scoring_pipeline(tmp_path: Path) -> None:
+    """Blind calibration review HTML leaks no ground-truth labels and scoring computes real human-vs-judge Spearman."""
+    from scripts.judge_calibration_human_review import (
+        build_blind_calibration_package,
+        load_human_ratings,
+        score_human_vs_judge,
+    )
+
+    pkg = build_blind_calibration_package(out_dir=tmp_path)
+    assert pkg["sample_count"] == 20
+    html_text = Path(pkg["review_html"]).read_text(encoding="utf-8")
+    for forbidden in ("cal_good", "cal_bad", "cal_mid", "mediocre", "human_score"):
+        assert forbidden not in html_text
+
+    manifest = json.loads(Path(pkg["manifest_path"]).read_text(encoding="utf-8"))
+    bundle = load_benchmark_bundle()
+    cal_data = bundle["calibration"]
+    samples_by_id = {str(s["id"]): s for s in cal_data["pointwise_samples"]}
+
+    ratings_dir = tmp_path / "ratings"
+    ratings_dir.mkdir(parents=True, exist_ok=True)
+    for idx, rater in enumerate(("Rater One", "Rater Two", "Rater Three")):
+        entries = []
+        for blind_id, sample_id in manifest["blind_to_sample"].items():
+            label = samples_by_id[sample_id]["label"]
+            base_score = 5 if label == "good" else (3 if label == "mediocre" else 1)
+            occ = max(1, min(5, base_score - (1 if idx == 1 and label == "good" else 0)))
+            wea = base_score
+            aes = max(1, min(5, base_score + (1 if idx == 2 and label == "bad" else 0)))
+            exp = base_score
+            entries.append(
+                {
+                    "blind_id": blind_id,
+                    "occasion_formality": occ,
+                    "weather_comfort_function": wea,
+                    "aesthetic_harmony": aes,
+                    "explanation_usefulness": exp,
+                    "fashion_quality_score": round((occ + wea + aes) / 3.0, 4),
+                }
+            )
+        (ratings_dir / f"calibration_ratings_{idx}.json").write_text(
+            json.dumps({"rater_name": rater, "ratings": entries}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    judge_cal_path = tmp_path / "judge_cal.json"
+    judge_cal_path.write_text(
+        json.dumps(
+            {
+                "judge_model": "openai/gpt-4.1",
+                "judge_provider": "openai_compatible",
+                "details": [
+                    {
+                        "id": str(s["id"]),
+                        "label": str(s["label"]),
+                        "fashion_quality_score": float(s["human_score"]),
+                    }
+                    for s in cal_data["pointwise_samples"]
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    out_json = tmp_path / "summary.json"
+    out_md = tmp_path / "summary.md"
+    scored = score_human_vs_judge(
+        ratings_dir=ratings_dir,
+        manifest_path=Path(pkg["manifest_path"]),
+        judge_calibration_json=judge_cal_path,
+        out_json=out_json,
+        out_md=out_md,
+    )
+    assert scored["rater_count"] == 3
+    assert scored["inter_rater_spearman_mean"] is not None and scored["inter_rater_spearman_mean"] >= 0.85
+    assert scored["human_vs_judge_spearman"] is not None and scored["human_vs_judge_spearman"] >= 0.85
+    assert out_json.is_file() and out_md.is_file()
+
+    # Verify run_judge_calibration marks real blind human raters cleanly
+    def _mock_judge_cal(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        msg = body["messages"][1]["content"]
+        if "Phương án 1" in msg:
+            ans = {"winner": "1", "reason_vi": "Tốt hơn."}
+        else:
+            is_bad = "Áo ba lỗ" in msg or "Dép" in msg or "Áo măng tô" in msg or "da cá sấu" in msg or "Hoodie" in msg or "không mặc màu đen" in msg or "Đầm dạ hội" in msg or "Quần short" in msg
+            sc = 1.5 if is_bad else 4.7
+            ans = {
+                "occasion_formality": sc,
+                "weather_comfort_function": sc,
+                "aesthetic_harmony": sc,
+                "explanation_usefulness": sc,
+                "rationale_vi": "OK.",
+            }
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(ans)}}]})
+
+    loaded = load_human_ratings(ratings_dir=ratings_dir, manifest_path=Path(pkg["manifest_path"]))
+    cal_judge = CrossFamilyJudgeClient(
+        JudgeConfig(provider="openai_compatible", base_url="https://mock.local/v1", api_key="k", model="openai/gpt-4.1"),
+        http_client=httpx.Client(transport=httpx.MockTransport(_mock_judge_cal)),
+    )
+    cal_res = run_judge_calibration(cal_judge, cal_data, human_ratings_by_id=loaded["human_ratings_by_id"])
+    assert cal_res["human_score_source"] == "blind_human_raters"
+    assert cal_res["real_human_rater_count"] == 3
+    assert cal_res["human_vs_judge_spearman"] is not None
+    assert cal_res["rubric_reference_spearman"] is not None
+
+
+def test_judge_config_and_client_support_reasoning_effort_for_gpt61_terra(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reasoning Judge models (e.g., openai/gpt-6.1-terra) get reasoning.effort, safe max_tokens, and distinct cache keys."""
+    monkeypatch.setenv("BENCH_JUDGE_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("BENCH_JUDGE_BASE_URL", "https://openrouter.ai/api/v1")
+    monkeypatch.setenv("BENCH_JUDGE_MODEL", "openai/gpt-6.1-terra")
+    monkeypatch.setenv("BENCH_JUDGE_API_KEY", "or-key")
+    monkeypatch.setenv("BENCH_JUDGE_REASONING_EFFORT", "low")
+    monkeypatch.delenv("BENCH_JUDGE_MAX_TOKENS", raising=False)
+
+    cfg_low = JudgeConfig.from_env()
+    assert cfg_low.model == "openai/gpt-6.1-terra"
+    assert cfg_low.reasoning_effort == "low"
+    assert cfg_low.max_tokens == 1024
+
+    monkeypatch.setenv("BENCH_JUDGE_REASONING_EFFORT", "none")
+    cfg_none = JudgeConfig.from_env()
+    assert cfg_none.reasoning_effort == "none"
+    assert cfg_none.max_tokens == 220
+
+    seen_payloads: list[dict[str, Any]] = []
+
+    def _mock_terra(request: httpx.Request) -> httpx.Response:
+        seen_payloads.append(json.loads(request.content.decode("utf-8")))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "occasion_formality": 4,
+                                    "weather_comfort_function": 5,
+                                    "aesthetic_harmony": 4,
+                                    "explanation_usefulness": 4,
+                                    "rationale_vi": "Chuẩn mực.",
+                                }
+                            )
+                        }
+                    }
+                ],
+                "usage": {"prompt_tokens": 280, "completion_tokens": 90},
+            },
+        )
+
+    cache = JsonlResultCache(tmp_path / "judge_cache.jsonl")
+    transport = httpx.Client(transport=httpx.MockTransport(_mock_terra))
+
+    client_low = CrossFamilyJudgeClient(cfg_low, cache=cache, http_client=transport)
+    client_low.score_outfit_pointwise(
+        query="Đi cafe chiều",
+        weather_condition="cool",
+        profile_summary="không có",
+        items=[{"name": "Áo polo", "category": "top", "sub_category": "polo"}],
+        explanation_vi="Phối [Áo polo] gọn gàng.",
+    )
+    assert seen_payloads[0]["reasoning"] == {"effort": "low"}
+    assert seen_payloads[0]["max_tokens"] == 1024
+
+    # Different reasoning effort must NOT collide on the same cache key
+    client_none = CrossFamilyJudgeClient(cfg_none, cache=cache, http_client=transport)
+    client_none.score_outfit_pointwise(
+        query="Đi cafe chiều",
+        weather_condition="cool",
+        profile_summary="không có",
+        items=[{"name": "Áo polo", "category": "top", "sub_category": "polo"}],
+        explanation_vi="Phối [Áo polo] gọn gàng.",
+    )
+    assert len(seen_payloads) == 2
+    assert seen_payloads[1]["reasoning"] == {"effort": "none"}
+    assert seen_payloads[1]["max_tokens"] == 220

@@ -37,8 +37,18 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.append(f"- **Dataset version:** `{meta.get('dataset_version')}` (Wardrobes: `{meta.get('wardrobes_version')}`)")
     lines.append(f"- **Split:** `{meta.get('split')}` ({meta.get('representative_case_count')} representative cases; Stress cases: {meta.get('stress_case_count')})")
     lines.append(f"- **Execution mode:** `{meta.get('execution_mode')}` | **Live LLM:** `{meta.get('live_llm')}` | **Judge enabled:** `{meta.get('judge_enabled')}`")
-    lines.append(f"- **Chatbot model:** `{meta.get('chatbot_model') or 'offline-rules'}`")
-    lines.append(f"- **Judge model:** `{meta.get('judge_model') or 'disabled'}` (`{meta.get('judge_provider') or 'none'}`)")
+    lines.append(f"- **Chatbot model:** `{meta.get('chatbot_model') or 'offline-rules'}` (Gemini keys: `{meta.get('gemini_key_count', 0)}`, LLM cache hits: `{meta.get('llm_cache_hits', 0)}`)")
+    reasoning_str = (
+        f" | Reasoning: `{meta.get('judge_reasoning_effort')}`"
+        if meta.get("judge_reasoning_effort")
+        else ""
+    )
+    lines.append(
+        f"- **Judge model:** `{meta.get('judge_model') or 'disabled'}` (`{meta.get('judge_provider') or 'none'}`)"
+        f"{reasoning_str}"
+        f" | API calls: `{meta.get('judge_api_calls', 0)}` | Cache hits: `{meta.get('judge_cache_hits', 0)}`"
+        f" | Tokens (in/out): `{meta.get('judge_prompt_tokens', 0)} / {meta.get('judge_completion_tokens', 0)}`"
+    )
     if meta.get("same_family_judge_bias"):
         lines.append("- **CẢNH BÁO THIÊN LỆCH (`SAME_FAMILY_JUDGE_BIAS`):** Giám khảo đang sử dụng cùng họ model Gemini với chatbot.")
     lines.append(f"- **Git commit:** `{meta.get('git_commit')}` | **Timestamp:** `{meta.get('executed_at')}`")
@@ -59,8 +69,18 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         lines.append(
             f"- **Position Consistency Rate:** `{_fmt_pct(cal.get('position_consistency_rate'))}`"
         )
+        if cal.get("rubric_reference_spearman") is not None:
+            lines.append(f"- **Rubric Reference Spearman rho:** `{cal.get('rubric_reference_spearman')}`")
         if cal.get("human_vs_judge_spearman") is not None:
-            lines.append(f"- **Human vs Judge Spearman rho:** `{cal.get('human_vs_judge_spearman')}`")
+            src = cal.get("human_score_source") or "reference_rubric_rating_v2"
+            src_label = (
+                f"blind human raters (n={cal.get('real_human_rater_count')})"
+                if src == "blind_human_raters"
+                else "reference rubric rating (AI-authored baseline)"
+            )
+            lines.append(
+                f"- **Human vs Judge Spearman rho:** `{cal.get('human_vs_judge_spearman')}` *(source: {src_label})*"
+            )
         lines.append("")
 
     # Layer A Table

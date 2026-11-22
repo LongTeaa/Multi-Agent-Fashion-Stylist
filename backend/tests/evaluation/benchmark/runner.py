@@ -18,10 +18,15 @@ from sqlmodel import Session, select
 
 from app.core.config import get_settings
 from app.core.database import create_database_engine
-from app.core.dependencies import get_context_llm_provider, get_weather_provider
+from app.core.dependencies import (
+    get_context_llm_provider,
+    get_gemini_key_pool,
+    get_weather_provider,
+)
 from app.models.entities import WardrobeItem
 from tests.evaluation.benchmark.judge import (
     CrossFamilyJudgeClient,
+    JsonlResultCache,
     run_judge_calibration,
 )
 from tests.evaluation.benchmark.metrics import (
@@ -39,6 +44,7 @@ from tests.evaluation.benchmark.metrics import (
 from tests.evaluation.benchmark.systems import (
     SYSTEM_REGISTRY,
     AbortedLiveRunError,
+    CachedLLMWrapper,
     SystemConfig,
     TelemetryLLMProbe,
     run_multi_agent_system,
@@ -432,6 +438,13 @@ def _aggregate_system_summary(
     }
 
 
+def _resolve_judge_weather_condition(case: dict[str, Any]) -> str:
+    """Return canonical benchmark weather condition (never system-extracted weather) for fair judging."""
+    expected = case.get("expected_context") or {}
+    weather = str(expected.get("weather_condition") or "").strip()
+    return weather or "không nêu rõ"
+
+
 def run_benchmark(
     *,
     bundle: dict[str, Any],
@@ -449,6 +462,10 @@ def run_benchmark(
     single_prompt_api_key: str | None = None,
     single_prompt_model: str | None = None,
     engine_override: Engine | None = None,
+    llm_cache: JsonlResultCache | None = None,
+    llm_delay_seconds: float = 0.0,
+    explanation_timeout_seconds: float | None = None,
+    human_ratings_by_id: dict[str, list[float]] | None = None,
 ) -> dict[str, Any]:
     """Execute the full two-layer benchmark on isolated temporary storage/DB and return structured report."""
     benchmark = bundle["benchmark"]
@@ -459,7 +476,49 @@ def run_benchmark(
     rep_cases, stress_cases = select_cases_for_split(benchmark, split=split, include_stress=include_stress)
 
     settings = get_settings()
-    resolved_llm = llm_provider_override if llm_provider_override is not None else (get_context_llm_provider() if live_llm else None)
+    gemini_keys = settings.get_gemini_api_keys() if live_llm else []
+    key_pool = get_gemini_key_pool(settings) if (live_llm and gemini_keys) else None
+
+    cached_llm_wrapper: CachedLLMWrapper | None = None
+    if llm_provider_override is not None:
+        resolved_llm = llm_provider_override
+        if llm_cache is not None:
+            cached_llm_wrapper = CachedLLMWrapper(
+                llm_provider_override,
+                cache=llm_cache,
+                provider_name="override",
+                model_name=single_prompt_model or settings.llm_model or "override",
+            )
+            resolved_llm = cached_llm_wrapper
+    elif live_llm:
+        if settings.context_provider == "gemini":
+            from app.services.context_providers import GeminiContextProvider
+
+            active_pool = key_pool or get_gemini_key_pool(settings)
+            raw_provider: Any = GeminiContextProvider(
+                api_key=active_pool.keys[0],
+                model=settings.llm_model,
+                timeout_seconds=float(settings.context_timeout_seconds),
+                key_pool=active_pool,
+                max_retries=max(2, active_pool.total_keys),
+                explanation_timeout_seconds=explanation_timeout_seconds,
+                request_delay_seconds=llm_delay_seconds,
+            )
+        else:
+            raw_provider = get_context_llm_provider()
+        if raw_provider is not None and llm_cache is not None:
+            cached_llm_wrapper = CachedLLMWrapper(
+                raw_provider,
+                cache=llm_cache,
+                provider_name=settings.context_provider,
+                model_name=settings.llm_model or settings.context_provider,
+            )
+            resolved_llm = cached_llm_wrapper
+        else:
+            resolved_llm = raw_provider
+    else:
+        resolved_llm = None
+
     resolved_weather = weather_provider_override if weather_provider_override is not None else (get_weather_provider() if live_weather else None)
 
     chatbot_model_label = None
@@ -468,13 +527,18 @@ def run_benchmark(
 
     calibration_report = None
     if judge is not None and calibrate_judge and bundle.get("calibration"):
-        calibration_report = run_judge_calibration(judge, bundle["calibration"])
+        calibration_report = run_judge_calibration(
+            judge,
+            bundle["calibration"],
+            human_ratings_by_id=human_ratings_by_id,
+        )
 
     run_complete = True
     aborted_reason: str | None = None
+    b2_cache_hits = 0
 
     def _run_suite_on_engine(engine: Engine, suite_cases: Sequence[dict[str, Any]], *, noise_mode: bool, suite_name: str) -> dict[str, Any]:
-        nonlocal run_complete, aborted_reason
+        nonlocal run_complete, aborted_reason, b2_cache_hits
         suite_results: dict[str, dict[str, dict[str, Any]]] = {}
         suite_layer_a: dict[str, dict[str, Any]] = {}
         suite_func_fails: dict[str, dict[str, list[str]]] = {}
@@ -485,6 +549,7 @@ def run_benchmark(
             sys_res: dict[str, dict[str, Any]] = {}
             sys_la: dict[str, Any] = {}
             sys_fails: dict[str, list[str]] = {}
+            b2_consecutive_failures = 0
 
             llm_probe = (
                 TelemetryLLMProbe(resolved_llm)
@@ -521,10 +586,15 @@ def run_benchmark(
                                 db_to_raw=db_to_raw,
                             )
                         elif cfg.kind == "single_prompt":
+                            b2_key_pool = key_pool if (single_prompt_api_key is None and live_llm and gemini_keys) else None
                             sp_key = single_prompt_api_key or (
-                                settings.get_primary_gemini_api_key().get_secret_value()
-                                if settings.get_primary_gemini_api_key()
-                                else ""
+                                b2_key_pool.keys[0].get_secret_value()
+                                if b2_key_pool is not None
+                                else (
+                                    settings.get_primary_gemini_api_key().get_secret_value()
+                                    if settings.get_primary_gemini_api_key()
+                                    else ""
+                                )
                             )
                             sp_model = single_prompt_model or settings.llm_model or "gemini-2.5-flash"
                             result = run_single_prompt_gemini_baseline(
@@ -535,7 +605,21 @@ def run_benchmark(
                                 api_key=sp_key,
                                 model=sp_model,
                                 http_client=single_prompt_http_client,
+                                key_pool=b2_key_pool,
+                                max_retries=max(2, b2_key_pool.total_keys) if b2_key_pool is not None else 0,
+                                request_delay_seconds=llm_delay_seconds,
+                                cache=llm_cache,
                             )
+                            if result.get("llm_cache_hit"):
+                                b2_cache_hits += 1
+                            if result.get("error_code") == "PROVIDER_ERROR":
+                                b2_consecutive_failures += 1
+                                if b2_consecutive_failures >= 3:
+                                    run_complete = False
+                                    aborted_reason = "Aborted live run after 3 consecutive B2 provider failures."
+                                    break
+                            else:
+                                b2_consecutive_failures = 0
                         else:
                             result = run_multi_agent_system(
                                 session=session,
@@ -629,7 +713,7 @@ def run_benchmark(
     judge_case_ndcg: dict[str, dict[str, float]] = defaultdict(dict)
     pairwise_comparisons: dict[str, Any] = {}
 
-    if judge is not None and rep_exec["results"]:
+    if judge is not None and run_complete and rep_exec["results"]:
         case_lookup = {str(c["id"]): c for c in rep_cases}
         pool_scores_by_case: dict[str, list[float]] = defaultdict(list)
 
@@ -643,7 +727,7 @@ def run_benchmark(
                     str(pid) if pid else None,
                     profiles_map.get(str(pid)) if pid else None,
                 )
-                weather_cond = str((res.get("context") or {}).get("weather_condition") or (case.get("expected_context") or {}).get("weather_condition") or "cool")
+                weather_cond = _resolve_judge_weather_condition(case)
                 outfit_scores: list[float] = []
                 for outfit in res["outfits"]:
                     scored = judge.score_outfit_pointwise(
@@ -686,7 +770,7 @@ def run_benchmark(
                     )
                     comp = judge.compare_pair_bidirectional(
                         query=str(case["query"]),
-                        weather_condition=str((mr.get("context") or {}).get("weather_condition") or ""),
+                        weather_condition=_resolve_judge_weather_condition(case),
                         profile_summary=prof_summary,
                         a_items=list(mr["outfits"][0]["items"]),
                         a_exp=str(mr["outfits"][0]["explanation_vi"]),
@@ -841,6 +925,11 @@ def run_benchmark(
             "CẢNH BÁO: Giám khảo hiện đang dùng model cùng họ Gemini với chatbot -> có rủi ro tự ưu ái (Self-Enhancement Bias).",
         )
 
+    llm_cache_hits = (
+        (cached_llm_wrapper.cache_hits if cached_llm_wrapper is not None else 0)
+        + b2_cache_hits
+    )
+
     return {
         "metadata": {
             "dataset_version": benchmark.get("dataset_version"),
@@ -854,11 +943,16 @@ def run_benchmark(
             "live_weather": live_weather,
             "judge_enabled": judge is not None,
             "chatbot_model": chatbot_model_label,
+            "gemini_key_count": len(gemini_keys) if live_llm else 0,
+            "llm_cache_hits": llm_cache_hits,
             "judge_model": judge.config.model if judge is not None else None,
             "judge_provider": judge.config.provider if judge is not None else None,
+            "judge_reasoning_effort": judge.config.reasoning_effort if judge is not None else None,
             "same_family_judge_bias": judge.same_family_bias if judge is not None else False,
             "judge_api_calls": judge.api_calls if judge is not None else 0,
             "judge_cache_hits": judge.cache_hits if judge is not None else 0,
+            "judge_prompt_tokens": judge.total_prompt_tokens if judge is not None else 0,
+            "judge_completion_tokens": judge.total_completion_tokens if judge is not None else 0,
             "git_commit": _git_commit_short(),
             "executed_at": datetime.now(timezone.utc).isoformat(),
             "run_complete": run_complete,
