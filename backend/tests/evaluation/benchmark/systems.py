@@ -44,6 +44,10 @@ from app.models.entities import (
     WardrobeItem,
     WearLog,
 )
+from app.services.context_providers import (
+    build_gemini_generation_config,
+    post_gemini_generate_content,
+)
 from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.retrieval_document_service import refresh_retrieval_document
@@ -707,12 +711,13 @@ def run_single_prompt_gemini_baseline(
     api_key: str,
     model: str,
     base_url: str = "https://generativelanguage.googleapis.com/v1beta",
-    timeout_seconds: float = 20.0,
+    timeout_seconds: float = 45.0,
     http_client: httpx.Client | None = None,
     key_pool: GeminiKeyPool | None = None,
     max_retries: int = 0,
     initial_backoff_seconds: float = 1.0,
     request_delay_seconds: float = 0.0,
+    thinking_level: str | None = "low",
     cache: JsonlResultCache | None = None,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
@@ -791,9 +796,8 @@ def run_single_prompt_gemini_baseline(
 
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"response_mime_type": "application/json"},
+        "generationConfig": build_gemini_generation_config(model, thinking_level=thinking_level),
     }
-    url = f"{base_url.rstrip('/')}/models/{model}:generateContent"
     est_tokens = len(prompt) // 4
 
     llm_cache_hit = False
@@ -804,6 +808,7 @@ def run_single_prompt_gemini_baseline(
             {
                 "kind": "single_prompt_b2",
                 "model": model,
+                "thinking_level": thinking_level,
                 "prompt": prompt,
             },
             ensure_ascii=False,
@@ -815,55 +820,23 @@ def run_single_prompt_gemini_baseline(
             raw_text = str(cached["raw_text"])
             llm_cache_hit = True
 
-    effective_pool = key_pool
-    if effective_pool is None and api_key and api_key.strip():
-        effective_pool = GeminiKeyPool([SecretStr(api_key)])
+    effective_pool = key_pool or GeminiKeyPool([SecretStr(api_key or "empty-placeholder")])
 
     try:
         if raw_text is None:
-            max_attempts = max(1, int(max_retries) + 1)
-            resp: httpx.Response | None = None
-            for attempt in range(max_attempts):
-                if request_delay_seconds > 0:
-                    sleep_fn(request_delay_seconds)
-                current_key = (
-                    effective_pool.get_next_key()
-                    if effective_pool is not None
-                    else SecretStr(api_key)
-                )
-                headers = {"x-goog-api-key": current_key.get_secret_value()}
-                if http_client is not None:
-                    resp = http_client.post(url, headers=headers, json=payload, timeout=timeout_seconds)
-                else:
-                    with httpx.Client(timeout=timeout_seconds) as client:
-                        resp = client.post(url, headers=headers, json=payload)
-
-                if resp.status_code == 429:
-                    retry_after: float | None = None
-                    raw_ra = resp.headers.get("Retry-After")
-                    if raw_ra:
-                        try:
-                            retry_after = min(120.0, max(1.0, float(raw_ra.strip())))
-                        except ValueError:
-                            retry_after = None
-                    if effective_pool is not None:
-                        effective_pool.mark_rate_limited(current_key, custom_cooldown=retry_after)
-                    if attempt + 1 < max_attempts:
-                        if effective_pool is None or effective_pool.active_keys_count == 0:
-                            wait = retry_after if retry_after is not None else initial_backoff_seconds * (2 ** attempt)
-                            sleep_fn(wait)
-                        continue
-                    resp.raise_for_status()
-
-                if resp.status_code in {500, 502, 503, 504} and attempt + 1 < max_attempts:
-                    sleep_fn(initial_backoff_seconds * (2 ** attempt))
-                    continue
-
-                resp.raise_for_status()
-                break
-
-            assert resp is not None
-            raw_text = _extract_json_from_gemini_response(resp.json())
+            resp_json = post_gemini_generate_content(
+                base_url=base_url,
+                model=model,
+                payload=payload,
+                timeout=timeout_seconds,
+                key_pool=effective_pool,
+                http_client=http_client,
+                max_retries=max_retries,
+                initial_backoff_seconds=initial_backoff_seconds,
+                request_delay_seconds=request_delay_seconds,
+                sleep_fn=sleep_fn,
+            )
+            raw_text = _extract_json_from_gemini_response(resp_json)
             parsed = json.loads(raw_text)
             if cache is not None and cache_key is not None:
                 cache.put(cache_key, {"raw_text": raw_text})

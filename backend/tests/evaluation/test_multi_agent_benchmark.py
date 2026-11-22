@@ -1214,3 +1214,145 @@ def test_judge_config_and_client_support_reasoning_effort_for_gpt61_terra(
     assert len(seen_payloads) == 2
     assert seen_payloads[1]["reasoning"] == {"effort": "none"}
     assert seen_payloads[1]["max_tokens"] == 220
+
+
+def test_gemini_context_provider_sends_thinking_level_for_gemini3_and_parses_json_retry_delay() -> None:
+    """Gemini 3 models send thinkingLevel='low' and 429 JSON RetryInfo.retryDelay avoids pointless 60s/18h waits."""
+    from datetime import date
+    from app.services.context_providers import GeminiContextProvider
+    from app.services.gemini_key_pool import GeminiKeyPool
+
+    seen_payloads: list[dict[str, Any]] = []
+    seen_keys: list[str] = []
+    sleeps: list[float] = []
+
+    def _mock_gemini(request: httpx.Request) -> httpx.Response:
+        seen_keys.append(request.headers.get("x-goog-api-key", ""))
+        seen_payloads.append(json.loads(request.content.decode("utf-8")))
+        if seen_keys[-1] == "key-exhausted":
+            return httpx.Response(
+                429,
+                json={
+                    "error": {
+                        "code": 429,
+                        "status": "RESOURCE_EXHAUSTED",
+                        "details": [
+                            {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "65185s"}
+                        ],
+                    }
+                },
+            )
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": json.dumps({"occasion": "interview"})}]}}]},
+        )
+
+    pool = GeminiKeyPool([SecretStr("key-exhausted"), SecretStr("key-healthy-2")], cooldown_seconds=60.0)
+    provider = GeminiContextProvider(
+        model="gemini-3.6-flash",
+        key_pool=pool,
+        max_retries=2,
+        client=httpx.Client(transport=httpx.MockTransport(_mock_gemini)),
+        sleep_fn=sleeps.append,
+    )
+    out = provider.extract_context(query="Phỏng vấn sáng nay", location=None, current_date=date(2026, 11, 22))
+    assert out["occasion"] == "interview"
+    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    assert seen_keys == ["key-exhausted", "key-healthy-2"]
+    assert sleeps == []
+    status = pool.get_pool_status()
+    exhausted_stat = next(s for s in status["keys"] if s["is_cooling"])
+    assert exhausted_stat["cooldown_remaining_seconds"] > 3600.0
+
+    # When ALL keys are daily-exhausted (>120s cooldown), fail fast with 0 sleep instead of sleeping 18 hours
+    all_dead_sleeps: list[float] = []
+    all_dead_pool = GeminiKeyPool([SecretStr("key-exhausted"), SecretStr("key-exhausted-2")], cooldown_seconds=60.0)
+
+    def _all_429(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            429,
+            json={
+                "error": {
+                    "code": 429,
+                    "details": [{"retryDelay": "65185s"}],
+                }
+            },
+        )
+
+    dead_provider = GeminiContextProvider(
+        model="gemini-3.6-flash",
+        key_pool=all_dead_pool,
+        max_retries=3,
+        client=httpx.Client(transport=httpx.MockTransport(_all_429)),
+        sleep_fn=all_dead_sleeps.append,
+    )
+    with pytest.raises(RuntimeError):
+        dead_provider.extract_context(query="Phỏng vấn sáng nay", location=None, current_date=date(2026, 11, 22))
+    assert all_dead_sleeps == []
+
+
+def test_b2_single_prompt_sends_thinking_level_for_gemini3_and_rotates_past_daily_429(
+    migrated_database: tuple[object, object],
+) -> None:
+    """B2 Single-Prompt configures thinkingLevel='low' for Gemini 3 and skips daily-exhausted keys immediately."""
+    _, engine = migrated_database
+    from datetime import datetime, timezone
+    from app.services.gemini_key_pool import GeminiKeyPool
+
+    bundle = load_benchmark_bundle()
+    r01 = next(c for c in bundle["benchmark"]["representative_cases"] if c["id"] == "r01")
+    seen_keys: list[str] = []
+    seen_payloads: list[dict[str, Any]] = []
+    sleeps: list[float] = []
+
+    def _mock_b2(request: httpx.Request) -> httpx.Response:
+        k = request.headers.get("x-goog-api-key", "")
+        seen_keys.append(k)
+        seen_payloads.append(json.loads(request.content.decode("utf-8")))
+        if k == "key-daily-dead":
+            return httpx.Response(
+                429,
+                json={"error": {"details": [{"retryDelay": "65185s"}]}},
+            )
+        payload = {
+            "status": "ok",
+            "outfits": [
+                {
+                    "rank": 1,
+                    "item_ids": ["f_top_01", "f_bot_01", "f_ftw_02"],
+                    "explanation_vi": "Phối [Áo sơ mi] trắng, [Quần tây] đen và [Giày búp bê] đen cho phỏng vấn.",
+                }
+            ],
+        }
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]},
+        )
+
+    pool = GeminiKeyPool([SecretStr("key-daily-dead"), SecretStr("key-live-ok")], cooldown_seconds=60.0)
+    with Session(engine) as session:
+        raw_to_db = seed_case_user(
+            session,
+            run_user_id="u_b2_gemini3_test",
+            wardrobe_specs=bundle["wardrobes"]["wardrobes"]["female_realistic_30"],
+            profile_spec=None,
+            wear_history=[],
+            fixed_now=datetime(2026, 11, 22, 2, 0, tzinfo=timezone.utc),
+        )
+        db_to_raw = {v: k for k, v in raw_to_db.items()}
+        res = run_single_prompt_gemini_baseline(
+            session=session,
+            run_user_id="u_b2_gemini3_test",
+            case=r01,
+            db_to_raw=db_to_raw,
+            api_key="",
+            model="gemini-3.6-flash",
+            http_client=httpx.Client(transport=httpx.MockTransport(_mock_b2)),
+            key_pool=pool,
+            max_retries=2,
+            sleep_fn=sleeps.append,
+        )
+    assert res["status"] == "ok"
+    assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    assert seen_keys == ["key-daily-dead", "key-live-ok"]
+    assert sleeps == []

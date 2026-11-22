@@ -105,7 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge-api-key-env", type=str, default="BENCH_JUDGE_API_KEY")
     parser.add_argument("--cache-dir", type=Path, default=None)
     parser.add_argument("--llm-delay-seconds", type=float, default=0.0)
-    parser.add_argument("--explanation-timeout", type=float, default=20.0)
+    parser.add_argument("--explanation-timeout", type=float, default=30.0)
     parser.add_argument("--no-llm-cache", action="store_true")
     parser.add_argument("--dry-run-budget", action="store_true")
     parser.add_argument("--export-wardrobe-from-db", type=str, default=None, metavar="USER_ID")

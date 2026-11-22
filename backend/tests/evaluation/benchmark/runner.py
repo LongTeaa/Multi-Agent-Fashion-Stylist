@@ -498,7 +498,7 @@ def run_benchmark(
             raw_provider: Any = GeminiContextProvider(
                 api_key=active_pool.keys[0],
                 model=settings.llm_model,
-                timeout_seconds=float(settings.context_timeout_seconds),
+                timeout_seconds=max(float(settings.context_timeout_seconds), 30.0),
                 key_pool=active_pool,
                 max_retries=max(2, active_pool.total_keys),
                 explanation_timeout_seconds=explanation_timeout_seconds,
