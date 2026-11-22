@@ -29,6 +29,7 @@ data/*.sqlite3
 data/object_storage/
 data/storage/
 data/private-vision-review/
+data/private-tryon-spike/
 data/demo-wardrobe/
 backend/data
 

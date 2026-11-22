@@ -1,0 +1,904 @@
+{
+  "spike": "tryon-provider-spike-v1",
+  "started_at": "2026-11-20T08:11:31Z",
+  "cases_sha256": "254cab2b67b6dfc5c977d2b02f3d2c184ea2fdc97ecb1560621408bc6e3eb211",
+  "salt": "7c942826c9084191a6d61c29b802f8ce",
+  "providers": [
+    "fashn",
+    "flux"
+  ],
+  "host": "https://fal.run",
+  "models": {
+    "fashn": "fal-ai/fashn/tryon/v1.6",
+    "flux": "fal-ai/flux-pro/v1/vto"
+  },
+  "fashn_mode": "balanced",
+  "repeats": 1,
+  "price_source": "fal.ai model pages, read 2026-11-20",
+  "finished_at": "2026-11-20T08:16:18Z",
+  "runs": [
+    {
+      "case_id": "female-01",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:one-pieces",
+          "http_status": 200,
+          "latency_ms": 20791,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 4398,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 25189,
+      "estimated_cost_usd": 0.075,
+      "output_file": "outputs/female-01_fashn_r0.png",
+      "output_sha256": "d95daae410893e52a77628d439006eac3c84492e56d7862e879bbe35da129ab5",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-01",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 6578,
+          "error_type": null,
+          "error_message": null,
+          "seed": 1181907257
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1594,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 8180,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-01_flux_r0.jpg",
+      "output_sha256": "012eb57f414c5f25b485d7c8cbdfee2160c1fdec2ee5ab0382d7ded333ca5ec2",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the black floral cocktail dress shown in the reference image. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 8,
+        "composite_size": [
+          226,
+          579
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-02",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 6979,
+          "error_type": null,
+          "error_message": null,
+          "seed": 386700565
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1325,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 8310,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-02_flux_r0.jpg",
+      "output_sha256": "1777c04b29765444307cae7f6500b649933a0ba5cf524d488a7ad75e357c10e3",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the magenta cocktail dress shown in the reference image. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 6,
+        "composite_size": [
+          292,
+          411
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-02",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:one-pieces",
+          "http_status": 200,
+          "latency_ms": 8706,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1702,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 10408,
+      "estimated_cost_usd": 0.075,
+      "output_file": "outputs/female-02_fashn_r0.png",
+      "output_sha256": "e272811c929e41ef4d970eab003bce15b7505d3298d552e669cbec97a66db5d1",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-03",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8509,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 10192,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 5711,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 24412,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/female-03_fashn_r0.png",
+      "output_sha256": "61bcbc77ef8ba24dad4593e4ff68f8124c7a7b22b1bbc124447b0505d956a7f0",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-03",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 7682,
+          "error_type": null,
+          "error_message": null,
+          "seed": 1717731320
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1797,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 9529,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-03_flux_r0.jpg",
+      "output_sha256": "a36480b7205d508597ae3171a956a5755307891ae2a04cb7623ef35708cee1c8",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the white t-shirt (left) on the upper body and the green floral shorts (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 50,
+        "composite_size": [
+          908,
+          572
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-04",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 8265,
+          "error_type": null,
+          "error_message": null,
+          "seed": 445738816
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1291,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 9580,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-04_flux_r0.jpg",
+      "output_sha256": "9512ae7672e5150d6f226905ed2260ab321007213bad3836c9dcf9b72d78cfc6",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the maroon floral blouse (left) on the upper body and the blue skirt (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 24,
+        "composite_size": [
+          797,
+          510
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-04",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8862,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 9784,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1751,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 20397,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/female-04_fashn_r0.png",
+      "output_sha256": "1a0425df72563fa0a9a3c4e3b163cc4af0f446a9dbf634296252b398f9e74710",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-05",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8745,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 9880,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1660,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 20285,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/female-05_fashn_r0.png",
+      "output_sha256": "f535b8886747211343a178e12de030acc684ac61c24b3763185301dd2af56a10",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-05",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 14548,
+          "error_type": null,
+          "error_message": null,
+          "seed": 1821419220
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 3202,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 17771,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-05_flux_r0.jpg",
+      "output_sha256": "054ab0a5a659822a10167bee4c5ec3fb32181336115bcd87c65bead0da8b1d00",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the white animal shirt (left) on the upper body and the green culottes (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 21,
+        "composite_size": [
+          831,
+          519
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-06",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 5016,
+          "error_type": null,
+          "error_message": null,
+          "seed": 152198963
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1261,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 6282,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/female-06_flux_r0.jpg",
+      "output_sha256": "23c11611b2f9c08002f5a25944f8a54472d9f94c21c210d4028942b452fbcdba",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the green midi dress shown in the reference image. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 5,
+        "composite_size": [
+          312,
+          396
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "female-06",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:one-pieces",
+          "http_status": 200,
+          "latency_ms": 8279,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1725,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 10004,
+      "estimated_cost_usd": 0.075,
+      "output_file": "outputs/female-06_fashn_r0.png",
+      "output_sha256": "b3285a02a5736a02a6c8d985614e719cc640940b5789a11cb65cbece5581da00",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-01",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8973,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 9847,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 3506,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 22326,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/male-01_fashn_r0.png",
+      "output_sha256": "810c97189280e764024806bf9558658b891e6b0f1915cd602189f34b71bb6a3c",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-01",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 4654,
+          "error_type": null,
+          "error_message": null,
+          "seed": 59432954
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1260,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 5943,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/male-01_flux_r0.jpg",
+      "output_sha256": "144da88379d6578102dd15538206a7c3258752cbe28706c99a64265c8ba9b899",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the grey sweater (left) on the upper body and the black trousers (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 29,
+        "composite_size": [
+          658,
+          557
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-02",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 4636,
+          "error_type": null,
+          "error_message": null,
+          "seed": 1704183397
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 2305,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 6977,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/male-02_flux_r0.jpg",
+      "output_sha256": "b906e3976b276732118b767bc0c8757b9ce4a5fd3bd46e394972f95379fdb119",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the beige plaid shirt (left) on the upper body and the black trousers (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 36,
+        "composite_size": [
+          1046,
+          496
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-02",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8942,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 10479,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 4865,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 24286,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/male-02_fashn_r0.png",
+      "output_sha256": "f3d36518152d911512fb5095647164b27061896a69fe12c71a2dcebb7a341049",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-03",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8940,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 10876,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 2678,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 22494,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/male-03_fashn_r0.png",
+      "output_sha256": "47664b52e00858a90b54c55cdf85649a52dfbfd77b43ce75fd485f2da3e9a196",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-03",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 5572,
+          "error_type": null,
+          "error_message": null,
+          "seed": 2095588388
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1390,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 6979,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/male-03_flux_r0.jpg",
+      "output_sha256": "c736b14370260aee3326b4dd2defdd00af058b874ccd8e83997bcee2c32e03a3",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the black vest (left) on the upper body and the blue jeans (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 17,
+        "composite_size": [
+          725,
+          545
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-04",
+      "provider": "flux",
+      "model_id": "fal-ai/flux-pro/v1/vto",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "vto",
+          "http_status": 200,
+          "latency_ms": 4584,
+          "error_type": null,
+          "error_message": null,
+          "seed": 1268129554
+        },
+        {
+          "model_id": "fal-ai/flux-pro/v1/vto",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1211,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 5812,
+      "estimated_cost_usd": 0.0475,
+      "output_file": "outputs/male-04_flux_r0.jpg",
+      "output_sha256": "75b7624b0a0e781d49bcdfc860db9d60e77ed1dd88adaa16889621b78bbb233e",
+      "output_size": [
+        736,
+        1024
+      ],
+      "prompt": "Dress the person in the garments shown in the reference image: the black vest (left) on the upper body and the blue jeans (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "settings": {
+        "composite_ms": 17,
+        "composite_size": [
+          718,
+          568
+        ]
+      },
+      "repeat": 0
+    },
+    {
+      "case_id": "male-04",
+      "provider": "fashn",
+      "model_id": "fal-ai/fashn/tryon/v1.6",
+      "success": true,
+      "calls": [
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass1:tops",
+          "http_status": 200,
+          "latency_ms": 8257,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "pass2:bottoms",
+          "http_status": 200,
+          "latency_ms": 10324,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        },
+        {
+          "model_id": "fal-ai/fashn/tryon/v1.6",
+          "stage": "download",
+          "http_status": 200,
+          "latency_ms": 1642,
+          "error_type": null,
+          "error_message": null,
+          "seed": null
+        }
+      ],
+      "total_latency_ms": 20223,
+      "estimated_cost_usd": 0.15,
+      "output_file": "outputs/male-04_fashn_r0.png",
+      "output_sha256": "f3d90934ecc0d13e06b6b6142671b66ed416fa67a93635f86292ea47ff8abe24",
+      "output_size": [
+        864,
+        1157
+      ],
+      "prompt": null,
+      "settings": {
+        "mode": "balanced"
+      },
+      "repeat": 0
+    }
+  ]
+}
