@@ -7,7 +7,7 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20). |
+| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -149,9 +149,9 @@ docker compose -f compose.prod.yaml config --quiet
 - [x] Add the spike clients and pure helpers (`backend/tests/evaluation/tryon_spike.py`, not imported by the application) and the CLI (`backend/scripts/spike_tryon_providers.py` with `plan`, `run`, `review`, `score`). Output goes to the git-ignored `data/private-tryon-spike/`. The fal key comes only from `FAL_KEY`, is never sent to image CDNs, and is never written to files.
 - [x] Add offline tests (`backend/tests/evaluation/test_tryon_spike.py`) for garment selection, prompt, composite, pixel budget, cost formula, chained calls, failures and empty responses recorded without the key, summaries, the blind permutation, and a review bundle that leaks no provider name.
 - [x] Run `run --live` once with a funded fal.ai key (one repeat, ten demo cases). Done 2026-11-20 08:11–08:16 UTC: 20/20 renders succeeded, estimated cost $1.75 (FASHN 17 calls, $1.275; FLUX 10 calls, $0.475). Raw results are frozen as `data/fixtures/tryon_spike_raw_v1_20261120.json`. The review bundle re-encodes every result as JPEG at 1024 px height, because the native formats (FASHN PNG 864×1157, FLUX JPEG 736×1024) would unblind raters.
-- [ ] Collect blind ratings from at least three raters with `review`, then score them with `score`, passing the same raw files to both.
-- [ ] Write `docs/archive/reports/TRYON_PROVIDER_SPIKE_<date>.md` with the score tables, failure list, example images and limitations (preset avatars only; garment crops, not product photos; both models measured through fal.ai; FLUX VTO v1, not v2).
-- [ ] Record the decision (keep the Space, switch to FASHN v1.6, or switch to FLUX VTO). If the provider changes, update `VIRTUAL_TRYON_SPEC.md` and `ALIGNMENT_BACKLOG.md` T-3 in that follow-up task.
+- [x] Collect blind ratings from at least three raters with `review`, then score them with `score`, passing the same raw files to both. Done 2026-11-22: R1 (owner, not blind) and R2, R3 (friends, not fashion specialists), 60 ratings; pseudonymized as `data/fixtures/tryon_spike_ratings_v1_R1.json`, `_R2.json`, `_R3.json`.
+- [x] Write `docs/archive/reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` with the score tables, failure list and limitations. Garment fidelity FASHN 3.83 vs FLUX 4.73, realism 4.60 vs 5.00, unacceptable 4/30 vs 0/30; FLUX higher on 8 of 10 cases (sign test p = 0.109, not significant with ten cases).
+- [x] Record the decision: on 2026-11-22 the owner chose to switch to FLUX VTO. The provider change, `VIRTUAL_TRYON_SPEC.md` and `ALIGNMENT_BACKLOG.md` T-3 are Phase 4.
 
 **Acceptance criteria:**
 
@@ -164,6 +164,42 @@ docker compose -f compose.prod.yaml config --quiet
 
 ```powershell
 cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
+./scripts/verify_documentation.ps1
+```
+
+## Phase 4 — Switch Try-On to FLUX VTO
+
+**Status:** Approved by the owner on 2026-11-22, following the Phase 3 decision.
+
+**Goal:** Make FLUX VTO on fal.ai the application's try-on provider, rendering a whole outfit in one call, so a preset or personal avatar wearing the outfit appears in about 7 s instead of the 37 s per pass and quota failures of the Hugging Face Space. Serves thesis objective 1.2 "Phòng thử đồ trực tuyến". Moodboard fallback, ownership, avatar and privacy rules do not change.
+
+**Specification files:**
+
+- `../06_features/VIRTUAL_TRYON_SPEC.md` (sections 1–4); this phase updates it.
+- `../archive/reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` (evidence and limitations).
+- `ALIGNMENT_BACKLOG.md` T-3; this phase updates it.
+
+**Checklist:**
+
+- [x] Add an optional whole-outfit provider capability (`OutfitTryOnProviderProtocol`, `OutfitTryOnRequest`, `OutfitGarment` in `backend/app/services/providers.py`). `tryon_service` makes one call when the provider supports it and keeps the garment passes otherwise, so the FASHN adapter still works.
+- [x] Add `backend/app/services/flux_vto_provider.py`: person image at most 1 MP, left-to-right garment composite at most about 0.5 MP, attribute-only prompt, the key sent only to fal.ai, fixed user-facing error messages, timeout bounded by `TRYON_TIMEOUT_SECONDS`, WebP output.
+- [x] Add `TRYON_PROVIDER=flux`, `FAL_KEY` and `FLUX_VTO_MODEL` settings and `.env.example` entries; the try-on dependency fails with a configuration error when `FAL_KEY` is missing.
+- [x] Include the provider model in the render cache key, so switching providers never serves another model's cached render.
+- [x] Tests: `backend/tests/unit/test_flux_vto_provider.py`, two integration tests in `backend/tests/integration/test_tryon_api.py` (one outfit call; cache scoped to the model) that fail without the change, and the configuration tests.
+- [x] Update `VIRTUAL_TRYON_SPEC.md` and `ALIGNMENT_BACKLOG.md` T-3.
+- [ ] Owner sets `TRYON_PROVIDER=flux` and `FAL_KEY` in the local `.env` (never committed) and renders one preset and one personal-avatar outfit in the app to confirm the end-to-end path; record the result in `CURRENT_STATE.md`.
+
+**Acceptance criteria:**
+
+- With `TRYON_PROVIDER=flux`, an upper + bottom outfit is rendered with exactly one provider call, and a dress outfit with one call carrying only the dress.
+- A provider error, quota error or timeout returns HTTP 200 with the moodboard and `fallback_used=true`.
+- No fal key appears in logs, error messages, stored records or requests to image CDNs.
+- Default verification runs without network access or credentials.
+
+**Executable Commands:**
+
+```powershell
+cd backend; python -m pytest tests/unit/test_flux_vto_provider.py tests/unit/test_config.py tests/integration/test_tryon_api.py -q; cd ..
 ./scripts/verify_documentation.ps1
 ```
 

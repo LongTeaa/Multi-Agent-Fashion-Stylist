@@ -346,6 +346,18 @@ def get_tryon_provider() -> TryOnProviderProtocol | None:
             timeout_seconds=int(settings.tryon_timeout_seconds),
         )
 
+    if settings.tryon_provider == "flux":
+        from app.services.flux_vto_provider import FluxVtoTryOnProvider
+
+        fal_key = settings.fal_key.get_secret_value() if settings.fal_key else ""
+        if not fal_key.strip():
+            raise ValueError("FAL_KEY is required when TRYON_PROVIDER=flux.")
+        return FluxVtoTryOnProvider(
+            api_key=fal_key,
+            model=settings.flux_vto_model,
+            timeout_seconds=float(settings.tryon_timeout_seconds),
+        )
+
     raise ValueError(f"Unsupported tryon_provider: '{settings.tryon_provider}'")
 
 

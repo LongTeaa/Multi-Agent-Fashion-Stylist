@@ -48,6 +48,9 @@ from app.services.providers import (
     DetectorProtocol,
     ImageProviderProtocol,
     ImageReference,
+    OutfitGarment,
+    OutfitTryOnProviderProtocol,
+    OutfitTryOnRequest,
     TryOnProviderProtocol,
     TryOnRequest as ProviderTryOnRequest,
 )
@@ -645,6 +648,63 @@ def _avatar_is_active(session: Session, user_id: str, avatar_id: str) -> bool:
     ).first() is not None
 
 
+_TRYON_CATEGORY: dict[WardrobeCategory, Literal["tops", "bottoms", "one-pieces"]] = {
+    WardrobeCategory.TOP: "tops",
+    WardrobeCategory.OUTERWEAR: "tops",
+    WardrobeCategory.BOTTOM: "bottoms",
+    WardrobeCategory.DRESS: "one-pieces",
+}
+
+
+def _render_garments(
+    *,
+    tryon_provider: TryOnProviderProtocol,
+    storage: ObjectStorage,
+    user_id: str,
+    person_bytes: bytes,
+    chosen_items: list[WardrobeItem],
+    media_map: dict[str, MediaAsset],
+) -> bytes:
+    """Render the chosen garments (upper then lower, or one dress) onto the person.
+
+    A provider that implements `try_on_outfit` gets the whole outfit in one call;
+    otherwise each garment is a pass that wears the previous pass's output.
+    """
+    garments: list[OutfitGarment] = []
+    for item in chosen_items:
+        asset = media_map[item.id]
+        garments.append(
+            OutfitGarment(
+                image_bytes=storage.get_object(user_id=user_id, bucket=asset.bucket, object_key=asset.object_key),
+                mime_type=cast(Literal["image/jpeg", "image/png", "image/webp"], asset.mime_type or "image/jpeg"),
+                category=_TRYON_CATEGORY[item.category],
+                sub_category=item.sub_category or "",
+                primary_color=item.primary_color or "",
+                pattern=item.pattern or "",
+            )
+        )
+    if isinstance(tryon_provider, OutfitTryOnProviderProtocol):
+        return tryon_provider.try_on_outfit(
+            OutfitTryOnRequest(
+                person_image_bytes=person_bytes,
+                person_mime_type="image/webp",
+                garments=tuple(garments),
+            )
+        ).image_bytes
+    current = person_bytes
+    for garment in garments:
+        current = tryon_provider.try_on(
+            ProviderTryOnRequest(
+                person_image_bytes=current,
+                person_mime_type="image/webp",
+                garment_image_bytes=garment.image_bytes,
+                garment_mime_type=garment.mime_type,
+                category=garment.category,
+            )
+        ).image_bytes
+    return current
+
+
 def _execute_virtual_tryon(
     *,
     session: Session,
@@ -731,8 +791,7 @@ def _execute_virtual_tryon(
         if im.wardrobe_item_id not in media_map:
             media_map[im.wardrobe_item_id] = ma
 
-    # 3. Categorize candidate try-on items
-    # Categories supported by FASHN: tops, bottoms, one-pieces.
+    # 3. Categorize candidate try-on items (provider categories: tops, bottoms, one-pieces).
     tops_item: WardrobeItem | None = None
     bottoms_item: WardrobeItem | None = None
     dress_item: WardrobeItem | None = None
@@ -764,8 +823,10 @@ def _execute_virtual_tryon(
 
     selected_ids = sorted([it.id for it in chosen_items])
 
-    # 4. Cache check: sha256(user_id:avatar_id:sorted_item_ids)
-    cache_key = sha256(f"{user_id}:{avatar_id}:{','.join(selected_ids)}".encode()).hexdigest()
+    # 4. Cache check: sha256(user_id:avatar_id:provider_model:sorted_item_ids). The model is
+    # part of the key so that switching providers never serves another model's render.
+    provider_model = tryon_provider.model if tryon_provider is not None else "none"
+    cache_key = sha256(f"{user_id}:{avatar_id}:{provider_model}:{','.join(selected_ids)}".encode()).hexdigest()
     cached_render = (
         session.exec(
             select(TryOnRender)
@@ -810,77 +871,16 @@ def _execute_virtual_tryon(
             error_code="PROVIDER_DISABLED" if tryon_provider is None else "NO_COMPATIBLE_GARMENTS",
         )
 
-    # 6. Execute multi-pass try-on
+    # 6. Execute try-on: one call for outfit-capable providers, otherwise garment passes
     try:
-        current_person_bytes = person_bytes
-
-        if dress_item is not None:
-            garment_asset = media_map[dress_item.id]
-            garment_bytes = storage.get_object(
-                user_id=user_id,
-                bucket=garment_asset.bucket,
-                object_key=garment_asset.object_key,
-            )
-            g_mime = cast(
-                Literal["image/jpeg", "image/png", "image/webp"],
-                garment_asset.mime_type or "image/jpeg",
-            )
-            res = tryon_provider.try_on(
-                ProviderTryOnRequest(
-                    person_image_bytes=current_person_bytes,
-                    person_mime_type="image/webp",
-                    garment_image_bytes=garment_bytes,
-                    garment_mime_type=g_mime,
-                    category="one-pieces",
-                )
-            )
-            current_person_bytes = res.image_bytes
-        else:
-            if tops_item is not None:
-                garment_asset = media_map[tops_item.id]
-                garment_bytes = storage.get_object(
-                    user_id=user_id,
-                    bucket=garment_asset.bucket,
-                    object_key=garment_asset.object_key,
-                )
-                g_mime = cast(
-                    Literal["image/jpeg", "image/png", "image/webp"],
-                    garment_asset.mime_type or "image/jpeg",
-                )
-                res = tryon_provider.try_on(
-                    ProviderTryOnRequest(
-                        person_image_bytes=current_person_bytes,
-                        person_mime_type="image/webp",
-                        garment_image_bytes=garment_bytes,
-                        garment_mime_type=g_mime,
-                        category="tops",
-                    )
-                )
-                current_person_bytes = res.image_bytes
-
-            if bottoms_item is not None:
-                garment_asset = media_map[bottoms_item.id]
-                garment_bytes = storage.get_object(
-                    user_id=user_id,
-                    bucket=garment_asset.bucket,
-                    object_key=garment_asset.object_key,
-                )
-                g_mime = cast(
-                    Literal["image/jpeg", "image/png", "image/webp"],
-                    garment_asset.mime_type or "image/jpeg",
-                )
-                res = tryon_provider.try_on(
-                    ProviderTryOnRequest(
-                        person_image_bytes=current_person_bytes,
-                        person_mime_type="image/webp",
-                        garment_image_bytes=garment_bytes,
-                        garment_mime_type=g_mime,
-                        category="bottoms",
-                    )
-                )
-                current_person_bytes = res.image_bytes
-
-        final_image_bytes = current_person_bytes
+        final_image_bytes = _render_garments(
+            tryon_provider=tryon_provider,
+            storage=storage,
+            user_id=user_id,
+            person_bytes=person_bytes,
+            chosen_items=chosen_items,
+            media_map=media_map,
+        )
         # Provider passes can take minutes; discard the result if the avatar was deleted meanwhile.
         if avatar_record is not None and not _avatar_is_active(session, user_id, avatar_record.id):
             raise _AvatarDeletedDuringRender()

@@ -4,7 +4,7 @@
 
 The application supports two visual presentation modes for a selected outfit:
 1. **Illustrative Lookbook / Moodboard Fallback:** Produces a catalog lookbook image or structured item moodboard.
-2. **2D Photorealistic Virtual Try-On (VTON):** Inpaints garments onto a full-body person or standard preset model using a pixel-space diffusion model (such as `fashn-ai/fashn-vton-1.5`).
+2. **2D Photorealistic Virtual Try-On (VTON):** Renders the outfit's garments onto a full-body person or standard preset model. The default provider is FLUX VTO on fal.ai (`fal-ai/flux-pro/v1/vto`), selected over FASHN Try-On v1.6 by the 2026-11-22 provider spike (`../archive/reports/TRYON_PROVIDER_SPIKE_2026-11-22.md`); the FASHN VTON v1.5 Hugging Face adapter remains available.
 
 The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tailor-grade fit simulation on the user's body. The UI MUST display the Vietnamese label `Ảnh mặc thử AI` (for virtual try-on), `Ảnh minh họa AI` (for lookbook), or `Moodboard dự phòng` according to render kind.
 
@@ -25,13 +25,15 @@ The MVP MUST NOT claim accurate physical garment size, fabric elasticity, or tai
 
 The Gemini image adapter uses the same `GEMINI_API_KEY` as Vision, with a separate `IMAGE_MODEL` identifier. Set `IMAGE_PROVIDER=gemini` to enable it. The adapter sends the outfit's private item crops as inline reference images and reads generated image bytes from the Gemini response. A provider error, invalid image response, or timeout follows the moodboard fallback path.
 
+The FLUX VTO adapter (`TRYON_PROVIDER=flux`) calls `https://fal.run/<FLUX_VTO_MODEL>` (default `fal-ai/flux-pro/v1/vto`) with `FAL_KEY`. Startup of the try-on dependency MUST fail with a configuration error when `FAL_KEY` is missing. The key MUST be sent only to fal.ai, never to the CDN that serves the result image. Each HTTP call MUST be bounded by `TRYON_TIMEOUT_SECONDS`. An HTTP error, a response without an image, a non-image result or a transport error MUST raise a provider error with a fixed user-facing message (no provider response text), and a timeout MUST raise a timeout; both follow the moodboard fallback path. The adapter re-encodes the result as WebP.
+
 The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space endpoint (`FASHN_TRYON_SPACE=fashn-ai/fashn-vton-1.5`) with optional `HF_TOKEN`. Each provider pass MUST be bounded by `TRYON_TIMEOUT_SECONDS`; on expiry the adapter MUST cancel the remote job and raise a timeout, which follows the moodboard fallback path.
 
 ## 3. Pipeline
 
 ```text
 authorize outfit and items
-  -> check try-on cache by (user_id, avatar_id, sorted_item_ids)
+  -> check try-on cache by (user_id, avatar_id, provider model, sorted_item_ids)
   -> on cache hit: return cached render (HTTP 200)
   -> on cache miss:
      -> if async mode: create pending tryon_render, dispatch background task, return HTTP 202
@@ -39,8 +41,9 @@ authorize outfit and items
         -> resolve person image (preset or avatar source stream)
         -> load primary garment crops
         -> determine execution sequence:
-           - single item or one-piece: 1 pass
-           - top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
+           - provider supports whole-outfit rendering (FLUX VTO): 1 call with every chosen garment
+           - otherwise, single item or one-piece: 1 pass
+           - otherwise, top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
         -> on provider error, quota exhaustion, or timeout:
            - generate deterministic moodboard from item crops with fallback_used=true
         -> persist final media asset to tryon-private bucket
@@ -50,6 +53,10 @@ authorize outfit and items
 ## 4. Prompt and Resolution Requirements
 
 For prompt-based providers (Gemini), the prompt SHOULD describe a standard adult mannequin/model, full-length catalog composition, neutral background, and each garment by slot. It MUST omit null/default attributes and MUST NOT add brands, accessories, or garments absent from the outfit.
+
+The provider model is part of the render cache key, so changing provider or model never serves another model's render; `force_refresh` still bypasses the cache.
+
+For FLUX VTO, the person image MUST be downscaled to at most 1 MP and the chosen garments MUST be placed left to right, upper body first, on a white canvas of at most about 0.5 MP; a one-piece is sent alone. The prompt MUST name each garment in that order using only its recorded color, non-plain pattern and sub-category, MUST ask to keep the person's face, hair, pose, body shape, footwear and background unchanged, and MUST NOT add brands, accessories or garments absent from the outfit.
 
 For pixel-space diffusion providers (FASHN VTON), output resolution is determined by the model architecture ($576 \times 864$ or aspect-ratio adapted $576 \times 717$). Prompt-based targets SHOULD have at least 1024 pixels on the long edge or use the selected provider's documented limit.
 

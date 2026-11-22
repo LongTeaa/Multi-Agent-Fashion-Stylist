@@ -27,5 +27,6 @@ New dated reviews, audits, spike reports, and live-test reports SHOULD be added 
 | `reports/PR_7_REVIEW_2026-11-05.md` | 2026-11-05 | Review of PR #7 (wardrobe ingestion optimization) |
 | `reports/FASHN_VTON_SPIKE_REPORT.md` | 2026-11-06 | FASHN VTON v1.5 feasibility spike (Vietnamese) |
 | `reports/PROJECT_REVIEW_2026-11-18.md` | 2026-11-18 | Whole-project review: multi-agent depth, data, ingestion, try-on options, benchmark plan (Vietnamese) |
+| `reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` | 2026-11-22 | FASHN Try-On v1.6 vs FLUX VTO on ten demo outfits: latency, cost, blind ratings; decision to switch to FLUX VTO |
 
 Machine-readable evidence (`reports/*.json`) and screenshots (`reports/screenshots/`) belong to the reports that link to them.
