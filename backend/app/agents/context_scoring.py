@@ -27,20 +27,20 @@ WEIGHT_PROFILES: dict[str, dict[str, float]] = {
         "functional": 0.20,
     },
     # Comfort / Casual Profile: Hot days, cafe with friends, relaxed weekend, travel
-    # Combined weather/comfort fit (55%) is prioritized; formality is 10%.
+    # Weather/comfort fit (45%) leads while preserving meaningful personalization (15%).
     "comfort": {
-        "weather_comfort": 0.55,
+        "weather_comfort": 0.45,
         "aesthetic": 0.15,
-        "functional": 0.20,
-        "personal": 0.00,
+        "functional": 0.15,
+        "personal": 0.15,
         "formality": 0.10,
     },
     # Active / Outdoor Profile: Motorcycling, outdoor activity, heavy movement, rain
-    # Function (30%) and combined weather/comfort fit (45%) are prioritized.
+    # Function (30%) and weather/comfort fit (35%) lead while keeping personalization (10%).
     "active": {
         "functional": 0.30,
-        "weather_comfort": 0.45,
-        "personal": 0.00,
+        "weather_comfort": 0.35,
+        "personal": 0.10,
         "aesthetic": 0.15,
         "formality": 0.10,
     },
@@ -201,7 +201,8 @@ def calculate_context_composite_score(
                          - BehaviorPenalty
 
     PersonalPref is pure taste affinity (style, palette, priorities, learned ratings),
-    so a profile may weight it at 0. BehaviorPenalty (recent-wear repetition and
+    carrying positive weight across every profile (`0.10`–`0.20`, including `0.15`
+    for comfort and `0.10` for active). BehaviorPenalty (recent-wear repetition and
     relaxed avoid violations) is subtracted after weighting and therefore applies
     under every profile.
     """

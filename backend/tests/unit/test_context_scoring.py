@@ -11,7 +11,7 @@ from app.agents.context_scoring import (
 from app.agents.coordinator import generate_grounded_explanation_vi
 from app.agents.personalization_agent import rerank_evaluated_outfits
 from app.agents.state import EvaluatedOutfit, OutfitItemSlot, RankedOutfit, StylistContext
-from app.models.entities import OutfitSlotRole, WardrobeCategory
+from app.models.entities import OutfitSlotRole, UserPreference, WardrobeCategory
 
 
 def _make_slot(
@@ -149,16 +149,16 @@ def test_weight_profiles_match_the_normative_vectors():
             "functional": 0.20,
         },
         "comfort": {
-            "weather_comfort": 0.55,
+            "weather_comfort": 0.45,
             "aesthetic": 0.15,
-            "functional": 0.20,
-            "personal": 0.00,
+            "functional": 0.15,
+            "personal": 0.15,
             "formality": 0.10,
         },
         "active": {
             "functional": 0.30,
-            "weather_comfort": 0.45,
-            "personal": 0.00,
+            "weather_comfort": 0.35,
+            "personal": 0.10,
             "aesthetic": 0.15,
             "formality": 0.10,
         },
@@ -297,6 +297,82 @@ def test_context_reranking_considers_candidates_beyond_first_five():
     )
 
     assert ranked[0].items[0].item_id == "hot-comfort"
+
+
+def test_comfort_profile_differentiates_user_preferences_while_preserving_hot_weather_priority():
+    """Comfort profile uses UserPreference to break ties while hot weather still overrides style taste."""
+    casual_cand = EvaluatedOutfit(
+        items=[
+            _make_slot("t_cas", OutfitSlotRole.TOP, style="casual", formality=2, comfort_level=5, weather=["hot", "warm", "cool"], color="beige"),
+            _make_slot("b_cas", OutfitSlotRole.BOTTOM, style="casual", formality=2, comfort_level=5, weather=["hot", "warm", "cool"], color="brown"),
+            _make_slot("s_cas", OutfitSlotRole.FOOTWEAR, style="casual", formality=2, comfort_level=5, weather=["hot", "warm", "cool"], color="white"),
+        ],
+        fashion_score=0.90,
+        combination_id="casual_tie",
+    )
+    smart_cand = EvaluatedOutfit(
+        items=[
+            _make_slot("t_frm", OutfitSlotRole.TOP, style="formal", formality=3, comfort_level=3, weather=["warm", "cool"], color="white"),
+            _make_slot("b_frm", OutfitSlotRole.BOTTOM, style="formal", formality=3, comfort_level=3, weather=["warm", "cool"], color="navy"),
+            _make_slot("s_frm", OutfitSlotRole.FOOTWEAR, style="formal", formality=3, comfort_level=3, weather=["warm", "cool"], color="black"),
+        ],
+        fashion_score=0.90,
+        combination_id="smart_tie",
+    )
+
+    # 1. Equally weather/formality-suited cool cafe: profile taste switches Top 1
+    ctx_cool_cafe = StylistContext(
+        occasion="cafe",
+        time_of_day="afternoon",
+        weather_condition="cool",
+        target_formality_range=[2, 3],
+        weight_profile="comfort",
+    )
+    equal_casual = casual_cand.model_copy(
+        update={
+            "items": [s.model_copy(update={"comfort_level": 3}) for s in casual_cand.items],
+        }
+    )
+    pref_casual = UserPreference(
+        user_id="u_cas",
+        styles=["casual"],
+        color_palettes=["earth_tone"],
+        priorities=["comfort"],
+        fit_preferences=["regular"],
+    )
+    pref_formal = UserPreference(
+        user_id="u_frm",
+        styles=["formal"],
+        color_palettes=["neutral"],
+        priorities=["polished"],
+        fit_preferences=["regular"],
+    )
+    ranked_cas, _ = rerank_evaluated_outfits([equal_casual, smart_cand], preferences=pref_casual, context=ctx_cool_cafe)
+    ranked_frm, _ = rerank_evaluated_outfits([equal_casual, smart_cand], preferences=pref_formal, context=ctx_cool_cafe)
+
+    assert ranked_cas[0].items[0].item_id == "t_cas"
+    assert ranked_frm[0].items[0].item_id == "t_frm"
+    assert ranked_cas[0].composite_score != ranked_frm[0].composite_score
+
+    # 2. Hot weather cafe: breathable casual set MUST still beat heavy formal outfit despite formal preference
+    heavy_formal = EvaluatedOutfit(
+        items=[
+            _make_slot("t_wool", OutfitSlotRole.TOP, style="formal", formality=5, comfort_level=2, weather=["cold"], material="wool", flags=["heavy"]),
+            _make_slot("b_wool", OutfitSlotRole.BOTTOM, style="formal", formality=5, comfort_level=2, weather=["cold"], material="wool", flags=["heavy"]),
+            _make_slot("s_wool", OutfitSlotRole.FOOTWEAR, style="formal", formality=5, comfort_level=2, weather=["cool"], color="black"),
+        ],
+        fashion_score=0.95,
+        combination_id="heavy_formal",
+    )
+    ctx_hot_cafe = StylistContext(
+        occasion="cafe",
+        time_of_day="afternoon",
+        weather_condition="hot",
+        target_formality_range=[1, 2],
+        weight_profile="comfort",
+    )
+    ranked_hot, _ = rerank_evaluated_outfits([heavy_formal, casual_cand], preferences=pref_formal, context=ctx_hot_cafe)
+    assert ranked_hot[0].items[0].item_id == "t_cas"
 
 
 # ============================================================================

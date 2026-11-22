@@ -253,7 +253,7 @@ def test_contrastive_defense_demonstration_scenarios(
 
     SCENARIO B (Hot Weather Comfort Cafe):
     - User query: "Hôm nay trời nắng nóng 35 độ oi bức, tôi đi cà phê dạo phố ưu tiên thoải mái mát mẻ"
-    - Triggers: weight_profile = "comfort" (WeatherComfort: 55%, Function: 20%, Aesthetic: 15%, Formality: 10%)
+    - Triggers: weight_profile = "comfort" (WeatherComfort: 45%, Function: 15%, Aesthetic: 15%, Personal: 15%, Formality: 10%)
     - Top 1 Outfit: Áo thun cotton + Quần đũi linen + Giày thể thao (comfort_level = 5)
     - Mathematical Proof: The casual outfit beats the suit outfit due to the weather-comfort dynamic profile,
       even if the suit possesses high formal aesthetic harmony!
