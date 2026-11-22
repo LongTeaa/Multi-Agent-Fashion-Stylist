@@ -7,7 +7,7 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22). |
+| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -190,7 +190,7 @@ cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
 - [x] Check footwear, headwear and layered tops on six demo outfits (`backend/scripts/spike_tryon_extras.py`, `docs/archive/reports/TRYON_EXTRAS_CHECK_2026-11-22.md`); all 12 renders succeeded and the extended renders wore the shoes, hats and both layers. Owner approved rendering them on 2026-11-22.
 - [x] Whole-outfit providers wear outerwear over the inner top or a dress, the bottom, the first footwear item and the first headwear accessory, using a grid composite and the provider's multi-garment prompt; other accessories stay as cards. Garment-pass providers keep the previous rule.
 - [x] The try-on response lists the worn items in `rendered_item_ids` (`API_CONTRACT.md` 8.1, 8.2). The modal sends every item, lists worn items apart from the cards beside the image, and offers the outer/inner choice only when the render did not wear both. Tests: three integration tests in `test_tryon_api.py`, three unit tests in `test_flux_vto_provider.py`, `frontend/src/__tests__/TryOnModal.test.tsx`, and the updated layering test in `frontend/src/components/TryOnModal.test.tsx`.
-- [ ] Owner sets `TRYON_PROVIDER=flux` and `FAL_KEY` in the local `.env` (never committed) and renders one preset and one personal-avatar outfit in the app to confirm the end-to-end path; record the result in `CURRENT_STATE.md`. A preset render with the first version was confirmed on 2026-11-22; repeat it with layers and footwear, and with a personal avatar.
+- [x] Owner sets `TRYON_PROVIDER=flux` and `FAL_KEY` in the local `.env` (never committed) and renders outfits in the app to confirm the end-to-end path. Confirmed by the owner on 2026-11-22, first with the single-call version on a preset, then with layers and footwear.
 
 **Acceptance criteria:**
 
