@@ -14,6 +14,8 @@ from app.agents.context_scoring import (
 )
 from app.agents.fashion_scoring import calculate_formality_score
 from app.agents.state import (
+    AgentTraceEvent,
+    ConflictNote,
     EvaluatedOutfit,
     OutfitItemSlot,
     RankedOutfit,
@@ -395,6 +397,8 @@ def rerank_evaluated_outfits(
     context: StylistContext | None = None,
     reference_time: datetime | None = None,
     max_output: int = 3,
+    *,
+    disable_recent_wear: bool = False,
 ) -> tuple[list[RankedOutfit], list[str]]:
     """Rerank the complete bounded Fashion Agent pool into 1 to 3 results.
 
@@ -482,9 +486,12 @@ def rerank_evaluated_outfits(
 
         avoid_penalty = (0.10 * len(violations)) if is_relaxed else 0.0
 
-        wear_penalty, wear_notes = calculate_recent_wear_penalty(
-            cand.items, recent_data, reference_time
-        )
+        if disable_recent_wear:
+            wear_penalty, wear_notes = 0.0, []
+        else:
+            wear_penalty, wear_notes = calculate_recent_wear_penalty(
+                cand.items, recent_data, reference_time
+            )
         wear_penalties.append(wear_penalty)
 
         raw_preference = (
@@ -607,27 +614,29 @@ def personalization_agent_node(
     if not evaluated_outfits:
         return {"ranked_outfits": []}
 
-    # Load user data with session
+    # Load user data with session unless explicitly disabled for ablation evaluation
+    disable_personalization = bool(state.get("disable_personalization", False))
     preferences: UserPreference | None = None
     recent_wear_data: dict[str, Any] = {}
 
-    try:
-        if session is not None:
-            preferences, recent_wear_data = get_user_personalization_data(
-                session, user_id, reference_time
-            )
-        else:
-            with Session(get_engine()) as db_session:
+    if not disable_personalization:
+        try:
+            if session is not None:
                 preferences, recent_wear_data = get_user_personalization_data(
-                    db_session, user_id, reference_time
+                    session, user_id, reference_time
                 )
-    except Exception as exc:
-        logger.exception("Failed to load personalization data for user %s: %s", user_id, exc)
-        return {
-            "ranked_outfits": [],
-            "errors": existing_errors + ["PERSONALIZATION_DB_ERROR"],
-            "warnings": existing_warnings,
-        }
+            else:
+                with Session(get_engine()) as db_session:
+                    preferences, recent_wear_data = get_user_personalization_data(
+                        db_session, user_id, reference_time
+                    )
+        except Exception as exc:
+            logger.exception("Failed to load personalization data for user %s: %s", user_id, exc)
+            return {
+                "ranked_outfits": [],
+                "errors": existing_errors + ["PERSONALIZATION_DB_ERROR"],
+                "warnings": existing_warnings,
+            }
 
     ranked, warnings = rerank_evaluated_outfits(
         evaluated_outfits,
@@ -636,9 +645,53 @@ def personalization_agent_node(
         context=context,
         reference_time=reference_time,
         max_output=3,
+        disable_recent_wear=disable_personalization,
     )
+
+    conflict_notes: list[ConflictNote] = []
+    if AVOID_RELAXATION_WARNING in warnings:
+        conflict_notes.append(
+            ConflictNote(
+                conflict_type="PROFILE_AVOID_VS_REQUEST",
+                description_vi=(
+                    "Các phương án phù hợp hoàn cảnh hiện đều chứa màu sắc/phong cách bạn từng đánh dấu hạn chế trong hồ sơ."
+                ),
+                resolution_vi="Ưu tiên đáp ứng đúng hoàn cảnh của câu hỏi hiện tại.",
+            )
+        )
+    if ranked and not disable_personalization:
+        top_wear_penalty, _ = calculate_recent_wear_penalty(
+            ranked[0].items, recent_wear_data, reference_time
+        )
+        if top_wear_penalty > 0.0:
+            conflict_notes.append(
+                ConflictNote(
+                    conflict_type="RECENT_WEAR_VS_BEST_FIT",
+                    description_vi="Phương án hợp hoàn cảnh nhất có sử dụng lại trang phục bạn vừa mặc gần đây.",
+                    resolution_vi="Đã trừ điểm lặp đồ và kiểm tra phương án thay thế.",
+                )
+            )
+
+    existing_trace = list(state.get("agent_trace", []))
+    critique_round = int(state.get("critique_round", 0))
+    trace_event = AgentTraceEvent(
+        round=critique_round,
+        sender="personalization",
+        receiver="coordinator",
+        event_type="RANKED_OUTFITS_PRODUCED",
+        summary_vi=f"Đã xếp hạng Top {len(ranked)} phương án cá nhân hóa.",
+    )
+
+    if "base_warnings" in state:
+        prior_warnings = list(dict.fromkeys(
+            list(state.get("base_warnings", [])) + list(state.get("fashion_warnings", []))
+        ))
+    else:
+        prior_warnings = existing_warnings
 
     return {
         "ranked_outfits": ranked,
-        "warnings": existing_warnings + warnings,
+        "warnings": list(dict.fromkeys(prior_warnings + warnings)),
+        "conflict_notes": conflict_notes,
+        "agent_trace": existing_trace + [trace_event],
     }

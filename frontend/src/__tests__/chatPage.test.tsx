@@ -378,4 +378,48 @@ describe('Chat Page & Components Integration', () => {
     );
     expect(window.location.search).toBe('');
   });
+
+  it('renders collapsible multi-agent trace timeline when agent_trace is returned', async () => {
+    vi.spyOn(apiModule, 'sendStylistChat').mockResolvedValueOnce({
+      ...mockSuccessData,
+      agent_trace: [
+        {
+          round: 0,
+          sender: 'context',
+          receiver: 'wardrobe',
+          event_type: 'CONTEXT_EXTRACTED',
+          summary_vi: 'Đã phân tích ngữ cảnh và ràng buộc yêu cầu.',
+        },
+        {
+          round: 0,
+          sender: 'fashion',
+          receiver: 'wardrobe',
+          event_type: 'RELAXATION_REQUESTED',
+          summary_vi: 'Đề xuất mở rộng kiểu dáng tương đương.',
+        },
+        {
+          round: 1,
+          sender: 'wardrobe',
+          receiver: 'fashion',
+          event_type: 'RELAXATION_APPLIED',
+          summary_vi: 'Đã nới lỏng có kiểm soát vòng 1 cho nhóm áo.',
+        },
+      ],
+    });
+
+    render(<ChatPage />);
+
+    const textarea = screen.getByLabelText(/Nhu cầu phối đồ của bạn/i);
+    fireEvent.change(textarea, { target: { value: 'Tối nay đi cafe mặc áo polo' } });
+    fireEvent.click(screen.getByRole('button', { name: /Phối Đồ/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-trace-panel')).toBeDefined();
+    });
+
+    expect(screen.getByText(/Nhật ký phối hợp Multi-Agent/i)).toBeDefined();
+    expect(screen.getByText(/Phối đồ & chấm điểm → Truy vấn tủ đồ/i)).toBeDefined();
+    expect(screen.getByText(/Đề xuất mở rộng kiểu dáng tương đương/i)).toBeDefined();
+    expect(screen.getByText('Vòng 1')).toBeDefined();
+  });
 });

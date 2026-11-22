@@ -130,7 +130,7 @@ This derived table stores one deterministic retrieval document per active, user-
 | `rule_version` | Version string |
 | `created_at`, `updated_at` | UTC datetime |
 
-`context_snapshot` also retains internal `_applied_preferences`, `_request_location` (raw request location, including null), and `_warnings` for retry reconstruction. These reserved fields are not additional public context fields.
+`context_snapshot` also retains internal `_applied_preferences`, `_request_location` (raw request location, including null), `_warnings`, and `_agent_trace` for retry reconstruction and trace auditability. These reserved fields are not additional public context fields.
 
 ### 3.8.1 `recommendation_requests`
 

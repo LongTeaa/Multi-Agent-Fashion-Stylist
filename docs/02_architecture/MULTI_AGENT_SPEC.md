@@ -4,14 +4,13 @@
 
 ```text
 Context Agent
-    -> Wardrobe Agent
-    -> Fashion Agent
+    -> Wardrobe Agent <-> Fashion Agent   (Loop 1: bounded target relaxation, max 2 rounds)
     -> Personalization Agent
-    -> Coordinator
+    -> Coordinator (with embedded Critic) -> Fashion Agent   (Loop 2: bounded critique reroute, max 1 round)
     -> API response
 ```
 
-The Try-On Agent runs on demand through a separate API operation. Vision analysis belongs to the ingestion service and is not a node in the recommendation graph.
+The graph MUST retain exactly five agent nodes (`context`, `wardrobe`, `fashion`, `personalization`, `coordinator`) with bounded conditional feedback edges (`fashion -> wardrobe` and `coordinator -> fashion`). The Try-On Agent runs on demand through a separate API operation. Vision analysis belongs to the ingestion service and is not a node in the recommendation graph.
 
 Each node MUST receive the typed shared state and MUST return only the fields it owns. Every node MUST define normal, empty, and error behavior.
 
@@ -28,6 +27,9 @@ Each node MUST receive the typed shared state and MUST return only the fields it
 | `grounding_validated` | Coordinator | MUST be true before a successful response |
 | `feedback_prompt_eligible` | Coordinator/service | Feedback-cadence decision |
 | `feedback_target_outfit_id` | Coordinator/service | Nullable outfit selected for a rating prompt |
+| `relaxation_request`, `relaxation_round`, `active_relaxations` | Fashion / Wardrobe | Bounded Loop 1 relaxation request, counter (`<= 2`), and applied step history |
+| `critique`, `critique_round`, `coordinator_decision`, `previous_ranked_outfits` | Coordinator | Bounded Loop 2 Critic reroute (`<= 1`), fallback snapshot, and final decision |
+| `conflict_notes`, `agent_trace` | Producing nodes | Structured multi-objective conflict notes and inter-agent trace log |
 | `errors`, `warnings` | Producing node | Machine-readable failures and UX warnings |
 
 Executable schema definitions MUST live only in `backend/app/agents/state.py`. This table is the normative contract and is not implementation code.
@@ -69,6 +71,7 @@ For an underspecified query such as `Mặc gì?`, the agent MAY apply documented
 - It SHOULD cap each ranked category at 15 items.
 - If a mandatory slot is missing, it MAY relax weather/formality constraints according to configuration and MUST emit a warning.
 - Optional outerwear/accessories MUST NOT be introduced solely by relaxing weather. Explicitly required optional-slot items retain controlled relaxation and warnings.
+- On a bounded `RelaxationRequest` from the Fashion Agent, it MAY execute targeted same-category relaxation (`color_family`, `material_relax`, `subcategory_equivalent`) and record each `RelaxationStep` in `active_relaxations`. It MUST NEVER cross `WardrobeCategory` boundaries or relax `must_avoid` / `structured_must_avoid`.
 
 ## 5. Fashion Agent
 
@@ -109,11 +112,12 @@ The complete policy is defined in `../06_features/PERSONALIZATION_AND_FEEDBACK_S
 The Coordinator MUST execute these steps in order:
 
 1. Validate every item ID against the candidate pool and current database ownership.
-2. Validate outfit completeness, including the `dress` branch.
-3. Produce a separate Vietnamese user-facing explanation for each outfit without introducing new items.
-4. Persist `outfit_recommendations` and `outfit_items` in one transaction.
-5. Evaluate feedback cadence after persistence.
-6. Map shared state to the response defined by `../05_api/API_CONTRACT.md`.
+2. Validate outfit completeness, including the `dress` branch, and explicit query constraints accounting for verified `active_relaxations`.
+3. Run bounded Critic evaluation before persistence: if `critique_round == 0` and either all top ranked outfits repeat items worn within 48h while unworn slot alternatives exist (`ALL_RECENTLY_WORN`) or a rainy request lacks a pool-available `water_resistant` item (`CONTEXT_GAP`), it MAY emit `CritiqueSignal` and reroute once to `Fashion`. If a retry drops top composite score by `> 0.05`, the Coordinator MUST restore `previous_ranked_outfits` and record `CRITIC_KEPT_ORIGINAL`.
+4. Produce a separate Vietnamese user-facing explanation for each outfit without introducing new items.
+5. Persist `outfit_recommendations` and `outfit_items` in one transaction only after Critic approval (`coordinator_decision == "approve"`).
+6. Evaluate feedback cadence after persistence.
+7. Map shared state to the response defined by `../05_api/API_CONTRACT.md`.
 
 If grounding fails, no recommendation MAY be persisted.
 

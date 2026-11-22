@@ -46,6 +46,7 @@ from app.schemas.stylist import (
     StylistContextResponse,
     StylistRecommendationItemResponse,
     StylistRecommendationResponse,
+    StylistTraceEventResponse,
 )
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
 from app.services.garment_taxonomy import group_label
@@ -117,6 +118,10 @@ def _reconstruct_idempotent_response(
         feedback_prompt_eligible=False,
         feedback_target_outfit_id=None,
         warnings=list(ctx_data.get("_warnings", [])),
+        agent_trace=[
+            StylistTraceEventResponse.model_validate(t)
+            for t in ctx_data.get("_agent_trace", [])
+        ],
     )
 
 
@@ -256,6 +261,14 @@ def stylist_chat(
 
     mapped_ctx = _map_context(ctx)
 
+    raw_trace = final_state.get("agent_trace", [])
+    mapped_trace = [
+        StylistTraceEventResponse.model_validate(
+            t.model_dump() if hasattr(t, "model_dump") else t
+        )
+        for t in raw_trace
+    ]
+
     # Clarification path
     if ctx.needs_clarification:
         if not ctx.clarification_question or not ctx.clarification_question.strip():
@@ -271,6 +284,7 @@ def stylist_chat(
                 feedback_prompt_eligible=False,
                 feedback_target_outfit_id=None,
                 warnings=list(final_state.get("warnings", [])),
+                agent_trace=mapped_trace,
             )
         )
 
@@ -426,6 +440,7 @@ def stylist_chat(
         context=mapped_ctx, recommendations=recommendations,
         feedback_prompt_eligible=False, feedback_target_outfit_id=None,
         warnings=list(final_state.get("warnings", [])),
+        agent_trace=mapped_trace,
     )
     return SuccessResponse(data=deliver_response(session, request_record, response,
         user_id, client_session_id, feedback_service))

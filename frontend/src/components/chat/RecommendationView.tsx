@@ -4,6 +4,15 @@ import React from 'react';
 import type { StylistChatResponseData } from '@/types/chat';
 import { OutfitCard, normalizeStylistItems } from '@/components/outfits/OutfitCard';
 
+const AGENT_LABELS: Record<string, string> = {
+  context: 'Phân tích ngữ cảnh',
+  wardrobe: 'Truy vấn tủ đồ',
+  fashion: 'Phối đồ & chấm điểm',
+  personalization: 'Cá nhân hóa',
+  coordinator: 'Kiểm duyệt & tổng hợp',
+  end: 'Hoàn tất',
+};
+
 export interface RecommendationViewProps {
   data: StylistChatResponseData;
   ratingsMap?: Record<string, number>;
@@ -12,6 +21,10 @@ export interface RecommendationViewProps {
 
 export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, ratingsMap, onRatingChange }) => {
   const count = data.recommendations.length;
+  const trace = data.agent_trace ?? [];
+  const hasFeedbackLoop = trace.some(
+    (ev) => ev.event_type === 'RELAXATION_REQUESTED' || ev.event_type.startsWith('CRITIQUE_')
+  );
 
   return (
     <section aria-labelledby="recommendations-heading" className="animate-rise space-y-5 pt-2">
@@ -21,6 +34,47 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, ra
         </h2>
         {count > 1 && <span className="text-sm text-muted">Xếp theo độ phù hợp</span>}
       </div>
+
+      {trace.length > 0 && (
+        <details
+          data-testid="agent-trace-panel"
+          open={hasFeedbackLoop}
+          className="card px-4 py-3 text-sm sm:px-5"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-ink">
+            <span>
+              Nhật ký phối hợp Multi-Agent ({trace.length} bước
+              {hasFeedbackLoop ? ' · có kích hoạt vòng phản hồi' : ''})
+            </span>
+            <span className="text-xs text-muted">Chi tiết</span>
+          </summary>
+
+          <ol className="mt-3 space-y-2 border-t border-line pt-3">
+            {trace.map((step, idx) => {
+              const isLoopStep =
+                step.event_type === 'RELAXATION_REQUESTED' ||
+                step.event_type === 'RELAXATION_APPLIED' ||
+                step.event_type.startsWith('CRITIQUE_');
+              return (
+                <li
+                  key={`${step.sender}-${step.receiver}-${idx}`}
+                  className="flex flex-col gap-0.5 rounded-lg bg-paper px-3 py-2 text-xs sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
+                >
+                  <div className="flex flex-wrap items-center gap-1.5 font-semibold text-ink">
+                    <span className={isLoopStep ? 'text-accent' : 'text-ink-2'}>
+                      {AGENT_LABELS[step.sender] ?? step.sender} → {AGENT_LABELS[step.receiver] ?? step.receiver}
+                    </span>
+                    {step.round > 0 && (
+                      <span className="hang-tag">Vòng {step.round}</span>
+                    )}
+                  </div>
+                  <span className="text-muted sm:text-right">{step.summary_vi}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </details>
+      )}
 
       <div className="space-y-5">
         {data.recommendations.map((rec) => (
