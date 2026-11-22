@@ -222,6 +222,7 @@ class TestOpenAPIContract:
             "duration_ms",
             "status",
             "error_code",
+            "rendered_item_ids",
         }
         assert "object_key" not in response_properties
         assert "bucket" not in response_properties

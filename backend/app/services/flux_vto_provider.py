@@ -2,7 +2,10 @@
 
 The model takes one person image, one garment reference image and a prompt, so
 an outfit's garments are placed side by side, upper body on the left, in one
-composite image and the whole outfit is rendered with a single call. The
+composite image and the whole outfit is rendered with a single call. When the
+outfit also carries an inner top under outerwear, footwear or headwear (garments
+with a `role`), they are laid out as a grid and named in one prompt following
+Black Forest Labs' multi-garment guidance. The
 2026-11-20 provider spike (docs/archive/reports/TRYON_PROVIDER_SPIKE_2026-11-22.md)
 selected this model over FASHN Try-On v1.6.
 """
@@ -95,7 +98,9 @@ def describe_garment(garment: OutfitGarment) -> str:
         words.append(garment.primary_color.replace("_", " ").lower())
     if garment.pattern and garment.pattern.lower() not in {"solid", "unknown", "plain"}:
         words.append(garment.pattern.replace("_", " ").lower())
-    fallback = {"tops": "top", "bottoms": "bottom", "one-pieces": "dress"}[garment.category]
+    fallback = {"tops": "top", "bottoms": "bottom", "one-pieces": "dress", "footwear": "shoes", "headwear": "hat"}[
+        garment.category
+    ]
     words.append((garment.sub_category or fallback).replace("_", " ").lower())
     return " ".join(words)
 
@@ -119,6 +124,76 @@ def build_prompt(garments: Sequence[OutfitGarment]) -> str:
     )
 
 
+EXTENDED_ROLE_ORDER = ("outer", "upper", "one_piece", "lower", "footwear", "headwear")
+
+
+def uses_extended_layout(garments: Sequence[OutfitGarment]) -> bool:
+    """True when the outfit needs more than one upper or lower garment slot."""
+    roles = {garment.role for garment in garments}
+    return bool(roles & {"footwear", "headwear"}) or {"outer", "upper"} <= roles or {"outer", "one_piece"} <= roles
+
+
+def order_extended(garments: Sequence[OutfitGarment]) -> list[OutfitGarment]:
+    """One garment per role, in a fixed order: outer layer, inner layer, lower body, shoes, headwear."""
+    by_role: dict[str, OutfitGarment] = {}
+    for garment in garments:
+        if garment.role is not None and garment.role not in by_role:
+            by_role[garment.role] = garment
+    if "one_piece" in by_role:
+        by_role.pop("upper", None)
+        by_role.pop("lower", None)
+    return [by_role[role] for role in EXTENDED_ROLE_ORDER if role in by_role]
+
+
+def build_garment_grid(images: Sequence[bytes], max_pixels: int = COMPOSITE_MAX_PIXELS) -> bytes:
+    """Equal cells on a white canvas: one row for up to two items, 2x2 for 3-4, 3x2 for 5-6 (JPEG)."""
+    if not images:
+        raise ValueError("A composite needs at least one garment image.")
+    if len(images) > 6:
+        raise ValueError("At most six garments fit the grid.")
+    columns = len(images) if len(images) <= 2 else (2 if len(images) <= 4 else 3)
+    rows = math.ceil(len(images) / columns)
+    cell = 512
+    canvas = Image.new(
+        "RGB",
+        (columns * cell + (columns + 1) * COMPOSITE_PADDING, rows * cell + (rows + 1) * COMPOSITE_PADDING),
+        (255, 255, 255),
+    )
+    for index, data in enumerate(images):
+        with Image.open(BytesIO(data)) as source:
+            image = _flatten_rgb(source)
+        image.thumbnail((cell, cell), Image.Resampling.LANCZOS)
+        column, row = index % columns, index // columns
+        x = COMPOSITE_PADDING + column * (cell + COMPOSITE_PADDING) + (cell - image.width) // 2
+        y = COMPOSITE_PADDING + row * (cell + COMPOSITE_PADDING) + (cell - image.height) // 2
+        canvas.paste(image, (x, y))
+    return _jpeg(_scale_to_pixels(canvas, max_pixels))
+
+
+def build_extended_prompt(garments: Sequence[OutfitGarment]) -> str:
+    """BFL formula: 'The person of image 1, maintaining exactly their face and pose, wearing ... of image 2.'"""
+    ordered = order_extended(garments)
+    if not ordered:
+        raise ValueError("A try-on needs at least one garment.")
+    by_role = {garment.role: garment for garment in ordered}
+    parts: list[str] = []
+    outer = by_role.get("outer")
+    inner = by_role.get("upper") or by_role.get("one_piece")
+    if outer is not None and inner is not None:
+        parts.append(f"the {describe_garment(inner)} worn under the {describe_garment(outer)}")
+    elif outer is not None or inner is not None:
+        parts.append(f"the {describe_garment(outer or inner)}")  # type: ignore[arg-type]
+    for role in ("lower", "footwear", "headwear"):
+        if role in by_role:
+            parts.append(f"the {describe_garment(by_role[role])}")
+    wearing = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    keep = "" if "footwear" in by_role else " Keep the person's footwear unchanged."
+    return (
+        f"The person of image 1, maintaining exactly their face and pose, wearing {wearing} of image 2."
+        f"{keep} Keep the background unchanged. A natural front-facing full-body studio photo."
+    )
+
+
 def _data_uri(image_bytes: bytes) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("ascii")
 
@@ -128,7 +203,8 @@ def _order_garments(garments: Sequence[OutfitGarment]) -> list[OutfitGarment]:
     one_piece = [garment for garment in garments if garment.category == "one-pieces"]
     if one_piece:
         return one_piece[:1]
-    return sorted(garments, key=lambda garment: 0 if garment.category == "tops" else 1)
+    body = [garment for garment in garments if garment.category in ("tops", "bottoms")]
+    return sorted(body, key=lambda garment: 0 if garment.category == "tops" else 1)
 
 
 class FluxVtoTryOnProvider:
@@ -156,13 +232,20 @@ class FluxVtoTryOnProvider:
         self._transport = transport
 
     def try_on_outfit(self, request: OutfitTryOnRequest) -> TryOnResult:
-        garments = _order_garments(request.garments)
-        if not garments:
-            raise ValueError("A try-on needs at least one garment.")
+        if uses_extended_layout(request.garments):
+            garments = order_extended(request.garments)
+            prompt = build_extended_prompt(garments)
+            composite = build_garment_grid([g.image_bytes for g in garments])
+        else:
+            garments = _order_garments(request.garments)
+            if not garments:
+                raise ValueError("A try-on needs at least one garment.")
+            prompt = build_prompt(garments)
+            composite = build_garment_composite([g.image_bytes for g in garments])
         payload = {
-            "prompt": build_prompt(garments),
+            "prompt": prompt,
             "human_image_url": _data_uri(fit_person_image(request.person_image_bytes)),
-            "garment_image_url": _data_uri(build_garment_composite([g.image_bytes for g in garments])),
+            "garment_image_url": _data_uri(composite),
             "output_format": "jpeg",
         }
         image_bytes = self._render(payload)

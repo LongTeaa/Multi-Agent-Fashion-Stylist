@@ -187,11 +187,15 @@ cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
 - [x] Include the provider model in the render cache key, so switching providers never serves another model's cached render.
 - [x] Tests: `backend/tests/unit/test_flux_vto_provider.py`, two integration tests in `backend/tests/integration/test_tryon_api.py` (one outfit call; cache scoped to the model) that fail without the change, and the configuration tests.
 - [x] Update `VIRTUAL_TRYON_SPEC.md` and `ALIGNMENT_BACKLOG.md` T-3.
-- [ ] Owner sets `TRYON_PROVIDER=flux` and `FAL_KEY` in the local `.env` (never committed) and renders one preset and one personal-avatar outfit in the app to confirm the end-to-end path; record the result in `CURRENT_STATE.md`.
+- [x] Check footwear, headwear and layered tops on six demo outfits (`backend/scripts/spike_tryon_extras.py`, `docs/archive/reports/TRYON_EXTRAS_CHECK_2026-11-22.md`); all 12 renders succeeded and the extended renders wore the shoes, hats and both layers. Owner approved rendering them on 2026-11-22.
+- [x] Whole-outfit providers wear outerwear over the inner top or a dress, the bottom, the first footwear item and the first headwear accessory, using a grid composite and the provider's multi-garment prompt; other accessories stay as cards. Garment-pass providers keep the previous rule.
+- [x] The try-on response lists the worn items in `rendered_item_ids` (`API_CONTRACT.md` 8.1, 8.2). The modal sends every item, lists worn items apart from the cards beside the image, and offers the outer/inner choice only when the render did not wear both. Tests: three integration tests in `test_tryon_api.py`, three unit tests in `test_flux_vto_provider.py`, `frontend/src/__tests__/TryOnModal.test.tsx`, and the updated layering test in `frontend/src/components/TryOnModal.test.tsx`.
+- [ ] Owner sets `TRYON_PROVIDER=flux` and `FAL_KEY` in the local `.env` (never committed) and renders one preset and one personal-avatar outfit in the app to confirm the end-to-end path; record the result in `CURRENT_STATE.md`. A preset render with the first version was confirmed on 2026-11-22; repeat it with layers and footwear, and with a personal avatar.
 
 **Acceptance criteria:**
 
-- With `TRYON_PROVIDER=flux`, an upper + bottom outfit is rendered with exactly one provider call, and a dress outfit with one call carrying only the dress.
+- With `TRYON_PROVIDER=flux`, every outfit is rendered with exactly one provider call; a dress outfit never carries a top or bottom, and bags, watches and jewelry are never sent.
+- The modal never lists an item as worn that the response did not report in `rendered_item_ids`.
 - A provider error, quota error or timeout returns HTTP 200 with the moodboard and `fallback_used=true`.
 - No fal key appears in logs, error messages, stored records or requests to image CDNs.
 - Default verification runs without network access or credentials.
@@ -200,6 +204,7 @@ cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
 
 ```powershell
 cd backend; python -m pytest tests/unit/test_flux_vto_provider.py tests/unit/test_config.py tests/integration/test_tryon_api.py -q; cd ..
+cd frontend; npx vitest run src/__tests__/TryOnModal.test.tsx src/components/TryOnModal.test.tsx; npx tsc --noEmit; cd ..
 ./scripts/verify_documentation.ps1
 ```
 

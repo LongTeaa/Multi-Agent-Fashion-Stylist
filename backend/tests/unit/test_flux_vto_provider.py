@@ -168,3 +168,58 @@ def test_dependency_requires_fal_key_for_flux(monkeypatch: pytest.MonkeyPatch) -
         assert isinstance(provider, FluxVtoTryOnProvider) and provider.model == FLUX_VTO_MODEL_ID
     finally:
         get_settings.cache_clear()
+
+
+def _role(category: str, role: str, color: tuple[int, int, int], **attrs: str) -> OutfitGarment:
+    return OutfitGarment(image_bytes=_image((200, 300), color), mime_type="image/png", category=category,  # type: ignore[arg-type]
+                         role=role, **attrs)  # type: ignore[arg-type]
+
+
+def test_layers_footwear_and_headwear_use_a_grid_and_the_multi_garment_prompt() -> None:
+    from app.services.flux_vto_provider import uses_extended_layout
+
+    fake = FakeFal()
+    garments = (
+        _role("bottoms", "lower", (0, 0, 255), sub_category="jeans", primary_color="blue"),
+        _role("footwear", "footwear", (20, 20, 20), sub_category="boots", primary_color="black"),
+        _role("tops", "upper", (128, 128, 128), sub_category="sweater", primary_color="grey"),
+        _role("tops", "outer", (0, 0, 0), sub_category="vest", primary_color="black"),
+        _role("headwear", "headwear", (255, 0, 255), sub_category="beanie", primary_color="grey"),
+    )
+    assert uses_extended_layout(garments)
+    _provider(fake).try_on_outfit(_request(*garments))
+
+    payload = fake.payload()
+    assert payload["prompt"].startswith(
+        "The person of image 1, maintaining exactly their face and pose, wearing the grey sweater worn under the "
+        "black vest, the blue jeans, the black boots and the grey beanie of image 2."
+    )
+    assert "footwear unchanged" not in payload["prompt"]
+    grid = _decode(payload["garment_image_url"])
+    assert grid.width > grid.height  # five items: three columns, two rows
+    assert grid.width * grid.height <= 520_000
+
+
+def test_dress_with_outerwear_and_no_shoes_keeps_the_footwear() -> None:
+    fake = FakeFal()
+    _provider(fake).try_on_outfit(_request(
+        _role("one-pieces", "one_piece", (200, 0, 100), sub_category="cocktail_dress", primary_color="magenta"),
+        _role("tops", "outer", (0, 100, 100), sub_category="jacket", primary_color="teal"),
+        _role("tops", "upper", (255, 255, 255), sub_category="shirt"),  # dropped: a dress has no inner top
+    ))
+    prompt = fake.payload()["prompt"]
+    assert "the magenta cocktail dress worn under the teal jacket of image 2." in prompt
+    assert "shirt" not in prompt and "Keep the person's footwear unchanged." in prompt
+
+
+def test_upper_and_lower_with_roles_keep_the_measured_left_to_right_layout() -> None:
+    from app.services.flux_vto_provider import uses_extended_layout
+
+    garments = (
+        _role("tops", "upper", (255, 0, 0), sub_category="polo", primary_color="white"),
+        _role("bottoms", "lower", (0, 0, 255), sub_category="chinos", primary_color="navy"),
+    )
+    assert not uses_extended_layout(garments)
+    fake = FakeFal()
+    _provider(fake).try_on_outfit(_request(*garments))
+    assert "the white polo (left) on the upper body" in fake.payload()["prompt"]

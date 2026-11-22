@@ -176,10 +176,14 @@ class OutfitGarment:
 
     image_bytes: bytes
     mime_type: Literal["image/jpeg", "image/png", "image/webp"]
-    category: Literal["tops", "bottoms", "one-pieces"]
+    # `footwear` and `headwear` are only sent to whole-outfit providers, never to garment passes.
+    category: Literal["tops", "bottoms", "one-pieces", "footwear", "headwear"]
     sub_category: str = ""
     primary_color: str = ""
     pattern: str = ""
+    # Finer slot for providers that render layers, shoes and headwear. `None` keeps the
+    # category-only behaviour (one upper garment, one lower garment or one one-piece).
+    role: Literal["upper", "outer", "lower", "one_piece", "footwear", "headwear"] | None = None
 
 
 @dataclass(frozen=True)
