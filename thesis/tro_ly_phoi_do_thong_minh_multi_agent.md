@@ -65,7 +65,12 @@ mindmap
 ## CHƯƠNG 3: KIẾN TRÚC TỔNG QUAN HỆ THỐNG ĐA TÁC TỬ
 
 ### 3.1. Ý tưởng kiến trúc 
-Hệ thống được tổ chức như một nhóm trợ lý chuyên trách. Trong MVP, các tác tử chạy theo một quy trình tuần tự cố định để kết quả dễ kiểm tra và tái lập. Tác tử Điều phối nằm cuối quy trình, kiểm tra các món đồ có thực sự thuộc tủ của người dùng, lưu kết quả và tổng hợp câu trả lời. Khả năng tự quyết định gọi tác tử nào được xem là hướng mở rộng sau MVP.
+Hệ thống được tổ chức như một nhóm trợ lý chuyên trách. Các tác tử chạy theo một quy trình chính cố định, có thêm hai vòng phản hồi có giới hạn số lần, nhờ đó kết quả vẫn dễ kiểm tra và tái lập:
+
+* **Vòng nới lỏng có mục tiêu (tối đa 2 vòng):** khi không ghép được bộ trang phục thỏa yêu cầu, Fashion Agent chẩn đoán ràng buộc đang gây tắc và yêu cầu Wardrobe Agent nới lỏng đúng ràng buộc đó trong cùng loại trang phục, bằng cách mở rộng sang màu cùng họ, chấp nhận kiểu dáng tương đương, hoặc bỏ yêu cầu về chất liệu. Mỗi bước nới lỏng được ghi lại và báo cho người dùng; những điều người dùng muốn tránh không bao giờ bị nới lỏng.
+* **Vòng phản biện (tối đa 1 vòng):** trước khi lưu kết quả, Tác tử Điều phối đóng vai trò phản biện và có thể yêu cầu Fashion Agent xếp hạng lại một lần, ví dụ khi cả ba phương án đầu đều lặp lại món vừa mặc trong 48 giờ dù tủ đồ còn lựa chọn khác. Nếu kết quả mới kém hơn rõ rệt, hệ thống giữ lại phương án ban đầu.
+
+Tác tử Điều phối nằm cuối quy trình, kiểm tra các món đồ có thực sự thuộc tủ của người dùng, lưu kết quả và tổng hợp câu trả lời. Khả năng tự do quyết định gọi tác tử nào, không giới hạn số vòng, được xem là hướng mở rộng sau MVP.
 
 ```mermaid
 flowchart LR
@@ -75,6 +80,8 @@ flowchart LR
     Wardrobe --> Fashion["Fashion Agent"]
     Fashion --> Personal["Personalization Agent"]
     Personal --> Coord["Coordinator Agent"]
+    Fashion -. "Yêu cầu nới lỏng (tối đa 2 vòng)" .-> Wardrobe
+    Coord -. "Phản biện, xếp hạng lại (tối đa 1 vòng)" .-> Fashion
     Coord --> Result["Gợi ý 1–3 outfit"]
     Result --> UI
     UI -. "Yêu cầu riêng sau khi chọn outfit" .-> TryOn["Try-On Agent"]

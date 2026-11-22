@@ -30,7 +30,7 @@ Users spend unnecessary time choosing outfits, forget garments they already own,
 - Shopping, affiliate links, and e-commerce marketplace integration.
 - Body analysis or inference of sensitive personal attributes.
 - Claims of exact garment fit, size, drape, or body-shape simulation.
-- Dynamic agent routing, production-grade authentication, and 3D avatars.
+- Unbounded or autonomous agent routing, production-grade authentication, and 3D avatars. The bounded feedback loops defined in `../02_architecture/MULTI_AGENT_SPEC.md` (targeted relaxation up to 2 rounds, one Critic reroute) are in scope.
 
 ## 4. Primary User Flows
 
