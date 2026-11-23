@@ -124,8 +124,13 @@ def post_gemini_generate_content(
     raise RuntimeError("Exhausted Gemini retry attempts.")
 
 
+EXPLANATION_PROMPT_VERSION = "v2"
+
+
 class GeminiContextProvider:
     """Gemini adapter for structured Vietnamese context extraction."""
+
+    explanation_prompt_version: str = EXPLANATION_PROMPT_VERSION
 
     def __init__(
         self,
@@ -245,7 +250,11 @@ class GeminiContextProvider:
             "Quy tắc bắt buộc:\n"
             "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] đã liệt kê ở trên, giữ nguyên dấu ngoặc vuông [...].\n"
             "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách.\n"
-            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
+            "4. Tuyệt đối KHÔNG khẳng định tính năng kỹ thuật của trang phục nếu không được ghi rõ "
+            "(KHÔNG dùng các cụm: 'giữ ấm', 'chống lạnh', 'chống rét', 'giữ nhiệt', 'chống thấm', "
+            "'chống nước', 'chống mưa', 'chống nắng', 'chống gió', 'thoáng khí', 'thấm hút', 'co giãn', 'dễ vận động'); "
+            "không nhắc thêm màu sắc, chất liệu hay món đồ nằm ngoài danh sách bộ đó."
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -303,7 +312,11 @@ class GeminiContextProvider:
             "Quy tắc bắt buộc cho TỪNG lời giải thích:\n"
             "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] của riêng bộ đó, giữ nguyên dấu ngoặc vuông [...].\n"
             "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách của bộ đó.\n"
-            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
+            "4. Tuyệt đối KHÔNG khẳng định tính năng kỹ thuật của trang phục nếu không được ghi rõ "
+            "(KHÔNG dùng các cụm: 'giữ ấm', 'chống lạnh', 'chống rét', 'giữ nhiệt', 'chống thấm', "
+            "'chống nước', 'chống mưa', 'chống nắng', 'chống gió', 'thoáng khí', 'thấm hút', 'co giãn', 'dễ vận động'); "
+            "không nhắc thêm màu sắc, chất liệu hay món đồ nằm ngoài danh sách bộ đó."
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],

@@ -130,7 +130,8 @@ class TelemetryLLMProbe:
                 location=location,
                 current_date=current_date,
             )
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += max(60, len(json.dumps(payload, default=str)) // 4)
             return payload
         except AbortedLiveRunError:
@@ -160,7 +161,8 @@ class TelemetryLLMProbe:
                 target_formality_range=target_formality_range,
                 conflict_notes=conflict_notes,
             )
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += sum(len(t) for t in texts) // 4
             return texts
         except AbortedLiveRunError:
@@ -174,7 +176,8 @@ class TelemetryLLMProbe:
         self.estimated_tokens += 180
         try:
             text = self.provider.generate_outfit_explanation(**kwargs)
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += len(str(text)) // 4
             return str(text)
         except AbortedLiveRunError:
@@ -201,6 +204,7 @@ class CachedLLMWrapper:
         self.model_name = model_name
         self.cache_hits = 0
         self.live_calls = 0
+        self.last_call_was_cache_hit = False
 
     def _make_key(self, kind: str, payload: dict[str, Any]) -> str:
         raw = json.dumps(
@@ -233,8 +237,10 @@ class CachedLLMWrapper:
         )
         cached = self.cache.get(key)
         if cached is not None and isinstance(cached.get("result"), dict):
+            self.last_call_was_cache_hit = True
             self.cache_hits += 1
             return copy.deepcopy(cached["result"])
+        self.last_call_was_cache_hit = False
         self.live_calls += 1
         result = self.provider.extract_context(
             query=query,
@@ -264,12 +270,15 @@ class CachedLLMWrapper:
                 "weather_condition": weather_condition,
                 "target_formality_range": list(target_formality_range),
                 "conflict_notes": list(conflict_notes),
+                "prompt_version": getattr(self.provider, "explanation_prompt_version", "v1"),
             },
         )
         cached = self.cache.get(key)
         if cached is not None and isinstance(cached.get("result"), list):
+            self.last_call_was_cache_hit = True
             self.cache_hits += 1
             return [str(x) for x in cached["result"]]
+        self.last_call_was_cache_hit = False
         self.live_calls += 1
         texts = self.provider.generate_outfit_explanations(
             outfits=outfits,
@@ -283,11 +292,15 @@ class CachedLLMWrapper:
         return list(texts)
 
     def generate_outfit_explanation(self, **kwargs: Any) -> str:
-        key = self._make_key("generate_outfit_explanation", kwargs)
+        payload = dict(kwargs)
+        payload["prompt_version"] = getattr(self.provider, "explanation_prompt_version", "v1")
+        key = self._make_key("generate_outfit_explanation", payload)
         cached = self.cache.get(key)
         if cached is not None and isinstance(cached.get("result"), str):
+            self.last_call_was_cache_hit = True
             self.cache_hits += 1
             return str(cached["result"])
+        self.last_call_was_cache_hit = False
         self.live_calls += 1
         text = self.provider.generate_outfit_explanation(**kwargs)
         self.cache.put(key, {"result": str(text)})

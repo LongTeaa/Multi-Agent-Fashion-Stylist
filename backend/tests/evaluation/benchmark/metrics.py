@@ -53,10 +53,19 @@ _COLORS_VI = {
     "beige": "be",
     "green": "xanh lá",
     "red": "đỏ",
-    "cream": "kem",
-    "khaki": "khaki",
     "pink": "hồng",
+    "cream": "kem",
+    "olive": "ô-liu",
+    "light_blue": "xanh nhạt",
+    "denim_blue": "xanh denim",
     "burgundy": "đỏ đô",
+    "yellow": "vàng",
+    "orange": "cam",
+    "charcoal": "xám than",
+    "tan": "nâu sáng",
+    "purple": "tím",
+    "maroon": "đỏ đô",
+    "khaki": "khaki",
 }
 
 
@@ -145,14 +154,21 @@ def _allowed_brackets_for_db_item(db_item: WardrobeItem) -> set[str]:
     _, garment = classify(db_item.category, loc_name)
     label = garment.label if garment else loc_name
     allowed = {f"[{label.strip().lower()}]", f"[{loc_name.strip().lower()}]"}
+    color = db_item.primary_color.strip().lower()
+    color_label = _COLORS_VI.get(color, color)
     if db_item.sub_category:
         _, sub_g = classify(db_item.category, db_item.sub_category)
         if sub_g:
-            allowed.add(f"[{sub_g.label.strip().lower()}]")
-    color = db_item.primary_color.strip().lower()
-    color_label = _COLORS_VI.get(color, color)
+            sub_label_lower = sub_g.label.strip().lower()
+            allowed.add(f"[{sub_label_lower}]")
+            if color_label and color_label != "unknown":
+                allowed.add(f"[{sub_label_lower} {color_label}]")
+            if color and color != "unknown":
+                allowed.add(f"[{sub_label_lower} {color}]")
     if color_label and color_label != "unknown":
         allowed.add(f"[{label.strip().lower()} {color_label}]")
+    if color and color != "unknown":
+        allowed.add(f"[{label.strip().lower()} {color}]")
     for col_vi in (*_COLORS_VI.values(), "khaki", "kaki", "kem"):
         raw_lower = loc_name.strip().lower()
         if raw_lower.endswith(f" {col_vi}"):

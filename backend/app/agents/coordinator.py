@@ -621,7 +621,12 @@ def _prepare_grounded_explanation(
         if item.sub_category:
             _, sub_garment = classify(item.category, item.sub_category)
             if sub_garment:
-                allowed_for_item.add(f"[{sub_garment.label.strip().lower()}]")
+                sub_label_lower = sub_garment.label.strip().lower()
+                allowed_for_item.add(f"[{sub_label_lower}]")
+                if color_label and color_label != "unknown":
+                    allowed_for_item.add(f"[{sub_label_lower} {color_label}]")
+                if color and color != "unknown":
+                    allowed_for_item.add(f"[{sub_label_lower} {color}]")
         if color_label and color_label != "unknown":
             allowed_for_item.add(f"[{name.strip().lower()} {color_label}]")
         if color and color != "unknown":

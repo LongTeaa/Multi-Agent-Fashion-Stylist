@@ -1356,3 +1356,212 @@ def test_b2_single_prompt_sends_thinking_level_for_gemini3_and_rotates_past_dail
     assert seen_payloads[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
     assert seen_keys == ["key-daily-dead", "key-live-ok"]
     assert sleeps == []
+
+
+def test_telemetry_probe_does_not_reset_consecutive_failures_on_cache_hits(tmp_path: Path) -> None:
+    """Cached context hits must not mask consecutive live explanation provider failures."""
+    from datetime import date
+    from tests.evaluation.benchmark.systems import CachedLLMWrapper
+
+    class _ToggleFailProvider:
+        explanation_prompt_version = "v2"
+
+        def __init__(self) -> None:
+            self.fail_explanations = False
+
+        def extract_context(self, *, query: str, location: str | None, current_date: date) -> dict[str, Any]:
+            return {"occasion": "daily_work", "query": query}
+
+        def generate_outfit_explanations(self, **kwargs: Any) -> list[str]:
+            if self.fail_explanations:
+                raise RuntimeError("Simulated daily 429 quota")
+            return ["ok"]
+
+    cache = JsonlResultCache(tmp_path / "llm_cache.jsonl")
+    provider = _ToggleFailProvider()
+    wrapper = CachedLLMWrapper(provider, cache=cache, provider_name="gemini", model_name="gemini-3.6-flash")
+    probe = TelemetryLLMProbe(wrapper, max_consecutive_failures=3)
+
+    # Pre-populate 3 cached extract_context entries
+    for idx in range(3):
+        wrapper.extract_context(query=f"Đi làm ngày {idx}", location="Hà Nội", current_date=date(2026, 11, 20))
+
+    provider.fail_explanations = True
+    for idx in range(2):
+        with pytest.raises(RuntimeError):
+            probe.generate_outfit_explanations(
+                outfits=[{"items_description": ["[Áo sơ mi]"]}],
+                occasion="daily_work",
+                weather_condition="cool",
+                target_formality_range=[3, 4],
+                conflict_notes=[],
+            )
+        assert probe.consecutive_failures == idx + 1
+        # Interleaved cache hit must NOT reset consecutive_failures
+        probe.extract_context(query=f"Đi làm ngày {idx}", location="Hà Nội", current_date=date(2026, 11, 20))
+        assert probe.consecutive_failures == idx + 1
+
+    with pytest.raises(AbortedLiveRunError):
+        probe.generate_outfit_explanations(
+            outfits=[{"items_description": ["[Áo sơ mi]"]}],
+            occasion="daily_work",
+            weather_condition="cool",
+            target_formality_range=[3, 4],
+            conflict_notes=[],
+        )
+
+
+def test_cached_llm_wrapper_versions_explanation_key_without_invalidating_context_key(tmp_path: Path) -> None:
+    """Changing explanation_prompt_version invalidates only explanation cache keys, keeping extract_context hits."""
+    from datetime import date
+    from tests.evaluation.benchmark.systems import CachedLLMWrapper
+
+    class _VersionedProvider:
+        def __init__(self, version: str) -> None:
+            self.explanation_prompt_version = version
+
+        def extract_context(self, *, query: str, location: str | None, current_date: date) -> dict[str, Any]:
+            return {"occasion": "cafe", "version": self.explanation_prompt_version}
+
+        def generate_outfit_explanations(self, **kwargs: Any) -> list[str]:
+            return [f"explanation-{self.explanation_prompt_version}"]
+
+    cache_file = tmp_path / "llm_cache.jsonl"
+    w_v1 = CachedLLMWrapper(
+        _VersionedProvider("v1"),
+        cache=JsonlResultCache(cache_file),
+        provider_name="gemini",
+        model_name="gemini-3.6-flash",
+    )
+    w_v1.extract_context(query="Đi cafe chiều nay", location=None, current_date=date(2026, 11, 20))
+    w_v1.generate_outfit_explanations(
+        outfits=[{"items_description": ["[Áo thun]"]}],
+        occasion="cafe",
+        weather_condition="cool",
+        target_formality_range=[1, 3],
+        conflict_notes=[],
+    )
+    assert w_v1.live_calls == 2
+
+    w_v2 = CachedLLMWrapper(
+        _VersionedProvider("v2"),
+        cache=JsonlResultCache(cache_file),
+        provider_name="gemini",
+        model_name="gemini-3.6-flash",
+    )
+    ctx = w_v2.extract_context(query="Đi cafe chiều nay", location=None, current_date=date(2026, 11, 20))
+    assert ctx["version"] == "v1"
+    assert w_v2.cache_hits == 1
+    assert w_v2.live_calls == 0
+
+    exps = w_v2.generate_outfit_explanations(
+        outfits=[{"items_description": ["[Áo thun]"]}],
+        occasion="cafe",
+        weather_condition="cool",
+        target_formality_range=[1, 3],
+        conflict_notes=[],
+    )
+    assert exps == ["explanation-v2"]
+    assert w_v2.live_calls == 1
+
+
+def test_gemini_explanation_prompts_prohibit_unbacked_functional_claims() -> None:
+    """Single and batch Gemini explanation prompts explicitly prohibit unbacked thermal/functional claims."""
+    from app.services.context_providers import EXPLANATION_PROMPT_VERSION, GeminiContextProvider
+
+    sent_prompts: list[str] = []
+
+    def _mock_gemini(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        prompt_text = body["contents"][0]["parts"][0]["text"]
+        sent_prompts.append(prompt_text)
+        if len(sent_prompts) == 1:
+            payload: dict[str, Any] = {"explanation_vi": "Phối [Áo sơ mi trắng] gọn gàng."}
+        else:
+            payload = {"explanations": ["Phối [Áo sơ mi trắng] gọn gàng."]}
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]},
+        )
+
+    provider = GeminiContextProvider(
+        api_key=SecretStr("test-key"),
+        model="gemini-3.6-flash",
+        client=httpx.Client(transport=httpx.MockTransport(_mock_gemini)),
+    )
+    assert provider.explanation_prompt_version == EXPLANATION_PROMPT_VERSION == "v2"
+
+    provider.generate_outfit_explanation(
+        items_description=["[Áo sơ mi trắng]"],
+        occasion="daily_work",
+        weather_condition="cool",
+        target_formality_range=[3, 4],
+        composite_score=0.9,
+        applied_preferences=[],
+        relaxation_notes=[],
+        conflict_notes=[],
+    )
+    provider.generate_outfit_explanations(
+        outfits=[{"items_description": ["[Áo sơ mi trắng]"], "composite_score": 0.9}],
+        occasion="daily_work",
+        weather_condition="cool",
+        target_formality_range=[3, 4],
+        conflict_notes=[],
+    )
+    assert len(sent_prompts) == 2
+    for prompt in sent_prompts:
+        for banned_claim in ("giữ ấm", "chống thấm", "thoáng khí"):
+            assert banned_claim in prompt
+
+
+def test_metrics_allowed_brackets_matches_coordinator_extended_colors() -> None:
+    """Layer-A metrics allow extended Vietnamese color labels and raw primary_color brackets."""
+    from app.models.entities import WardrobeItem
+    from tests.evaluation.benchmark.metrics import _allowed_brackets_for_db_item
+
+    jeans = WardrobeItem(
+        id="i1",
+        user_id="u1",
+        category=WardrobeCategory.BOTTOM,
+        sub_category="jeans",
+        primary_color="denim_blue",
+        pattern="solid",
+        material="denim",
+        style="casual",
+        fit="regular",
+        formality_level=2,
+        comfort_level=4,
+        weather_suitability=["cool"],
+    )
+    shirt = WardrobeItem(
+        id="i2",
+        user_id="u1",
+        category=WardrobeCategory.TOP,
+        sub_category="shirt",
+        primary_color="light_blue",
+        pattern="solid",
+        material="cotton",
+        style="smart_casual",
+        fit="regular",
+        formality_level=4,
+        comfort_level=4,
+        weather_suitability=["cool"],
+    )
+    chinos = WardrobeItem(
+        id="i3",
+        user_id="u1",
+        category=WardrobeCategory.BOTTOM,
+        sub_category="chinos",
+        primary_color="olive",
+        pattern="solid",
+        material="cotton",
+        style="smart_casual",
+        fit="regular",
+        formality_level=3,
+        comfort_level=4,
+        weather_suitability=["cool"],
+    )
+
+    assert {"[quần jeans xanh denim]", "[quần jeans denim_blue]"} <= _allowed_brackets_for_db_item(jeans)
+    assert {"[áo sơ mi xanh nhạt]", "[áo sơ mi light_blue]"} <= _allowed_brackets_for_db_item(shirt)
+    assert {"[quần chinos ô-liu]", "[quần chinos olive]"} <= _allowed_brackets_for_db_item(chinos)
