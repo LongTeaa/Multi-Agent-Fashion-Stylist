@@ -1565,3 +1565,146 @@ def test_metrics_allowed_brackets_matches_coordinator_extended_colors() -> None:
     assert {"[quần jeans xanh denim]", "[quần jeans denim_blue]"} <= _allowed_brackets_for_db_item(jeans)
     assert {"[áo sơ mi xanh nhạt]", "[áo sơ mi light_blue]"} <= _allowed_brackets_for_db_item(shirt)
     assert {"[quần chinos ô-liu]", "[quần chinos olive]"} <= _allowed_brackets_for_db_item(chinos)
+
+
+def test_judge_retries_400_stripping_temperature_and_parses_list_content() -> None:
+    """Judge strips unsupported 'temperature' on HTTP 400 and parses list-structured message.content."""
+    seen_payloads: list[dict[str, Any]] = []
+
+    def _mock_openrouter(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        seen_payloads.append(body)
+        if len(seen_payloads) == 1:
+            return httpx.Response(400, json={"error": {"message": "Unsupported parameter: temperature"}})
+        structured_json = json.dumps(
+            {
+                "occasion_formality": 5,
+                "weather_comfort_function": 4,
+                "aesthetic_harmony": 5,
+                "explanation_usefulness": 5,
+                "rationale_vi": "Gọn gàng và đúng ngữ cảnh.",
+            },
+            ensure_ascii=False,
+        )
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": [{"type": "text", "text": structured_json}]}}],
+                "usage": {"prompt_tokens": 120, "completion_tokens": 40},
+            },
+        )
+
+    client = CrossFamilyJudgeClient(
+        JudgeConfig(
+            provider="openai_compatible",
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="openai/gpt-6.1-terra",
+            reasoning_effort="low",
+        ),
+        http_client=httpx.Client(transport=httpx.MockTransport(_mock_openrouter)),
+    )
+    res = client.score_outfit_pointwise(
+        query="Phỏng vấn sáng mai",
+        weather_condition="cool",
+        profile_summary="không có",
+        items=[{"slot": "top", "name": "Áo sơ mi trắng"}],
+        explanation_vi="Phối [Áo sơ mi trắng] gọn gàng cho phỏng vấn.",
+    )
+    assert len(seen_payloads) == 2
+    assert "temperature" in seen_payloads[0]
+    assert "temperature" not in seen_payloads[1]
+    assert seen_payloads[1].get("reasoning") == {"effort": "low"}
+    assert res["fashion_quality_score"] == round((5 + 4 + 5) / 3.0, 4)
+
+
+def test_cli_calibrate_judge_only_loads_human_ratings_dir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """evaluate_multi_agent_chatbot CLI loads blind human ratings and reports real human_vs_judge_spearman."""
+    from scripts.evaluate_multi_agent_chatbot import main as cli_main
+    from scripts.judge_calibration_human_review import build_blind_calibration_package
+
+    cal_path = Path(__file__).resolve().parents[3] / "data" / "fixtures" / "judge_calibration_v1.json"
+    cal_data = json.loads(cal_path.read_text(encoding="utf-8"))
+
+    review_dir = tmp_path / "blind_review"
+    pkg = build_blind_calibration_package(calibration_path=cal_path, out_dir=review_dir, seed=123)
+    manifest = json.loads(Path(pkg["manifest_path"]).read_text(encoding="utf-8"))
+    blind_to_sample = manifest["blind_to_sample"]
+    sample_label_by_id = {str(s["id"]): str(s["label"]) for s in cal_data["pointwise_samples"]}
+
+    ratings_dir = tmp_path / "ratings"
+    ratings_dir.mkdir(parents=True, exist_ok=True)
+    for rater_idx, rater_name in enumerate(("rater_a", "rater_b"), start=1):
+        entries = []
+        for blind_id, sample_id in sorted(blind_to_sample.items()):
+            lbl = sample_label_by_id[sample_id]
+            base = 5 if lbl == "good" else (3 if lbl == "mediocre" else 1 + (rater_idx - 1))
+            entries.append(
+                {
+                    "blind_id": blind_id,
+                    "occasion_formality": base,
+                    "weather_comfort_function": base,
+                    "aesthetic_harmony": base,
+                    "explanation_usefulness": base,
+                }
+            )
+        (ratings_dir / f"calibration_ratings_{rater_name}.json").write_text(
+            json.dumps({"rater_name": rater_name, "ratings": entries}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    def _fake_post(self: CrossFamilyJudgeClient, system_prompt: str, user_prompt: str) -> dict[str, Any]:
+        if "--- Phương án 1 ---" in user_prompt:
+            return {"winner": "1", "reason_vi": "Đạt yêu cầu."}
+        for sample in cal_data["pointwise_samples"]:
+            if sample["explanation_vi"] in user_prompt:
+                val = 4.8 if sample["label"] == "good" else (3.1 if sample["label"] == "mediocre" else 1.5)
+                return {
+                    "occasion_formality": val,
+                    "weather_comfort_function": val,
+                    "aesthetic_harmony": val,
+                    "explanation_usefulness": val,
+                    "rationale_vi": "Hợp lý.",
+                }
+        return {
+            "occasion_formality": 3.0,
+            "weather_comfort_function": 3.0,
+            "aesthetic_harmony": 3.0,
+            "explanation_usefulness": 3.0,
+            "rationale_vi": "Trung tính.",
+        }
+
+    monkeypatch.setattr(CrossFamilyJudgeClient, "_post_json_prompt", _fake_post)
+    monkeypatch.setenv("BENCH_JUDGE_API_KEY", "test-or-key")
+    report_out = tmp_path / "cal_report.json"
+
+    rc = cli_main(
+        [
+            "--calibrate-judge-only",
+            "--judge-provider",
+            "openai_compatible",
+            "--judge-base-url",
+            "https://openrouter.ai/api/v1",
+            "--judge-model",
+            "openai/gpt-6.1-terra",
+            "--judge-reasoning-effort",
+            "low",
+            "--human-ratings-dir",
+            str(ratings_dir),
+            "--human-manifest",
+            pkg["manifest_path"],
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--report-json",
+            str(report_out),
+        ]
+    )
+    assert rc == 0
+    report = json.loads(report_out.read_text(encoding="utf-8"))
+    assert report["human_score_source"] == "blind_human_raters"
+    assert report["real_human_rater_count"] == 2
+    assert report["human_vs_judge_spearman"] is not None
+    assert report["human_vs_judge_spearman"] > 0.8

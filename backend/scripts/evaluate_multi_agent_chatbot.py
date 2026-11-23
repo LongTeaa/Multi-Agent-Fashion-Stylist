@@ -103,6 +103,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge-model", type=str, default=None)
     parser.add_argument("--judge-reasoning-effort", choices=("none", "low", "medium", "high"), default=None)
     parser.add_argument("--judge-api-key-env", type=str, default="BENCH_JUDGE_API_KEY")
+    parser.add_argument("--human-ratings-dir", type=Path, default=None, help="Directory of exported blind rater JSON files for human_vs_judge_spearman")
+    parser.add_argument(
+        "--human-manifest",
+        type=Path,
+        default=REPOSITORY_ROOT / "data" / "private-judge-calibration-review" / "blind_manifest.json",
+    )
     parser.add_argument("--cache-dir", type=Path, default=None)
     parser.add_argument("--llm-delay-seconds", type=float, default=0.0)
     parser.add_argument("--explanation-timeout", type=float, default=30.0)
@@ -186,9 +192,24 @@ def main(argv: list[str] | None = None) -> int:
         cache_path = (args.cache_dir / "judge_cache.jsonl") if args.cache_dir else None
         judge_client = CrossFamilyJudgeClient(j_cfg, cache=JsonlResultCache(cache_path))
 
+    human_ratings_by_id: dict[str, list[float]] | None = None
+    if args.human_ratings_dir is not None:
+        if not args.human_manifest.is_file():
+            parser.error(f"Human blind manifest not found: {args.human_manifest}")
+        from scripts.judge_calibration_human_review import load_human_ratings
+
+        human_ratings_by_id = load_human_ratings(
+            ratings_dir=args.human_ratings_dir,
+            manifest_path=args.human_manifest,
+        )["human_ratings_by_id"]
+
     if args.calibrate_judge_only:
         assert judge_client is not None
-        cal = run_judge_calibration(judge_client, bundle["calibration"])
+        cal = run_judge_calibration(
+            judge_client,
+            bundle["calibration"],
+            human_ratings_by_id=human_ratings_by_id,
+        )
         if args.report_json:
             args.report_json.parent.mkdir(parents=True, exist_ok=True)
             args.report_json.write_text(json.dumps(cal, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -214,6 +235,7 @@ def main(argv: list[str] | None = None) -> int:
         llm_cache=llm_cache,
         llm_delay_seconds=args.llm_delay_seconds,
         explanation_timeout_seconds=args.explanation_timeout,
+        human_ratings_by_id=human_ratings_by_id,
     )
     save_report_files(report, report_json=args.report_json, report_md=args.report_md)
 

@@ -85,7 +85,7 @@ class JudgeConfig:
     base_url: str = "https://api.openai.com/v1"
     api_key: str = ""
     model: str = "gpt-4.1-mini"
-    timeout_seconds: float = 25.0
+    timeout_seconds: float = 45.0
     max_retries: int = 3
     initial_backoff_seconds: float = 1.5
     max_tokens: int = 220
@@ -131,7 +131,7 @@ class JudgeConfig:
             or os.environ.get(provider_key_env)
             or ""
         ).strip()
-        timeout = float(os.environ.get("BENCH_JUDGE_TIMEOUT_SECONDS", "25"))
+        timeout = float(os.environ.get("BENCH_JUDGE_TIMEOUT_SECONDS", "45"))
         eff_reasoning = (
             (reasoning_effort or os.environ.get("BENCH_JUDGE_REASONING_EFFORT") or "")
             .strip()
@@ -252,10 +252,21 @@ class CrossFamilyJudgeClient:
             if self.config.reasoning_effort:
                 payload["reasoning"] = {"effort": self.config.reasoning_effort}
             resp = client.post(url, headers=headers, json=payload, timeout=self.config.timeout_seconds)
-            if resp.status_code == 400 and "response_format" in payload:
-                # Compatibility retry for local OpenAI-compatible servers that reject response_format
-                payload_no_rf = {k: v for k, v in payload.items() if k != "response_format"}
-                resp = client.post(url, headers=headers, json=payload_no_rf, timeout=self.config.timeout_seconds)
+            if resp.status_code == 400:
+                err_lower = resp.text.lower()
+                fallback_payload = dict(payload)
+                changed = False
+                if "temperature" in err_lower and "temperature" in fallback_payload:
+                    fallback_payload.pop("temperature", None)
+                    changed = True
+                if ("response_format" in err_lower or not changed) and "response_format" in fallback_payload:
+                    fallback_payload.pop("response_format", None)
+                    changed = True
+                if changed:
+                    resp = client.post(url, headers=headers, json=fallback_payload, timeout=self.config.timeout_seconds)
+                    if resp.status_code == 400 and "temperature" in fallback_payload:
+                        fallback_payload.pop("temperature", None)
+                        resp = client.post(url, headers=headers, json=fallback_payload, timeout=self.config.timeout_seconds)
             return resp
 
         if self.config.provider == "anthropic":
@@ -286,7 +297,15 @@ class CrossFamilyJudgeClient:
     def _parse_provider_response(self, body: dict[str, Any]) -> dict[str, Any]:
         if self.config.provider == "openai_compatible":
             content = body["choices"][0]["message"]["content"]
-            return _extract_json_object(str(content))
+            if isinstance(content, list):
+                text = " ".join(
+                    str(part.get("text", ""))
+                    for part in content
+                    if isinstance(part, dict) and part.get("text")
+                )
+            else:
+                text = str(content or "")
+            return _extract_json_object(text)
         if self.config.provider == "anthropic":
             blocks = body.get("content", [])
             text = " ".join(b.get("text", "") for b in blocks if isinstance(b, dict))
@@ -606,6 +625,8 @@ def run_judge_calibration(
         "human_score_source": human_score_source,
         "human_vs_judge_spearman": human_vs_judge_spearman,
         "real_human_rater_count": real_human_rater_count,
+        "judge_api_calls": judge.api_calls,
+        "judge_cache_hits": judge.cache_hits,
         "judge_usage_tokens": {
             "prompt_tokens": judge.total_prompt_tokens,
             "completion_tokens": judge.total_completion_tokens,
