@@ -1708,3 +1708,45 @@ def test_cli_calibrate_judge_only_loads_human_ratings_dir(
     assert report["real_human_rater_count"] == 2
     assert report["human_vs_judge_spearman"] is not None
     assert report["human_vs_judge_spearman"] > 0.8
+
+
+def test_judge_pointwise_weakest_link_cap_and_separate_prompt_version() -> None:
+    """Pointwise scoring enforces weakest-link cap for critical failures without invalidating pairwise cache version."""
+    from tests.evaluation.benchmark.judge import (
+        JUDGE_POINTWISE_PROMPT_VERSION,
+        JUDGE_PROMPT_VERSION,
+    )
+
+    assert JUDGE_POINTWISE_PROMPT_VERSION == "judge-rubric-v3"
+    assert JUDGE_PROMPT_VERSION == "judge-rubric-v2"
+
+    scenarios = iter(
+        [
+            {"occasion_formality": 1.0, "weather_comfort_function": 4.0, "aesthetic_harmony": 4.0, "explanation_usefulness": 2.0},
+            {"occasion_formality": 3.0, "weather_comfort_function": 1.0, "aesthetic_harmony": 4.0, "explanation_usefulness": 1.0},
+            {"occasion_formality": 4.0, "weather_comfort_function": 4.0, "aesthetic_harmony": 5.0, "explanation_usefulness": 1.0},
+        ]
+    )
+
+    def _mock_http(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(next(scenarios))}}]})
+
+    client = CrossFamilyJudgeClient(
+        JudgeConfig(provider="openai_compatible", base_url="https://mock.local/v1", api_key="k", model="openai/gpt-6.1-terra"),
+        http_client=httpx.Client(transport=httpx.MockTransport(_mock_http)),
+    )
+
+    hard_avoid = client.score_outfit_pointwise(
+        query="Không mặc đen", weather_condition="cool", profile_summary="", items=[], explanation_vi="x"
+    )
+    assert hard_avoid["fashion_quality_score"] == 2.0
+
+    extreme_cold = client.score_outfit_pointwise(
+        query="Trời rét 12 độ", weather_condition="cold", profile_summary="", items=[], explanation_vi="x"
+    )
+    assert extreme_cold["fashion_quality_score"] == 2.0
+
+    good_outfit_bad_exp = client.score_outfit_pointwise(
+        query="Đi cafe", weather_condition="cool", profile_summary="", items=[], explanation_vi="x"
+    )
+    assert good_outfit_bad_exp["fashion_quality_score"] == round((4.0 + 4.0 + 5.0) / 3.0, 4)

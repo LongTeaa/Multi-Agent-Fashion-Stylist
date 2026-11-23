@@ -18,6 +18,7 @@ from tests.evaluation.benchmark.metrics import compute_spearman_rho
 
 
 JUDGE_PROMPT_VERSION = "judge-rubric-v2"
+JUDGE_POINTWISE_PROMPT_VERSION = "judge-rubric-v3"
 
 
 def is_same_family_gemini(model: str) -> bool:
@@ -364,7 +365,7 @@ class CrossFamilyJudgeClient:
         key_payload = json.dumps(
             {
                 "kind": "pointwise",
-                "ver": JUDGE_PROMPT_VERSION,
+                "ver": JUDGE_POINTWISE_PROMPT_VERSION,
                 "model": self.config.model,
                 "reasoning": self.config.reasoning_effort,
                 "q": query,
@@ -387,6 +388,13 @@ class CrossFamilyJudgeClient:
             "theo thang 1 đến 5 (1=Không chấp nhận được/sai nghiêm trọng, 2=Kém/lệch hoàn cảnh hoặc thời tiết nặng, "
             "3=Chấp nhận được nhưng chưa tối ưu, 4=Tốt/gọn gàng hợp lý, 5=Rất tốt/mặc ngay không cần chỉnh). "
             "Không được thiên vị câu văn hoa mỹ nếu món đồ thực tế sai hoàn cảnh, sai thời tiết, hoặc lời giải thích bịa món đồ. "
+            "Nguyên tắc chấm chuyên môn: "
+            "(a) Nếu bộ đồ vi phạm ràng buộc cứng của người dùng (màu/món bắt buộc tránh) hoặc mất an toàn nghiêm trọng về thời tiết "
+            "(ví dụ đồ quá mỏng trời rét, áo len/áo khoác dày trời nắng nóng), hãy chấm tiêu chí liên quan mức 1.0–1.5; "
+            "(b) Trong ngữ cảnh tủ đồ thường ngày gặp trời mưa, nếu bộ đồ đã có áo khoác ngoài và giày mang cờ water_resistant/rain, "
+            "hãy đánh giá đáp ứng tốt công năng đi mưa thực tế của tủ đồ thay vì đòi hỏi áo mưa chuyên dụng; "
+            "(c) Khi mức trang trọng lệch nhịp rõ so với dịp (hơi quá giản dị cho phỏng vấn/tiệc cưới hoặc quá trang trọng cho cafe nhẹ nhàng), "
+            "chấm occasion_formality tương xứng mức 2.0–3.0. "
             "Chỉ trả về JSON."
         )
         user_prompt = (
@@ -410,7 +418,13 @@ class CrossFamilyJudgeClient:
         wea = _clamp_score(parsed.get("weather_comfort_function"))
         aes = _clamp_score(parsed.get("aesthetic_harmony"))
         exp = _clamp_score(parsed.get("explanation_usefulness"))
-        fashion_score = round((occ + wea + aes) / 3.0, 4)
+        raw_fashion_mean = round((occ + wea + aes) / 3.0, 4)
+        critical_min = min(occ, wea)
+        fashion_score = (
+            min(raw_fashion_mean, round(critical_min + 1.0, 4))
+            if critical_min <= 1.5
+            else raw_fashion_mean
+        )
 
         result = {
             "occasion_formality": occ,
