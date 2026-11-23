@@ -200,6 +200,8 @@ class GeminiContextProvider:
             "must_have/must_avoid must quote only garment/color/material phrases actually in the request. "
             "Cooling clothing preferences are not statements of current weather. "
             "Ask a concise Vietnamese clarification if occasion/intent is materially ambiguous. "
+            "target_formality_range must be a JSON array of two integers between 1 and 5 (e.g. [3, 4]), never strings or objects. "
+            "Always return non-null string values for occasion (use 'casual' if unclear) and time_of_day (use 'morning' if unclear) even when needs_clarification=true. "
             f"Current date: {current_date.isoformat()}. Explicit location: {location!r}. Request: {query}"
         )
         payload = {

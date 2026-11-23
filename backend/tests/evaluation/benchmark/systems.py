@@ -51,7 +51,7 @@ from app.services.context_providers import (
 from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.retrieval_document_service import refresh_retrieval_document
-from tests.evaluation.benchmark.judge import JsonlResultCache
+from tests.evaluation.benchmark.judge import JsonlResultCache, _extract_json_object
 
 
 class AbortedLiveRunError(BaseException):
@@ -791,6 +791,7 @@ def run_single_prompt_gemini_baseline(
         "2. Nếu không thể tạo bộ hoàn chỉnh thỏa ràng buộc cứng, trả status='error', error_code='NO_COMPLETE_OUTFIT'.\n"
         "3. Nếu đủ thông tin, chọn tối đa 3 bộ tốt nhất (xếp rank 1..3), mỗi bộ CHỈ gồm: (1 top + 1 bottom + 1 footwear) HOẶC (1 dress + 1 footwear), có thể thêm tối đa 1 outerwear và 1 accessory.\n"
         "4. Chỉ sử dụng các id có thật trong danh sách trên. Viết explanation_vi (2 câu tiếng Việt) nhắc đúng [Tên món] trong ngoặc vuông và không bịa thêm món ngoài bộ đồ.\n"
+        "5. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
         'Chỉ trả về JSON hợp lệ theo mẫu: {"status": "ok"|"clarification"|"error", "error_code": null|string, "clarification_question": null|string, "outfits": [{"rank": 1, "item_ids": ["..."], "explanation_vi": "..."}]}.'
     )
 
@@ -837,11 +838,11 @@ def run_single_prompt_gemini_baseline(
                 sleep_fn=sleep_fn,
             )
             raw_text = _extract_json_from_gemini_response(resp_json)
-            parsed = json.loads(raw_text)
+            parsed = _extract_json_object(raw_text)
             if cache is not None and cache_key is not None:
                 cache.put(cache_key, {"raw_text": raw_text})
         else:
-            parsed = json.loads(raw_text)
+            parsed = _extract_json_object(raw_text)
         est_tokens += len(raw_text) // 4
     except Exception as exc:
         status_code = getattr(getattr(exc, "response", None), "status_code", None)

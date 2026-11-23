@@ -516,3 +516,63 @@ def test_business_partner_and_work_errand_occasions_and_chin_chu():
     assert c_chin_chu.target_formality_range == [3, 4]
     assert "smart_casual" in c_chin_chu.style_hints
 
+
+
+def test_extract_context_with_providers_sanitizes_llm_formality_and_nullable_clarification() -> None:
+    """Verify LLM schema drift in target_formality_range and nullable clarification fields normalize cleanly."""
+
+    class _DriftLLM:
+        def __init__(self, payload: dict[str, Any]) -> None:
+            self.payload = payload
+
+        def extract_context(self, **kwargs: Any) -> dict[str, Any]:
+            return dict(self.payload)
+
+    for drift_tfr, expected_range in (
+        ({"min": 4, "max": 5}, [4, 5]),
+        (["formal", "very_formal"], [4, 5]),
+        (["smart_casual", "semi_formal"], [3, 4]),
+        ([0.2, 0.4], [2, 3]),
+    ):
+        ctx, warnings = extract_context_with_providers(
+            "Tối nay qua nhà bạn gái ăn cơm ra mắt",
+            current_date=date(2026, 11, 23),
+            llm_provider=_DriftLLM(
+                {
+                    "occasion": "date",
+                    "time_of_day": "evening",
+                    "weather_condition": "cool",
+                    "target_formality_range": drift_tfr,
+                    "style_hints": None,
+                    "must_have": None,
+                    "must_avoid": None,
+                    "weather_source": "default",
+                    "needs_clarification": False,
+                    "confidence": None,
+                }
+            ),
+        )
+        assert warnings == []
+        assert ctx.occasion == "date"
+        assert ctx.target_formality_range  # valid list[int] without fallback
+
+    clar_ctx, clar_warnings = extract_context_with_providers(
+        "Mặc gì?",
+        current_date=date(2026, 11, 23),
+        llm_provider=_DriftLLM(
+            {
+                "occasion": None,
+                "time_of_day": None,
+                "weather_condition": "cool",
+                "target_formality_range": None,
+                "weather_source": "default",
+                "needs_clarification": True,
+                "clarification_question": "Bạn cần phối đồ cho dịp nào?",
+                "confidence": 0.4,
+            }
+        ),
+    )
+    assert clar_warnings == []
+    assert clar_ctx.needs_clarification is True
+    assert isinstance(clar_ctx.occasion, str) and clar_ctx.occasion
+    assert isinstance(clar_ctx.time_of_day, str) and clar_ctx.time_of_day
