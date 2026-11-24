@@ -444,9 +444,12 @@ The operation MUST return HTTP `200` on a cache hit or when synchronous lookbook
   "render_kind": "virtual_tryon",
   "fallback_used": false,
   "duration_ms": 4200,
-  "status": "ready"
+  "status": "ready",
+  "rendered_item_ids": ["uuid", "uuid"]
 }
 ```
+
+`rendered_item_ids` lists the wardrobe items actually worn in a `virtual_tryon` render, including footwear and headwear when the provider renders them; outfit items not listed are shown beside the image. It is empty for `generated_lookbook` and `moodboard`. When `item_ids` names both a top and an outerwear item, a provider that renders layers wears both, and a provider that renders one upper garment wears the outerwear; a client offers the inner-top choice only when the response does not list both.
 
 For asynchronous virtual try-on pipelines, the operation returns HTTP `202 Accepted`:
 
@@ -474,7 +477,7 @@ Retrieves the current execution status of a try-on render:
 }
 ```
 
-When completed (`status: "ready"`), `image_url` points to the rendered media asset.
+When completed (`status: "ready"`), `image_url` points to the rendered media asset and `rendered_item_ids` is set as in section 8.1.
 
 ### 8.3 `GET /tryons/avatars`
 

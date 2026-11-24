@@ -26,6 +26,8 @@ EXPECTED_ENV_KEYS = {
     "TRYON_PROVIDER",
     "FASHN_TRYON_SPACE",
     "HF_TOKEN",
+    "FAL_KEY",
+    "FLUX_VTO_MODEL",
     "TRYON_TIMEOUT_SECONDS",
     "LLM_MODEL",
     "VISION_MODEL",
@@ -72,6 +74,8 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.tryon_provider == "disabled"
     assert settings.fashn_tryon_space == "fashn-ai/fashn-vton-1.5"
     assert settings.hf_token is None
+    assert settings.fal_key is None
+    assert settings.flux_vto_model == "fal-ai/flux-pro/v1/vto"
     assert settings.tryon_timeout_seconds == 90
     assert str(settings.minio_endpoint) == "http://localhost:9000/"
     assert settings.minio_secure is False
@@ -88,6 +92,8 @@ def test_environment_values_are_parsed_and_secrets_are_masked(
     monkeypatch.setenv("MINIO_SECURE", "true")
     monkeypatch.setenv("SIGNED_URL_TTL_SECONDS", "120")
     monkeypatch.setenv("GEMINI_API_KEY", "test-only-secret")
+    monkeypatch.setenv("TRYON_PROVIDER", "flux")
+    monkeypatch.setenv("FAL_KEY", "fal-test-only-secret")
 
     settings = Settings(_env_file=None)
 
@@ -97,6 +103,9 @@ def test_environment_values_are_parsed_and_secrets_are_masked(
     assert settings.gemini_api_key is not None
     assert settings.gemini_api_key.get_secret_value() == "test-only-secret"
     assert "test-only-secret" not in repr(settings)
+    assert settings.tryon_provider == "flux"
+    assert settings.fal_key is not None and settings.fal_key.get_secret_value() == "fal-test-only-secret"
+    assert "fal-test-only-secret" not in repr(settings)
 
     with pytest.raises(ValidationError):
         settings.database_url = "sqlite:///./data/other.db"
@@ -142,6 +151,7 @@ def test_env_example_contains_the_complete_contract() -> None:
     assert entries["MINIO_ACCESS_KEY"] == "your_access_key"
     assert entries["MINIO_SECRET_KEY"] == "your_secret_key"
     assert entries["HF_TOKEN"] == "your_hf_token"
+    assert entries["FAL_KEY"] == "your_fal_key"
 
 
 def test_validate_detector_configuration() -> None:

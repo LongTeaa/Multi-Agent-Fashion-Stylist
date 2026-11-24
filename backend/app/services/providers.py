@@ -168,3 +168,44 @@ class TryOnProviderProtocol(Protocol):
     def model(self) -> str: ...
 
     def try_on(self, request: TryOnRequest) -> TryOnResult: ...
+
+
+@dataclass(frozen=True)
+class OutfitGarment:
+    """One garment of an outfit try-on, with only the user-confirmed attributes."""
+
+    image_bytes: bytes
+    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    # `footwear` and `headwear` are only sent to whole-outfit providers, never to garment passes.
+    category: Literal["tops", "bottoms", "one-pieces", "footwear", "headwear"]
+    sub_category: str = ""
+    primary_color: str = ""
+    pattern: str = ""
+    # Finer slot for providers that render layers, shoes and headwear. `None` keeps the
+    # category-only behaviour (one upper garment, one lower garment or one one-piece).
+    role: Literal["upper", "outer", "lower", "one_piece", "footwear", "headwear"] | None = None
+
+
+@dataclass(frozen=True)
+class OutfitTryOnRequest:
+    """Request to dress a person in a whole outfit with one provider call.
+
+    `garments` is ordered upper body first, then lower body; a one-piece is alone.
+    """
+
+    person_image_bytes: bytes
+    person_mime_type: Literal["image/jpeg", "image/png", "image/webp"]
+    garments: tuple[OutfitGarment, ...]
+
+
+@runtime_checkable
+class OutfitTryOnProviderProtocol(Protocol):
+    """Optional capability: render every garment of an outfit in a single call."""
+
+    @property
+    def provider_name(self) -> str: ...
+
+    @property
+    def model(self) -> str: ...
+
+    def try_on_outfit(self, request: OutfitTryOnRequest) -> TryOnResult: ...

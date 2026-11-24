@@ -9,6 +9,8 @@ export interface TryOnResponseData {
   duration_ms: number;
   status: 'processing' | 'ready' | 'failed';
   error_code?: string | null;
+  /** Wardrobe items actually worn in a virtual try-on; empty for moodboards and lookbooks. */
+  rendered_item_ids?: string[];
 }
 
 export interface TryOnAvatar {

@@ -1,0 +1,149 @@
+{
+  "check": "tryon-extras-v1",
+  "run_at": "20261122T115406Z",
+  "model": "fal-ai/flux-pro/v1/vto",
+  "estimated_cost_usd": 0.57,
+  "renders": [
+    {
+      "case_id": "x1-shoes",
+      "arm": "current",
+      "prompt": "Dress the person in the garments shown in the reference image: the grey sweater (left) on the upper body and the black trousers (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "tops:grey sweater",
+        "bottoms:black trousers"
+      ],
+      "success": true,
+      "latency_ms": 10574
+    },
+    {
+      "case_id": "x1-shoes",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the grey sweater, the black trousers and the black sneakers of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "upper:grey sweater",
+        "lower:black trousers",
+        "footwear:black sneakers"
+      ],
+      "success": true,
+      "latency_ms": 9905
+    },
+    {
+      "case_id": "x2-layers-boots",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the grey sweater worn under the black vest, the blue jeans and the black boots of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "outer:black vest",
+        "upper:grey sweater",
+        "lower:blue jeans",
+        "footwear:black boots"
+      ],
+      "success": true,
+      "latency_ms": 9823
+    },
+    {
+      "case_id": "x2-layers-boots",
+      "arm": "current",
+      "prompt": "Dress the person in the garments shown in the reference image: the black vest (left) on the upper body and the blue jeans (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "tops:black vest",
+        "bottoms:blue jeans"
+      ],
+      "success": true,
+      "latency_ms": 8939
+    },
+    {
+      "case_id": "x3-layers-sneakers",
+      "arm": "current",
+      "prompt": "Dress the person in the garments shown in the reference image: the black vest (left) on the upper body and the blue jeans (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "tops:black vest",
+        "bottoms:blue jeans"
+      ],
+      "success": true,
+      "latency_ms": 9898
+    },
+    {
+      "case_id": "x3-layers-sneakers",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the beige plaid shirt worn under the black vest, the blue jeans and the black sneakers of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "outer:black vest",
+        "upper:beige shirt",
+        "lower:blue jeans",
+        "footwear:black sneakers"
+      ],
+      "success": true,
+      "latency_ms": 8313
+    },
+    {
+      "case_id": "x4-beanie",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the grey sweater, the black trousers, the black sneakers and the grey beanie of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "upper:grey sweater",
+        "lower:black trousers",
+        "footwear:black sneakers",
+        "headwear:grey beanie"
+      ],
+      "success": true,
+      "latency_ms": 13693
+    },
+    {
+      "case_id": "x4-beanie",
+      "arm": "current",
+      "prompt": "Dress the person in the garments shown in the reference image: the grey sweater (left) on the upper body and the black trousers (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "tops:grey sweater",
+        "bottoms:black trousers"
+      ],
+      "success": true,
+      "latency_ms": 10110
+    },
+    {
+      "case_id": "x5-dress-jacket-flats",
+      "arm": "current",
+      "prompt": "Dress the person in the magenta cocktail dress shown in the reference image. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "one-pieces:magenta cocktail dress"
+      ],
+      "success": true,
+      "latency_ms": 13532
+    },
+    {
+      "case_id": "x5-dress-jacket-flats",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the magenta cocktail dress worn under the teal quilted jacket and the beige flats of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "outer:teal jacket",
+        "one_piece:magenta cocktail dress",
+        "footwear:beige flats"
+      ],
+      "success": true,
+      "latency_ms": 8999
+    },
+    {
+      "case_id": "x6-sandals-hat",
+      "arm": "extended",
+      "prompt": "The person of image 1, maintaining exactly their face and pose, wearing the maroon floral blouse, the blue skirt, the brown animal print sandals and the pink hat of image 2. Keep the background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "upper:maroon blouse",
+        "lower:blue skirt",
+        "footwear:brown sandals",
+        "headwear:pink hat"
+      ],
+      "success": true,
+      "latency_ms": 10659
+    },
+    {
+      "case_id": "x6-sandals-hat",
+      "arm": "current",
+      "prompt": "Dress the person in the garments shown in the reference image: the maroon floral blouse (left) on the upper body and the blue skirt (right) on the lower body. Keep the person's face, hair, pose, body shape, footwear and background unchanged. A natural front-facing full-body studio photo.",
+      "garments": [
+        "tops:maroon blouse",
+        "bottoms:blue skirt"
+      ],
+      "success": true,
+      "latency_ms": 9267
+    }
+  ]
+}
