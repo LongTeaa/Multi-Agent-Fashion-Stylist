@@ -5,7 +5,9 @@ follow a user's taste as they rate outfits. The benchmark measures onboarding pr
 (profile differentiation 5/5) but not learning from 1–5 star ratings, which
 `PERSONALIZATION_AND_FEEDBACK_SPEC.md` section 6 asks to evaluate ("compare average
 rating before and after preference updates"). This report measures it with simulated
-users. No application code was changed.
+users and adds a sensitivity analysis of the learned term's weight (section 4). No
+application code was changed; on 2026-11-25 the owner chose to keep the current weight
+and report the sensitivity result.
 
 ## 1. Method
 
@@ -35,6 +37,12 @@ users. No application code was changed.
 - **Metrics.** Mean stars of the rank-1 outfit; Hit@1 (rank 1 has >= 4 stars); MRR@3
   (first outfit with >= 4 stars); share of liked outfits in the top 3. Paired exact sign
   test on rank-1 stars, rated minus control, at 20 ratings.
+- **Context guard.** Each rank-1 outfit is also checked against the benchmark case's
+  context assertions that a chat response can show (minimum/maximum outfits, required or
+  excluded items and categories, minimum/maximum average formality, required functional
+  flags, required outerwear), with the benchmark's own checker
+  (`check_case_functional_assertions`). Loop-round and explanation assertions need graph
+  internals and are not checked here.
 
 Two runs gave identical results.
 
@@ -73,7 +81,46 @@ larger, so ratings only reorder near-ties. This matches the specification's inte
 one rating "MUST NOT cause an unbounded preference change", but at this size twenty
 ratings are also not enough to change most recommendations.
 
-## 4. What the thesis can claim
+## 4. Sensitivity: a larger learned share
+
+The preference score gives the learned term a share of 0.20
+(`0.35 style + 0.25 palette + 0.20 priority + 0.20 learned + fit`). With no onboarding
+choices the other three terms are the neutral 0.5, so a share `s` is exactly
+`0.5 + s × (affinity − 0.5)`. `--learned-share` applies this for the duration of a run by
+scaling the learned affinity's deviation from 0.5 by `s / 0.20`; the application code is
+not modified. Same users, queries and checkpoints; results after 20 ratings, 63 answered
+evaluation requests:
+
+| Learned share | Largest composite shift | Top-1 stars | Hit@1 | MRR@3 | Liked in top 3 | Better / worse vs control | Sign test p | Context guard |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **0.20 (application)** | ±0.010–0.020 | 3.24 | 39.7% | 0.476 | 33.9% | 4 / 0 | 0.125 | 63/63 |
+| 0.40 | ±0.020–0.040 | 3.25 | 41.3% | 0.489 | 33.9% | 5 / 0 | 0.063 | 63/63 |
+| 0.60 | ±0.030–0.060 | 3.27 | 42.9% | 0.508 | 35.4% | 6 / 0 | 0.031 | 63/63 |
+| 0.80 | ±0.040–0.080 | 3.27 | 42.9% | 0.508 | 35.4% | 6 / 0 | 0.031 | 63/63 |
+| 1.00 | ±0.050–0.100 | 3.27 | 42.9% | 0.508 | 35.4% | 6 / 1 | 0.125 | 63/63 |
+| Control (no ratings) | — | 3.17 | 36.5% | 0.458 | 32.8% | — | — | 63/63 |
+
+The largest composite shift is `w_pers × s × 0.5` for the formal/active (0.10), comfort
+(0.15) and balanced (0.20) profiles.
+
+- **The gain is small and saturates.** A larger share improves up to 6 of 63 requests
+  and nothing beyond a share of 0.60. At 1.00 one request gets worse.
+- **It comes from one simulated user.** Every improved request belongs to
+  `male_realistic_27/dark_minimal` (top-1 stars 2.91 with no ratings, 3.27 / 3.36 / 3.45 /
+  3.45 / 3.55 at shares 0.20–1.00). The other five users get the same rank-1 outfits at
+  every share, except `male_realistic_27/earthy`, which drops from 3.45 to 3.36 at 1.00.
+- **No context cost.** The context guard passes 63/63 at every share, as for the control.
+- **p = 0.031 is not robust.** It is the best of five shares on one set of users; after a
+  correction for five comparisons it is not significant.
+- **The weight is not the main limit.** Fashion shortlisting ranks candidates with a
+  neutral personal score before the 50-candidate cutoff
+  (`../../03_domain/FASHION_KNOWLEDGE_BASE.md` section 3.3), and the Personalization
+  Agent reranks only that shortlist. Even when the learned term decides alone, only about
+  35% of the returned top-3 outfits match the hidden taste, so the taste-matching outfits
+  are mostly not in the context-ranked pool. Bringing the preference signal into
+  shortlisting is the change that could matter; it is a design direction, not tested here.
+
+## 5. What the thesis can claim
 
 - Ratings are stored, turned into explainable per-feature weights that move in the
   direction of the user's taste, and never break constraints or grounding.
@@ -81,8 +128,12 @@ ratings are also not enough to change most recommendations.
   quality rose from 3.17 to 3.24 stars with no request made worse, not a significant
   difference. Onboarding choices (profile differentiation 5/5) are the stronger
   personalization signal.
+- Raising the learned share to 0.60 or more improves at most 6 of 63 requests, all for one
+  simulated user, without any context violation, and then saturates (section 4). The
+  limit is the order of the agents: preferences rerank a shortlist already selected by
+  context. Earlier use of preferences in shortlisting is future work.
 
-## 5. Limitations
+## 6. Limitations
 
 - Simulated tastes use only the features the learner sees (colour and style), which
   favours the learner; real users also weigh fit, comfort and context.
@@ -90,11 +141,15 @@ ratings are also not enough to change most recommendations.
   outfits the system did not rank first, would give the learner more varied evidence.
 - Small wardrobes (27–30 items) and 12–13 evaluation queries per wardrobe.
 - Deterministic offline context; the live LLM context path was not used.
+- The sensitivity analysis is exact only for users without onboarding choices; with
+  onboarding choices a different share would also rescale the style, palette and priority
+  terms.
 
-## 6. Reproduce
+## 7. Reproduce
 
 ```powershell
-python backend/scripts/simulate_rating_personalization.py --out data/private-rating-simulation/summary.json
+python backend/scripts/simulate_rating_personalization.py --learned-share 0.2 0.4 0.6 0.8 1.0 --out data/private-rating-simulation/summary.json
 ```
 
-Summary of this run: `RATING_PERSONALIZATION_SIMULATION_2026-11-25.json`.
+Summary of this run (all five shares; two runs were identical):
+`RATING_PERSONALIZATION_SIMULATION_2026-11-25.json`.

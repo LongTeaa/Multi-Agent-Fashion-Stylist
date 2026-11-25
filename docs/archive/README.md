@@ -34,7 +34,7 @@ New dated reviews, audits, spike reports, and live-test reports SHOULD be added 
 | `reports/LIVE_MULTI_AGENT_BENCHMARK_2026-11-23.md` | 2026-11-23 | Live multi-agent benchmark, 56 cases, cross-family judge; holdout and dev-only variants alongside (Vietnamese) |
 | `reports/HUMAN_VS_JUDGE_CALIBRATION_2026-11-25.md` | 2026-11-25 | Three blind human raters against the LLM judge on 20 calibration samples (Vietnamese) |
 | `reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` | 2026-11-25 | Review of PR #21: two defects fixed afterwards, open decisions, offline weight-profile comparison (`WEIGHT_PROFILE_COMPARISON_2026-11-25.json`), and caveats for reporting the judge figures |
-| `reports/RATING_PERSONALIZATION_SIMULATION_2026-11-25.md` | 2026-11-25 | Offline simulation of learning from 1–5 star ratings through the real API: weights learn the taste, rank-1 quality 3.17 → 3.24 stars (not significant), bounded by design to ±0.02 of the composite |
+| `reports/RATING_PERSONALIZATION_SIMULATION_2026-11-25.md` | 2026-11-25 | Offline simulation of learning from 1–5 star ratings through the real API: weights learn the taste, rank-1 quality 3.17 → 3.24 stars (not significant), bounded by design to ±0.02 of the composite; sensitivity over learned shares 0.20–1.00 |
 | `reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` | 2026-11-22 | FASHN Try-On v1.6 vs FLUX VTO on ten demo outfits: latency, cost, blind ratings; decision to switch to FLUX VTO |
 | `reports/TRYON_EXTRAS_CHECK_2026-11-22.md` | 2026-11-22 | FLUX VTO with footwear, headwear and layered tops on six demo outfits; decision to render them for whole-outfit providers |
 
