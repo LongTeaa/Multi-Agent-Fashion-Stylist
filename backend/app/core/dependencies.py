@@ -302,10 +302,13 @@ def get_context_llm_provider() -> ContextLLMProviderProtocol | None:
     validate_context_provider_configuration(settings)
     from app.services.context_providers import GeminiContextProvider
 
+    key_pool = get_gemini_key_pool(settings)
     return GeminiContextProvider(
-        api_key=settings.gemini_api_key or settings.get_primary_gemini_api_key(),
+        api_key=key_pool.keys[0],
         model=settings.llm_model,
         timeout_seconds=float(settings.context_timeout_seconds),
+        key_pool=key_pool,
+        max_retries=max(2, key_pool.total_keys),
     )
 
 

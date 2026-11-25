@@ -1356,3 +1356,38 @@ def test_critic_kept_original_restores_original_conflict_notes_and_major_slot_wo
     assert signal_rain_no_pers.issue_code == "CONTEXT_GAP"
 
 
+
+
+def test_prepare_grounded_explanation_localizes_colors_while_preserving_khaki():
+    """Ensure extended Vietnamese color localizations and raw/localized brackets work while preserving 'màu khaki'."""
+    from app.agents.coordinator import (
+        _prepare_grounded_explanation,
+        _validate_grounded_llm_explanation,
+    )
+
+    pink_top = _make_slot("t_p", OutfitSlotRole.TOP, name="Áo ba lỗ", color="pink")
+    khaki_bot = _make_slot("b_k", OutfitSlotRole.BOTTOM, name="Quần tây", color="khaki")
+    light_blue_top = _make_slot("t_lb", OutfitSlotRole.TOP, name="Áo sơ mi", color="light_blue")
+    cream_outer = _make_slot("o_c", OutfitSlotRole.OUTERWEAR, name="Áo cardigan", color="cream")
+    footwear = _make_slot("f_w", OutfitSlotRole.FOOTWEAR, name="Giày sneaker", color="white")
+    ctx = _make_context(occasion="cafe", weather_condition="cool", time_of_day="afternoon")
+
+    outfit = _make_ranked_outfit(1, [pink_top, khaki_bot, footwear], composite_score=0.9)
+    prepared = _prepare_grounded_explanation(outfit, ctx)
+    assert "màu hồng" in prepared.deterministic_explanation
+    assert "màu khaki" in prepared.deterministic_explanation
+    assert _validate_grounded_llm_explanation(
+        "Phối [Áo ba lỗ hồng], [Quần tây khaki] và [Giày sneaker trắng] gọn gàng cho buổi cafe.",
+        prepared.item_allowed_brackets,
+        outfit=outfit,
+    )
+
+    outfit2 = _make_ranked_outfit(1, [light_blue_top, khaki_bot, footwear, cream_outer], composite_score=0.9)
+    prepared2 = _prepare_grounded_explanation(outfit2, ctx)
+    assert "màu xanh nhạt" in prepared2.deterministic_explanation
+    assert "màu kem" in prepared2.deterministic_explanation
+    assert _validate_grounded_llm_explanation(
+        "Kết hợp [Áo sơ mi xanh nhạt], [Quần tây khaki], [Giày sneaker trắng] và [Áo cardigan kem] cho buổi chiều.",
+        prepared2.item_allowed_brackets,
+        outfit=outfit2,
+    )

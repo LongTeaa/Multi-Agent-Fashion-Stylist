@@ -79,9 +79,9 @@ graph TD
 
     Tier2 --> Tier3["TẦNG 3: SỰ PHÙ HỢP NGỮ CẢNH & TRỌNG SỐ ĐỘNG (Context Fit & Dynamic Weights)
     - Nhận diện ý định & kích hoạt Hồ sơ Trọng số:
-      * Formal Profile (Trang trọng 30%, Thẩm mỹ 25%, Thoải mái 15%)
-      * Comfort Profile (Thời tiết/Thoải mái 55%, Chức năng 20%, Thẩm mỹ 15%)
-      * Active Profile (Chức năng 30%, Thời tiết/Thoải mái 45%, Thẩm mỹ 15%)"]
+      * Formal Profile (Trang trọng 30%, Thẩm mỹ 25%, Chức năng 20%, Thoải mái 15%, Cá nhân hóa 10%)
+      * Comfort Profile (Thời tiết/Thoải mái 45%, Chức năng 15%, Thẩm mỹ 15%, Cá nhân hóa 15%)
+      * Active Profile (Thời tiết/Thoải mái 35%, Chức năng 30%, Thẩm mỹ 15%, Cá nhân hóa 10%)"]
 
     Tier3 --> FinalRanking["Xếp hạng Top 1, Top 2, Top 3 & Lời giải thích chuyên môn (VI)"]
 ```
@@ -145,13 +145,13 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 
 `FormalityFit` lấy giá trị thấp hơn giữa hai cách nhìn, mỗi cách là $\max(0, 1 - d/4)$ với $d$ là số bậc nằm ngoài khoảng `target_formality_range`: (1) mức trang trọng trung bình của các món chính (không tính phụ kiện) và (2) món chính lệch xa nhất (weakest link). Nhờ vậy một món lạc tông không bị trung bình hóa: polo (3) đi cùng quần tây và Oxford (4) cho buổi phỏng vấn `[4, 5]` đạt `0.75` thay vì `0.917`, còn bộ sơ mi (4) + quần tây + Oxford đạt `1.0`. Kiểm chứng bởi `backend/tests/integration/test_formal_occasion_ranking.py`.
 
-`PersonalPref` chỉ đo mức hợp gu (phong cách, bảng màu, ưu tiên, điểm học từ đánh giá sao). `BehaviorPenalty` là hình phạt hành vi: phạt lặp đồ (bộ y hệt đã mặc trong 72 giờ `-0.40`; mỗi món chính đã mặc trong 48 giờ `-0.15`, tối đa `-0.30`) và phạt vi phạm "tránh" khi buộc phải nới lỏng (`-0.10` mỗi vi phạm). Hình phạt nằm **ngoài** trọng số nên vẫn có hiệu lực với hồ sơ đặt $w_{\text{pers}} = 0$ (Comfort, Active). Kết quả được kẹp trong `[0, 1]`.
+`PersonalPref` chỉ đo mức hợp gu (phong cách, bảng màu, ưu tiên, điểm học từ đánh giá sao), có trọng số dương (`0.10`–`0.20`) ở cả bốn hồ sơ để duy trì sự phân biệt cá nhân hóa ngay cả trong ngữ cảnh `comfort` (`0.15`) và `active` (`0.10`). `BehaviorPenalty` là hình phạt hành vi: phạt lặp đồ (bộ y hệt đã mặc trong 72 giờ `-0.40`; mỗi món chính đã mặc trong 48 giờ `-0.15`, tối đa `-0.30`) và phạt vi phạm "tránh" khi buộc phải nới lỏng (`-0.10` mỗi vi phạm). Hình phạt nằm **ngoài** trọng số nên vẫn có hiệu lực đầy đủ ở mọi hồ sơ. Kết quả được kẹp trong `[0, 1]`.
 
 | Hồ sơ Trọng số (Profile) | Hoàn cảnh kích hoạt tiêu biểu | $w_{\text{formality}}$ | $w_{\text{comfort}}$ | $w_{\text{func}}$ | $w_{\text{aest}}$ | $w_{\text{pers}}$ |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Formal Profile** | Hội nghị, tiệc cưới, phỏng vấn, lễ kỷ niệm | **0.30** | 0.15 | 0.20 | **0.25** | 0.10 |
-| **Comfort Profile** | Cà phê dạo phố, du lịch, ngày nắng nóng oi bức | 0.10 | **0.55** | 0.20 | 0.15 | 0.00 |
-| **Active Profile** | Chơi thể thao, đi xe máy, di chuyển ngoài trời | 0.10 | **0.45** | **0.30** | 0.15 | 0.00 |
+| **Comfort Profile** | Cà phê dạo phố, du lịch, ngày nắng nóng oi bức | 0.10 | **0.45** | 0.15 | 0.15 | 0.15 |
+| **Active Profile** | Chơi thể thao, đi xe máy, di chuyển ngoài trời | 0.10 | **0.35** | **0.30** | 0.15 | 0.10 |
 | **Balanced Profile** | Yêu cầu chung chung không nêu rõ ưu tiên | 0.20 | 0.20 | 0.20 | 0.20 | 0.20 |
 
 `WeatherComfortFit` is one combined score, so the comfort and weather shares from the advisor examples are aggregated into a single normalized weight. Every profile MUST sum to `1.00`.
@@ -172,7 +172,7 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 * **Đầu vào Người dùng:** *"Hôm nay trời nắng nóng 35 độ oi bức, tôi đi cà phê dạo phố ưu tiên thoải mái mát mẻ"*
 * **Hồ sơ được kích hoạt:** `weight_profile = "comfort"`
 * **Kết quả Xếp hạng Top 1:** Áo thun cotton trắng mát + Quần đũi linen xám + Giày sneaker canvas mềm (`comfort_level = 5`, `weather_suitability = hot/warm`).
-* **Bằng chứng Toán học:** Dù bộ Suit Blazer ở Kịch bản A có điểm Thẩm mỹ (Aesthetic Score) rất cao, nhưng khi rơi vào Kịch bản B, do trọng số Thoải mái và Thời tiết chiếm tới 55% tổng điểm, bộ Suit bị phạt nặng về nhiệt lượng và độ cứng gò bó, nhường vị trí Quán quân Top 1 cho bộ đồ cotton/linen thoáng khí.
+* **Bằng chứng Toán học:** Dù bộ Suit Blazer ở Kịch bản A có điểm Thẩm mỹ (Aesthetic Score) rất cao, nhưng khi rơi vào Kịch bản B, do trọng số Thoải mái và Thời tiết chiếm tỷ trọng chi phối lớn nhất (45%), bộ Suit bị phạt nặng về nhiệt lượng và độ cứng gò bó, nhường vị trí Quán quân Top 1 cho bộ đồ cotton/linen thoáng khí.
 * **Lời giải thích của Stylist:** Phân tích độ thông thoáng của sợi vải tự nhiên (cotton/linen), gam màu sáng phản xạ nhiệt và sự thoải mái tối đa khi di chuyển dưới thời tiết nắng nóng.
 
 ---

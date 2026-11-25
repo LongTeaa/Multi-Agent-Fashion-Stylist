@@ -1,16 +1,20 @@
 """System adapters (Random, Rule-DAG, Single-Prompt LLM, Multi-Agent Full & Ablations) and DB seeding."""
 from __future__ import annotations
 
+from collections.abc import Callable
+import copy
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 import random
+import time
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
 import httpx
+from pydantic import SecretStr
 from sqlmodel import Session, select
 
 from app.agents.context_agent import CONTEXT_FALLBACK_WARNING
@@ -40,8 +44,14 @@ from app.models.entities import (
     WardrobeItem,
     WearLog,
 )
+from app.services.context_providers import (
+    build_gemini_generation_config,
+    post_gemini_generate_content,
+)
+from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.retrieval_document_service import refresh_retrieval_document
+from tests.evaluation.benchmark.judge import JsonlResultCache, _extract_json_object
 
 
 class AbortedLiveRunError(BaseException):
@@ -120,7 +130,8 @@ class TelemetryLLMProbe:
                 location=location,
                 current_date=current_date,
             )
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += max(60, len(json.dumps(payload, default=str)) // 4)
             return payload
         except AbortedLiveRunError:
@@ -150,7 +161,8 @@ class TelemetryLLMProbe:
                 target_formality_range=target_formality_range,
                 conflict_notes=conflict_notes,
             )
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += sum(len(t) for t in texts) // 4
             return texts
         except AbortedLiveRunError:
@@ -164,7 +176,8 @@ class TelemetryLLMProbe:
         self.estimated_tokens += 180
         try:
             text = self.provider.generate_outfit_explanation(**kwargs)
-            self.consecutive_failures = 0
+            if not getattr(self.provider, "last_call_was_cache_hit", False):
+                self.consecutive_failures = 0
             self.estimated_tokens += len(str(text)) // 4
             return str(text)
         except AbortedLiveRunError:
@@ -172,6 +185,126 @@ class TelemetryLLMProbe:
         except Exception as exc:
             self._record_failure("generate_outfit_explanation", exc)
             raise
+
+
+class CachedLLMWrapper:
+    """Append-only JSONL disk cache wrapper around a ContextLLMProvider for reproducible benchmark resumes."""
+
+    def __init__(
+        self,
+        provider: Any,
+        *,
+        cache: JsonlResultCache,
+        provider_name: str = "gemini",
+        model_name: str = "unknown",
+    ) -> None:
+        self.provider = provider
+        self.cache = cache
+        self.provider_name = provider_name
+        self.model_name = model_name
+        self.cache_hits = 0
+        self.live_calls = 0
+        self.last_call_was_cache_hit = False
+
+    def _make_key(self, kind: str, payload: dict[str, Any]) -> str:
+        raw = json.dumps(
+            {
+                "kind": kind,
+                "provider": self.provider_name,
+                "model": self.model_name,
+                "payload": payload,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            default=str,
+        )
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def extract_context(
+        self,
+        *,
+        query: str,
+        location: str | None,
+        current_date: date,
+    ) -> dict[str, Any]:
+        key = self._make_key(
+            "extract_context",
+            {
+                "query": query,
+                "location": location,
+                "current_date": current_date.isoformat(),
+            },
+        )
+        cached = self.cache.get(key)
+        if cached is not None and isinstance(cached.get("result"), dict):
+            self.last_call_was_cache_hit = True
+            self.cache_hits += 1
+            return copy.deepcopy(cached["result"])
+        self.last_call_was_cache_hit = False
+        self.live_calls += 1
+        result = self.provider.extract_context(
+            query=query,
+            location=location,
+            current_date=current_date,
+        )
+        if isinstance(result, dict):
+            self.cache.put(key, {"result": result})
+        return copy.deepcopy(result)
+
+    def generate_outfit_explanations(
+        self,
+        *,
+        outfits: list[dict[str, Any]],
+        occasion: str,
+        weather_condition: str,
+        target_formality_range: list[int],
+        conflict_notes: list[str],
+    ) -> list[str]:
+        if not hasattr(self.provider, "generate_outfit_explanations"):
+            raise AttributeError("Underlying provider lacks generate_outfit_explanations")
+        key = self._make_key(
+            "generate_outfit_explanations",
+            {
+                "outfits": outfits,
+                "occasion": occasion,
+                "weather_condition": weather_condition,
+                "target_formality_range": list(target_formality_range),
+                "conflict_notes": list(conflict_notes),
+                "prompt_version": getattr(self.provider, "explanation_prompt_version", "v1"),
+            },
+        )
+        cached = self.cache.get(key)
+        if cached is not None and isinstance(cached.get("result"), list):
+            self.last_call_was_cache_hit = True
+            self.cache_hits += 1
+            return [str(x) for x in cached["result"]]
+        self.last_call_was_cache_hit = False
+        self.live_calls += 1
+        texts = self.provider.generate_outfit_explanations(
+            outfits=outfits,
+            occasion=occasion,
+            weather_condition=weather_condition,
+            target_formality_range=target_formality_range,
+            conflict_notes=conflict_notes,
+        )
+        if isinstance(texts, list):
+            self.cache.put(key, {"result": list(texts)})
+        return list(texts)
+
+    def generate_outfit_explanation(self, **kwargs: Any) -> str:
+        payload = dict(kwargs)
+        payload["prompt_version"] = getattr(self.provider, "explanation_prompt_version", "v1")
+        key = self._make_key("generate_outfit_explanation", payload)
+        cached = self.cache.get(key)
+        if cached is not None and isinstance(cached.get("result"), str):
+            self.last_call_was_cache_hit = True
+            self.cache_hits += 1
+            return str(cached["result"])
+        self.last_call_was_cache_hit = False
+        self.live_calls += 1
+        text = self.provider.generate_outfit_explanation(**kwargs)
+        self.cache.put(key, {"result": str(text)})
+        return str(text)
 
 
 def _deterministic_noise_item(spec: dict[str, Any], idx: int) -> dict[str, Any]:
@@ -209,8 +342,15 @@ def seed_case_user(
     """
     from uuid import NAMESPACE_URL, uuid5
 
+    user_prefix = hashlib.sha256(run_user_id.encode("utf-8")).hexdigest()[:8]
+
     def _db_item_uuid(raw_id: str) -> str:
-        return str(uuid5(NAMESPACE_URL, f"bench-item:{run_user_id}:{raw_id}"))
+        # Order-preserving unique ID (<= 36 chars): guarantees identical tie-breaking order
+        # across distinct benchmark run_user_ids for profile sensitivity & noise comparisons.
+        candidate = f"{user_prefix}-{raw_id}"
+        if len(candidate) <= 36:
+            return candidate
+        return f"{user_prefix}-{raw_id[:20]}-{hashlib.sha256(raw_id.encode('utf-8')).hexdigest()[:6]}"
 
     session.add(User(id=run_user_id, email=f"{run_user_id[:20]}@bench.local"))
     session.flush()
@@ -584,8 +724,15 @@ def run_single_prompt_gemini_baseline(
     api_key: str,
     model: str,
     base_url: str = "https://generativelanguage.googleapis.com/v1beta",
-    timeout_seconds: float = 20.0,
+    timeout_seconds: float = 45.0,
     http_client: httpx.Client | None = None,
+    key_pool: GeminiKeyPool | None = None,
+    max_retries: int = 0,
+    initial_backoff_seconds: float = 1.0,
+    request_delay_seconds: float = 0.0,
+    thinking_level: str | None = "minimal",
+    cache: JsonlResultCache | None = None,
+    sleep_fn: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
     """B2 Single-Prompt Gemini Baseline: sends wardrobe, profile & wear history in ONE LLM call."""
     started = perf_counter()
@@ -618,6 +765,7 @@ def run_single_prompt_gemini_baseline(
             "estimated_tokens": 0,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "provider_failures": [],
+            "llm_cache_hit": False,
         }
 
     # Note: Expose short readable raw IDs to LLM and map back cleanly so LLM isn't confused by UUIDs.
@@ -656,27 +804,59 @@ def run_single_prompt_gemini_baseline(
         "2. Nếu không thể tạo bộ hoàn chỉnh thỏa ràng buộc cứng, trả status='error', error_code='NO_COMPLETE_OUTFIT'.\n"
         "3. Nếu đủ thông tin, chọn tối đa 3 bộ tốt nhất (xếp rank 1..3), mỗi bộ CHỈ gồm: (1 top + 1 bottom + 1 footwear) HOẶC (1 dress + 1 footwear), có thể thêm tối đa 1 outerwear và 1 accessory.\n"
         "4. Chỉ sử dụng các id có thật trong danh sách trên. Viết explanation_vi (2 câu tiếng Việt) nhắc đúng [Tên món] trong ngoặc vuông và không bịa thêm món ngoài bộ đồ.\n"
+        "5. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
         'Chỉ trả về JSON hợp lệ theo mẫu: {"status": "ok"|"clarification"|"error", "error_code": null|string, "clarification_question": null|string, "outfits": [{"rank": 1, "item_ids": ["..."], "explanation_vi": "..."}]}.'
     )
 
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"response_mime_type": "application/json"},
+        "generationConfig": build_gemini_generation_config(model, thinking_level=thinking_level),
     }
-    url = f"{base_url.rstrip('/')}/models/{model}:generateContent"
-    headers = {"x-goog-api-key": api_key}
     est_tokens = len(prompt) // 4
 
+    llm_cache_hit = False
+    raw_text: str | None = None
+    cache_key: str | None = None
+    if cache is not None:
+        key_payload = json.dumps(
+            {
+                "kind": "single_prompt_b2",
+                "model": model,
+                "thinking_level": thinking_level,
+                "prompt": prompt,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        cache_key = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+        cached = cache.get(cache_key)
+        if cached is not None and isinstance(cached.get("raw_text"), str):
+            raw_text = str(cached["raw_text"])
+            llm_cache_hit = True
+
+    effective_pool = key_pool or GeminiKeyPool([SecretStr(api_key or "empty-placeholder")])
+
     try:
-        if http_client is not None:
-            resp = http_client.post(url, headers=headers, json=payload, timeout=timeout_seconds)
+        if raw_text is None:
+            resp_json = post_gemini_generate_content(
+                base_url=base_url,
+                model=model,
+                payload=payload,
+                timeout=timeout_seconds,
+                key_pool=effective_pool,
+                http_client=http_client,
+                max_retries=max_retries,
+                initial_backoff_seconds=initial_backoff_seconds,
+                request_delay_seconds=request_delay_seconds,
+                sleep_fn=sleep_fn,
+            )
+            raw_text = _extract_json_from_gemini_response(resp_json)
+            parsed = _extract_json_object(raw_text)
+            if cache is not None and cache_key is not None:
+                cache.put(cache_key, {"raw_text": raw_text})
         else:
-            with httpx.Client(timeout=timeout_seconds) as client:
-                resp = client.post(url, headers=headers, json=payload)
-        resp.raise_for_status()
-        raw_text = _extract_json_from_gemini_response(resp.json())
+            parsed = _extract_json_object(raw_text)
         est_tokens += len(raw_text) // 4
-        parsed = json.loads(raw_text)
     except Exception as exc:
         status_code = getattr(getattr(exc, "response", None), "status_code", None)
         return {
@@ -698,6 +878,7 @@ def run_single_prompt_gemini_baseline(
             "estimated_tokens": est_tokens,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "provider_failures": [{"stage": "single_prompt", "error_type": type(exc).__name__, "http_status": status_code}],
+            "llm_cache_hit": llm_cache_hit,
         }
 
     status = str(parsed.get("status", "ok")).lower()
@@ -721,6 +902,7 @@ def run_single_prompt_gemini_baseline(
             "estimated_tokens": est_tokens,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "provider_failures": [],
+            "llm_cache_hit": llm_cache_hit,
         }
 
     raw_outfits = parsed.get("outfits") or []
@@ -744,6 +926,7 @@ def run_single_prompt_gemini_baseline(
             "estimated_tokens": est_tokens,
             "latency_ms": round((perf_counter() - started) * 1000, 2),
             "provider_failures": [],
+            "llm_cache_hit": llm_cache_hit,
         }
 
     normalized_outfits: list[dict[str, Any]] = []
@@ -810,6 +993,7 @@ def run_single_prompt_gemini_baseline(
         "estimated_tokens": est_tokens,
         "latency_ms": round((perf_counter() - started) * 1000, 2),
         "provider_failures": [],
+        "llm_cache_hit": llm_cache_hit,
     }
 
 

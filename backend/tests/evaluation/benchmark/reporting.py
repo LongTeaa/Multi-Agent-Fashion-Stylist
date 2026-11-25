@@ -37,8 +37,18 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     lines.append(f"- **Dataset version:** `{meta.get('dataset_version')}` (Wardrobes: `{meta.get('wardrobes_version')}`)")
     lines.append(f"- **Split:** `{meta.get('split')}` ({meta.get('representative_case_count')} representative cases; Stress cases: {meta.get('stress_case_count')})")
     lines.append(f"- **Execution mode:** `{meta.get('execution_mode')}` | **Live LLM:** `{meta.get('live_llm')}` | **Judge enabled:** `{meta.get('judge_enabled')}`")
-    lines.append(f"- **Chatbot model:** `{meta.get('chatbot_model') or 'offline-rules'}`")
-    lines.append(f"- **Judge model:** `{meta.get('judge_model') or 'disabled'}` (`{meta.get('judge_provider') or 'none'}`)")
+    lines.append(f"- **Chatbot model:** `{meta.get('chatbot_model') or 'offline-rules'}` (Gemini keys: `{meta.get('gemini_key_count', 0)}`, LLM cache hits: `{meta.get('llm_cache_hits', 0)}`)")
+    reasoning_str = (
+        f" | Reasoning: `{meta.get('judge_reasoning_effort')}`"
+        if meta.get("judge_reasoning_effort")
+        else ""
+    )
+    lines.append(
+        f"- **Judge model:** `{meta.get('judge_model') or 'disabled'}` (`{meta.get('judge_provider') or 'none'}`)"
+        f"{reasoning_str}"
+        f" | API calls: `{meta.get('judge_api_calls', 0)}` | Cache hits: `{meta.get('judge_cache_hits', 0)}`"
+        f" | Tokens (in/out): `{meta.get('judge_prompt_tokens', 0)} / {meta.get('judge_completion_tokens', 0)}`"
+    )
     if meta.get("same_family_judge_bias"):
         lines.append("- **CẢNH BÁO THIÊN LỆCH (`SAME_FAMILY_JUDGE_BIAS`):** Giám khảo đang sử dụng cùng họ model Gemini với chatbot.")
     lines.append(f"- **Git commit:** `{meta.get('git_commit')}` | **Timestamp:** `{meta.get('executed_at')}`")
@@ -59,15 +69,25 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         lines.append(
             f"- **Position Consistency Rate:** `{_fmt_pct(cal.get('position_consistency_rate'))}`"
         )
+        if cal.get("rubric_reference_spearman") is not None:
+            lines.append(f"- **Rubric Reference Spearman rho:** `{cal.get('rubric_reference_spearman')}`")
         if cal.get("human_vs_judge_spearman") is not None:
-            lines.append(f"- **Human vs Judge Spearman rho:** `{cal.get('human_vs_judge_spearman')}`")
+            src = cal.get("human_score_source") or "reference_rubric_rating_v2"
+            src_label = (
+                f"blind human raters (n={cal.get('real_human_rater_count')})"
+                if src == "blind_human_raters"
+                else "reference rubric rating (AI-authored baseline)"
+            )
+            lines.append(
+                f"- **Human vs Judge Spearman rho:** `{cal.get('human_vs_judge_spearman')}` *(source: {src_label})*"
+            )
         lines.append("")
 
     # Layer A Table
     lines.append("## 3. Lớp A — Kiểm Định Kỹ Thuật Bắt Buộc (Technical Gate)")
     lines.append("")
-    lines.append("| Hệ thống | Case Pass Lớp A | Grounding ID | Cấu trúc bộ đồ | Tuân thủ Must-Avoid | Giải thích trung thực | Bounded & Persist |")
-    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
+    lines.append("| Hệ thống | Case Pass Lớp A | Grounding ID | Cấu trúc bộ đồ | Tuân thủ Must-Avoid | Giải thích trung thực | Cú pháp [Ngoặc] | Bounded & Persist |")
+    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
     rep_systems = report.get("representative_summary", {})
     for sys_id, summary in rep_systems.items():
         la = summary.get("layer_a", {})
@@ -77,6 +97,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"| {_fmt_pct(la.get('outfit_structure_validity_rate'))} "
             f"| {_fmt_pct(la.get('must_avoid_compliance_rate'))} "
             f"| {_fmt_pct(la.get('explanation_factuality_rate'))} "
+            f"| {_fmt_pct(la.get('canonical_bracket_rate'))} "
             f"| {_fmt_pct(la.get('bounded_and_persist_rate'))} |"
         )
     lines.append("")
@@ -84,8 +105,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     # Layer B Main Comparison Table
     lines.append("## 4. Lớp B — Benchmark Chất Lượng Tư Vấn (5 Trục B1–B5)")
     lines.append("")
-    lines.append("| Hệ thống | Functional Pass (95% CI) | Context Acc (B1) | NDCG@3 (95% CI) | Hit@1 (>=4/5) | Unacceptable (<=2/5) | Diversity (B3) | Profile Diff (B3) | LLM Explain Acc (B4) | Explain Useful (1-5) | Latency P50/P95 (ms) | Avg LLM Calls |")
-    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    lines.append("| Hệ thống | Functional Pass (95% CI) | Context Acc (B1) | NDCG@3 (95% CI) | Hit@1 (>=4/5) | Unacceptable (<=2/5) | Diversity (B3) | Profile Diff (B3) | Contrastive (B3) | LLM Explain Acc (B4) | Explain Useful (1-5) | Latency P50/P95 (ms) | Avg LLM Calls |")
+    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
     for sys_id, summary in rep_systems.items():
         lb = summary.get("layer_b", {})
         b1 = lb.get("b1_context", {})
@@ -100,6 +121,16 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             if b2.get("ndcg_at_3") is not None
             else "N/A"
         )
+        prof_diff_str = (
+            f"{_fmt_pct(b3.get('profile_differentiation_rate'))} ({b3.get('profile_differentiation_ratio')})"
+            if b3.get("profile_differentiation_rate") is not None
+            else "N/A"
+        )
+        contrast_str = (
+            f"{_fmt_pct(b3.get('contrastive_pair_diff_rate'))} ({b3.get('contrastive_pair_diff_ratio')})"
+            if b3.get("contrastive_pair_diff_rate") is not None
+            else "N/A"
+        )
         lines.append(
             f"| **{sys_id}** | {func_pass.get('pass_ratio')} ({_fmt_pct(func_pass.get('pass_rate'))}) {_fmt_ci(func_pass.get('pass_rate_ci95'), is_pct=True)} "
             f"| {_fmt_pct(b1.get('micro_field_accuracy'))} "
@@ -107,7 +138,8 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"| {_fmt_pct(b2.get('hit_at_1'))} "
             f"| {_fmt_pct(b2.get('unacceptable_rate'))} "
             f"| {_fmt_num(b3.get('top3_core_diversity'))} "
-            f"| {_fmt_pct(b3.get('profile_differentiation_rate'))} "
+            f"| {prof_diff_str} "
+            f"| {contrast_str} "
             f"| {_fmt_pct(b4.get('explanation_llm_accepted_rate'))} "
             f"| {_fmt_num(b4.get('explanation_usefulness_mean'), 2)} "
             f"| {lat.get('p50_ms', 0)} / {lat.get('p95_ms', 0)} "
@@ -167,13 +199,20 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     if noise_cmp:
         lines.append("## 6. Độ Bền Trước Nhiễu Nhãn Số Hóa (Noise Robustness)")
         lines.append("")
-        lines.append("| Hệ thống | Lớp A Sạch -> Nhiễu | Functional Pass Sạch -> Nhiễu | Chênh lệch |")
-        lines.append("| :--- | :---: | :---: | :---: |")
+        lines.append("| Hệ thống | Lớp A Sạch -> Nhiễu | Functional Pass Sạch -> Nhiễu | Chênh lệch | Top-1 Ổn Định (Flip Rate) | Top-1 Core Jaccard |")
+        lines.append("| :--- | :---: | :---: | :---: | :---: | :---: |")
         for sys_id, nstat in noise_cmp.items():
+            stab_str = (
+                f"{_fmt_pct(nstat.get('top1_exact_stability_rate'))} (flip {_fmt_pct(nstat.get('top1_flip_rate'))})"
+                if nstat.get("top1_exact_stability_rate") is not None
+                else "N/A"
+            )
             lines.append(
                 f"| **{sys_id}** | {_fmt_pct(nstat.get('clean_layer_a_rate'))} -> {_fmt_pct(nstat.get('noisy_layer_a_rate'))} "
                 f"| {_fmt_pct(nstat.get('clean_func_rate'))} -> {_fmt_pct(nstat.get('noisy_func_rate'))} "
-                f"| {_fmt_pct(nstat.get('delta_func_rate'))} |"
+                f"| {_fmt_pct(nstat.get('delta_func_rate'))} "
+                f"| {stab_str} "
+                f"| {_fmt_num(nstat.get('top1_mean_core_jaccard'))} |"
             )
         lines.append("")
 
@@ -182,7 +221,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     if stress:
         lines.append("## 7. Tập Chẩn Đoán Kỹ Thuật Tách Biệt (Diagnostic Stress Suite — 12 Cases)")
         lines.append("")
-        lines.append("> Lưu ý: Bảng này tách riêng khỏi 40 kịch bản đại diện ở trên, dùng để xác nhận các cơ chế Loop 1, Loop 2, Score-Drop Guard và Early Exit hoạt động đúng đặc tả.")
+        lines.append(f"> Lưu ý: Bảng này tách riêng khỏi {meta.get('representative_case_count')} kịch bản đại diện ở trên, dùng để xác nhận các cơ chế Loop 1, Loop 2, Score-Drop Guard và Early Exit hoạt động đúng đặc tả.")
         lines.append("")
         lines.append("| Hệ thống | Lớp A Pass | Stress Case Pass | Loop 1 Triggered | Loop 2 Triggered |")
         lines.append("| :--- | :---: | :---: | :---: | :---: |")

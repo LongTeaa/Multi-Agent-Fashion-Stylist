@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
+from typing import Sequence
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -28,6 +31,38 @@ from tests.evaluation.benchmark.runner import (
     select_cases_for_split,
 )
 from tests.evaluation.benchmark.systems import SYSTEM_REGISTRY
+
+
+def _load_dotenv_defaults(
+    env_path: Path | None = None,
+    *,
+    extra_keys: Sequence[str] = (),
+) -> list[str]:
+    """Load safe benchmark judge keys from .env into os.environ only when unset (never prints values)."""
+    target = env_path or (REPOSITORY_ROOT / ".env")
+    if not target.is_file():
+        return []
+    allowed_exact = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", *extra_keys}
+    loaded: list[str] = []
+    for raw_line in target.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].strip()
+        if "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        key = key.strip()
+        if not (key.startswith("BENCH_JUDGE_") or key in allowed_exact):
+            continue
+        val = val.strip()
+        if len(val) >= 2 and ((val[0] == val[-1] == '"') or (val[0] == val[-1] == "'")):
+            val = val[1:-1]
+        if val and key not in os.environ:
+            os.environ[key] = val
+            loaded.append(key)
+    return loaded
 
 
 def _parse_systems(raw: str) -> list[str]:
@@ -66,8 +101,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--judge-provider", choices=("openai_compatible", "anthropic", "gemini"), default=None)
     parser.add_argument("--judge-base-url", type=str, default=None)
     parser.add_argument("--judge-model", type=str, default=None)
+    parser.add_argument("--judge-reasoning-effort", choices=("none", "low", "medium", "high"), default=None)
     parser.add_argument("--judge-api-key-env", type=str, default="BENCH_JUDGE_API_KEY")
+    parser.add_argument("--human-ratings-dir", type=Path, default=None, help="Directory of exported blind rater JSON files for human_vs_judge_spearman")
+    parser.add_argument(
+        "--human-manifest",
+        type=Path,
+        default=REPOSITORY_ROOT / "data" / "private-judge-calibration-review" / "blind_manifest.json",
+    )
     parser.add_argument("--cache-dir", type=Path, default=None)
+    parser.add_argument("--llm-delay-seconds", type=float, default=0.0)
+    parser.add_argument("--explanation-timeout", type=float, default=30.0)
+    parser.add_argument("--no-llm-cache", action="store_true")
     parser.add_argument("--dry-run-budget", action="store_true")
     parser.add_argument("--export-wardrobe-from-db", type=str, default=None, metavar="USER_ID")
     parser.add_argument("--database-url", type=str, default=None)
@@ -80,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    _load_dotenv_defaults(extra_keys=(args.judge_api_key_env,))
 
     # Utility mode: export confirmed items of one DB user into frozen benchmark JSON
     if args.export_wardrobe_from_db:
@@ -136,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             base_url=args.judge_base_url,
             model=args.judge_model,
             api_key_env=args.judge_api_key_env,
+            reasoning_effort=args.judge_reasoning_effort,
         )
         if not j_cfg.api_key and "localhost" not in j_cfg.base_url and "127.0.0.1" not in j_cfg.base_url:
             parser.error(
@@ -145,14 +192,35 @@ def main(argv: list[str] | None = None) -> int:
         cache_path = (args.cache_dir / "judge_cache.jsonl") if args.cache_dir else None
         judge_client = CrossFamilyJudgeClient(j_cfg, cache=JsonlResultCache(cache_path))
 
+    human_ratings_by_id: dict[str, list[float]] | None = None
+    if args.human_ratings_dir is not None:
+        if not args.human_manifest.is_file():
+            parser.error(f"Human blind manifest not found: {args.human_manifest}")
+        from scripts.judge_calibration_human_review import load_human_ratings
+
+        human_ratings_by_id = load_human_ratings(
+            ratings_dir=args.human_ratings_dir,
+            manifest_path=args.human_manifest,
+        )["human_ratings_by_id"]
+
     if args.calibrate_judge_only:
         assert judge_client is not None
-        cal = run_judge_calibration(judge_client, bundle["calibration"])
+        cal = run_judge_calibration(
+            judge_client,
+            bundle["calibration"],
+            human_ratings_by_id=human_ratings_by_id,
+        )
         if args.report_json:
             args.report_json.parent.mkdir(parents=True, exist_ok=True)
             args.report_json.write_text(json.dumps(cal, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(cal, ensure_ascii=False, indent=2))
         return 0
+
+    llm_cache = (
+        JsonlResultCache(args.cache_dir / "llm_cache.jsonl")
+        if (args.cache_dir is not None and not args.no_llm_cache)
+        else None
+    )
 
     report = run_benchmark(
         bundle=bundle,
@@ -164,6 +232,10 @@ def main(argv: list[str] | None = None) -> int:
         live_weather=args.live_weather,
         judge=judge_client,
         calibrate_judge=not args.no_calibrate,
+        llm_cache=llm_cache,
+        llm_delay_seconds=args.llm_delay_seconds,
+        explanation_timeout_seconds=args.explanation_timeout,
+        human_ratings_by_id=human_ratings_by_id,
     )
     save_report_files(report, report_json=args.report_json, report_md=args.report_md)
 

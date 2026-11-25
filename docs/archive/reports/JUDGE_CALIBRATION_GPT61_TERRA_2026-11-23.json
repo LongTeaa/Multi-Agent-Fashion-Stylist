@@ -1,0 +1,164 @@
+{
+  "dataset_version": "judge-calibration-v2",
+  "judge_model": "openai/gpt-6.1-terra",
+  "judge_provider": "openai_compatible",
+  "judge_reasoning_effort": "low",
+  "same_family_judge_bias": false,
+  "pointwise_accuracy": 0.85,
+  "pointwise_hits": "17/20",
+  "pairwise_accuracy": 1.0,
+  "pairwise_hits": "12/12",
+  "position_consistency_rate": 1.0,
+  "rubric_reference_spearman": 0.9212,
+  "human_score_source": "blind_human_raters",
+  "human_vs_judge_spearman": 0.8953,
+  "real_human_rater_count": 3,
+  "judge_api_calls": 20,
+  "judge_cache_hits": 24,
+  "judge_usage_tokens": {
+    "prompt_tokens": 16517,
+    "completion_tokens": 1829
+  },
+  "details": [
+    {
+      "id": "cal_good_01",
+      "label": "good",
+      "fashion_quality_score": 4.8333,
+      "explanation_usefulness": 4.5,
+      "passed": true
+    },
+    {
+      "id": "cal_good_02",
+      "label": "good",
+      "fashion_quality_score": 4.8333,
+      "explanation_usefulness": 4.5,
+      "passed": true
+    },
+    {
+      "id": "cal_good_03",
+      "label": "good",
+      "fashion_quality_score": 4.1667,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_good_04",
+      "label": "good",
+      "fashion_quality_score": 4.1667,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_good_05",
+      "label": "good",
+      "fashion_quality_score": 4.6667,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_good_06",
+      "label": "good",
+      "fashion_quality_score": 4.0,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_good_07",
+      "label": "good",
+      "fashion_quality_score": 4.6667,
+      "explanation_usefulness": 4.5,
+      "passed": true
+    },
+    {
+      "id": "cal_good_08",
+      "label": "good",
+      "fashion_quality_score": 4.6667,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_mid_01",
+      "label": "mediocre",
+      "fashion_quality_score": 3.5,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_mid_02",
+      "label": "mediocre",
+      "fashion_quality_score": 3.5,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_mid_03",
+      "label": "mediocre",
+      "fashion_quality_score": 3.8333,
+      "explanation_usefulness": 4.0,
+      "passed": false
+    },
+    {
+      "id": "cal_mid_04",
+      "label": "mediocre",
+      "fashion_quality_score": 2.5,
+      "explanation_usefulness": 4.0,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_01",
+      "label": "bad",
+      "fashion_quality_score": 2.0,
+      "explanation_usefulness": 2.0,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_02",
+      "label": "bad",
+      "fashion_quality_score": 2.0,
+      "explanation_usefulness": 1.5,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_03",
+      "label": "bad",
+      "fashion_quality_score": 2.6667,
+      "explanation_usefulness": 3.0,
+      "passed": false
+    },
+    {
+      "id": "cal_bad_04",
+      "label": "bad",
+      "fashion_quality_score": 2.0,
+      "explanation_usefulness": 2.0,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_05",
+      "label": "bad",
+      "fashion_quality_score": 2.0,
+      "explanation_usefulness": 1.0,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_06",
+      "label": "bad",
+      "fashion_quality_score": 2.1667,
+      "explanation_usefulness": 2.5,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_07",
+      "label": "bad",
+      "fashion_quality_score": 2.0,
+      "explanation_usefulness": 1.0,
+      "passed": true
+    },
+    {
+      "id": "cal_bad_08",
+      "label": "bad",
+      "fashion_quality_score": 3.1667,
+      "explanation_usefulness": 1.0,
+      "passed": false
+    }
+  ]
+}

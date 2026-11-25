@@ -1,34 +1,186 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timezone, timedelta
 import json
+import time
 from typing import Any
 
 import httpx
 from pydantic import SecretStr
 
+from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.providers import WeatherContextResult
 from app.services.weather_providers import EVENT_HOURS, temperature_condition
 
 
+def build_gemini_generation_config(
+    model: str | None,
+    *,
+    thinking_level: str | None = "minimal",
+) -> dict[str, Any]:
+    """Build Gemini generationConfig for JSON output with bounded thinking latency on Gemini 3 models."""
+    cfg: dict[str, Any] = {"response_mime_type": "application/json"}
+    if thinking_level and "gemini-3" in (model or "").lower():
+        cfg["thinkingConfig"] = {"thinkingLevel": thinking_level}
+    return cfg
+
+
+def extract_google_retry_delay_seconds(response: httpx.Response) -> float | None:
+    """Parse cooldown duration (1s..86400s) from Retry-After header or Google JSON RetryInfo.retryDelay."""
+    raw = response.headers.get("Retry-After")
+    if raw:
+        try:
+            return min(86400.0, max(1.0, float(raw.strip())))
+        except ValueError:
+            pass
+    try:
+        body = response.json()
+    except Exception:
+        return None
+    details = (body.get("error") or {}).get("details")
+    if not isinstance(details, list):
+        return None
+    for entry in details:
+        if not isinstance(entry, dict):
+            continue
+        raw_delay = entry.get("retryDelay")
+        if raw_delay is None:
+            continue
+        text = str(raw_delay).strip()
+        if text.endswith("s"):
+            text = text[:-1].strip()
+        try:
+            return min(86400.0, max(1.0, float(text)))
+        except ValueError:
+            continue
+    return None
+
+
+def post_gemini_generate_content(
+    *,
+    base_url: str,
+    model: str,
+    payload: dict[str, Any],
+    timeout: float,
+    key_pool: GeminiKeyPool,
+    http_client: httpx.Client | None = None,
+    max_retries: int = 0,
+    initial_backoff_seconds: float = 1.0,
+    request_delay_seconds: float = 0.0,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """Execute Gemini generateContent POST with key-pool rotation, daily-quota detection, and bounded retries."""
+    url = f"{base_url.rstrip('/')}/models/{model}:generateContent"
+    max_attempts = max(1, int(max_retries) + 1)
+
+    def _send(req_payload: dict[str, Any], current_key: SecretStr) -> httpx.Response:
+        headers = {"x-goog-api-key": current_key.get_secret_value()}
+        if http_client is not None:
+            return http_client.post(url, headers=headers, json=req_payload, timeout=timeout)
+        with httpx.Client(timeout=timeout) as client:
+            return client.post(url, headers=headers, json=req_payload)
+
+    for attempt in range(max_attempts):
+        if request_delay_seconds > 0:
+            sleep_fn(request_delay_seconds)
+        current_key = key_pool.get_next_key()
+        try:
+            response = _send(payload, current_key)
+        except httpx.TimeoutException:
+            if attempt + 1 < max_attempts:
+                sleep_fn(initial_backoff_seconds * (2 ** attempt))
+                continue
+            raise
+
+        if response.status_code == 400 and "thinkingConfig" in payload.get("generationConfig", {}):
+            # Compatibility fallback if a preview model variant rejects thinkingConfig
+            fallback_gen = {k: v for k, v in payload["generationConfig"].items() if k != "thinkingConfig"}
+            fallback_payload = {**payload, "generationConfig": fallback_gen}
+            response = _send(fallback_payload, current_key)
+
+        if response.status_code == 429:
+            retry_after = extract_google_retry_delay_seconds(response)
+            key_pool.mark_rate_limited(current_key, custom_cooldown=retry_after)
+            if attempt + 1 < max_attempts:
+                if key_pool.active_keys_count > 0:
+                    continue
+                status = key_pool.get_pool_status()
+                min_rem = min((k["cooldown_remaining_seconds"] for k in status["keys"]), default=0.0)
+                if min_rem > 120.0:
+                    response.raise_for_status()
+                wait = min(retry_after if retry_after is not None else initial_backoff_seconds * (2 ** attempt), 30.0)
+                sleep_fn(wait)
+                continue
+            response.raise_for_status()
+
+        if response.status_code in {500, 502, 503, 504} and attempt + 1 < max_attempts:
+            sleep_fn(initial_backoff_seconds * (2 ** attempt))
+            continue
+
+        response.raise_for_status()
+        return response.json()
+    raise RuntimeError("Exhausted Gemini retry attempts.")
+
+
+EXPLANATION_PROMPT_VERSION = "v2"
+
+
 class GeminiContextProvider:
     """Gemini adapter for structured Vietnamese context extraction."""
+
+    explanation_prompt_version: str = EXPLANATION_PROMPT_VERSION
 
     def __init__(
         self,
         *,
-        api_key: SecretStr,
+        api_key: SecretStr | None = None,
         model: str,
         timeout_seconds: float = 15.0,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         client: httpx.Client | None = None,
+        key_pool: GeminiKeyPool | None = None,
+        max_retries: int = 0,
+        initial_backoff_seconds: float = 1.0,
+        explanation_timeout_seconds: float | None = None,
+        request_delay_seconds: float = 0.0,
+        thinking_level: str | None = "minimal",
+        sleep_fn: Callable[[float], None] = time.sleep,
     ) -> None:
-        self.api_key = api_key
+        if key_pool is not None:
+            self.key_pool = key_pool
+            self.api_key = key_pool.keys[0]
+        elif api_key is not None:
+            self.api_key = api_key
+            self.key_pool = GeminiKeyPool([api_key])
+        else:
+            raise ValueError("GeminiContextProvider requires either 'api_key' or 'key_pool'.")
         self.model = model
         self.timeout_seconds = timeout_seconds
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
         self._client = client
+        self.max_retries = max(0, int(max_retries))
+        self.initial_backoff_seconds = max(0.0, float(initial_backoff_seconds))
+        self.explanation_timeout_seconds = explanation_timeout_seconds
+        self.request_delay_seconds = max(0.0, float(request_delay_seconds))
+        self.thinking_level = thinking_level
+        self._sleep = sleep_fn
+
+    def _post_gemini_json(self, *, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        """Execute a Gemini generateContent POST with optional key-pool rotation and bounded retries."""
+        return post_gemini_generate_content(
+            base_url=self.base_url,
+            model=self.model,
+            payload=payload,
+            timeout=timeout,
+            key_pool=self.key_pool,
+            http_client=self._client,
+            max_retries=self.max_retries,
+            initial_backoff_seconds=self.initial_backoff_seconds,
+            request_delay_seconds=self.request_delay_seconds,
+            sleep_fn=self._sleep,
+        )
 
     def extract_context(
         self,
@@ -53,27 +205,17 @@ class GeminiContextProvider:
             "must_have/must_avoid must quote only garment/color/material phrases actually in the request. "
             "Cooling clothing preferences are not statements of current weather. "
             "Ask a concise Vietnamese clarification if occasion/intent is materially ambiguous. "
+            "target_formality_range must be a JSON array of two integers between 1 and 5 (e.g. [3, 4]), never strings or objects. "
+            "Always return non-null string values for occasion (use 'casual' if unclear) and time_of_day (use 'morning' if unclear) even when needs_clarification=true. "
             f"Current date: {current_date.isoformat()}. Explicit location: {location!r}. Request: {query}"
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"response_mime_type": "application/json"},
+            "generationConfig": build_gemini_generation_config(self.model, thinking_level=self.thinking_level),
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
         try:
-            if self._client is not None:
-                response = self._client.post(
-                    url,
-                    headers=headers,
-                    json=payload,
-                    timeout=self.timeout_seconds,
-                )
-            else:
-                with httpx.Client(timeout=self.timeout_seconds) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            return json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=self.timeout_seconds)
+            return json.loads(_extract_json_from_gemini_response(raw_json))
         except httpx.TimeoutException as exc:
             raise TimeoutError("Context provider timed out.") from exc
         except (httpx.HTTPError, json.JSONDecodeError, KeyError, TypeError) as exc:
@@ -108,23 +250,24 @@ class GeminiContextProvider:
             "Quy tắc bắt buộc:\n"
             "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] đã liệt kê ở trên, giữ nguyên dấu ngoặc vuông [...].\n"
             "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách.\n"
-            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
+            "4. Tuyệt đối KHÔNG khẳng định tính năng kỹ thuật của trang phục nếu không được ghi rõ "
+            "(KHÔNG dùng các cụm: 'giữ ấm', 'chống lạnh', 'chống rét', 'giữ nhiệt', 'chống thấm', "
+            "'chống nước', 'chống mưa', 'chống nắng', 'chống gió', 'thoáng khí', 'thấm hút', 'co giãn', 'dễ vận động'); "
+            "không nhắc thêm màu sắc, chất liệu hay món đồ nằm ngoài danh sách bộ đó."
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"response_mime_type": "application/json"},
+            "generationConfig": build_gemini_generation_config(self.model, thinking_level=self.thinking_level),
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
-        req_timeout = min(self.timeout_seconds, 6.0)
+        req_timeout = (
+            float(self.explanation_timeout_seconds)
+            if self.explanation_timeout_seconds is not None
+            else min(self.timeout_seconds, 6.0)
+        )
         try:
-            if self._client is not None:
-                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
-            else:
-                with httpx.Client(timeout=req_timeout) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=req_timeout)
+            parsed = json.loads(_extract_json_from_gemini_response(raw_json))
             text = parsed.get("explanation_vi", "")
             return str(text).strip() if isinstance(text, str) else ""
         except Exception as exc:
@@ -169,23 +312,24 @@ class GeminiContextProvider:
             "Quy tắc bắt buộc cho TỪNG lời giải thích:\n"
             "1. Phải nhắc đúng và đủ tất cả các cụm [Tên món đồ] của riêng bộ đó, giữ nguyên dấu ngoặc vuông [...].\n"
             "2. Tuyệt đối không bịa thêm bất kỳ món đồ, phụ kiện hay chất liệu nào không có trong danh sách của bộ đó.\n"
-            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'."
+            "3. Tuyệt đối KHÔNG dùng các cụm từ: 'lý tưởng', 'rất phù hợp', 'thoáng mát', 'mềm mại'.\n"
+            "4. Tuyệt đối KHÔNG khẳng định tính năng kỹ thuật của trang phục nếu không được ghi rõ "
+            "(KHÔNG dùng các cụm: 'giữ ấm', 'chống lạnh', 'chống rét', 'giữ nhiệt', 'chống thấm', "
+            "'chống nước', 'chống mưa', 'chống nắng', 'chống gió', 'thoáng khí', 'thấm hút', 'co giãn', 'dễ vận động'); "
+            "không nhắc thêm màu sắc, chất liệu hay món đồ nằm ngoài danh sách bộ đó."
         )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"response_mime_type": "application/json"},
+            "generationConfig": build_gemini_generation_config(self.model, thinking_level=self.thinking_level),
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        headers = {"x-goog-api-key": self.api_key.get_secret_value()}
-        req_timeout = min(self.timeout_seconds, 8.0)
+        req_timeout = (
+            float(self.explanation_timeout_seconds)
+            if self.explanation_timeout_seconds is not None
+            else min(self.timeout_seconds, 8.0)
+        )
         try:
-            if self._client is not None:
-                response = self._client.post(url, headers=headers, json=payload, timeout=req_timeout)
-            else:
-                with httpx.Client(timeout=req_timeout) as client:
-                    response = client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            parsed = json.loads(_extract_json_from_gemini_response(response.json()))
+            raw_json = self._post_gemini_json(payload=payload, timeout=req_timeout)
+            parsed = json.loads(_extract_json_from_gemini_response(raw_json))
             raw_list = parsed.get("explanations")
             if not isinstance(raw_list, list):
                 raise ValueError("Missing 'explanations' list in Gemini batch response.")

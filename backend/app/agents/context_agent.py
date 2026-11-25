@@ -110,7 +110,24 @@ def extract_occasion(text: str) -> str:
         return "interview"
     if has(["đám cưới", "tiệc cưới", "lễ cưới", "ăn cưới", "dự cưới", "wedding"]):
         return "wedding"
-    if any(k in t for k in ["đi làm", "công sở", "văn phòng", "công ty", "đi dạy", "họp", "làm việc"]):
+    if any(
+        k in t
+        for k in [
+            "đi làm",
+            "công sở",
+            "văn phòng",
+            "công ty",
+            "đi dạy",
+            "họp",
+            "làm việc",
+            "gặp đối tác",
+            "đối tác",
+            "đi công việc",
+            "công tác",
+            "hội nghị",
+            "gặp khách hàng",
+        ]
+    ):
         if not any(neg in t for neg in ["nghỉ làm", "không đi làm", "không phải đi làm", "chưa đi làm"]):
             return "daily_work"
     if has(["tiệc", "party", "dạ hội", "sinh nhật", "quán bar", "pub", "club"]):
@@ -282,9 +299,9 @@ def extract_formality_range(text: str, occasion: str) -> list[int]:
         base_range = [1, 2]
 
     # Modifiers
-    if any(k in t for k in ["lịch sự nhẹ", "thanh lịch nhẹ", "chỉnh chu nhẹ"]):
+    if any(k in t for k in ["lịch sự nhẹ", "thanh lịch nhẹ", "chỉnh chu nhẹ", "chỉn chu nhẹ"]):
         base_range = [2, 3]
-    elif any(k in t for k in ["trang trọng", "chỉnh chu", "lịch thiệp", "sang trọng", "lịch sự"]):
+    elif any(k in t for k in ["trang trọng", "chỉnh chu", "chỉn chu", "lịch thiệp", "sang trọng", "lịch sự"]):
         base_range = [max(base_range[0], 3), min(5, max(base_range[1], 4))]
     elif any(k in t for k in ["thoải mái", "đơn giản", "tiện lợi", "thoải mái nhất"]):
         base_range = [max(1, base_range[0] - 1), max(2, base_range[1] - 1)]
@@ -299,7 +316,7 @@ def extract_style_hints(text: str) -> list[str]:
     """Extract style hints: smart_casual, minimalist, streetwear, vintage, casual, formal."""
     t = text.lower()
     styles = []
-    if any(k in t for k in ["smart casual", "smart_casual", "lịch sự nhẹ", "thanh lịch", "lịch sự", "chỉnh chu"]):
+    if any(k in t for k in ["smart casual", "smart_casual", "lịch sự nhẹ", "thanh lịch", "lịch sự", "chỉnh chu", "chỉn chu"]):
         styles.append("smart_casual")
     if any(k in t for k in ["tối giản", "minimalist", "minimalism", "đơn giản"]):
         styles.append("minimalist")
@@ -327,6 +344,7 @@ def extract_vibe_keywords(text: str) -> list[str]:
         "ấm áp",
         "trẻ trung",
         "tinh tế",
+        "chỉn chu",
         "chỉnh chu",
         "nhẹ nhàng",
         "nổi bật",
@@ -718,6 +736,101 @@ def extract_context(
 CONTEXT_FALLBACK_WARNING = "Không thể phân tích đầy đủ yêu cầu bằng dịch vụ AI; đã dùng quy tắc dự phòng."
 WEATHER_FALLBACK_WARNING = "Không thể lấy dữ liệu thời tiết; đã dùng thông tin trong yêu cầu hoặc giá trị mặc định."
 
+_FORMALITY_LABEL_MAP: dict[str, int] = {
+    "casual": 1,
+    "relaxed": 1,
+    "sporty": 1,
+    "everyday": 2,
+    "smart_casual": 3,
+    "business_casual": 3,
+    "semi_formal": 4,
+    "formal": 4,
+    "polished": 4,
+    "business_formal": 5,
+    "very_formal": 5,
+    "ultra_formal": 5,
+    "black_tie": 5,
+}
+
+
+def _coerce_formality_value(val: Any) -> int | None:
+    if isinstance(val, bool) or val is None:
+        return None
+    if isinstance(val, int):
+        return max(1, min(5, val))
+    if isinstance(val, float):
+        if 0.0 <= val <= 1.0:
+            return max(1, min(5, round(val * 4) + 1))
+        return max(1, min(5, round(val)))
+    if isinstance(val, str):
+        raw = val.strip()
+        if not raw:
+            return None
+        try:
+            return max(1, min(5, int(raw)))
+        except ValueError:
+            pass
+        key = raw.lower().replace("-", "_").replace(" ", "_")
+        if key in _FORMALITY_LABEL_MAP:
+            return _FORMALITY_LABEL_MAP[key]
+        try:
+            f_val = float(raw)
+        except ValueError:
+            return None
+        if 0.0 <= f_val <= 1.0:
+            return max(1, min(5, round(f_val * 4) + 1))
+        return max(1, min(5, round(f_val)))
+    return None
+
+
+def _sanitize_llm_context_payload(
+    payload: dict[str, Any],
+    *,
+    fallback: StylistContext,
+    query: str,
+) -> dict[str, Any]:
+    """Normalize known LLM JSON type drift while keeping malformed payloads rejected."""
+    sanitized = dict(payload)
+    is_clarification = sanitized.get("needs_clarification") is True
+
+    # Only fill nullable occasion/time_of_day when the LLM explicitly requested clarification;
+    # missing/non-string fields on normal responses must still fail StylistContext validation.
+    if is_clarification:
+        if sanitized.get("occasion") is None:
+            sanitized["occasion"] = fallback.occasion
+        if sanitized.get("time_of_day") is None:
+            sanitized["time_of_day"] = fallback.time_of_day
+
+    occ = sanitized.get("occasion")
+    tfr = sanitized.get("target_formality_range")
+    pair: list[Any] | None = None
+    if isinstance(tfr, dict) and "min" in tfr and "max" in tfr:
+        pair = [tfr["min"], tfr["max"]]
+    elif isinstance(tfr, (list, tuple)) and len(tfr) == 2:
+        pair = [tfr[0], tfr[1]]
+    elif tfr is None and is_clarification and isinstance(occ, str) and occ.strip():
+        sanitized["target_formality_range"] = extract_formality_range(query, extract_occasion(occ))
+        pair = None
+
+    if pair is not None:
+        coerced = [_coerce_formality_value(v) for v in pair]
+        if len(coerced) == 2 and coerced[0] is not None and coerced[1] is not None:
+            lo, hi = sorted((coerced[0], coerced[1]))
+            if hi - lo > 2:
+                hi = lo + 2
+            sanitized["target_formality_range"] = [lo, hi]
+
+    for list_field in ("style_hints", "vibe_keywords", "must_have", "must_avoid"):
+        if list_field in sanitized and sanitized[list_field] is None:
+            sanitized[list_field] = []
+
+    if "confidence" in sanitized and sanitized["confidence"] is None:
+        sanitized["confidence"] = fallback.confidence
+    if "weather_source" in sanitized and sanitized["weather_source"] not in {"user", "api", "default"}:
+        sanitized["weather_source"] = "default"
+
+    return sanitized
+
 
 def extract_context_with_providers(
     query: str,
@@ -745,7 +858,14 @@ def extract_context_with_providers(
                 location=location,
                 current_date=today,
             )
-            context = StylistContext.model_validate(provider_payload)
+            if not isinstance(provider_payload, dict):
+                raise TypeError("LLM context payload must be a JSON object.")
+            sanitized_payload = _sanitize_llm_context_payload(
+                provider_payload,
+                fallback=fallback,
+                query=query,
+            )
+            context = StylistContext.model_validate(sanitized_payload)
             # Sanitize must_have and must_avoid from LLM provider
             valid_must_have: list[str] = []
             parsed_struct_have: list[GarmentConstraint] = []

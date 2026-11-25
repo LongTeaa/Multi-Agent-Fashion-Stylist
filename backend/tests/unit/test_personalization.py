@@ -567,7 +567,7 @@ def test_personalization_agent_node_db_error_reports_error():
 
 @pytest.mark.parametrize("profile", ["comfort", "active", "formal", "balanced"])
 def test_recent_exact_outfit_is_demoted_under_every_weight_profile(profile: str):
-    """The comfort/active profiles give PersonalPref 0 weight; repetition must still be penalized."""
+    """Repetition penalty applies outside weights and must demote recent outfits under every profile."""
     worn = _make_evaluated_outfit(
         "worn", [_make_slot("t1", OutfitSlotRole.TOP), _make_slot("b1", OutfitSlotRole.BOTTOM),
                  _make_slot("s1", OutfitSlotRole.FOOTWEAR)], fashion_score=0.95,

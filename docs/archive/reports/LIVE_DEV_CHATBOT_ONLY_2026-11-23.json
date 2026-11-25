@@ -1,0 +1,1071 @@
+{
+  "metadata": {
+    "dataset_version": "multi-agent-bench-v3",
+    "wardrobes_version": "stylist-wardrobes-v1",
+    "rule_version": "coordinator-v1",
+    "split": "dev",
+    "representative_case_count": 38,
+    "stress_case_count": 0,
+    "execution_mode": "live_llm",
+    "live_llm": true,
+    "live_weather": false,
+    "judge_enabled": false,
+    "chatbot_model": "gemini-3.6-flash",
+    "gemini_key_count": 6,
+    "llm_cache_hits": 109,
+    "judge_model": null,
+    "judge_provider": null,
+    "judge_reasoning_effort": null,
+    "same_family_judge_bias": false,
+    "judge_api_calls": 0,
+    "judge_cache_hits": 0,
+    "judge_prompt_tokens": 0,
+    "judge_completion_tokens": 0,
+    "git_commit": "33a0ff5",
+    "executed_at": "2026-11-23T09:06:15.529131+00:00",
+    "run_complete": true,
+    "aborted_reason": null
+  },
+  "judge_calibration": null,
+  "representative_summary": {
+    "B0": {
+      "system_id": "B0",
+      "cases_evaluated": 38,
+      "layer_a": {
+        "case_pass_ratio": "34/38",
+        "case_pass_rate": 0.8947,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 0.5417,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "21/38",
+        "pass_rate": 0.5526,
+        "pass_rate_ci95": [
+          0.3971,
+          0.6985
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": null,
+          "hits": 0,
+          "total_checks": 0,
+          "per_field_accuracy": {
+            "occasion": null,
+            "time_of_day": null,
+            "weather_condition": null,
+            "target_formality_range": null,
+            "needs_clarification": null
+          },
+          "clarification_accuracy": 0.9474,
+          "clarification_f1": 0.0,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": null,
+          "ndcg_at_3_ci95": null,
+          "hit_at_1": null,
+          "unacceptable_rate": null
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.9086,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "4/4",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "2/2",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": null,
+          "explanation_usefulness_mean": null
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 3.88,
+            "p50_ms": 3.76,
+            "p95_ms": 5.61
+          },
+          "avg_llm_calls": 0.0,
+          "total_llm_calls": 0,
+          "total_estimated_tokens": 0
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "21/38",
+          "pass_rate": 0.5526,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        }
+      }
+    },
+    "B1": {
+      "system_id": "B1",
+      "cases_evaluated": 38,
+      "layer_a": {
+        "case_pass_ratio": "38/38",
+        "case_pass_rate": 1.0,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 1.0,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "30/38",
+        "pass_rate": 0.7895,
+        "pass_rate_ci95": [
+          0.6365,
+          0.8893
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": 0.8941,
+          "hits": 152,
+          "total_checks": 170,
+          "per_field_accuracy": {
+            "occasion": 0.8611,
+            "time_of_day": 0.9167,
+            "weather_condition": 0.875,
+            "target_formality_range": 0.9167,
+            "needs_clarification": 0.8947
+          },
+          "clarification_accuracy": 0.8947,
+          "clarification_f1": 0.5,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": null,
+          "ndcg_at_3_ci95": null,
+          "hit_at_1": null,
+          "unacceptable_rate": null
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.7379,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "4/4",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "2/2",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": null,
+          "explanation_usefulness_mean": null
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 37.32,
+            "p50_ms": 40.72,
+            "p95_ms": 66.95
+          },
+          "avg_llm_calls": 0.0,
+          "total_llm_calls": 0,
+          "total_estimated_tokens": 0
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "30/38",
+          "pass_rate": 0.7895,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        }
+      }
+    },
+    "M-Full": {
+      "system_id": "M-Full",
+      "cases_evaluated": 38,
+      "layer_a": {
+        "case_pass_ratio": "38/38",
+        "case_pass_rate": 1.0,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 1.0,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "35/38",
+        "pass_rate": 0.9211,
+        "pass_rate_ci95": [
+          0.792,
+          0.9728
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": 0.9235,
+          "hits": 157,
+          "total_checks": 170,
+          "per_field_accuracy": {
+            "occasion": 0.9167,
+            "time_of_day": 0.9167,
+            "weather_condition": 0.875,
+            "target_formality_range": 0.9167,
+            "needs_clarification": 0.9737
+          },
+          "clarification_accuracy": 0.9737,
+          "clarification_f1": 0.8,
+          "context_llm_used_rate": 1.0,
+          "context_llm_used_count": "38/38"
+        },
+        "b2_quality": {
+          "ndcg_at_3": null,
+          "ndcg_at_3_ci95": null,
+          "hit_at_1": null,
+          "unacceptable_rate": null
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.7288,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "4/4",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "2/2",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": 0.9902,
+          "explanation_usefulness_mean": null
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 50.6,
+            "p50_ms": 48.13,
+            "p95_ms": 85.46
+          },
+          "avg_llm_calls": 1.895,
+          "total_llm_calls": 72,
+          "total_estimated_tokens": 34501
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "35/38",
+          "pass_rate": 0.9211,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        }
+      }
+    },
+    "B2": {
+      "system_id": "B2",
+      "cases_evaluated": 38,
+      "layer_a": {
+        "case_pass_ratio": "37/38",
+        "case_pass_rate": 0.9737,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 0.9167,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "32/38",
+        "pass_rate": 0.8421,
+        "pass_rate_ci95": [
+          0.6958,
+          0.9256
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": null,
+          "hits": 0,
+          "total_checks": 0,
+          "per_field_accuracy": {
+            "occasion": null,
+            "time_of_day": null,
+            "weather_condition": null,
+            "target_formality_range": null,
+            "needs_clarification": null
+          },
+          "clarification_accuracy": 0.9737,
+          "clarification_f1": 0.6667,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": null,
+          "ndcg_at_3_ci95": null,
+          "hit_at_1": null,
+          "unacceptable_rate": null
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.7719,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "4/4",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "2/2",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": 1.0,
+          "explanation_usefulness_mean": null
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 240.31,
+            "p50_ms": 3.48,
+            "p95_ms": 454.45
+          },
+          "avg_llm_calls": 1.0,
+          "total_llm_calls": 38,
+          "total_estimated_tokens": 78613
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "32/38",
+          "pass_rate": 0.8421,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        }
+      }
+    }
+  },
+  "pairwise_comparisons": {},
+  "ablation_impact": {
+    "Cyclic+LLM vs Rule-DAG (M-Full vs B1)": {
+      "total_compared": 38,
+      "improved_count": 6,
+      "unchanged_count": 31,
+      "degraded_count": 1,
+      "net_gain": 5,
+      "improved_case_ids": [
+        "r18",
+        "r41",
+        "r43",
+        "r45",
+        "r49",
+        "r50"
+      ],
+      "degraded_case_ids": [
+        "r38"
+      ]
+    }
+  },
+  "noise_robustness": {},
+  "stress_summary": {},
+  "failure_breakdown": [
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r01",
+      "query": "Sáng mai mình có buổi phỏng vấn xin việc ở công ty, trời mát, tư vấn giúp mình bộ đồ lịch sự nhé.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 2.75 < min 3.5"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r02",
+      "query": "Cuối tuần này tối thứ 7 đi ăn cưới bạn thân ở khách sạn, trời mát, mặc gì cho trang trọng?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 3.75 < min 4.0"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r05",
+      "query": "Tối nay đi xe máy ngoài trời mưa gặp đối tác, mặc sao vừa ấm áp lại không bị ướt?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing any required functional_flags ['water_resistant', 'rain'] (got ['light', 'work'])"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r14",
+      "query": "Tối mai đi tiệc sinh nhật, mình muốn mặc đầm nhưng không mặc màu đen.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '15460d2a-f_drs_02' violates must_avoid color",
+        "Rank 1: item '15460d2a-f_ftw_02' violates must_avoid color",
+        "Rank 2: item '15460d2a-f_acc_02' violates must_avoid color",
+        "Rank 3: item '15460d2a-f_acc_02' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r15",
+      "query": "Đi cafe chiều nay với bạn, cần mặc áo polo xanh navy và đi giày sneaker trắng.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing item 'm_top_04' (got ['m_bot_03', 'm_ftw_01', 'm_top_01'])",
+        "Top 1 missing item 'm_ftw_03' (got ['m_bot_03', 'm_ftw_01', 'm_top_01'])"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r23",
+      "query": "Chiều nay đi cafe với bạn, trời mát, nên mặc gì?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '08688643-f_drs_02' violates must_avoid color",
+        "Rank 1: item '08688643-f_ftw_05' violates must_avoid color",
+        "Rank 2: item '08688643-f_top_04' violates must_avoid color",
+        "Rank 2: item '08688643-f_bot_06' violates must_avoid color",
+        "Rank 3: item '08688643-f_drs_02' violates must_avoid color",
+        "Rank 3: item '08688643-f_acc_02' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r30",
+      "query": "Trưa nay đi dạo phố, trời nắng nóng 36 độ, cần thoải mái nhẹ nhàng.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 4.00 > max 2.5"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r31",
+      "query": "Tối nay dự đám cưới ở trung tâm hội nghị, mặc trang trọng.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 2.25 < min 4.0"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r32",
+      "query": "Chiều nay đi xe máy ngoài trời mưa, cần đồ chống nước và dễ di chuyển.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing any required functional_flags ['water_resistant', 'rain'] (got ['movement', 'work'])"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r35",
+      "query": "Mặc gì?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='clarification', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r36",
+      "query": "Ở Đà Lạt mặc gì?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='clarification', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r37",
+      "query": "Tối nay đi tiệc trang trọng, bắt buộc mặc quần tây màu đen.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing item 'm_bot_01' (got ['m_acc_01', 'm_bot_04', 'm_ftw_01', 'm_top_06'])"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r38",
+      "query": "Phỏng vấn sáng mai, cần mặc quần tây màu đen nhưng không mặc màu đen.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='error', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r39",
+      "query": "Tối nay dự tiệc cưới, tôi muốn mặc đầm hoa.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='error', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r45",
+      "query": "Tối nay đi liên hoan tất niên với team, trời hơi se lạnh.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '188fbf6a-m_ftw_05' violates must_avoid color",
+        "Rank 2: item '188fbf6a-m_ftw_05' violates must_avoid color",
+        "Rank 2: item '188fbf6a-m_acc_01' violates must_avoid color",
+        "Rank 3: item '188fbf6a-m_top_06' violates must_avoid color",
+        "Rank 3: item '188fbf6a-m_acc_01' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r54",
+      "query": "Sáng mai đi làm văn phòng trời mát, gợi ý giúp mình một bộ gọn gàng.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 2: item '8dc20be9-m_top_06' violates must_avoid color",
+        "Rank 3: item '8dc20be9-m_top_06' violates must_avoid color",
+        "Rank 3: item '8dc20be9-m_acc_01' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r55",
+      "query": "Sáng mai có lịch phỏng vấn quan trọng ở công ty, trời mát, chọn bộ lịch sự chưa mặc gần đây.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 3.33 < min 3.5"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r18",
+      "query": "Đi cafe sáng mai, muốn mặc áo polo màu đen cho gọn.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r41",
+      "query": "Tối nay qua nhà bạn gái ăn cơm ra mắt, muốn nhìn gọn gàng chững chạc xíu đừng hầm hố quá.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r42",
+      "query": "Tối thứ 7 tuần này đi ăn hỏi chị họ ở nhà hàng lớn, chọn bộ thật trang nhã giúp mình.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 3.00 < min 3.5"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        },
+        {
+          "round": 0,
+          "sender": "fashion",
+          "receiver": "personalization",
+          "event_type": "EVALUATED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã chấm điểm và lọc ra 12 bộ trang phục ứng viên."
+        },
+        {
+          "round": 0,
+          "sender": "personalization",
+          "receiver": "coordinator",
+          "event_type": "RANKED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã xếp hạng Top 3 phương án cá nhân hóa."
+        },
+        {
+          "round": 0,
+          "sender": "coordinator",
+          "receiver": "end",
+          "event_type": "RECOMMENDATIONS_APPROVED",
+          "summary_vi": "Đã kiểm định và lưu 3 bộ trang phục vào cơ sở dữ liệu."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r43",
+      "query": "Chiều mai ra quán trà sữa ngồi làm bài tập nhóm với mấy đứa bạn, trời nóng nực quá.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r44",
+      "query": "Sáng mai đi ký hợp đồng với sếp lớn, trời mưa phùn, cần đồ gọn gàng đứng đắn.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r45",
+      "query": "Tối nay đi liên hoan tất niên với team, trời hơi se lạnh.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r49",
+      "query": "Đi làm sáng mai trời ấm, mình muốn mặc áo sơ mi trắng vải linen.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r50",
+      "query": "Đi làm sáng mai trời mát, mình muốn mặc quần tây màu xám.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "M-Full",
+      "case_id": "r38",
+      "query": "Phỏng vấn sáng mai, cần mặc quần tây màu đen nhưng không mặc màu đen.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "gemini",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='error', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "M-Full",
+      "case_id": "r42",
+      "query": "Tối thứ 7 tuần này đi ăn hỏi chị họ ở nhà hàng lớn, chọn bộ thật trang nhã giúp mình.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "gemini",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 3.00 < min 3.5"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        },
+        {
+          "round": 0,
+          "sender": "fashion",
+          "receiver": "personalization",
+          "event_type": "EVALUATED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã chấm điểm và lọc ra 12 bộ trang phục ứng viên."
+        },
+        {
+          "round": 0,
+          "sender": "personalization",
+          "receiver": "coordinator",
+          "event_type": "RANKED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã xếp hạng Top 3 phương án cá nhân hóa."
+        },
+        {
+          "round": 0,
+          "sender": "coordinator",
+          "receiver": "end",
+          "event_type": "RECOMMENDATIONS_APPROVED",
+          "summary_vi": "Đã kiểm định và lưu 3 bộ trang phục vào cơ sở dữ liệu."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "M-Full",
+      "case_id": "r44",
+      "query": "Sáng mai đi ký hợp đồng với sếp lớn, trời mưa phùn, cần đồ gọn gàng đứng đắn.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "gemini",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing any required functional_flags ['water_resistant', 'rain'] (got ['light', 'work'])"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        },
+        {
+          "round": 0,
+          "sender": "fashion",
+          "receiver": "personalization",
+          "event_type": "EVALUATED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã chấm điểm và lọc ra 16 bộ trang phục ứng viên."
+        },
+        {
+          "round": 0,
+          "sender": "personalization",
+          "receiver": "coordinator",
+          "event_type": "RANKED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã xếp hạng Top 3 phương án cá nhân hóa."
+        },
+        {
+          "round": 0,
+          "sender": "coordinator",
+          "receiver": "end",
+          "event_type": "RECOMMENDATIONS_APPROVED",
+          "summary_vi": "Đã kiểm định và lưu 3 bộ trang phục vào cơ sở dữ liệu."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r14",
+      "query": "Tối mai đi tiệc sinh nhật, mình muốn mặc đầm nhưng không mặc màu đen.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [
+        "Rank 1: item 'e4bc95af-f_ftw_02' violates must_avoid color",
+        "Rank 2: item 'e4bc95af-f_ftw_02' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r18",
+      "query": "Đi cafe sáng mai, muốn mặc áo polo màu đen cho gọn.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r36",
+      "query": "Ở Đà Lạt mặc gì?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='clarification', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r38",
+      "query": "Phỏng vấn sáng mai, cần mặc quần tây màu đen nhưng không mặc màu đen.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='error', got 'ok' (err=None)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r49",
+      "query": "Đi làm sáng mai trời ấm, mình muốn mặc áo sơ mi trắng vải linen.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r50",
+      "query": "Đi làm sáng mai trời mát, mình muốn mặc quần tây màu xám.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": []
+    }
+  ],
+  "threats_to_validity": [
+    "Tủ đồ chuẩn (30 món nữ, 27 món nam) mô phỏng cấu trúc và tỷ lệ nhãn 'unknown' thực tế; khuyến nghị xuất thêm dữ liệu từ DB người dùng thực qua --export-wardrobe-from-db sau khi hoàn tất nạp 58 ảnh demo.",
+    "Điểm chất lượng thời trang (Lớp B B2/B4) được chấm bởi LLM-as-a-Judge thay cho hội đồng chuyên gia dệt may chấm tay 100%; cần luôn kiểm tra cùng kết quả Calibration, Human-vs-Judge Spearman và Position Consistency.",
+    "Quy mô mẫu 38 kịch bản (38 dev / 0 holdout) phù hợp kiểm chứng đồ án nhưng độ rộng khoảng tin cậy 95% (Wilson/Bootstrap CI) và mẫu số từng nhóm con vẫn cần được trình bày song song với tỷ lệ phần trăm."
+  ]
+}

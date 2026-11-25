@@ -1,0 +1,872 @@
+{
+  "metadata": {
+    "dataset_version": "multi-agent-bench-v3",
+    "wardrobes_version": "stylist-wardrobes-v1",
+    "rule_version": "coordinator-v1",
+    "split": "holdout",
+    "representative_case_count": 18,
+    "stress_case_count": 0,
+    "execution_mode": "live_llm",
+    "live_llm": true,
+    "live_weather": false,
+    "judge_enabled": true,
+    "chatbot_model": "gemini-3.6-flash",
+    "gemini_key_count": 7,
+    "llm_cache_hits": 3,
+    "judge_model": "openai/gpt-6.1-terra",
+    "judge_provider": "openai_compatible",
+    "judge_reasoning_effort": "low",
+    "same_family_judge_bias": false,
+    "judge_api_calls": 294,
+    "judge_cache_hits": 44,
+    "judge_prompt_tokens": 250538,
+    "judge_completion_tokens": 24282,
+    "git_commit": "0f14579",
+    "executed_at": "2026-11-23T10:13:20.937462+00:00",
+    "run_complete": true,
+    "aborted_reason": null
+  },
+  "judge_calibration": {
+    "dataset_version": "judge-calibration-v2",
+    "judge_model": "openai/gpt-6.1-terra",
+    "judge_provider": "openai_compatible",
+    "judge_reasoning_effort": "low",
+    "same_family_judge_bias": false,
+    "pointwise_accuracy": 0.85,
+    "pointwise_hits": "17/20",
+    "pairwise_accuracy": 1.0,
+    "pairwise_hits": "12/12",
+    "position_consistency_rate": 1.0,
+    "rubric_reference_spearman": 0.9212,
+    "human_score_source": "blind_human_raters",
+    "human_vs_judge_spearman": 0.8953,
+    "real_human_rater_count": 3,
+    "judge_api_calls": 0,
+    "judge_cache_hits": 44,
+    "judge_usage_tokens": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0
+    },
+    "details": [
+      {
+        "id": "cal_good_01",
+        "label": "good",
+        "fashion_quality_score": 4.8333,
+        "explanation_usefulness": 4.5,
+        "passed": true
+      },
+      {
+        "id": "cal_good_02",
+        "label": "good",
+        "fashion_quality_score": 4.8333,
+        "explanation_usefulness": 4.5,
+        "passed": true
+      },
+      {
+        "id": "cal_good_03",
+        "label": "good",
+        "fashion_quality_score": 4.1667,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_good_04",
+        "label": "good",
+        "fashion_quality_score": 4.1667,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_good_05",
+        "label": "good",
+        "fashion_quality_score": 4.6667,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_good_06",
+        "label": "good",
+        "fashion_quality_score": 4.0,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_good_07",
+        "label": "good",
+        "fashion_quality_score": 4.6667,
+        "explanation_usefulness": 4.5,
+        "passed": true
+      },
+      {
+        "id": "cal_good_08",
+        "label": "good",
+        "fashion_quality_score": 4.6667,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_mid_01",
+        "label": "mediocre",
+        "fashion_quality_score": 3.5,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_mid_02",
+        "label": "mediocre",
+        "fashion_quality_score": 3.5,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_mid_03",
+        "label": "mediocre",
+        "fashion_quality_score": 3.8333,
+        "explanation_usefulness": 4.0,
+        "passed": false
+      },
+      {
+        "id": "cal_mid_04",
+        "label": "mediocre",
+        "fashion_quality_score": 2.5,
+        "explanation_usefulness": 4.0,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_01",
+        "label": "bad",
+        "fashion_quality_score": 2.0,
+        "explanation_usefulness": 2.0,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_02",
+        "label": "bad",
+        "fashion_quality_score": 2.0,
+        "explanation_usefulness": 1.5,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_03",
+        "label": "bad",
+        "fashion_quality_score": 2.6667,
+        "explanation_usefulness": 3.0,
+        "passed": false
+      },
+      {
+        "id": "cal_bad_04",
+        "label": "bad",
+        "fashion_quality_score": 2.0,
+        "explanation_usefulness": 2.0,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_05",
+        "label": "bad",
+        "fashion_quality_score": 2.0,
+        "explanation_usefulness": 1.0,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_06",
+        "label": "bad",
+        "fashion_quality_score": 2.1667,
+        "explanation_usefulness": 2.5,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_07",
+        "label": "bad",
+        "fashion_quality_score": 2.0,
+        "explanation_usefulness": 1.0,
+        "passed": true
+      },
+      {
+        "id": "cal_bad_08",
+        "label": "bad",
+        "fashion_quality_score": 3.1667,
+        "explanation_usefulness": 1.0,
+        "passed": false
+      }
+    ]
+  },
+  "representative_summary": {
+    "B0": {
+      "system_id": "B0",
+      "cases_evaluated": 18,
+      "layer_a": {
+        "case_pass_ratio": "15/18",
+        "case_pass_rate": 0.8333,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 0.25,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "13/18",
+        "pass_rate": 0.7222,
+        "pass_rate_ci95": [
+          0.4913,
+          0.875
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": null,
+          "hits": 0,
+          "total_checks": 0,
+          "per_field_accuracy": {
+            "occasion": null,
+            "time_of_day": null,
+            "weather_condition": null,
+            "target_formality_range": null,
+            "needs_clarification": null
+          },
+          "clarification_accuracy": 1.0,
+          "clarification_f1": 1.0,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": 0.3451,
+          "ndcg_at_3_ci95": [
+            0.2499,
+            0.4465
+          ],
+          "hit_at_1": 0.1667,
+          "unacceptable_rate": 0.1852
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.8957,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "1/1",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "1/1",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": null,
+          "explanation_usefulness_mean": 1.889
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 5.1,
+            "p50_ms": 4.91,
+            "p95_ms": 7.48
+          },
+          "avg_llm_calls": 0.0,
+          "total_llm_calls": 0,
+          "total_estimated_tokens": 0
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "13/18",
+          "pass_rate": 0.7222,
+          "ndcg_at_3": 0.3451
+        }
+      }
+    },
+    "B1": {
+      "system_id": "B1",
+      "cases_evaluated": 18,
+      "layer_a": {
+        "case_pass_ratio": "18/18",
+        "case_pass_rate": 1.0,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 1.0,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "13/18",
+        "pass_rate": 0.7222,
+        "pass_rate_ci95": [
+          0.4913,
+          0.875
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": 0.8409,
+          "hits": 74,
+          "total_checks": 88,
+          "per_field_accuracy": {
+            "occasion": 0.7778,
+            "time_of_day": 0.8889,
+            "weather_condition": 0.875,
+            "target_formality_range": 0.8333,
+            "needs_clarification": 0.8333
+          },
+          "clarification_accuracy": 0.8333,
+          "clarification_f1": 0.0,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": 0.8059,
+          "ndcg_at_3_ci95": [
+            0.689,
+            0.8897
+          ],
+          "hit_at_1": 0.6923,
+          "unacceptable_rate": 0.0
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.7624,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "1/1",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "1/1",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": null,
+          "explanation_usefulness_mean": 3.218
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 38.47,
+            "p50_ms": 43.2,
+            "p95_ms": 75.23
+          },
+          "avg_llm_calls": 0.0,
+          "total_llm_calls": 0,
+          "total_estimated_tokens": 0
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "13/18",
+          "pass_rate": 0.7222,
+          "ndcg_at_3": 0.8059
+        }
+      }
+    },
+    "M-Full": {
+      "system_id": "M-Full",
+      "cases_evaluated": 18,
+      "layer_a": {
+        "case_pass_ratio": "18/18",
+        "case_pass_rate": 1.0,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 1.0,
+        "explanation_factuality_rate": 1.0,
+        "canonical_bracket_rate": 1.0,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "17/18",
+        "pass_rate": 0.9444,
+        "pass_rate_ci95": [
+          0.7424,
+          0.9901
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": 0.9318,
+          "hits": 82,
+          "total_checks": 88,
+          "per_field_accuracy": {
+            "occasion": 0.9444,
+            "time_of_day": 0.8889,
+            "weather_condition": 0.875,
+            "target_formality_range": 0.9444,
+            "needs_clarification": 1.0
+          },
+          "clarification_accuracy": 1.0,
+          "clarification_f1": 1.0,
+          "context_llm_used_rate": 1.0,
+          "context_llm_used_count": "18/18"
+        },
+        "b2_quality": {
+          "ndcg_at_3": 0.7591,
+          "ndcg_at_3_ci95": [
+            0.6611,
+            0.8459
+          ],
+          "hit_at_1": 0.6111,
+          "unacceptable_rate": 0.0
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.7528,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "1/1",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "1/1",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "2/2"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": 1.0,
+          "explanation_usefulness_mean": 3.389
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 24139.82,
+            "p50_ms": 23408.96,
+            "p95_ms": 40917.04
+          },
+          "avg_llm_calls": 2.0,
+          "total_llm_calls": 36,
+          "total_estimated_tokens": 17430
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "17/18",
+          "pass_rate": 0.9444,
+          "ndcg_at_3": 0.7591
+        }
+      }
+    },
+    "B2": {
+      "system_id": "B2",
+      "cases_evaluated": 18,
+      "layer_a": {
+        "case_pass_ratio": "17/18",
+        "case_pass_rate": 0.9444,
+        "valid_item_grounding_rate": 1.0,
+        "outfit_structure_validity_rate": 1.0,
+        "must_avoid_compliance_rate": 1.0,
+        "explanation_factuality_rate": 0.9804,
+        "canonical_bracket_rate": 0.9804,
+        "bounded_and_persist_rate": 1.0
+      },
+      "functional": {
+        "pass_ratio": "16/18",
+        "pass_rate": 0.8889,
+        "pass_rate_ci95": [
+          0.672,
+          0.969
+        ]
+      },
+      "layer_b": {
+        "b1_context": {
+          "micro_field_accuracy": null,
+          "hits": 0,
+          "total_checks": 0,
+          "per_field_accuracy": {
+            "occasion": null,
+            "time_of_day": null,
+            "weather_condition": null,
+            "target_formality_range": null,
+            "needs_clarification": null
+          },
+          "clarification_accuracy": 1.0,
+          "clarification_f1": 1.0,
+          "context_llm_used_rate": null,
+          "context_llm_used_count": "N/A"
+        },
+        "b2_quality": {
+          "ndcg_at_3": 0.9112,
+          "ndcg_at_3_ci95": [
+            0.8731,
+            0.9459
+          ],
+          "hit_at_1": 0.8235,
+          "unacceptable_rate": 0.0
+        },
+        "b3_personalization": {
+          "top3_core_diversity": 0.8356,
+          "profile_differentiation_rate": 1.0,
+          "profile_differentiation_ratio": "1/1",
+          "contrastive_pair_diff_rate": 1.0,
+          "contrastive_pair_diff_ratio": "1/1",
+          "recent_wear_avoid_rate": 1.0,
+          "recent_wear_avoid_ratio": "1/1"
+        },
+        "b4_explanation": {
+          "explanation_llm_accepted_rate": 1.0,
+          "explanation_usefulness_mean": 3.931
+        },
+        "b5_cost": {
+          "latency_ms": {
+            "mean_ms": 10429.34,
+            "p50_ms": 9262.97,
+            "p95_ms": 24272.92
+          },
+          "avg_llm_calls": 1.0,
+          "total_llm_calls": 18,
+          "total_estimated_tokens": 37804
+        }
+      },
+      "split_breakdown": {
+        "dev": {
+          "pass_ratio": "0/0",
+          "pass_rate": null,
+          "ndcg_at_3": null
+        },
+        "holdout": {
+          "pass_ratio": "16/18",
+          "pass_rate": 0.8889,
+          "ndcg_at_3": 0.9112
+        }
+      }
+    }
+  },
+  "pairwise_comparisons": {
+    "B0": {
+      "total_pairs": 18,
+      "wins": 15,
+      "ties": 0,
+      "losses": 3,
+      "win_rate": 0.8333,
+      "position_consistency_rate": 1.0
+    },
+    "B1": {
+      "total_pairs": 13,
+      "wins": 7,
+      "ties": 3,
+      "losses": 3,
+      "win_rate": 0.5385,
+      "position_consistency_rate": 0.8462
+    },
+    "B2": {
+      "total_pairs": 17,
+      "wins": 4,
+      "ties": 0,
+      "losses": 13,
+      "win_rate": 0.2353,
+      "position_consistency_rate": 1.0
+    }
+  },
+  "ablation_impact": {
+    "Cyclic+LLM vs Rule-DAG (M-Full vs B1)": {
+      "total_compared": 18,
+      "improved_count": 9,
+      "unchanged_count": 7,
+      "degraded_count": 2,
+      "net_gain": 7,
+      "improved_case_ids": [
+        "r09",
+        "r12",
+        "r20",
+        "r33",
+        "r46",
+        "r47",
+        "r51",
+        "r52",
+        "r56"
+      ],
+      "degraded_case_ids": [
+        "r28",
+        "r34"
+      ]
+    }
+  },
+  "noise_robustness": {},
+  "stress_summary": {},
+  "failure_breakdown": [
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r20",
+      "query": "Sáng mai phỏng vấn cần lịch sự, tránh mặc màu nâu.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '14d0ed11-m_acc_02' violates must_avoid color",
+        "Rank 2: item '14d0ed11-m_ftw_04' violates must_avoid color",
+        "Rank 3: item '14d0ed11-m_ftw_04' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r27",
+      "query": "Tối nay đi ăn tối hẹn hò, trời mát, mặc gì hợp?",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '1702e076-m_out_02' violates must_avoid color",
+        "Rank 2: item '1702e076-m_bot_01' violates must_avoid color",
+        "Rank 2: item '1702e076-m_acc_01' violates must_avoid color",
+        "Rank 3: item '1702e076-m_ftw_05' violates must_avoid color",
+        "Rank 3: item '1702e076-m_acc_01' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r40",
+      "query": "Sáng mai đi cafe trời mát, tư vấn set đồ tránh mặc màu đen và không mặc quần jean.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [
+        "Rank 1: item '60ba1e12-f_acc_02' violates must_avoid color",
+        "Rank 2: item '60ba1e12-f_bot_06' violates must_avoid color",
+        "Rank 3: item '60ba1e12-f_top_04' violates must_avoid color",
+        "Rank 3: item '60ba1e12-f_bot_06' violates must_avoid color",
+        "Rank 3: item '60ba1e12-f_acc_02' violates must_avoid color"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r48",
+      "query": "Sáng mai đi dự lễ thành hôn của đồng nghiệp thân, trời lạnh 13 độ.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing required outerwear slot (got ['accessory', 'dress', 'footwear'])"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B0",
+      "case_id": "r56",
+      "query": "Tối nay đi tiệc trang trọng với công ty, trời mát, tránh mặc lại bộ hôm qua.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 avg formality 2.50 < min 3.0"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r46",
+      "query": "Chiều nay có lịch test chuyên môn vòng cuối ở ngân hàng, trời mát mẻ.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r47",
+      "query": "Tối mai rủ crush đi xem phim rồi ăn khuya, trời ấm áp, tư vấn bộ dễ thương gọn mắt.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r48",
+      "query": "Sáng mai đi dự lễ thành hôn của đồng nghiệp thân, trời lạnh 13 độ.",
+      "status": "clarification",
+      "error_code": null,
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'clarification' (err=None)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "end",
+          "event_type": "CLARIFICATION_REQUESTED",
+          "summary_vi": "Yêu cầu làm rõ ngữ cảnh."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r51",
+      "query": "Sáng mai đi làm văn phòng trời mát, cần mặc quần tây xanh navy.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B1",
+      "case_id": "r52",
+      "query": "Đi cafe chiều mai trời ấm áp, muốn mặc áo sơ mi trắng vải linen cho thoáng.",
+      "status": "error",
+      "error_code": "NO_COMPLETE_OUTFIT",
+      "context_used": "rules",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=NO_COMPLETE_OUTFIT)"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "M-Full",
+      "case_id": "r48",
+      "query": "Sáng mai đi dự lễ thành hôn của đồng nghiệp thân, trời lạnh 13 độ.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "gemini",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Top 1 missing required outerwear slot (got ['bottom', 'footwear', 'top'])"
+      ],
+      "agent_trace": [
+        {
+          "round": 0,
+          "sender": "context",
+          "receiver": "wardrobe",
+          "event_type": "CONTEXT_EXTRACTED",
+          "summary_vi": "Đã phân tích ngữ cảnh và ràng buộc yêu cầu."
+        },
+        {
+          "round": 0,
+          "sender": "wardrobe",
+          "receiver": "fashion",
+          "event_type": "CANDIDATE_POOL_BUILT",
+          "summary_vi": "Đã truy vấn kho ứng viên gồm 6 nhóm trang phục."
+        },
+        {
+          "round": 0,
+          "sender": "fashion",
+          "receiver": "personalization",
+          "event_type": "EVALUATED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã chấm điểm và lọc ra 16 bộ trang phục ứng viên."
+        },
+        {
+          "round": 0,
+          "sender": "personalization",
+          "receiver": "coordinator",
+          "event_type": "RANKED_OUTFITS_PRODUCED",
+          "summary_vi": "Đã xếp hạng Top 3 phương án cá nhân hóa."
+        },
+        {
+          "round": 0,
+          "sender": "coordinator",
+          "receiver": "end",
+          "event_type": "RECOMMENDATIONS_APPROVED",
+          "summary_vi": "Đã kiểm định và lưu 3 bộ trang phục vào cơ sở dữ liệu."
+        }
+      ]
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r28",
+      "query": "Sáng mai đi làm văn phòng, trời mát, chọn đồ giúp mình.",
+      "status": "error",
+      "error_code": "PROVIDER_ERROR",
+      "context_used": "none",
+      "layer_a_violations": [],
+      "functional_failures": [
+        "Expected status='ok', got 'error' (err=PROVIDER_ERROR)"
+      ],
+      "agent_trace": []
+    },
+    {
+      "suite": "rep",
+      "system_id": "B2",
+      "case_id": "r47",
+      "query": "Tối mai rủ crush đi xem phim rồi ăn khuya, trời ấm áp, tư vấn bộ dễ thương gọn mắt.",
+      "status": "ok",
+      "error_code": null,
+      "context_used": "single_prompt_llm",
+      "layer_a_violations": [
+        "Rank 3: explanation contains forbidden subjective claim"
+      ],
+      "functional_failures": [],
+      "agent_trace": []
+    }
+  ],
+  "threats_to_validity": [
+    "Tủ đồ chuẩn (30 món nữ, 27 món nam) mô phỏng cấu trúc và tỷ lệ nhãn 'unknown' thực tế; khuyến nghị xuất thêm dữ liệu từ DB người dùng thực qua --export-wardrobe-from-db sau khi hoàn tất nạp 58 ảnh demo.",
+    "Điểm chất lượng thời trang (Lớp B B2/B4) được chấm bởi LLM-as-a-Judge thay cho hội đồng chuyên gia dệt may chấm tay 100%; cần luôn kiểm tra cùng kết quả Calibration, Human-vs-Judge Spearman và Position Consistency.",
+    "Quy mô mẫu 18 kịch bản (0 dev / 18 holdout) phù hợp kiểm chứng đồ án nhưng độ rộng khoảng tin cậy 95% (Wilson/Bootstrap CI) và mẫu số từng nhóm con vẫn cần được trình bày song song với tỷ lệ phần trăm."
+  ]
+}

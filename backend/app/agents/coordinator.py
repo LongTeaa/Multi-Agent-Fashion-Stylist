@@ -580,9 +580,32 @@ def _prepare_grounded_explanation(
     active_relaxations: Sequence[RelaxationStep] | None = None,
 ) -> _PreparedGroundedExplanation:
     """Build deterministic template explanation and grounding constraints for one outfit."""
-    colors = {"white": "trắng", "black": "đen", "grey": "xám", "gray": "xám",
-              "navy": "xanh navy", "navy blue": "xanh navy", "blue": "xanh dương",
-              "brown": "nâu", "beige": "be", "green": "xanh lá", "red": "đỏ"}
+    colors = {
+        "white": "trắng",
+        "black": "đen",
+        "grey": "xám",
+        "gray": "xám",
+        "navy": "xanh navy",
+        "navy blue": "xanh navy",
+        "blue": "xanh dương",
+        "brown": "nâu",
+        "beige": "be",
+        "green": "xanh lá",
+        "red": "đỏ",
+        "pink": "hồng",
+        "cream": "kem",
+        "olive": "ô-liu",
+        "light_blue": "xanh nhạt",
+        "denim_blue": "xanh denim",
+        "burgundy": "đỏ đô",
+        "yellow": "vàng",
+        "orange": "cam",
+        "charcoal": "xám than",
+        "tan": "nâu sáng",
+        "purple": "tím",
+        "maroon": "đỏ đô",
+        "khaki": "khaki",
+    }
     from app.services.garment_taxonomy import classify, normalize
 
     parts: list[str] = []
@@ -598,9 +621,16 @@ def _prepare_grounded_explanation(
         if item.sub_category:
             _, sub_garment = classify(item.category, item.sub_category)
             if sub_garment:
-                allowed_for_item.add(f"[{sub_garment.label.strip().lower()}]")
+                sub_label_lower = sub_garment.label.strip().lower()
+                allowed_for_item.add(f"[{sub_label_lower}]")
+                if color_label and color_label != "unknown":
+                    allowed_for_item.add(f"[{sub_label_lower} {color_label}]")
+                if color and color != "unknown":
+                    allowed_for_item.add(f"[{sub_label_lower} {color}]")
         if color_label and color_label != "unknown":
             allowed_for_item.add(f"[{name.strip().lower()} {color_label}]")
+        if color and color != "unknown":
+            allowed_for_item.add(f"[{name.strip().lower()} {color}]")
         # Also allow base garment name with trailing color stripped (including khaki/be/kem)
         for col_vi in (*colors.values(), "khaki", "kaki", "kem"):
             raw_lower = item.name.strip().lower()
