@@ -39,6 +39,8 @@ class Settings(BaseSettings):
         description="Maximum concurrent Gemini Vision attribute extraction requests per ingestion batch.",
     )
     detector_backend: Literal["auto", "fake", "gemini", "yolo_world"] = "auto"
+    # Used only when the effective detector is Gemini and it raises.
+    detector_fallback_backend: Literal["none", "yolo_world"] = "none"
     yolo_world_model_path: str = "models/yolov8s-worldv2.onnx"
     yolo_world_confidence_threshold: float = 0.25
     yolo_world_iou_threshold: float = 0.45

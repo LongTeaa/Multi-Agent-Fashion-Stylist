@@ -13,6 +13,7 @@ EXPECTED_ENV_KEYS = {
     "VISION_PROVIDER",
     "VISION_TIMEOUT_SECONDS",
     "DETECTOR_BACKEND",
+    "DETECTOR_FALLBACK_BACKEND",
     "YOLO_WORLD_MODEL_PATH",
     "YOLO_WORLD_CONFIDENCE_THRESHOLD",
     "YOLO_WORLD_IOU_THRESHOLD",
@@ -61,6 +62,7 @@ def test_defaults_match_environment_contract(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.vision_provider == "fake"
     assert settings.vision_timeout_seconds == 30
     assert settings.detector_backend == "auto"
+    assert settings.detector_fallback_backend == "none"
     assert settings.yolo_world_model_path == "models/yolov8s-worldv2.onnx"
     assert settings.yolo_world_confidence_threshold == 0.25
     assert settings.yolo_world_iou_threshold == 0.45
@@ -147,6 +149,11 @@ def test_env_example_contains_the_complete_contract() -> None:
 
     assert entries.keys() == EXPECTED_ENV_KEYS
     assert entries["GEMINI_API_KEY"] == "your_api_key"
+    # Measured Phase 5 choice: Gemini detector and attributes on 3.6-flash, YOLO-World fallback.
+    assert entries["DETECTOR_FALLBACK_BACKEND"] == "yolo_world"
+    assert entries["DETECTOR_MODEL"] == "gemini-3.6-flash"
+    assert entries["VISION_MODEL"] == "gemini-3.6-flash"
+    assert entries["VISION_FALLBACK_MODEL"] == "gemini-3.5-flash-lite"
     assert entries["WEATHER_API_KEY"] == "your_weather_api_key"
     assert entries["MINIO_ACCESS_KEY"] == "your_access_key"
     assert entries["MINIO_SECRET_KEY"] == "your_secret_key"

@@ -218,14 +218,40 @@ def get_detector() -> DetectorProtocol:
         from app.services.gemini_provider import GeminiDetector
 
         key_pool = get_gemini_key_pool(settings)
-        return GeminiDetector(
+        gemini_detector = GeminiDetector(
             api_key=key_pool.keys[0],
             model=settings.get_detector_model(),
             timeout_seconds=float(settings.vision_timeout_seconds),
             key_pool=key_pool,
         )
+        return _with_detector_fallback(settings, gemini_detector)
 
     raise ValueError(f"Unsupported detector_backend: '{settings.detector_backend}'")
+
+
+def _with_detector_fallback(settings: Settings, gemini_detector: DetectorProtocol) -> DetectorProtocol:
+    """Wrap the Gemini detector with a lazily loaded YOLO-World fallback when configured."""
+    if settings.detector_fallback_backend != "yolo_world":
+        return gemini_detector
+    if not settings.yolo_world_model_path.strip():
+        logger.warning("DETECTOR_FALLBACK_BACKEND=yolo_world but YOLO_WORLD_MODEL_PATH is empty; no fallback.")
+        return gemini_detector
+
+    from app.services.fallback_detector import FallbackDetector
+    from app.services.yolo_world_detector import resolve_yolo_model_path
+
+    if not resolve_yolo_model_path(settings.yolo_world_model_path).is_file():
+        logger.warning(
+            "DETECTOR_FALLBACK_BACKEND=yolo_world but model '%s' is not on disk; no fallback.",
+            settings.yolo_world_model_path,
+        )
+        return gemini_detector
+    return FallbackDetector(
+        gemini_detector,
+        lambda: get_yolo_world_detector(settings),
+        primary_name="gemini",
+        secondary_name="yolo_world",
+    )
 
 
 def get_vision_provider() -> VisionProviderProtocol:
