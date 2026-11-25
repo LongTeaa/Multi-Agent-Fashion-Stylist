@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 from pydantic import SecretStr
 
+from app.services.deadline import call_with_deadline
 from app.services.gemini_key_pool import GeminiKeyPool
 from app.services.gemini_provider import _extract_json_from_gemini_response
 from app.services.providers import WeatherContextResult
@@ -75,19 +76,29 @@ def post_gemini_generate_content(
     url = f"{base_url.rstrip('/')}/models/{model}:generateContent"
     max_attempts = max(1, int(max_retries) + 1)
 
-    def _send(req_payload: dict[str, Any], current_key: SecretStr) -> httpx.Response:
+    def _send(req_payload: dict[str, Any], current_key: SecretStr, attempt_deadline: float) -> httpx.Response:
+        """POST within the attempt's wall-clock budget (httpx alone bounds each phase only)."""
+        budget = attempt_deadline - time.monotonic()
         headers = {"x-goog-api-key": current_key.get_secret_value()}
-        if http_client is not None:
-            return http_client.post(url, headers=headers, json=req_payload, timeout=timeout)
-        with httpx.Client(timeout=timeout) as client:
-            return client.post(url, headers=headers, json=req_payload)
+
+        def post() -> httpx.Response:
+            if http_client is not None:
+                return http_client.post(url, headers=headers, json=req_payload, timeout=budget)
+            with httpx.Client(timeout=budget) as client:
+                return client.post(url, headers=headers, json=req_payload)
+
+        try:
+            return call_with_deadline(post, budget, message="Gemini request exceeded its deadline.")
+        except TimeoutError as exc:
+            raise httpx.TimeoutException("Gemini request exceeded its deadline.") from exc
 
     for attempt in range(max_attempts):
         if request_delay_seconds > 0:
             sleep_fn(request_delay_seconds)
         current_key = key_pool.get_next_key()
+        attempt_deadline = time.monotonic() + timeout
         try:
-            response = _send(payload, current_key)
+            response = _send(payload, current_key, attempt_deadline)
         except httpx.TimeoutException:
             if attempt + 1 < max_attempts:
                 sleep_fn(initial_backoff_seconds * (2 ** attempt))
@@ -98,7 +109,8 @@ def post_gemini_generate_content(
             # Compatibility fallback if a preview model variant rejects thinkingConfig
             fallback_gen = {k: v for k, v in payload["generationConfig"].items() if k != "thinkingConfig"}
             fallback_payload = {**payload, "generationConfig": fallback_gen}
-            response = _send(fallback_payload, current_key)
+            # Same attempt, same deadline: the compatibility retry cannot extend the wait.
+            response = _send(fallback_payload, current_key, attempt_deadline)
 
         if response.status_code == 429:
             retry_after = extract_google_retry_delay_seconds(response)
@@ -360,6 +372,18 @@ class OpenWeatherProvider:
         location: str,
         event_date: date,
         time_of_day: str = "afternoon",
+    ) -> WeatherContextResult:
+        # The whole lookup must finish within timeout_seconds of wall time.
+        return call_with_deadline(
+            lambda: self._get_weather_unbounded(location, event_date, time_of_day),
+            self.timeout_seconds, message="Weather provider timed out.",
+        )
+
+    def _get_weather_unbounded(
+        self,
+        location: str,
+        event_date: date,
+        time_of_day: str,
     ) -> WeatherContextResult:
         params = {
             "q": location,

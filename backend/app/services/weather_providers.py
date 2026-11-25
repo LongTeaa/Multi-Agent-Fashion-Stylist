@@ -8,6 +8,7 @@ from typing import Literal
 
 import httpx
 
+from app.services.deadline import call_with_deadline
 from app.services.providers import WeatherContextResult
 
 EVENT_HOURS = {"morning": 9, "afternoon": 15, "evening": 19, "night": 22}
@@ -33,6 +34,14 @@ class OpenMeteoProvider:
 
     def get_weather(self, *, location: str, event_date: date,
                     time_of_day: str = "afternoon") -> WeatherContextResult:
+        # Geocoding plus forecast must finish within timeout_seconds of wall time.
+        return call_with_deadline(
+            lambda: self._get_weather_unbounded(location, event_date, time_of_day),
+            self.timeout_seconds, message="Weather provider timed out.",
+        )
+
+    def _get_weather_unbounded(self, location: str, event_date: date,
+                               time_of_day: str) -> WeatherContextResult:
         if self._client is not None:
             return self._fetch(self._client, location, event_date, time_of_day)
         with httpx.Client(timeout=self.timeout_seconds) as client:
