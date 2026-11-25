@@ -7,7 +7,8 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22). |
+| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). |
+| Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -45,7 +46,7 @@ Each phase MUST be a level-2 heading of the form `## Phase N — Title`, numbere
 - [x] Add an opt-in live runner that sends the gold photos through the real ingestion service in an isolated temporary database and storage, once per detector, and records raw provider outputs, latency and failures without secrets. A `--score` mode recomputes every metric from a saved raw-output file without network access.
 - [x] Run YOLO-World live on sets A, B and C, write `docs/archive/reports/LIVE_INGESTION_EVALUATION_2026-11-19.md` with the frozen raw results under `data/fixtures/live_ingestion_*.json`, and draft the Vietnamese evaluation section for thesis chapter 7 (`docs/archive/reports/CHUONG_7_DANH_GIA_SO_HOA_TU_DO_NHAP_2026-11-19.md`).
 - [x] Add the garment subtypes observed in the live run as taxonomy aliases (`backend/app/services/garment_taxonomy.py`, tests in `test_garment_taxonomy.py`) and re-score the frozen raw file offline; report section 3.1.
-- [ ] Rerun the Gemini detector on sets A, B and C with sufficient quota and add the comparison to the report. The 2026-11-19 run failed on 54/58 attribute and 21/21 localization detector requests (HTTP 429 daily quota, 503, timeouts) and is kept only as failure evidence.
+- [x] Rerun the Gemini detector on sets A, B and C with sufficient quota and add the comparison to the report. The 2026-11-19 run failed on 54/58 attribute and 21/21 localization detector requests (HTTP 429 daily quota, 503, timeouts) and is kept only as failure evidence. Done 2026-11-25 with a paid Tier 1 key and no provider failures (`docs/archive/reports/LIVE_INGESTION_EVALUATION_2026-11-25.md`): localization 25/47 vs 17/47 on set B (flat-lay 16/27 vs 8/27) and 9/10 vs 5/10 on set C, sign test over 21 photos p = 0.021. The report adds a same-day YOLO-World repeat (run-to-run variation) and a `gemini-3.5-flash-lite` vision baseline; no attribute difference on set A is significant.
 - [x] Update `TEST_STRATEGY.md` section 3.2 and `ALIGNMENT_BACKLOG.md` T-2.
 
 **Acceptance criteria:**
@@ -60,6 +61,8 @@ Each phase MUST be a level-2 heading of the form `## Phase N — Title`, numbere
 cd backend; python -m pytest tests/unit/test_vision_evaluation.py tests/unit/test_live_ingestion_evaluation.py -q; cd ..
 python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_yolo_world.json
 python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_localization_v3_yolo_world.json --localization-manifest data/fixtures/vision_real_review_v3.json
+python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_yolo_world.json data/fixtures/live_ingestion_attributes_v1_yolo_world_20261125.json data/fixtures/live_ingestion_attributes_v1_gemini_20261125.json data/fixtures/live_ingestion_attributes_v1_yolo_world_flash_lite_20261125.json
+python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_localization_v3_yolo_world.json data/fixtures/live_ingestion_localization_v3_gemini_20261125.json --localization-manifest data/fixtures/vision_real_review_v3.json
 ./scripts/verify_documentation.ps1
 ```
 

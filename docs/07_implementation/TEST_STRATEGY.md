@@ -89,6 +89,12 @@ provider failure counts as wrong in `accuracy`; `accuracy_when_answered` exclude
 it, and both are reported. The largest proposed detection is scored. Gold labels
 MUST be frozen before the scored live run and MUST NOT be edited afterwards to
 improve a score; any later correction is recorded with its reason and both scores.
+Hosted vision models vary between runs: the same configuration moved by up to six
+of 58 photos between 2026-11-19 and 2026-11-25. A comparison between detectors or
+vision models MUST therefore use runs made on the same day, MUST be paired on the
+same photos (exact McNemar for per-photo fields, sign test for per-photo region
+counts), and MUST NOT present a difference within run-to-run variation as a model
+effect (`../archive/reports/LIVE_INGESTION_EVALUATION_2026-11-25.md`).
 Live reports retain raw provider boxes/metrics and effective crop boxes/metrics
 separately, with scene inference, confidence, and crop-policy version. Changes to
 crop policy can also be tested against frozen provider boxes on private real
