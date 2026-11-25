@@ -308,7 +308,11 @@ def get_context_llm_provider() -> ContextLLMProviderProtocol | None:
         model=settings.llm_model,
         timeout_seconds=float(settings.context_timeout_seconds),
         key_pool=key_pool,
-        max_retries=max(2, key_pool.total_keys),
+        # One attempt per call inside a chat request: a slow or rate-limited provider falls
+        # back to the rule parser within CONTEXT_TIMEOUT_SECONDS instead of retrying and
+        # sleeping. The key pool still rotates keys across requests. Benchmark runs build
+        # their own provider with retries (backend/tests/evaluation/benchmark/runner.py).
+        max_retries=0,
     )
 
 
