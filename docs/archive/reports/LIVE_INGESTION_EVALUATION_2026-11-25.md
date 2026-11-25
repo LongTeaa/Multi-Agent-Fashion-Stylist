@@ -46,8 +46,12 @@ retry of failed calls.
 0 HTTP 429, 0 HTTP 503, 0 timeouts and 0 model-fallback events. Calls counted by the wrapper exceed one
 per photo when the ingestion service asks for attributes of more than one detection.
 
-**Cost.** Not measured per call. The prepaid balance was ₫150,000 before the runs; the
-actual spend is read from the AI Studio Spend page and is not recorded here yet.
+**Cost.** Not measured per call. The AI Studio Spend page for the project showed
+₫29,406 (about US$1.1) for November 2026 after all runs, on a billing account opened the
+same day, so it covers these runs and the one-photo smoke test. Google states that costs
+can take more than 24 hours to appear, so this is a lower bound. Averaged over the 258
+calls this is about ₫114 (US$0.004) per Gemini call, or about ₫230 per photo when both the
+detector and vision steps use Gemini.
 
 ## 2. Localization: YOLO-World vs Gemini detector
 
