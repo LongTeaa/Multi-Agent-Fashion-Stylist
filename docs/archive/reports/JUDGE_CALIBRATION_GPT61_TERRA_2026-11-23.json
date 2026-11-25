@@ -10,9 +10,9 @@
   "pairwise_hits": "12/12",
   "position_consistency_rate": 1.0,
   "rubric_reference_spearman": 0.9212,
-  "human_score_source": "reference_rubric_rating_v2",
-  "human_vs_judge_spearman": 0.9212,
-  "real_human_rater_count": 0,
+  "human_score_source": "blind_human_raters",
+  "human_vs_judge_spearman": 0.8953,
+  "real_human_rater_count": 3,
   "judge_api_calls": 20,
   "judge_cache_hits": 24,
   "judge_usage_tokens": {

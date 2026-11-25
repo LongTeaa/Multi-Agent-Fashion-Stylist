@@ -1,0 +1,259 @@
+{
+  "rater_count": 3,
+  "raters": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "sample_count": 20,
+  "inter_rater_spearman_mean": 0.9463,
+  "inter_rater_mae_mean": 0.6333,
+  "judge_model": "openai/gpt-6.1-terra",
+  "judge_provider": "openai_compatible",
+  "human_vs_judge_spearman": 0.8953,
+  "human_vs_judge_mae": 0.4389,
+  "per_sample": [
+    {
+      "sample_id": "cal_bad_01",
+      "label": "bad",
+      "human_mean": 1.4444,
+      "human_scores": [
+        1.0,
+        1.3333,
+        2.0
+      ],
+      "judge_score": 2.0,
+      "abs_diff": 0.5556
+    },
+    {
+      "sample_id": "cal_bad_02",
+      "label": "bad",
+      "human_mean": 1.8889,
+      "human_scores": [
+        1.3333,
+        1.6667,
+        2.6667
+      ],
+      "judge_score": 2.0,
+      "abs_diff": 0.1111
+    },
+    {
+      "sample_id": "cal_bad_03",
+      "label": "bad",
+      "human_mean": 1.2222,
+      "human_scores": [
+        1.0,
+        1.0,
+        1.6667
+      ],
+      "judge_score": 2.6667,
+      "abs_diff": 1.4445
+    },
+    {
+      "sample_id": "cal_bad_04",
+      "label": "bad",
+      "human_mean": 3.1111,
+      "human_scores": [
+        2.6667,
+        3.0,
+        3.6667
+      ],
+      "judge_score": 2.0,
+      "abs_diff": 1.1111
+    },
+    {
+      "sample_id": "cal_bad_05",
+      "label": "bad",
+      "human_mean": 1.2222,
+      "human_scores": [
+        1.0,
+        1.0,
+        1.6667
+      ],
+      "judge_score": 2.0,
+      "abs_diff": 0.7778
+    },
+    {
+      "sample_id": "cal_bad_06",
+      "label": "bad",
+      "human_mean": 1.7778,
+      "human_scores": [
+        1.0,
+        1.0,
+        3.3333
+      ],
+      "judge_score": 2.1667,
+      "abs_diff": 0.3889
+    },
+    {
+      "sample_id": "cal_bad_07",
+      "label": "bad",
+      "human_mean": 1.2222,
+      "human_scores": [
+        1.0,
+        1.0,
+        1.6667
+      ],
+      "judge_score": 2.0,
+      "abs_diff": 0.7778
+    },
+    {
+      "sample_id": "cal_bad_08",
+      "label": "bad",
+      "human_mean": 2.8889,
+      "human_scores": [
+        2.6667,
+        2.6667,
+        3.3333
+      ],
+      "judge_score": 3.1667,
+      "abs_diff": 0.2778
+    },
+    {
+      "sample_id": "cal_good_01",
+      "label": "good",
+      "human_mean": 4.8889,
+      "human_scores": [
+        5.0,
+        4.6667,
+        5.0
+      ],
+      "judge_score": 4.8333,
+      "abs_diff": 0.0556
+    },
+    {
+      "sample_id": "cal_good_02",
+      "label": "good",
+      "human_mean": 4.6667,
+      "human_scores": [
+        4.6667,
+        4.3333,
+        5.0
+      ],
+      "judge_score": 4.8333,
+      "abs_diff": 0.1666
+    },
+    {
+      "sample_id": "cal_good_03",
+      "label": "good",
+      "human_mean": 4.7778,
+      "human_scores": [
+        5.0,
+        4.6667,
+        4.6667
+      ],
+      "judge_score": 4.1667,
+      "abs_diff": 0.6111
+    },
+    {
+      "sample_id": "cal_good_04",
+      "label": "good",
+      "human_mean": 3.5556,
+      "human_scores": [
+        3.0,
+        3.0,
+        4.6667
+      ],
+      "judge_score": 4.1667,
+      "abs_diff": 0.6111
+    },
+    {
+      "sample_id": "cal_good_05",
+      "label": "good",
+      "human_mean": 4.5556,
+      "human_scores": [
+        4.6667,
+        4.0,
+        5.0
+      ],
+      "judge_score": 4.6667,
+      "abs_diff": 0.1111
+    },
+    {
+      "sample_id": "cal_good_06",
+      "label": "good",
+      "human_mean": 4.5556,
+      "human_scores": [
+        4.6667,
+        4.3333,
+        4.6667
+      ],
+      "judge_score": 4.0,
+      "abs_diff": 0.5556
+    },
+    {
+      "sample_id": "cal_good_07",
+      "label": "good",
+      "human_mean": 4.6667,
+      "human_scores": [
+        4.6667,
+        4.3333,
+        5.0
+      ],
+      "judge_score": 4.6667,
+      "abs_diff": 0.0
+    },
+    {
+      "sample_id": "cal_good_08",
+      "label": "good",
+      "human_mean": 4.2222,
+      "human_scores": [
+        4.3333,
+        4.0,
+        4.3333
+      ],
+      "judge_score": 4.6667,
+      "abs_diff": 0.4445
+    },
+    {
+      "sample_id": "cal_mid_01",
+      "label": "mediocre",
+      "human_mean": 3.4444,
+      "human_scores": [
+        3.0,
+        3.0,
+        4.3333
+      ],
+      "judge_score": 3.5,
+      "abs_diff": 0.0556
+    },
+    {
+      "sample_id": "cal_mid_02",
+      "label": "mediocre",
+      "human_mean": 3.3333,
+      "human_scores": [
+        3.0,
+        3.0,
+        4.0
+      ],
+      "judge_score": 3.5,
+      "abs_diff": 0.1667
+    },
+    {
+      "sample_id": "cal_mid_03",
+      "label": "mediocre",
+      "human_mean": 3.6666,
+      "human_scores": [
+        3.3333,
+        3.3333,
+        4.3333
+      ],
+      "judge_score": 3.8333,
+      "abs_diff": 0.1667
+    },
+    {
+      "sample_id": "cal_mid_04",
+      "label": "mediocre",
+      "human_mean": 2.8889,
+      "human_scores": [
+        2.0,
+        2.6667,
+        4.0
+      ],
+      "judge_score": 2.5,
+      "abs_diff": 0.3889
+    }
+  ],
+  "raters_anonymized": true,
+  "rater_role": "independent_blind_raters"
+}

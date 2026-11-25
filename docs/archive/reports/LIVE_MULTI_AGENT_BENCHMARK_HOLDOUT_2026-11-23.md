@@ -16,7 +16,7 @@
 - **Pairwise Bidirectional Accuracy:** `100.0%` (12/12)
 - **Position Consistency Rate:** `100.0%`
 - **Rubric Reference Spearman rho:** `0.9212`
-- **Human vs Judge Spearman rho:** `0.9212` *(source: reference rubric rating (AI-authored baseline))*
+- **Human vs Judge Spearman rho:** `0.8953` *(source: blind human raters (n=3))*
 
 ## 3. Lớp A — Kiểm Định Kỹ Thuật Bắt Buộc (Technical Gate)
 

@@ -633,7 +633,12 @@ def _render_human_vs_judge_markdown(summary: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.append("# Báo Cáo Đối Chiếu Người Chấm Mù vs LLM Judge")
     lines.append("")
-    lines.append(f"- **Số người chấm mù:** `{summary['rater_count']}` ({', '.join(summary['raters'])})")
+    if summary.get("raters_anonymized"):
+        lines.append(
+            f"- **Số người chấm mù độc lập (ẩn danh):** `{summary['rater_count']}` ({', '.join(summary['raters'])})"
+        )
+    else:
+        lines.append(f"- **Số người chấm mù:** `{summary['rater_count']}` ({', '.join(summary['raters'])})")
     lines.append(f"- **Số mẫu hiệu chuẩn:** `{summary['sample_count']}`")
     lines.append(f"- **Độ đồng thuận liên người chấm (Pairwise Spearman rho TB):** `{summary['inter_rater_spearman_mean']}`")
     lines.append(f"- **Sai số tuyệt đối trung bình giữa người chấm (Inter-Rater MAE):** `{summary['inter_rater_mae_mean']}`")
@@ -659,6 +664,8 @@ def score_human_vs_judge(
     ratings_dir: Path,
     manifest_path: Path,
     judge_calibration_json: Path | None = None,
+    anonymize_raters: bool = False,
+    rater_role: str = "independent_blind_raters",
     out_json: Path | None = None,
     out_md: Path | None = None,
 ) -> dict[str, Any]:
@@ -700,9 +707,14 @@ def score_human_vs_judge(
             }
         )
 
-    summary = {
+    raters_out = (
+        [f"R{i}" for i in range(1, len(loaded["raters"]) + 1)]
+        if anonymize_raters
+        else loaded["raters"]
+    )
+    summary: dict[str, Any] = {
         "rater_count": loaded["rater_count"],
-        "raters": loaded["raters"],
+        "raters": raters_out,
         "sample_count": loaded["sample_count"],
         "inter_rater_spearman_mean": loaded["inter_rater_spearman_mean"],
         "inter_rater_mae_mean": loaded["inter_rater_mae_mean"],
@@ -712,6 +724,9 @@ def score_human_vs_judge(
         "human_vs_judge_mae": round(sum(abs_diffs) / len(abs_diffs), 4) if abs_diffs else None,
         "per_sample": per_sample,
     }
+    if anonymize_raters:
+        summary["raters_anonymized"] = True
+        summary["rater_role"] = rater_role
 
     if out_json is not None:
         out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -735,6 +750,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_score.add_argument("--ratings-dir", type=Path, required=True)
     p_score.add_argument("--manifest", type=Path, required=True)
     p_score.add_argument("--judge-calibration-json", type=Path, default=None)
+    p_score.add_argument(
+        "--anonymize-raters",
+        action="store_true",
+        help="Replace real rater names with anonymized labels (R1, R2, ...) in summary outputs.",
+    )
     p_score.add_argument("--out-json", type=Path, default=None)
     p_score.add_argument("--out-md", type=Path, default=None)
     return parser
@@ -755,6 +775,7 @@ def main(argv: list[str] | None = None) -> int:
         ratings_dir=args.ratings_dir,
         manifest_path=args.manifest,
         judge_calibration_json=args.judge_calibration_json,
+        anonymize_raters=bool(args.anonymize_raters),
         out_json=args.out_json,
         out_md=args.out_md,
     )

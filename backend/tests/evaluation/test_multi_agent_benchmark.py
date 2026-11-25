@@ -1750,3 +1750,59 @@ def test_judge_pointwise_weakest_link_cap_and_separate_prompt_version() -> None:
         query="Đi cafe", weather_condition="cool", profile_summary="", items=[], explanation_vi="x"
     )
     assert good_outfit_bad_exp["fashion_quality_score"] == round((4.0 + 4.0 + 5.0) / 3.0, 4)
+
+
+def test_score_human_vs_judge_anonymizes_raters_without_leaking_names(tmp_path: Path) -> None:
+    """score_human_vs_judge(..., anonymize_raters=True) replaces rater names with R1..Rk in JSON and Markdown."""
+    from scripts.judge_calibration_human_review import build_blind_calibration_package, score_human_vs_judge
+
+    cal_path = Path(__file__).resolve().parents[3] / "data" / "fixtures" / "judge_calibration_v1.json"
+    cal_data = json.loads(cal_path.read_text(encoding="utf-8"))
+
+    review_dir = tmp_path / "blind_review"
+    pkg = build_blind_calibration_package(calibration_path=cal_path, out_dir=review_dir, seed=99)
+    manifest = json.loads(Path(pkg["manifest_path"]).read_text(encoding="utf-8"))
+    blind_to_sample = manifest["blind_to_sample"]
+    sample_label_by_id = {str(s["id"]): str(s["label"]) for s in cal_data["pointwise_samples"]}
+
+    ratings_dir = tmp_path / "ratings"
+    ratings_dir.mkdir(parents=True, exist_ok=True)
+    real_names = ("Alice Private", "Bob Secret")
+    for idx, real_name in enumerate(real_names):
+        entries = []
+        for blind_id, sample_id in sorted(blind_to_sample.items()):
+            lbl = sample_label_by_id[sample_id]
+            base = 5 if lbl == "good" else (3 if lbl == "mediocre" else 1 + idx)
+            entries.append(
+                {
+                    "blind_id": blind_id,
+                    "occasion_formality": base,
+                    "weather_comfort_function": base,
+                    "aesthetic_harmony": base,
+                    "explanation_usefulness": base,
+                }
+            )
+        (ratings_dir / f"calibration_ratings_{idx}.json").write_text(
+            json.dumps({"rater_name": real_name, "ratings": entries}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    out_json = tmp_path / "human_vs_judge.json"
+    out_md = tmp_path / "human_vs_judge.md"
+    summary = score_human_vs_judge(
+        ratings_dir=ratings_dir,
+        manifest_path=Path(pkg["manifest_path"]),
+        anonymize_raters=True,
+        out_json=out_json,
+        out_md=out_md,
+    )
+    assert summary["rater_count"] == 2
+    assert summary["raters"] == ["R1", "R2"]
+    assert summary["raters_anonymized"] is True
+
+    json_text = out_json.read_text(encoding="utf-8")
+    md_text = out_md.read_text(encoding="utf-8")
+    for real_name in real_names:
+        assert real_name not in json_text
+        assert real_name not in md_text
+    assert "R1, R2" in md_text
