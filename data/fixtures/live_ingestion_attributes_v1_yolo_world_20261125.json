@@ -1,0 +1,8284 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-25T02:45:35.085364+00:00",
+ "detector": "yolo_world",
+ "detector_model": "yolov8s-worldv2.onnx",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "gold_dataset_version": "vision-attribute-gold-v1",
+ "gold_sha256": "0ce487bddd5f731cd809f3b03c19ee9ea591affbb6b76660f144d9cb5760a8e2",
+ "gold_review_status": "owner_reviewed",
+ "attribute_results": [
+  {
+   "id": "demo-01",
+   "status": "ok",
+   "elapsed_seconds": 7.688,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "harsh_shadows",
+    "garment_wrinkles"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.203,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0319,
+        0.0795,
+        0.9137,
+        0.8645
+       ],
+       "label": "bag",
+       "confidence": 0.4533
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.297,
+     "crop_sha256": "4cb5dcf86d7b6b1202ee6b7c1c47b1aee8692e3119e5c0c7dd42f161097adf38",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "t-shirt",
+       "crewneck",
+       "short sleeve",
+       "basic",
+       "white tee",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.99,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.9,
+      "style": 0.98,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0319,
+      0.0795,
+      0.9137,
+      0.8645
+     ],
+     "raw_box": [
+      0.0319,
+      0.0795,
+      0.9137,
+      0.8645
+     ],
+     "crop_sha256": "4cb5dcf86d7b6b1202ee6b7c1c47b1aee8692e3119e5c0c7dd42f161097adf38",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "t-shirt",
+       "crewneck",
+       "short sleeve",
+       "basic",
+       "white tee",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-02",
+   "status": "ok",
+   "elapsed_seconds": 10.642,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.294,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.221,
+     "crop_sha256": "aa08badfd759443851044fc777461370f0d28c4481eb0b22f82eae7d1eeeaf23",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "silver",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "star print",
+       "glitter",
+       "pocket tee",
+       "relaxed fit",
+       "scoop neck",
+       "short sleeve"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "aa08badfd759443851044fc777461370f0d28c4481eb0b22f82eae7d1eeeaf23",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "grey",
+      "secondary_color": "silver",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "star print",
+       "glitter",
+       "pocket tee",
+       "relaxed fit",
+       "scoop neck",
+       "short sleeve"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-03",
+   "status": "ok",
+   "elapsed_seconds": 10.418,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.274,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.996,
+     "crop_sha256": "ca3abe3d2181b9cbcb4e6d955a5c468fdad3b7c8c456dfdcae14c325acfe7f0d",
+     "attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "red",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "turtleneck",
+       "long-sleeve",
+       "knit",
+       "pullover",
+       "vibrant"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "ca3abe3d2181b9cbcb4e6d955a5c468fdad3b7c8c456dfdcae14c325acfe7f0d",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "sweater",
+      "primary_color": "red",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "turtleneck",
+       "long-sleeve",
+       "knit",
+       "pullover",
+       "vibrant"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-04",
+   "status": "ok",
+   "elapsed_seconds": 12.989,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.285,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0528,
+        0.0777,
+        0.8306,
+        0.8876
+       ],
+       "label": "bag",
+       "confidence": 0.3662
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 12.568,
+     "crop_sha256": "1090a87b40b33a33f4f048caecb6bbba84af64cdbec9b231dd2887f4fd796a11",
+     "attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "khaki",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "v-neck",
+       "long-sleeve",
+       "button-placket",
+       "draped"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0528,
+      0.0777,
+      0.8306,
+      0.8876
+     ],
+     "raw_box": [
+      0.0528,
+      0.0777,
+      0.8306,
+      0.8876
+     ],
+     "crop_sha256": "1090a87b40b33a33f4f048caecb6bbba84af64cdbec9b231dd2887f4fd796a11",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "khaki",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "v-neck",
+       "long-sleeve",
+       "button-placket",
+       "draped"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-05",
+   "status": "ok",
+   "elapsed_seconds": 7.209,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "hanger_visible",
+    "tag_visible"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.251,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0942,
+        0.0599,
+        0.8441,
+        0.9405
+       ],
+       "label": "clothing",
+       "confidence": 0.5091
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.833,
+     "crop_sha256": "7a257bef191f1a5dba2ed92568df73fe172d5dba2db39b60ea5c590340999d28",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "viscose",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "button-down",
+       "long sleeve",
+       "collared",
+       "black and white"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0942,
+      0.0599,
+      0.8441,
+      0.9405
+     ],
+     "raw_box": [
+      0.0942,
+      0.0599,
+      0.8441,
+      0.9405
+     ],
+     "crop_sha256": "7a257bef191f1a5dba2ed92568df73fe172d5dba2db39b60ea5c590340999d28",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "viscose",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "leopard print",
+       "button-down",
+       "long sleeve",
+       "collared",
+       "black and white"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-06",
+   "status": "ok",
+   "elapsed_seconds": 7.509,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "flat_lay_presentation"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.292,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.085,
+     "crop_sha256": "526c6529e15a7c8de3c6e07cc282e94a3f5f77e30acf33bb7cd75ac1718853e5",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "lace",
+       "short sleeve",
+       "button down",
+       "collared",
+       "blouse",
+       "sheer"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.95,
+      "primary_color": 0.99,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "526c6529e15a7c8de3c6e07cc282e94a3f5f77e30acf33bb7cd75ac1718853e5",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "lace",
+       "short sleeve",
+       "button down",
+       "collared",
+       "blouse",
+       "sheer"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-07",
+   "status": "ok",
+   "elapsed_seconds": 7.239,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "garment_is_wrinkled",
+    "uneven_lighting"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.287,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0004,
+        0.0936,
+        0.9955,
+        0.9904
+       ],
+       "label": "clothing",
+       "confidence": 0.4796
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.817,
+     "crop_sha256": "3a5dd6720505e348bebd5e02c7332013c2b74980bfc4cfd5d94d1565719288b9",
+     "attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "asymmetrical hem",
+       "layered",
+       "blouse",
+       "light blue",
+       "round neck",
+       "embellished"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.85,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.85,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0004,
+      0.0936,
+      0.9955,
+      0.9904
+     ],
+     "raw_box": [
+      0.0004,
+      0.0936,
+      0.9955,
+      0.9904
+     ],
+     "crop_sha256": "3a5dd6720505e348bebd5e02c7332013c2b74980bfc4cfd5d94d1565719288b9",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "asymmetrical hem",
+       "layered",
+       "blouse",
+       "light blue",
+       "round neck",
+       "embellished"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-08",
+   "status": "ok",
+   "elapsed_seconds": 7.124,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.205,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.048,
+        0.0943,
+        0.9508,
+        0.9693
+       ],
+       "label": "coat",
+       "confidence": 0.366
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.811,
+     "crop_sha256": "699e1e884c6cdc1836a2ccaef13899218d880c83c142487414c3cac4b7be972c",
+     "attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "burgundy",
+      "secondary_color": "pink",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "floral print",
+       "burgundy",
+       "blouse",
+       "short sleeve",
+       "neckline accent",
+       "smart casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.98,
+      "primary_color": 0.97,
+      "secondary_color": 0.95,
+      "pattern": 0.99,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.92,
+      "formality_level": 0.9,
+      "comfort_level": 0.88,
+      "silhouette_level": 0.9,
+      "length": 0.93,
+      "season": 0.92,
+      "weather_suitability": 0.92,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.048,
+      0.0943,
+      0.9508,
+      0.9693
+     ],
+     "raw_box": [
+      0.048,
+      0.0943,
+      0.9508,
+      0.9693
+     ],
+     "crop_sha256": "699e1e884c6cdc1836a2ccaef13899218d880c83c142487414c3cac4b7be972c",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "blouse",
+      "primary_color": "burgundy",
+      "secondary_color": "pink",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "floral print",
+       "burgundy",
+       "blouse",
+       "short sleeve",
+       "neckline accent",
+       "smart casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-09",
+   "status": "ok",
+   "elapsed_seconds": 7.475,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.274,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.061,
+     "crop_sha256": "638a9dbfd37ff08043b543408b4877fc9795b4f6bf5640f08a8c5522603c2f0e",
+     "attributes": {
+      "category": "top",
+      "sub_category": "camisole",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "spaghetti-straps",
+       "ruffle",
+       "frill",
+       "camisole",
+       "summer-top",
+       "sleeveless"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 1.0,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.85,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "638a9dbfd37ff08043b543408b4877fc9795b4f6bf5640f08a8c5522603c2f0e",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "camisole",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "spaghetti-straps",
+       "ruffle",
+       "frill",
+       "camisole",
+       "summer-top",
+       "sleeveless"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-10",
+   "status": "ok",
+   "elapsed_seconds": 10.313,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.259,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0072,
+        0.105,
+        0.96,
+        0.883
+       ],
+       "label": "clothing",
+       "confidence": 0.5574
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.902,
+     "crop_sha256": "f5bb42a17eeaffc6eb831ca657475c166e37ea613902e27e1dc935660d514561",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "white",
+      "secondary_color": "blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "sunny",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "collar",
+       "button placket",
+       "casual wear",
+       "summer style"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 1.0,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0072,
+      0.105,
+      0.96,
+      0.883
+     ],
+     "raw_box": [
+      0.0072,
+      0.105,
+      0.96,
+      0.883
+     ],
+     "crop_sha256": "f5bb42a17eeaffc6eb831ca657475c166e37ea613902e27e1dc935660d514561",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "white",
+      "secondary_color": "blue",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "sunny",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "striped polo",
+       "short sleeve",
+       "collar",
+       "button placket",
+       "casual wear",
+       "summer style"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-11",
+   "status": "ok",
+   "elapsed_seconds": 10.666,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.255,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1146,
+        0.1498,
+        0.9781,
+        0.8154
+       ],
+       "label": "bag",
+       "confidence": 0.4606
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.279,
+     "crop_sha256": "ccba2e01aa4250fe93cdaaa8345a0b0f7d8fed4c8adf5411ca5b9714a383fe6c",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "corduroy",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "work"
+      ],
+      "free_text_tags": [
+       "culottes",
+       "wide-leg",
+       "high-waisted",
+       "textured",
+       "olive"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1146,
+      0.1498,
+      0.9781,
+      0.8154
+     ],
+     "raw_box": [
+      0.1146,
+      0.1498,
+      0.9781,
+      0.8154
+     ],
+     "crop_sha256": "ccba2e01aa4250fe93cdaaa8345a0b0f7d8fed4c8adf5411ca5b9714a383fe6c",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "trousers",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "corduroy",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "work"
+      ],
+      "free_text_tags": [
+       "culottes",
+       "wide-leg",
+       "high-waisted",
+       "textured",
+       "olive"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-12",
+   "status": "ok",
+   "elapsed_seconds": 7.493,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.353,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1943,
+        0.0187,
+        0.7836,
+        0.9779
+       ],
+       "label": "clothing",
+       "confidence": 0.4579
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.989,
+     "crop_sha256": "13e3c16fecdca09020e03984448628a6725bce8556c0b43e1916fb2a58861bc2",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "denim",
+       "blue jeans",
+       "slim fit",
+       "washed",
+       "casual",
+       "5-pocket"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.98,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.98,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1943,
+      0.0187,
+      0.7836,
+      0.9779
+     ],
+     "raw_box": [
+      0.1943,
+      0.0187,
+      0.7836,
+      0.9779
+     ],
+     "crop_sha256": "13e3c16fecdca09020e03984448628a6725bce8556c0b43e1916fb2a58861bc2",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "denim",
+       "blue jeans",
+       "slim fit",
+       "washed",
+       "casual",
+       "5-pocket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-13",
+   "status": "ok",
+   "elapsed_seconds": 7.593,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.266,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0718,
+        0.0555,
+        0.9616,
+        0.9954
+       ],
+       "label": "skirt",
+       "confidence": 0.4419
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.19,
+     "crop_sha256": "13f3ccadede8c7e025a78be3cd32540846b518631b3f38a9fd62a956d48f6225",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "leggings",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "leggings",
+       "leopard print",
+       "animal print",
+       "elastic waist",
+       "stretch"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.95,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0718,
+      0.0555,
+      0.9616,
+      0.9954
+     ],
+     "raw_box": [
+      0.0718,
+      0.0555,
+      0.9616,
+      0.9954
+     ],
+     "crop_sha256": "13f3ccadede8c7e025a78be3cd32540846b518631b3f38a9fd62a956d48f6225",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "leggings",
+      "primary_color": "white",
+      "secondary_color": "black",
+      "pattern": "animal_print",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "leggings",
+       "leopard print",
+       "animal print",
+       "elastic waist",
+       "stretch"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-14",
+   "status": "ok",
+   "elapsed_seconds": 8.112,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.257,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0979,
+        0.2711,
+        0.9022,
+        0.7438
+       ],
+       "label": "bag",
+       "confidence": 0.5303
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.728,
+     "crop_sha256": "8901028664a9a5dc3334ae4978dce235363cb2877e2b68af6d3e5b68baf3d32d",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light blue",
+      "secondary_color": null,
+      "pattern": "distressed",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor",
+       "movement"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "distressed",
+       "ripped",
+       "light wash",
+       "high waist",
+       "cuffed hem"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.98,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.99,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.98,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0979,
+      0.2711,
+      0.9022,
+      0.7438
+     ],
+     "raw_box": [
+      0.0979,
+      0.2711,
+      0.9022,
+      0.7438
+     ],
+     "crop_sha256": "8901028664a9a5dc3334ae4978dce235363cb2877e2b68af6d3e5b68baf3d32d",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light blue",
+      "secondary_color": null,
+      "pattern": "distressed",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor",
+       "movement"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "distressed",
+       "ripped",
+       "light wash",
+       "high waist",
+       "cuffed hem"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-15",
+   "status": "ok",
+   "elapsed_seconds": 10.795,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.279,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0548,
+        0.1664,
+        0.9174,
+        0.8166
+       ],
+       "label": "clothing",
+       "confidence": 0.2968
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.363,
+     "crop_sha256": "726993dca46e4a88317f79ae8b5b1d4393d7c7f60d68f0d467f7c57771dca916",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "skirt",
+      "primary_color": "turquoise",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "wrap skirt",
+       "lightweight",
+       "summer skirt",
+       "casual skirt",
+       "blue skirt"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0548,
+      0.1664,
+      0.9174,
+      0.8166
+     ],
+     "raw_box": [
+      0.0548,
+      0.1664,
+      0.9174,
+      0.8166
+     ],
+     "crop_sha256": "726993dca46e4a88317f79ae8b5b1d4393d7c7f60d68f0d467f7c57771dca916",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "skirt",
+      "primary_color": "turquoise",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "wrap skirt",
+       "lightweight",
+       "summer skirt",
+       "casual skirt",
+       "blue skirt"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-16",
+   "status": "ok",
+   "elapsed_seconds": 10.516,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.287,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.085,
+     "crop_sha256": "7a6a887756c547d5df8534e907b90d7d6ad20ab517a93e0e533f8032a6ba2c64",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "green",
+      "secondary_color": "yellow",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "tropical print",
+       "elastic waist",
+       "flowy",
+       "shorts",
+       "vacation",
+       "colorful"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.8,
+      "secondary_color": 0.75,
+      "pattern": 0.9,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "7a6a887756c547d5df8534e907b90d7d6ad20ab517a93e0e533f8032a6ba2c64",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "green",
+      "secondary_color": "yellow",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "tropical print",
+       "elastic waist",
+       "flowy",
+       "shorts",
+       "vacation",
+       "colorful"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-17",
+   "status": "ok",
+   "elapsed_seconds": 10.33,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.295,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.2679,
+        0.0,
+        0.7136,
+        0.9965
+       ],
+       "label": "dress",
+       "confidence": 0.7147
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.928,
+     "crop_sha256": "7d99dc10518048b449a948705066625204fcb38ddc533bebd6f468368b87fe9d",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "evening dress",
+      "primary_color": "black",
+      "secondary_color": "teal",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "sequins",
+       "beaded",
+       "fringe",
+       "sleeveless",
+       "v-neck",
+       "party",
+       "evening"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.85,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.8,
+      "material": 0.7,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.8,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.2679,
+      0.0,
+      0.7136,
+      0.9965
+     ],
+     "raw_box": [
+      0.2679,
+      0.0,
+      0.7136,
+      0.9965
+     ],
+     "crop_sha256": "7d99dc10518048b449a948705066625204fcb38ddc533bebd6f468368b87fe9d",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "evening dress",
+      "primary_color": "black",
+      "secondary_color": "teal",
+      "pattern": "floral",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "sequins",
+       "beaded",
+       "fringe",
+       "sleeveless",
+       "v-neck",
+       "party",
+       "evening"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-18",
+   "status": "ok",
+   "elapsed_seconds": 7.273,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "flat_lay_presentation",
+    "background_clutter"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.264,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.852,
+     "crop_sha256": "86f26a77f5260ffb0f31ba1e0b209d64e3d8344cef55c3621bbeaee7ca1e1f94",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "dress",
+      "primary_color": "purple",
+      "secondary_color": "green",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "floral print",
+       "a-line",
+       "summer dress",
+       "v-neck"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.85,
+      "pattern": 0.95,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "86f26a77f5260ffb0f31ba1e0b209d64e3d8344cef55c3621bbeaee7ca1e1f94",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "dress",
+      "primary_color": "purple",
+      "secondary_color": "green",
+      "pattern": "floral",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light",
+       "sun"
+      ],
+      "free_text_tags": [
+       "sleeveless",
+       "floral print",
+       "a-line",
+       "summer dress",
+       "v-neck"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-19",
+   "status": "ok",
+   "elapsed_seconds": 8.011,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.332,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1817,
+        0.0875,
+        0.7916,
+        0.7687
+       ],
+       "label": "coat",
+       "confidence": 0.6037
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.513,
+     "crop_sha256": "9934b8e485e590d54d537408737a3c12f3419baa0201c2e6e5c3094aa90cfcda",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "dress",
+      "primary_color": "magenta",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "magenta",
+       "short-sleeve",
+       "sheath",
+       "tailored",
+       "pockets",
+       "round-neck",
+       "fitted"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.75,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1817,
+      0.0875,
+      0.7916,
+      0.7687
+     ],
+     "raw_box": [
+      0.1817,
+      0.0875,
+      0.7916,
+      0.7687
+     ],
+     "crop_sha256": "9934b8e485e590d54d537408737a3c12f3419baa0201c2e6e5c3094aa90cfcda",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "dress",
+      "primary_color": "magenta",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "slim",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "magenta",
+       "short-sleeve",
+       "sheath",
+       "tailored",
+       "pockets",
+       "round-neck",
+       "fitted"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-20",
+   "status": "ok",
+   "elapsed_seconds": 7.373,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Initial spatial region label misclassified item as 'coat'; corrected to 'dress'."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.24,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.203,
+        0.1367,
+        0.8644,
+        0.7896
+       ],
+       "label": "coat",
+       "confidence": 0.6176
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.002,
+     "crop_sha256": "4566a1052ad1f524a87b2e445f4d0b8bfbcae8353e281c44668b942fc39a718b",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "midi dress",
+      "primary_color": "olive",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "olive green",
+       "v-neck",
+       "puff sleeves",
+       "lace-up",
+       "linen dress",
+       "midi dress",
+       "ruched front"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.98,
+      "material": 0.9,
+      "style": 0.92,
+      "fit": 0.92,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.88,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.203,
+      0.1367,
+      0.8644,
+      0.7896
+     ],
+     "raw_box": [
+      0.203,
+      0.1367,
+      0.8644,
+      0.7896
+     ],
+     "crop_sha256": "4566a1052ad1f524a87b2e445f4d0b8bfbcae8353e281c44668b942fc39a718b",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "midi dress",
+      "primary_color": "olive",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "linen",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "movement"
+      ],
+      "free_text_tags": [
+       "olive green",
+       "v-neck",
+       "puff sleeves",
+       "lace-up",
+       "linen dress",
+       "midi dress",
+       "ruched front"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-21",
+   "status": "ok",
+   "elapsed_seconds": 7.529,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Warm indoor lighting creates a slight color cast"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.247,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0545,
+        0.0359,
+        0.961,
+        0.983
+       ],
+       "label": "clothing",
+       "confidence": 0.3263
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.151,
+     "crop_sha256": "a524ede2a5be84f4237b25b49682aab168c5555125a5eeb33d1f0c8eb332c0b0",
+     "attributes": {
+      "category": "dress",
+      "sub_category": "shift dress",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "minimalist",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "movement"
+      ],
+      "free_text_tags": [
+       "white dress",
+       "sleeveless",
+       "tank dress",
+       "a-line",
+       "minimalist",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.98,
+      "sub_category": 0.92,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.98,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.88,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.85,
+      "length": 0.92,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0545,
+      0.0359,
+      0.961,
+      0.983
+     ],
+     "raw_box": [
+      0.0545,
+      0.0359,
+      0.961,
+      0.983
+     ],
+     "crop_sha256": "a524ede2a5be84f4237b25b49682aab168c5555125a5eeb33d1f0c8eb332c0b0",
+     "proposed_attributes": {
+      "category": "dress",
+      "sub_category": "shift dress",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "minimalist",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "light",
+       "sun",
+       "movement"
+      ],
+      "free_text_tags": [
+       "white dress",
+       "sleeveless",
+       "tank dress",
+       "a-line",
+       "minimalist",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-22",
+   "status": "ok",
+   "elapsed_seconds": 7.969,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Vùng chọn hiện tại bao phủ gần như toàn bộ khung hình. Nếu ảnh chụp nhiều lớp đồ hoặc nền phức tạp, bạn có thể chỉnh sửa lại vùng chọn trước khi lưu."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.269,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0062,
+        0.0,
+        0.9998,
+        0.9721
+       ],
+       "label": "clothing",
+       "confidence": 0.3951
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.571,
+     "crop_sha256": "8cc73997359caca5a735c184c49dd70b2538cd49fc05e7e623a079eed87e9d5a",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "pink",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "bomber jacket",
+       "satin finish",
+       "black ribbing",
+       "zip up",
+       "pockets"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.85,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0062,
+      0.0,
+      0.9998,
+      0.9721
+     ],
+     "raw_box": [
+      0.0062,
+      0.0,
+      0.9998,
+      0.9721
+     ],
+     "crop_sha256": "8cc73997359caca5a735c184c49dd70b2538cd49fc05e7e623a079eed87e9d5a",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "pink",
+      "secondary_color": "black",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "bomber jacket",
+       "satin finish",
+       "black ribbing",
+       "zip up",
+       "pockets"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-23",
+   "status": "ok",
+   "elapsed_seconds": 7.013,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.186,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0933,
+        0.1533,
+        0.906,
+        0.8682
+       ],
+       "label": "coat",
+       "confidence": 0.3925
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.745,
+     "crop_sha256": "268b6ce498b9c0b3d0e78dab2e82a88f9d5e190dc5252dc6882a1bda15ca55d0",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "teal",
+      "secondary_color": null,
+      "pattern": "quilted",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "quilted",
+       "hooded",
+       "zip-up",
+       "pockets",
+       "padded"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0933,
+      0.1533,
+      0.906,
+      0.8682
+     ],
+     "raw_box": [
+      0.0933,
+      0.1533,
+      0.906,
+      0.8682
+     ],
+     "crop_sha256": "268b6ce498b9c0b3d0e78dab2e82a88f9d5e190dc5252dc6882a1bda15ca55d0",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "teal",
+      "secondary_color": null,
+      "pattern": "quilted",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "quilted",
+       "hooded",
+       "zip-up",
+       "pockets",
+       "padded"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-24",
+   "status": "ok",
+   "elapsed_seconds": 7.611,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.221,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1252,
+        0.0703,
+        0.9292,
+        0.9712
+       ],
+       "label": "jacket",
+       "confidence": 0.5829
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.313,
+     "crop_sha256": "382963a65651a8c786c0c96c20822d847204bd6c5a313eb458637d41aba21a05",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "trench_coat",
+      "primary_color": "beige",
+      "secondary_color": "pink",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "water_resistant",
+       "light",
+       "protection"
+      ],
+      "free_text_tags": [
+       "double-breasted",
+       "hooded",
+       "trench coat",
+       "plaid lining",
+       "button-down",
+       "beige jacket"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.98,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.85,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.88,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1252,
+      0.0703,
+      0.9292,
+      0.9712
+     ],
+     "raw_box": [
+      0.1252,
+      0.0703,
+      0.9292,
+      0.9712
+     ],
+     "crop_sha256": "382963a65651a8c786c0c96c20822d847204bd6c5a313eb458637d41aba21a05",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "trench_coat",
+      "primary_color": "beige",
+      "secondary_color": "pink",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "water_resistant",
+       "light",
+       "protection"
+      ],
+      "free_text_tags": [
+       "double-breasted",
+       "hooded",
+       "trench coat",
+       "plaid lining",
+       "button-down",
+       "beige jacket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-25",
+   "status": "ok",
+   "elapsed_seconds": 10.07,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.195,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0109,
+        0.0215,
+        0.9921,
+        0.8304
+       ],
+       "label": "jacket",
+       "confidence": 0.526
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.785,
+     "crop_sha256": "d145e2ed4d0bfe22c86e983f3cb237d4c7b45bdb1459642c9ce239e8cf2ed9fe",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "cropped blazer",
+       "open front",
+       "lightweight",
+       "smart casual",
+       "chic"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.8,
+      "style": 0.9,
+      "fit": 0.85,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.85,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0109,
+      0.0215,
+      0.9921,
+      0.8304
+     ],
+     "raw_box": [
+      0.0109,
+      0.0215,
+      0.9921,
+      0.8304
+     ],
+     "crop_sha256": "d145e2ed4d0bfe22c86e983f3cb237d4c7b45bdb1459642c9ce239e8cf2ed9fe",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "white",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "relaxed",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "cropped blazer",
+       "open front",
+       "lightweight",
+       "smart casual",
+       "chic"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-26",
+   "status": "ok",
+   "elapsed_seconds": 5.557,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.174,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.276,
+     "crop_sha256": "d928d865c9e2e495ab8b943c4455d3a47d25e1e326aa5f61eb10c1214c2a69fd",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "pumps",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 2,
+      "silhouette_level": 2,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "pumps",
+       "patent leather",
+       "pointed toe",
+       "stiletto",
+       "nude heels"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.85,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.85,
+      "length": 0.8,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d928d865c9e2e495ab8b943c4455d3a47d25e1e326aa5f61eb10c1214c2a69fd",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "pumps",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 2,
+      "silhouette_level": 2,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "pumps",
+       "patent leather",
+       "pointed toe",
+       "stiletto",
+       "nude heels"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-27",
+   "status": "ok",
+   "elapsed_seconds": 10.643,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.317,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.2021,
+        0.2108,
+        0.852,
+        0.8147
+       ],
+       "label": "shoes",
+       "confidence": 0.5768
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.198,
+     "crop_sha256": "dbb96c747d171be03c626d763d6f8baab3eb92f7b28f5b67954aaf6b085df8c3",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "animal_print",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "slide sandals",
+       "snake print",
+       "flat sandals",
+       "slip on",
+       "casual footwear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.2021,
+      0.2108,
+      0.852,
+      0.8147
+     ],
+     "raw_box": [
+      0.2021,
+      0.2108,
+      0.852,
+      0.8147
+     ],
+     "crop_sha256": "dbb96c747d171be03c626d763d6f8baab3eb92f7b28f5b67954aaf6b085df8c3",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "animal_print",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "slide sandals",
+       "snake print",
+       "flat sandals",
+       "slip on",
+       "casual footwear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-28",
+   "status": "ok",
+   "elapsed_seconds": 10.909,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.39,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.391,
+     "crop_sha256": "f83de68a061a4f98d51bf0a5c1ed9630e0a85670ca0039f688698cc0a1485ace",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "multi",
+      "secondary_color": "red",
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "multicolor knit",
+       "red laces",
+       "comfortable",
+       "casual sneakers"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.9,
+      "secondary_color": 0.9,
+      "pattern": 0.85,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "f83de68a061a4f98d51bf0a5c1ed9630e0a85670ca0039f688698cc0a1485ace",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "multi",
+      "secondary_color": "red",
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "sport",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "running shoes",
+       "multicolor knit",
+       "red laces",
+       "comfortable",
+       "casual sneakers"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-29",
+   "status": "ok",
+   "elapsed_seconds": 7.851,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công.",
+    "heavy_insole_discoloration",
+    "worn_condition"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.246,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.474,
+     "crop_sha256": "4d0ba9d55d1be6d4e7291159739774ca75d35f09447aad1b264fdfa486b336e0",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "flats",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "ballet flats",
+       "bow detail",
+       "round toe",
+       "slip-on",
+       "h&m"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.85,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "4d0ba9d55d1be6d4e7291159739774ca75d35f09447aad1b264fdfa486b336e0",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "flats",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "leather",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "light",
+       "work"
+      ],
+      "free_text_tags": [
+       "ballet flats",
+       "bow detail",
+       "round toe",
+       "slip-on",
+       "h&m"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-30",
+   "status": "ok",
+   "elapsed_seconds": 8.061,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.247,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.661,
+     "crop_sha256": "d604e38c5b26f0ab194b00e7e71456a7e55cdd8278d13f217e3a3c151cbde36b",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "pink",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "crochet",
+       "pink beanie",
+       "open knit",
+       "hat",
+       "handmade"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.85,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.85,
+      "length": 0.7,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "d604e38c5b26f0ab194b00e7e71456a7e55cdd8278d13f217e3a3c151cbde36b",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "pink",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "crochet",
+       "pink beanie",
+       "open knit",
+       "hat",
+       "handmade"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-31",
+   "status": "ok",
+   "elapsed_seconds": 11.074,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.262,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1316,
+        0.3904,
+        0.8901,
+        0.8178
+       ],
+       "label": "hat",
+       "confidence": 0.4196
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.674,
+     "crop_sha256": "06028f34b82da418f0a9ad849c51ad066979ab0b336962abe87aa296e56e1309",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "hat",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "beret",
+       "knitted",
+       "crochet",
+       "headwear",
+       "chic",
+       "textured"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1316,
+      0.3904,
+      0.8901,
+      0.8178
+     ],
+     "raw_box": [
+      0.1316,
+      0.3904,
+      0.8901,
+      0.8178
+     ],
+     "crop_sha256": "06028f34b82da418f0a9ad849c51ad066979ab0b336962abe87aa296e56e1309",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "hat",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "beret",
+       "knitted",
+       "crochet",
+       "headwear",
+       "chic",
+       "textured"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-32",
+   "status": "ok",
+   "elapsed_seconds": 10.337,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.294,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0005,
+        0.169,
+        0.9947,
+        0.9606
+       ],
+       "label": "jacket",
+       "confidence": 0.6038
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 9.932,
+     "crop_sha256": "0d17da783d82651d8af1e68ae87d754556c12884865e367ec6e7aabfbfaf6ed6",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "charcoal",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "streetwear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "skater",
+       "graphic tee",
+       "short sleeve",
+       "crew neck",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 1.0,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0005,
+      0.169,
+      0.9947,
+      0.9606
+     ],
+     "raw_box": [
+      0.0005,
+      0.169,
+      0.9947,
+      0.9606
+     ],
+     "crop_sha256": "0d17da783d82651d8af1e68ae87d754556c12884865e367ec6e7aabfbfaf6ed6",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "charcoal",
+      "secondary_color": "white",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "streetwear",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "skater",
+       "graphic tee",
+       "short sleeve",
+       "crew neck",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-33",
+   "status": "ok",
+   "elapsed_seconds": 7.236,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "No garments or fashion items detected in image.",
+    "Không thể tự động phân tách riêng lẻ trang phục từ ảnh này (ảnh nền phức tạp hoặc nhiều chi tiết). Hệ thống đã chọn toàn bộ ảnh để bạn xem xét và điều chỉnh thủ công."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.251,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": []
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.851,
+     "crop_sha256": "a1ae7652c32f05a2214f810528fd8acc82aaf458274c96acb8792d9cf1d3570f",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "blue",
+      "secondary_color": "navy",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "henley",
+       "striped",
+       "short sleeve",
+       "chest pocket",
+       "ribbed hem",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.9,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "raw_box": null,
+     "crop_sha256": "a1ae7652c32f05a2214f810528fd8acc82aaf458274c96acb8792d9cf1d3570f",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "blue",
+      "secondary_color": "navy",
+      "pattern": "striped",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "henley",
+       "striped",
+       "short sleeve",
+       "chest pocket",
+       "ribbed hem",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-34",
+   "status": "ok",
+   "elapsed_seconds": 10.726,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.254,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0295,
+        0.1493,
+        0.9758,
+        0.9552
+       ],
+       "label": "clothing",
+       "confidence": 0.334
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.346,
+     "crop_sha256": "6f4042b7010363df9fb98a205df0dfe64fc530840cf2ef5e1b3bcbb37db2f7a9",
+     "attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "crew neck",
+       "short sleeve",
+       "basic",
+       "everyday"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 1.0,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0295,
+      0.1493,
+      0.9758,
+      0.9552
+     ],
+     "raw_box": [
+      0.0295,
+      0.1493,
+      0.9758,
+      0.9552
+     ],
+     "crop_sha256": "6f4042b7010363df9fb98a205df0dfe64fc530840cf2ef5e1b3bcbb37db2f7a9",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "t-shirt",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "waist",
+      "season": [
+       "spring",
+       "summer",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "crew neck",
+       "short sleeve",
+       "basic",
+       "everyday"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-35",
+   "status": "ok",
+   "elapsed_seconds": 7.467,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "wrinkled_garment",
+    "uneven_lighting"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.323,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0033,
+        0.1619,
+        0.9883,
+        0.997
+       ],
+       "label": "clothing",
+       "confidence": 0.4922
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.98,
+     "crop_sha256": "bc45f577f58f84e2dd5be6be249d2d6441df1fe5d8ce1b368df6bb113ae1c219",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "slate blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "hot"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "polo",
+       "short sleeve",
+       "chest pocket",
+       "button placket",
+       "slate blue",
+       "casual top"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.9,
+      "secondary_color": 1.0,
+      "pattern": 0.98,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0033,
+      0.1619,
+      0.9883,
+      0.997
+     ],
+     "raw_box": [
+      0.0033,
+      0.1619,
+      0.9883,
+      0.997
+     ],
+     "crop_sha256": "bc45f577f58f84e2dd5be6be249d2d6441df1fe5d8ce1b368df6bb113ae1c219",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "slate blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "hot"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "polo",
+       "short sleeve",
+       "chest pocket",
+       "button placket",
+       "slate blue",
+       "casual top"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-36",
+   "status": "ok",
+   "elapsed_seconds": 6.124,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.272,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0323,
+        0.185,
+        0.968,
+        0.8944
+       ],
+       "label": "clothing",
+       "confidence": 0.484
+      },
+      {
+       "box": [
+        0.033,
+        0.1431,
+        0.9745,
+        0.9554
+       ],
+       "label": "person",
+       "confidence": 0.2594
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.721,
+     "crop_sha256": "637d6384e4bddb1d65ec9b21686e7cc1dbb046db004e913dbe2287f64453ea23",
+     "attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "navy",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "tipped collar",
+       "navy polo",
+       "smart casual",
+       "logo"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.98,
+      "secondary_color": 0.95,
+      "pattern": 0.98,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0323,
+      0.185,
+      0.968,
+      0.8944
+     ],
+     "raw_box": [
+      0.0323,
+      0.185,
+      0.968,
+      0.8944
+     ],
+     "crop_sha256": "637d6384e4bddb1d65ec9b21686e7cc1dbb046db004e913dbe2287f64453ea23",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "polo",
+      "primary_color": "navy",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "light"
+      ],
+      "free_text_tags": [
+       "polo shirt",
+       "short sleeve",
+       "tipped collar",
+       "navy polo",
+       "smart casual",
+       "logo"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-37",
+   "status": "ok",
+   "elapsed_seconds": 7.755,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Garment is rumpled on a textured background",
+    "Initial object label misclassified item as 'bag'"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.298,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0012,
+        0.2638,
+        1.0,
+        0.9045
+       ],
+       "label": "bag",
+       "confidence": 0.6604
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.315,
+     "crop_sha256": "c6f43857bb756e0309747f16888304c6f158ca1e11a05f2db99d281ac7f21ee8",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-up",
+       "long-sleeve",
+       "chest-pocket",
+       "collar",
+       "dress-shirt"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0012,
+      0.2638,
+      1.0,
+      0.9045
+     ],
+     "raw_box": [
+      0.0012,
+      0.2638,
+      1.0,
+      0.9045
+     ],
+     "crop_sha256": "c6f43857bb756e0309747f16888304c6f158ca1e11a05f2db99d281ac7f21ee8",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-up",
+       "long-sleeve",
+       "chest-pocket",
+       "collar",
+       "dress-shirt"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-38",
+   "status": "ok",
+   "elapsed_seconds": 5.875,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.249,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0066,
+        0.1433,
+        0.9787,
+        0.9332
+       ],
+       "label": "clothing",
+       "confidence": 0.4125
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.508,
+     "crop_sha256": "6ec4ed8f2ac9f05b871da2025f4dd78c401f9d52929f16edb3a5c6106a622342",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "beige",
+      "secondary_color": "navy",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "flannel",
+       "plaid",
+       "button-down",
+       "long-sleeve",
+       "casual-shirt",
+       "checkered"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.92,
+      "pattern": 0.99,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0066,
+      0.1433,
+      0.9787,
+      0.9332
+     ],
+     "raw_box": [
+      0.0066,
+      0.1433,
+      0.9787,
+      0.9332
+     ],
+     "crop_sha256": "6ec4ed8f2ac9f05b871da2025f4dd78c401f9d52929f16edb3a5c6106a622342",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "beige",
+      "secondary_color": "navy",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "flannel",
+       "plaid",
+       "button-down",
+       "long-sleeve",
+       "casual-shirt",
+       "checkered"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-39",
+   "status": "ok",
+   "elapsed_seconds": 7.85,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Initial spatial region detection mislabeled item as 'jacket'; reclassified correctly to 'shirt'."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.253,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0713,
+        0.2158,
+        0.8723,
+        0.8716
+       ],
+       "label": "jacket",
+       "confidence": 0.6267
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.462,
+     "crop_sha256": "65ad25245bdbe7d9f0d2a6c2da938b8fa6c7ee03116ac48ed5afa4ad3214ef84",
+     "attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": "black",
+      "pattern": "dotted",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-up",
+       "long-sleeve",
+       "micro-print",
+       "collared",
+       "smart-casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.9,
+      "secondary_color": 0.85,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0713,
+      0.2158,
+      0.8723,
+      0.8716
+     ],
+     "raw_box": [
+      0.0713,
+      0.2158,
+      0.8723,
+      0.8716
+     ],
+     "crop_sha256": "65ad25245bdbe7d9f0d2a6c2da938b8fa6c7ee03116ac48ed5afa4ad3214ef84",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "shirt",
+      "primary_color": "grey",
+      "secondary_color": "black",
+      "pattern": "dotted",
+      "material": "cotton",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work",
+       "light"
+      ],
+      "free_text_tags": [
+       "button-up",
+       "long-sleeve",
+       "micro-print",
+       "collared",
+       "smart-casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-40",
+   "status": "ok",
+   "elapsed_seconds": 7.435,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.252,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0861,
+        0.0146,
+        0.8827,
+        0.9666
+       ],
+       "label": "clothing",
+       "confidence": 0.5328
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.049,
+     "crop_sha256": "124b8fd46a417a3277683855bd0d4d5d587b5fa7c86cde3180d9b4ac0dd51ee8",
+     "attributes": {
+      "category": "top",
+      "sub_category": "sweatshirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "sweatshirt",
+       "mock neck",
+       "dropped shoulder",
+       "textured fleece",
+       "pullover",
+       "relaxed fit"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.95,
+      "primary_color": 0.88,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.95,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0861,
+      0.0146,
+      0.8827,
+      0.9666
+     ],
+     "raw_box": [
+      0.0861,
+      0.0146,
+      0.8827,
+      0.9666
+     ],
+     "crop_sha256": "124b8fd46a417a3277683855bd0d4d5d587b5fa7c86cde3180d9b4ac0dd51ee8",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "sweatshirt",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "sweatshirt",
+       "mock neck",
+       "dropped shoulder",
+       "textured fleece",
+       "pullover",
+       "relaxed fit"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-41",
+   "status": "ok",
+   "elapsed_seconds": 7.379,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.253,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0571,
+        0.0302,
+        0.8869,
+        0.8537
+       ],
+       "label": "clothing",
+       "confidence": 0.4388
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.01,
+     "crop_sha256": "9369d105593556753a753a35bc141fb560dd4603d6b3c625728d7d6faa7e598b",
+     "attributes": {
+      "category": "top",
+      "sub_category": "half_zip",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport"
+      ],
+      "free_text_tags": [
+       "half-zip",
+       "snowflake",
+       "stand collar",
+       "pullover",
+       "activewear",
+       "long sleeve"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0571,
+      0.0302,
+      0.8869,
+      0.8537
+     ],
+     "raw_box": [
+      0.0571,
+      0.0302,
+      0.8869,
+      0.8537
+     ],
+     "crop_sha256": "9369d105593556753a753a35bc141fb560dd4603d6b3c625728d7d6faa7e598b",
+     "proposed_attributes": {
+      "category": "top",
+      "sub_category": "half_zip",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "fall",
+       "winter",
+       "spring"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport"
+      ],
+      "free_text_tags": [
+       "half-zip",
+       "snowflake",
+       "stand collar",
+       "pullover",
+       "activewear",
+       "long sleeve"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-42",
+   "status": "ok",
+   "elapsed_seconds": 6.619,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.274,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1638,
+        0.169,
+        0.8227,
+        0.877
+       ],
+       "label": "clothing",
+       "confidence": 0.3984
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.212,
+     "crop_sha256": "906e0d9790fb0ebc168a92340869b9a3eb4b12933c3397805ff6bf1331a2d0e8",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "track_pants",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "nike",
+       "track pants",
+       "joggers",
+       "windbreaker",
+       "elastic cuffs",
+       "sportswear",
+       "swoosh"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.92,
+      "pattern": 0.95,
+      "material": 0.88,
+      "style": 0.96,
+      "fit": 0.92,
+      "formality_level": 0.98,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.98,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.92,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1638,
+      0.169,
+      0.8227,
+      0.877
+     ],
+     "raw_box": [
+      0.1638,
+      0.169,
+      0.8227,
+      0.877
+     ],
+     "crop_sha256": "906e0d9790fb0ebc168a92340869b9a3eb4b12933c3397805ff6bf1331a2d0e8",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "track_pants",
+      "primary_color": "black",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "relaxed",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 4,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool",
+       "warm"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "nike",
+       "track pants",
+       "joggers",
+       "windbreaker",
+       "elastic cuffs",
+       "sportswear",
+       "swoosh"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-43",
+   "status": "ok",
+   "elapsed_seconds": 6.018,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.317,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.121,
+        0.0199,
+        0.8349,
+        0.9943
+       ],
+       "label": "clothing",
+       "confidence": 0.4457
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.591,
+     "crop_sha256": "74c73bd0f7a42d4a193fb9295165e250d2b3e97e5a45c12b2af2695c8ded984a",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "jeans",
+       "denim",
+       "dark wash",
+       "straight leg",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.99,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.9,
+      "material": 0.98,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.98,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.121,
+      0.0199,
+      0.8349,
+      0.9943
+     ],
+     "raw_box": [
+      0.121,
+      0.0199,
+      0.8349,
+      0.9943
+     ],
+     "crop_sha256": "74c73bd0f7a42d4a193fb9295165e250d2b3e97e5a45c12b2af2695c8ded984a",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "jeans",
+       "denim",
+       "dark wash",
+       "straight leg",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-44",
+   "status": "ok",
+   "elapsed_seconds": 7.493,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.314,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.2247,
+        0.1161,
+        0.7954,
+        0.8072
+       ],
+       "label": "clothing",
+       "confidence": 0.4208
+      },
+      {
+       "box": [
+        0.2193,
+        0.1117,
+        0.8101,
+        0.8183
+       ],
+       "label": "person",
+       "confidence": 0.3732
+      },
+      {
+       "box": [
+        0.2486,
+        0.0976,
+        0.7531,
+        0.6882
+       ],
+       "label": "trousers",
+       "confidence": 0.2541
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 5.022,
+     "crop_sha256": "2d7cbc84df6bc8c1ad476d2660b17430f91add830ce72cf9adfb4bb7fe8ebea8",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "denim",
+       "jeans",
+       "skinny",
+       "blue jeans",
+       "dark wash"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.98,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.98,
+      "season": 0.95,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    },
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.983,
+     "crop_sha256": "7d75e33cd6f209abca19b392d0b423862b8bf2180c4137010cd8bff1755c1cff",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "jeans",
+       "denim",
+       "slim fit",
+       "skinny jeans",
+       "dark wash",
+       "trousers"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.9,
+      "material": 0.98,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.2247,
+      0.1161,
+      0.7954,
+      0.8072
+     ],
+     "raw_box": [
+      0.2247,
+      0.1161,
+      0.7954,
+      0.8072
+     ],
+     "crop_sha256": "2d7cbc84df6bc8c1ad476d2660b17430f91add830ce72cf9adfb4bb7fe8ebea8",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "denim",
+       "jeans",
+       "skinny",
+       "blue jeans",
+       "dark wash"
+      ]
+     }
+    },
+    {
+     "box": [
+      0.2486,
+      0.0976,
+      0.7531,
+      0.6882
+     ],
+     "raw_box": [
+      0.2486,
+      0.0976,
+      0.7531,
+      0.6882
+     ],
+     "crop_sha256": "7d75e33cd6f209abca19b392d0b423862b8bf2180c4137010cd8bff1755c1cff",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "movement"
+      ],
+      "free_text_tags": [
+       "jeans",
+       "denim",
+       "slim fit",
+       "skinny jeans",
+       "dark wash",
+       "trousers"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-45",
+   "status": "ok",
+   "elapsed_seconds": 7.121,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Garment displayed on a hanger",
+    "Slight unnatural tension on leg due to hanger clip placement"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.263,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1665,
+        0.0434,
+        0.7884,
+        0.9952
+       ],
+       "label": "clothing",
+       "confidence": 0.5507
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.736,
+     "crop_sha256": "44c824d7aa02ec12e8591b08a81d004322f3ca285984e00051b821c5217b3ca2",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "green",
+       "jeans",
+       "5-pocket",
+       "slim fit",
+       "colored denim",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.98,
+      "material": 0.9,
+      "style": 0.92,
+      "fit": 0.9,
+      "formality_level": 0.92,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.98,
+      "season": 0.88,
+      "weather_suitability": 0.88,
+      "functional_flags": 0.82,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1665,
+      0.0434,
+      0.7884,
+      0.9952
+     ],
+     "raw_box": [
+      0.1665,
+      0.0434,
+      0.7884,
+      0.9952
+     ],
+     "crop_sha256": "44c824d7aa02ec12e8591b08a81d004322f3ca285984e00051b821c5217b3ca2",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "jeans",
+      "primary_color": "green",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "slim",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 2,
+      "length": "long",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "green",
+       "jeans",
+       "5-pocket",
+       "slim fit",
+       "colored denim",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-46",
+   "status": "ok",
+   "elapsed_seconds": 6.754,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Initial region label prompt indicated 'bag', but visual identification confirms item is denim shorts."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.246,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0206,
+        0.1853,
+        0.9935,
+        0.9828
+       ],
+       "label": "bag",
+       "confidence": 0.5012
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.372,
+     "crop_sha256": "34b8ca0b7b05e03bcc4b2d079b4b1526182d3611c5cca313ca76f8c90e926b11",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "light wash",
+       "rolled cuffs",
+       "casual",
+       "jorts"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.98,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0206,
+      0.1853,
+      0.9935,
+      0.9828
+     ],
+     "raw_box": [
+      0.0206,
+      0.1853,
+      0.9935,
+      0.9828
+     ],
+     "crop_sha256": "34b8ca0b7b05e03bcc4b2d079b4b1526182d3611c5cca313ca76f8c90e926b11",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "light_blue",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "denim",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "denim shorts",
+       "light wash",
+       "rolled cuffs",
+       "casual",
+       "jorts"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-47",
+   "status": "ok",
+   "elapsed_seconds": 7.97,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.277,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0557,
+        0.1121,
+        0.8945,
+        0.9724
+       ],
+       "label": "clothing",
+       "confidence": 0.4828
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.562,
+     "crop_sha256": "7d219768b6f042f7a7fc41ec558a7a8f49e26bdda7bc32c8264da429b5aea021",
+     "attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "white",
+      "secondary_color": "navy",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "cargo shorts",
+       "plaid",
+       "madras",
+       "pockets",
+       "casual",
+       "summer"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 1.0,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 1.0,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 1.0,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0557,
+      0.1121,
+      0.8945,
+      0.9724
+     ],
+     "raw_box": [
+      0.0557,
+      0.1121,
+      0.8945,
+      0.9724
+     ],
+     "crop_sha256": "7d219768b6f042f7a7fc41ec558a7a8f49e26bdda7bc32c8264da429b5aea021",
+     "proposed_attributes": {
+      "category": "bottom",
+      "sub_category": "shorts",
+      "primary_color": "white",
+      "secondary_color": "navy",
+      "pattern": "plaid",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "relaxed",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "cargo shorts",
+       "plaid",
+       "madras",
+       "pockets",
+       "casual",
+       "summer"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-48",
+   "status": "ok",
+   "elapsed_seconds": 7.232,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "Undergarment (light blue shirt) visible on the hanger behind the target vest."
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.284,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0772,
+        0.0618,
+        0.9393,
+        0.993
+       ],
+       "label": "clothing",
+       "confidence": 0.5087
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.836,
+     "crop_sha256": "1ad544d6d3a9c35af9b5f29f0102a9490284aaa76d2b8efd1890d9fe6841e550",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "vest",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection"
+      ],
+      "free_text_tags": [
+       "puffer vest",
+       "gilet",
+       "quilted",
+       "sleeveless",
+       "zip-up",
+       "high collar"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.9,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0772,
+      0.0618,
+      0.9393,
+      0.993
+     ],
+     "raw_box": [
+      0.0772,
+      0.0618,
+      0.9393,
+      0.993
+     ],
+     "crop_sha256": "1ad544d6d3a9c35af9b5f29f0102a9490284aaa76d2b8efd1890d9fe6841e550",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "vest",
+      "primary_color": "black",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold",
+       "mild"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection"
+      ],
+      "free_text_tags": [
+       "puffer vest",
+       "gilet",
+       "quilted",
+       "sleeveless",
+       "zip-up",
+       "high collar"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-49",
+   "status": "ok",
+   "elapsed_seconds": 10.906,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.258,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0027,
+        0.1227,
+        0.9804,
+        0.9892
+       ],
+       "label": "coat",
+       "confidence": 0.3171
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.519,
+     "crop_sha256": "fdde9b99323987341dcae8a5f2ed101a02f3b8fa204e95a228d5db1977357b3e",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "coat",
+      "primary_color": "purple",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "hooded",
+       "utility",
+       "drawstring",
+       "pockets",
+       "windbreaker"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.95,
+      "sub_category": 0.9,
+      "primary_color": 0.9,
+      "secondary_color": 0.8,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.9,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0027,
+      0.1227,
+      0.9804,
+      0.9892
+     ],
+     "raw_box": [
+      0.0027,
+      0.1227,
+      0.9804,
+      0.9892
+     ],
+     "crop_sha256": "fdde9b99323987341dcae8a5f2ed101a02f3b8fa204e95a228d5db1977357b3e",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "coat",
+      "primary_color": "purple",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild",
+       "rainy"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "rain",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "hooded",
+       "utility",
+       "drawstring",
+       "pockets",
+       "windbreaker"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-50",
+   "status": "ok",
+   "elapsed_seconds": 11.133,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.271,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0514,
+        0.0054,
+        0.939,
+        0.9921
+       ],
+       "label": "jacket",
+       "confidence": 0.5172
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.74,
+     "crop_sha256": "d97c1e3e47df24801ba7d80208bd9d69666ffd08c77db7de246fb59685e75a3c",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 2,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "work",
+       "heavy"
+      ],
+      "free_text_tags": [
+       "suit jacket",
+       "pinstripe",
+       "business",
+       "tailored",
+       "professional"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.9,
+      "secondary_color": 0.8,
+      "pattern": 0.95,
+      "material": 0.7,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.8,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0514,
+      0.0054,
+      0.939,
+      0.9921
+     ],
+     "raw_box": [
+      0.0514,
+      0.0054,
+      0.939,
+      0.9921
+     ],
+     "crop_sha256": "d97c1e3e47df24801ba7d80208bd9d69666ffd08c77db7de246fb59685e75a3c",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "blue",
+      "secondary_color": null,
+      "pattern": "striped",
+      "material": "polyester",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 2,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "mild"
+      ],
+      "functional_flags": [
+       "work",
+       "heavy"
+      ],
+      "free_text_tags": [
+       "suit jacket",
+       "pinstripe",
+       "business",
+       "tailored",
+       "professional"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-51",
+   "status": "ok",
+   "elapsed_seconds": 7.64,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "item_on_hanger"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.273,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0271,
+        0.0092,
+        0.9296,
+        0.9822
+       ],
+       "label": "jacket",
+       "confidence": 0.5957
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.217,
+     "crop_sha256": "6ff06c35394e8b943b0c6e9c4712ec66c33369958d7939bad56aba04ba4e1c8c",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "blazer",
+       "suit jacket",
+       "tailored",
+       "formal",
+       "notch lapel",
+       "office wear"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.92,
+      "secondary_color": 0.95,
+      "pattern": 0.98,
+      "material": 0.8,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0271,
+      0.0092,
+      0.9296,
+      0.9822
+     ],
+     "raw_box": [
+      0.0271,
+      0.0092,
+      0.9296,
+      0.9822
+     ],
+     "crop_sha256": "6ff06c35394e8b943b0c6e9c4712ec66c33369958d7939bad56aba04ba4e1c8c",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "blazer",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "formal",
+      "fit": "regular",
+      "formality_level": 4,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall",
+       "winter",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "work"
+      ],
+      "free_text_tags": [
+       "blazer",
+       "suit jacket",
+       "tailored",
+       "formal",
+       "notch lapel",
+       "office wear"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-52",
+   "status": "ok",
+   "elapsed_seconds": 7.333,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.279,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0211,
+        0.1271,
+        0.8661,
+        0.9303
+       ],
+       "label": "clothing",
+       "confidence": 0.3234
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.93,
+     "crop_sha256": "f43e38ba097e02e9c62eae4a9925a4d34a9c2b8207285d78b9a613d6242ebd33",
+     "attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "zip-up",
+       "harrington",
+       "collared",
+       "lightweight",
+       "beige-jacket"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 1.0,
+      "pattern": 0.98,
+      "material": 0.85,
+      "style": 0.9,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.88,
+      "silhouette_level": 0.9,
+      "length": 0.95,
+      "season": 0.92,
+      "weather_suitability": 0.92,
+      "functional_flags": 0.88,
+      "free_text_tags": 0.92
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0211,
+      0.1271,
+      0.8661,
+      0.9303
+     ],
+     "raw_box": [
+      0.0211,
+      0.1271,
+      0.8661,
+      0.9303
+     ],
+     "crop_sha256": "f43e38ba097e02e9c62eae4a9925a4d34a9c2b8207285d78b9a613d6242ebd33",
+     "proposed_attributes": {
+      "category": "outerwear",
+      "sub_category": "jacket",
+      "primary_color": "beige",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "smart_casual",
+      "fit": "regular",
+      "formality_level": 3,
+      "comfort_level": 3,
+      "silhouette_level": 3,
+      "length": "hip",
+      "season": [
+       "spring",
+       "fall"
+      ],
+      "weather_suitability": [
+       "mild",
+       "cool"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "zip-up",
+       "harrington",
+       "collared",
+       "lightweight",
+       "beige-jacket"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-53",
+   "status": "ok",
+   "elapsed_seconds": 8.105,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "slightly_blurry"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.251,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.1199,
+        0.1779,
+        0.9347,
+        0.7504
+       ],
+       "label": "boots",
+       "confidence": 0.2543
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.709,
+     "crop_sha256": "3f3afddc63a9228ccd107253eb727e9d528e04392db37a3b7439223725237c1d",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "slip_on",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "mesh",
+       "slip-on",
+       "breathable",
+       "lightweight",
+       "casual shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.98,
+      "secondary_color": 0.9,
+      "pattern": 0.85,
+      "material": 0.95,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.95,
+      "silhouette_level": 0.9,
+      "length": 0.8,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.1199,
+      0.1779,
+      0.9347,
+      0.7504
+     ],
+     "raw_box": [
+      0.1199,
+      0.1779,
+      0.9347,
+      0.7504
+     ],
+     "crop_sha256": "3f3afddc63a9228ccd107253eb727e9d528e04392db37a3b7439223725237c1d",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "slip_on",
+      "primary_color": "grey",
+      "secondary_color": "white",
+      "pattern": "solid",
+      "material": "mesh",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 5,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "mild"
+      ],
+      "functional_flags": [
+       "movement",
+       "outdoor",
+       "sport",
+       "light"
+      ],
+      "free_text_tags": [
+       "mesh",
+       "slip-on",
+       "breathable",
+       "lightweight",
+       "casual shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-54",
+   "status": "ok",
+   "elapsed_seconds": 7.775,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "low_resolution",
+    "slightly_blurry"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.264,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0427,
+        0.2392,
+        0.4773,
+        0.7508
+       ],
+       "label": "boots",
+       "confidence": 0.251
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.4,
+     "crop_sha256": "9ad5323246f5677a539db8d85ad656f7277858ea95a8fb3a732bf50da041a8ce",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "sandal",
+       "slide",
+       "buckle",
+       "cork footbed",
+       "slip-on",
+       "casual"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 0.9,
+      "pattern": 0.98,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.85,
+      "silhouette_level": 0.9,
+      "length": 0.8,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0427,
+      0.2392,
+      0.4773,
+      0.7508
+     ],
+     "raw_box": [
+      0.0427,
+      0.2392,
+      0.4773,
+      0.7508
+     ],
+     "crop_sha256": "9ad5323246f5677a539db8d85ad656f7277858ea95a8fb3a732bf50da041a8ce",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sandals",
+      "primary_color": "black",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer"
+      ],
+      "weather_suitability": [
+       "hot",
+       "warm",
+       "sunny"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "light"
+      ],
+      "free_text_tags": [
+       "sandal",
+       "slide",
+       "buckle",
+       "cork footbed",
+       "slip-on",
+       "casual"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-55",
+   "status": "ok",
+   "elapsed_seconds": 7.897,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "warm_lighting_distortion"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.269,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0632,
+        0.0476,
+        0.8759,
+        0.8406
+       ],
+       "label": "sneakers",
+       "confidence": 0.2733
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.5,
+     "crop_sha256": "5c8520ff5010ba94d613579f7c8c9df7e438e006c57153e6160e2e92cdd54d9a",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "loafers",
+      "primary_color": "navy",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "hot"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "perforated",
+       "rieker",
+       "contrast-stitching",
+       "comfort-shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.92,
+      "primary_color": 0.88,
+      "secondary_color": 0.9,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.92,
+      "fit": 0.9,
+      "formality_level": 0.9,
+      "comfort_level": 0.95,
+      "silhouette_level": 0.9,
+      "length": 0.8,
+      "season": 0.88,
+      "weather_suitability": 0.88,
+      "functional_flags": 0.85,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0632,
+      0.0476,
+      0.8759,
+      0.8406
+     ],
+     "raw_box": [
+      0.0632,
+      0.0476,
+      0.8759,
+      0.8406
+     ],
+     "crop_sha256": "5c8520ff5010ba94d613579f7c8c9df7e438e006c57153e6160e2e92cdd54d9a",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "loafers",
+      "primary_color": "navy",
+      "secondary_color": "brown",
+      "pattern": "solid",
+      "material": "leather",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 2,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "hot"
+      ],
+      "functional_flags": [
+       "movement",
+       "light",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "slip-on",
+       "perforated",
+       "rieker",
+       "contrast-stitching",
+       "comfort-shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-56",
+   "status": "ok",
+   "elapsed_seconds": 7.797,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "slightly_blurry",
+    "partial_crop"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.25,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0685,
+        0.0665,
+        0.5456,
+        0.7241
+       ],
+       "label": "sneakers",
+       "confidence": 0.2503
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 7.439,
+     "crop_sha256": "a41f84633dde1a7e42ee1b57ea75297c970ae8b5308eadbb8e236184b2f1d395",
+     "attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "black",
+      "secondary_color": "grey",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "sport",
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "sneakers",
+       "knit",
+       "athletic",
+       "lace-up",
+       "black sneakers",
+       "running shoes"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.98,
+      "primary_color": 0.95,
+      "secondary_color": 0.85,
+      "pattern": 0.9,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.8,
+      "season": 0.85,
+      "weather_suitability": 0.85,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.9
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0685,
+      0.0665,
+      0.5456,
+      0.7241
+     ],
+     "raw_box": [
+      0.0685,
+      0.0665,
+      0.5456,
+      0.7241
+     ],
+     "crop_sha256": "a41f84633dde1a7e42ee1b57ea75297c970ae8b5308eadbb8e236184b2f1d395",
+     "proposed_attributes": {
+      "category": "footwear",
+      "sub_category": "sneakers",
+      "primary_color": "black",
+      "secondary_color": "grey",
+      "pattern": "solid",
+      "material": "polyester",
+      "style": "athletic",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "warm",
+       "mild",
+       "sunny"
+      ],
+      "functional_flags": [
+       "sport",
+       "movement",
+       "light"
+      ],
+      "free_text_tags": [
+       "sneakers",
+       "knit",
+       "athletic",
+       "lace-up",
+       "black sneakers",
+       "running shoes"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-57",
+   "status": "ok",
+   "elapsed_seconds": 6.78,
+   "batch_status": "needs_review",
+   "batch_warnings": [
+    "low_resolution_image"
+   ],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.187,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.2605,
+        0.2213,
+        0.8164,
+        0.819
+       ],
+       "label": "bag",
+       "confidence": 0.3511
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 6.455,
+     "crop_sha256": "e3d81e98cb13cc96281fc01e1687f74293b4620598f176e4872f14781785aa15",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "cap",
+      "primary_color": "navy",
+      "secondary_color": "red",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "sunny",
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "sun",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "cap",
+       "baseball cap",
+       "spiderman",
+       "embroidered",
+       "graphic"
+      ]
+     },
+     "field_confidence": {
+      "category": 0.99,
+      "sub_category": 0.98,
+      "primary_color": 0.9,
+      "secondary_color": 0.95,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.98,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.8,
+      "season": 0.9,
+      "weather_suitability": 0.9,
+      "functional_flags": 0.95,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.2605,
+      0.2213,
+      0.8164,
+      0.819
+     ],
+     "raw_box": [
+      0.2605,
+      0.2213,
+      0.8164,
+      0.819
+     ],
+     "crop_sha256": "e3d81e98cb13cc96281fc01e1687f74293b4620598f176e4872f14781785aa15",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "cap",
+      "primary_color": "navy",
+      "secondary_color": "red",
+      "pattern": "graphic",
+      "material": "cotton",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "spring",
+       "summer",
+       "fall",
+       "all_year"
+      ],
+      "weather_suitability": [
+       "sunny",
+       "warm",
+       "hot",
+       "mild"
+      ],
+      "functional_flags": [
+       "sun",
+       "outdoor"
+      ],
+      "free_text_tags": [
+       "cap",
+       "baseball cap",
+       "spiderman",
+       "embroidered",
+       "graphic"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  },
+  {
+   "id": "demo-58",
+   "status": "ok",
+   "elapsed_seconds": 10.733,
+   "batch_status": "needs_review",
+   "batch_warnings": [],
+   "detector_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 0.25,
+     "input_kind": "unknown",
+     "input_kind_inferred": false,
+     "boxes": [
+      {
+       "box": [
+        0.0275,
+        0.2402,
+        0.9008,
+        0.7946
+       ],
+       "label": "clothing",
+       "confidence": 0.4514
+      }
+     ]
+    }
+   ],
+   "vision_calls": [
+    {
+     "status": "ok",
+     "elapsed_seconds": 10.346,
+     "crop_sha256": "093e21e036a9415c04b87f41b9ff2909adce2b2e20da73cdc0f8153ea11920dc",
+     "attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "winter hat",
+       "knit beanie",
+       "ribbed",
+       "cuffed"
+      ]
+     },
+     "field_confidence": {
+      "category": 1.0,
+      "sub_category": 0.95,
+      "primary_color": 0.95,
+      "secondary_color": 1.0,
+      "pattern": 0.95,
+      "material": 0.85,
+      "style": 0.95,
+      "fit": 0.9,
+      "formality_level": 0.95,
+      "comfort_level": 0.9,
+      "silhouette_level": 0.9,
+      "length": 0.9,
+      "season": 0.95,
+      "weather_suitability": 0.95,
+      "functional_flags": 0.9,
+      "free_text_tags": 0.95
+     }
+    }
+   ],
+   "detections": [
+    {
+     "box": [
+      0.0275,
+      0.2402,
+      0.9008,
+      0.7946
+     ],
+     "raw_box": [
+      0.0275,
+      0.2402,
+      0.9008,
+      0.7946
+     ],
+     "crop_sha256": "093e21e036a9415c04b87f41b9ff2909adce2b2e20da73cdc0f8153ea11920dc",
+     "proposed_attributes": {
+      "category": "accessory",
+      "sub_category": "beanie",
+      "primary_color": "grey",
+      "secondary_color": null,
+      "pattern": "solid",
+      "material": "wool",
+      "style": "casual",
+      "fit": "regular",
+      "formality_level": 1,
+      "comfort_level": 4,
+      "silhouette_level": 3,
+      "length": "cropped",
+      "season": [
+       "fall",
+       "winter"
+      ],
+      "weather_suitability": [
+       "cool",
+       "cold"
+      ],
+      "functional_flags": [
+       "outdoor",
+       "protection",
+       "light"
+      ],
+      "free_text_tags": [
+       "winter hat",
+       "knit beanie",
+       "ribbed",
+       "cuffed"
+      ]
+     }
+    }
+   ],
+   "primary_detection_index": 0,
+   "provider_fallback_events": 0,
+   "provider_rate_limit_events": 0
+  }
+ ]
+}
