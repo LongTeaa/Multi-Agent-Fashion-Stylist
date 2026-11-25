@@ -7,7 +7,8 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; only the Gemini-detector rerun remains). Phase 2 — Public Deployment (approved 2026-11-20). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22). |
+| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). |
+| Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -45,7 +46,7 @@ Each phase MUST be a level-2 heading of the form `## Phase N — Title`, numbere
 - [x] Add an opt-in live runner that sends the gold photos through the real ingestion service in an isolated temporary database and storage, once per detector, and records raw provider outputs, latency and failures without secrets. A `--score` mode recomputes every metric from a saved raw-output file without network access.
 - [x] Run YOLO-World live on sets A, B and C, write `docs/archive/reports/LIVE_INGESTION_EVALUATION_2026-11-19.md` with the frozen raw results under `data/fixtures/live_ingestion_*.json`, and draft the Vietnamese evaluation section for thesis chapter 7 (`docs/archive/reports/CHUONG_7_DANH_GIA_SO_HOA_TU_DO_NHAP_2026-11-19.md`).
 - [x] Add the garment subtypes observed in the live run as taxonomy aliases (`backend/app/services/garment_taxonomy.py`, tests in `test_garment_taxonomy.py`) and re-score the frozen raw file offline; report section 3.1.
-- [ ] Rerun the Gemini detector on sets A, B and C with sufficient quota and add the comparison to the report. The 2026-11-19 run failed on 54/58 attribute and 21/21 localization detector requests (HTTP 429 daily quota, 503, timeouts) and is kept only as failure evidence.
+- [x] Rerun the Gemini detector on sets A, B and C with sufficient quota and add the comparison to the report. The 2026-11-19 run failed on 54/58 attribute and 21/21 localization detector requests (HTTP 429 daily quota, 503, timeouts) and is kept only as failure evidence. Done 2026-11-25 with a paid Tier 1 key and no provider failures (`docs/archive/reports/LIVE_INGESTION_EVALUATION_2026-11-25.md`): localization 25/47 vs 17/47 on set B (flat-lay 16/27 vs 8/27) and 9/10 vs 5/10 on set C, sign test over 21 photos p = 0.021. The report adds a same-day YOLO-World repeat (run-to-run variation) and a `gemini-3.5-flash-lite` vision baseline; no attribute difference on set A is significant.
 - [x] Update `TEST_STRATEGY.md` section 3.2 and `ALIGNMENT_BACKLOG.md` T-2.
 
 **Acceptance criteria:**
@@ -60,6 +61,8 @@ Each phase MUST be a level-2 heading of the form `## Phase N — Title`, numbere
 cd backend; python -m pytest tests/unit/test_vision_evaluation.py tests/unit/test_live_ingestion_evaluation.py -q; cd ..
 python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_yolo_world.json
 python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_localization_v3_yolo_world.json --localization-manifest data/fixtures/vision_real_review_v3.json
+python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_yolo_world.json data/fixtures/live_ingestion_attributes_v1_yolo_world_20261125.json data/fixtures/live_ingestion_attributes_v1_gemini_20261125.json data/fixtures/live_ingestion_attributes_v1_yolo_world_flash_lite_20261125.json
+python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_localization_v3_yolo_world.json data/fixtures/live_ingestion_localization_v3_gemini_20261125.json --localization-manifest data/fixtures/vision_real_review_v3.json
 ./scripts/verify_documentation.ps1
 ```
 
@@ -205,6 +208,42 @@ cd backend; python -m pytest tests/evaluation/test_tryon_spike.py -q; cd ..
 ```powershell
 cd backend; python -m pytest tests/unit/test_flux_vto_provider.py tests/unit/test_config.py tests/integration/test_tryon_api.py -q; cd ..
 cd frontend; npx vitest run src/__tests__/TryOnModal.test.tsx src/components/TryOnModal.test.tsx; npx tsc --noEmit; cd ..
+./scripts/verify_documentation.ps1
+```
+
+## Phase 5 — Gemini Detector with YOLO-World Fallback
+
+**Status:** Approved by the owner on 2026-11-25 (option b of the Phase 1 follow-up): Gemini detector by default, YOLO-World only when Gemini fails, and `gemini-3.5-flash-lite` for attribute extraction subject to one measured run. The run showed a significant formality loss (exact 36/58 vs 44/58, p = 0.021), so on the same day the owner kept `gemini-3.6-flash` for attributes. Complete 2026-11-25.
+
+**Goal:** Split multi-item and flat-lay photos into garments about twice as well as YOLO-World (Phase 1: 16/27 vs 8/27 flat-lay regions) while keeping digitization usable when the Gemini API fails, Attribute extraction stays on `gemini-3.6-flash` (about 11–12 s per photo with the Gemini detector), because the faster model rates formality less accurately. Serves thesis objective 1.2 "Xây dựng tủ đồ số". Recommendation, try-on and the HTTP contract do not change.
+
+**Specification files:**
+
+- `../03_domain/INGESTION_AND_RETRIEVAL_SPEC.md` (detector selection); this phase updates it.
+- `../archive/reports/LIVE_INGESTION_EVALUATION_2026-11-25.md` (evidence for the choice).
+- `TEST_STRATEGY.md` section 3.2 (live evaluation rules).
+
+**Checklist:**
+
+- [x] Add a fallback detector that calls the primary detector and, only when it raises (provider error, timeout or any other exception), calls a secondary detector once. A primary result with no boxes is a valid answer and MUST NOT trigger the fallback. The secondary detector is created lazily, so the YOLO-World model is loaded only after a Gemini failure. When both fail, the primary error is raised and the existing full-frame manual-review fallback applies. Logs MUST NOT contain provider response bodies or keys.
+- [x] Add the `DETECTOR_FALLBACK_BACKEND` setting (`none` default, `yolo_world`). It applies only when the effective detector is Gemini, and it is skipped with a warning when the YOLO-World model file is missing. Code defaults stay `DETECTOR_BACKEND=auto` and no fallback, so offline tests do not change.
+- [x] Recommended configuration in `.env.example`: `DETECTOR_FALLBACK_BACKEND=yolo_world`, `VISION_MODEL=gemini-3.6-flash`, `VISION_FALLBACK_MODEL=gemini-3.5-flash-lite` (after the measured run below; initially proposed the other way round), and an explicit `DETECTOR_MODEL=gemini-3.6-flash` (it otherwise follows `VISION_MODEL`). `.env.example` keeps `VISION_PROVIDER=fake` and `DETECTOR_BACKEND=auto` so a fresh checkout runs offline; with `VISION_PROVIDER=gemini`, `auto` selects the Gemini detector.
+- [x] Tests (`backend/tests/unit/test_fallback_detector.py`, `backend/tests/integration/test_detector_fallback_ingestion.py`, `test_config.py`): the fallback is used on errors and not on empty results, the secondary is never built when the primary succeeds, both-fail behavior, configuration selection, and the `.env.example` entries.
+- [x] Update `INGESTION_AND_RETRIEVAL_SPEC.md`.
+- [x] Run Gemini detector + `gemini-3.5-flash-lite` once on set A (58 photos), with a same-day Gemini detector + `gemini-3.6-flash` run, and add the paired comparison to `LIVE_INGESTION_EVALUATION_2026-11-25.md` as an addendum. Done (section 7): 118 calls, 0 failures; all fields equal within run variation except formality exact 36/58 vs 44/58 (p = 0.021); median 5.3 s vs 11.6 s.
+
+**Acceptance criteria:**
+
+- With `DETECTOR_FALLBACK_BACKEND=yolo_world`, a Gemini detector failure produces YOLO-World boxes, not the full-frame fallback, and makes exactly one YOLO-World call.
+- A Gemini detector success makes no YOLO-World call and does not load the YOLO-World model.
+- The measured run reports provider failures, latency and every attribute metric with its denominator; any attribute that drops beyond the run-to-run variation measured in Phase 1 is stated as a limitation.
+- Default verification runs without network access or credentials.
+
+**Executable Commands:**
+
+```powershell
+cd backend; python -m pytest tests/unit/test_fallback_detector.py tests/unit/test_config.py tests/integration/test_detector_fallback_ingestion.py -q; python -m pytest -q; cd ..
+python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_gemini_20261125.json data/fixtures/live_ingestion_attributes_v1_gemini_flash_lite_20261125.json
 ./scripts/verify_documentation.ps1
 ```
 

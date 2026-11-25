@@ -1,0 +1,303 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-25T02:32:42.768867+00:00",
+ "detector": "gemini",
+ "detector_model": "gemini-3.6-flash",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "localization_dataset_version": "vision-real-review-v2",
+ "localization_sha256": "3832e8ac987c05c90ff16724c4e630c4dd5305fa89ec64bbffc0d02e9578258e",
+ "localization_results": [
+  {
+   "id": "worn-trousers",
+   "status": "ok",
+   "elapsed_seconds": 6.02,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.29,
+      0.08,
+      0.836,
+      0.949
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.298,
+      0.0,
+      0.65,
+      0.1
+     ],
+     "label": "top",
+     "confidence": 0.92
+    },
+    {
+     "box": [
+      0.331,
+      0.921,
+      0.96,
+      1.0
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.29,
+      0.08,
+      0.836,
+      0.949
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.298,
+      0.0,
+      0.65,
+      0.1
+     ],
+     "label": "top",
+     "confidence": 0.92
+    },
+    {
+     "box": [
+      0.331,
+      0.921,
+      0.96,
+      1.0
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    }
+   ]
+  },
+  {
+   "id": "matching-sneaker-pair",
+   "status": "ok",
+   "elapsed_seconds": 3.473,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.093,
+      0.269,
+      0.912,
+      0.858
+     ],
+     "label": "shoes",
+     "confidence": 0.98
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.073,
+      0.249,
+      0.932,
+      0.878
+     ],
+     "label": "shoes",
+     "confidence": 0.98
+    }
+   ]
+  },
+  {
+   "id": "worn-polo",
+   "status": "ok",
+   "elapsed_seconds": 3.6,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.381,
+      0.075,
+      0.558,
+      0.175
+     ],
+     "label": "cap",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.299,
+      0.253,
+      0.691,
+      0.729
+     ],
+     "label": "polo shirt",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.353,
+      0.716,
+      0.626,
+      1.0
+     ],
+     "label": "shorts",
+     "confidence": 0.96
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.381,
+      0.075,
+      0.558,
+      0.175
+     ],
+     "label": "cap",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.299,
+      0.253,
+      0.691,
+      0.729
+     ],
+     "label": "polo shirt",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.353,
+      0.716,
+      0.626,
+      1.0
+     ],
+     "label": "shorts",
+     "confidence": 0.96
+    }
+   ]
+  },
+  {
+   "id": "single-derby",
+   "status": "ok",
+   "elapsed_seconds": 2.878,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.091,
+      0.491,
+      0.907,
+      0.736
+     ],
+     "label": "shoes",
+     "confidence": 0.99
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.071,
+      0.471,
+      0.927,
+      0.756
+     ],
+     "label": "shoes",
+     "confidence": 0.99
+    }
+   ]
+  },
+  {
+   "id": "single-jeans",
+   "status": "ok",
+   "elapsed_seconds": 2.6,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.093,
+      0.092,
+      0.885,
+      0.942
+     ],
+     "label": "jeans",
+     "confidence": 0.98
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.093,
+      0.092,
+      0.885,
+      0.942
+     ],
+     "label": "jeans",
+     "confidence": 0.98
+    }
+   ]
+  },
+  {
+   "id": "blue-tshirt",
+   "status": "ok",
+   "elapsed_seconds": 2.749,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.021,
+      0.127,
+      0.991,
+      0.834
+     ],
+     "label": "top",
+     "confidence": 0.99
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.021,
+      0.127,
+      0.991,
+      0.834
+     ],
+     "label": "top",
+     "confidence": 0.99
+    }
+   ]
+  },
+  {
+   "id": "red-tshirt",
+   "status": "ok",
+   "elapsed_seconds": 3.04,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.098,
+      0.157,
+      0.903,
+      0.843
+     ],
+     "label": "top",
+     "confidence": 0.99
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.098,
+      0.157,
+      0.903,
+      0.843
+     ],
+     "label": "top",
+     "confidence": 0.99
+    }
+   ]
+  }
+ ]
+}

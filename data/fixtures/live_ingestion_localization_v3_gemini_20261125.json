@@ -1,0 +1,1353 @@
+{
+ "schema": "live-ingestion-raw-v1",
+ "run_at": "2026-11-25T02:35:57.008744+00:00",
+ "detector": "gemini",
+ "detector_model": "gemini-3.6-flash",
+ "vision_model": "gemini-3.6-flash",
+ "vision_fallback_model": "gemini-3.5-flash-lite",
+ "crop_policy": "isolated-footwear-margin-v1",
+ "localization_dataset_version": "vision-real-review-v3",
+ "localization_sha256": "2dfe785663dd6322c9168c0196e3654c4515bdf58cc1d7e868045064a8be87ed",
+ "localization_results": [
+  {
+   "id": "images_bayra1",
+   "status": "ok",
+   "elapsed_seconds": 6.522,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.534,
+      0.214,
+      0.949,
+      0.775
+     ],
+     "label": "skirt",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.23,
+      0.17,
+      0.387,
+      0.73
+     ],
+     "label": "top",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.388,
+      0.386,
+      0.555,
+      0.723
+     ],
+     "label": "shoes",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.104,
+      0.393,
+      0.28,
+      0.696
+     ],
+     "label": "handbag",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.42,
+      0.27,
+      0.54,
+      0.328
+     ],
+     "label": "sunglasses",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.116,
+      0.195,
+      0.276,
+      0.377
+     ],
+     "label": "watch",
+     "confidence": 0.93
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.534,
+      0.214,
+      0.949,
+      0.775
+     ],
+     "label": "skirt",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.23,
+      0.17,
+      0.387,
+      0.73
+     ],
+     "label": "top",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.388,
+      0.386,
+      0.555,
+      0.723
+     ],
+     "label": "shoes",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.104,
+      0.393,
+      0.28,
+      0.696
+     ],
+     "label": "handbag",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.42,
+      0.27,
+      0.54,
+      0.328
+     ],
+     "label": "sunglasses",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.116,
+      0.195,
+      0.276,
+      0.377
+     ],
+     "label": "watch",
+     "confidence": 0.93
+    }
+   ]
+  },
+  {
+   "id": "images_bayra2",
+   "status": "ok",
+   "elapsed_seconds": 6.871,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.068,
+      0.106,
+      0.725,
+      0.642
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.549,
+      0.092,
+      0.893,
+      0.65
+     ],
+     "label": "jeans",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.107,
+      0.388,
+      0.54,
+      0.885
+     ],
+     "label": "bag",
+     "confidence": 0.99
+    },
+    {
+     "box": [
+      0.552,
+      0.561,
+      0.836,
+      0.86
+     ],
+     "label": "sandals",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.696,
+      0.176,
+      0.853,
+      0.363
+     ],
+     "label": "watch",
+     "confidence": 0.95
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.068,
+      0.106,
+      0.725,
+      0.642
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.549,
+      0.092,
+      0.893,
+      0.65
+     ],
+     "label": "jeans",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.107,
+      0.388,
+      0.54,
+      0.885
+     ],
+     "label": "bag",
+     "confidence": 0.99
+    },
+    {
+     "box": [
+      0.552,
+      0.561,
+      0.836,
+      0.86
+     ],
+     "label": "sandals",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.696,
+      0.176,
+      0.853,
+      0.363
+     ],
+     "label": "watch",
+     "confidence": 0.95
+    }
+   ]
+  },
+  {
+   "id": "images_bayra3",
+   "status": "ok",
+   "elapsed_seconds": 6.72,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.0,
+      0.032,
+      0.269,
+      0.747
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.265,
+      0.024,
+      0.514,
+      0.508
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.706,
+      0.035,
+      0.98,
+      0.453
+     ],
+     "label": "top",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.763,
+      0.274,
+      0.946,
+      0.578
+     ],
+     "label": "top",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.505,
+      0.184,
+      0.746,
+      0.936
+     ],
+     "label": "dress",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.081,
+      0.409,
+      0.26,
+      0.96
+     ],
+     "label": "pants",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.235,
+      0.527,
+      0.529,
+      0.969
+     ],
+     "label": "shorts",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.541,
+      0.055,
+      0.674,
+      0.142
+     ],
+     "label": "sunglasses",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.833,
+      0.485,
+      0.949,
+      0.663
+     ],
+     "label": "belt",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.735,
+      0.613,
+      0.818,
+      0.971
+     ],
+     "label": "shoes",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.816,
+      0.695,
+      0.969,
+      0.997
+     ],
+     "label": "shoes",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.0,
+      0.412,
+      0.07,
+      0.702
+     ],
+     "label": "hat",
+     "confidence": 0.95
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.0,
+      0.032,
+      0.269,
+      0.747
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.265,
+      0.024,
+      0.514,
+      0.508
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.706,
+      0.035,
+      0.98,
+      0.453
+     ],
+     "label": "top",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.763,
+      0.274,
+      0.946,
+      0.578
+     ],
+     "label": "top",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.505,
+      0.184,
+      0.746,
+      0.936
+     ],
+     "label": "dress",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.081,
+      0.409,
+      0.26,
+      0.96
+     ],
+     "label": "pants",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.235,
+      0.527,
+      0.529,
+      0.969
+     ],
+     "label": "shorts",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.541,
+      0.055,
+      0.674,
+      0.142
+     ],
+     "label": "sunglasses",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.833,
+      0.485,
+      0.949,
+      0.663
+     ],
+     "label": "belt",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.735,
+      0.613,
+      0.818,
+      0.971
+     ],
+     "label": "shoes",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.816,
+      0.695,
+      0.969,
+      0.997
+     ],
+     "label": "shoes",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.0,
+      0.412,
+      0.07,
+      0.702
+     ],
+     "label": "hat",
+     "confidence": 0.95
+    }
+   ]
+  },
+  {
+   "id": "images_bayra4",
+   "status": "ok",
+   "elapsed_seconds": 7.702,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.309,
+      0.139,
+      0.808,
+      0.8
+     ],
+     "label": "shirt",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.058,
+      0.469,
+      0.377,
+      0.893
+     ],
+     "label": "shorts",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.09,
+      0.045,
+      0.316,
+      0.513
+     ],
+     "label": "shirt",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.719,
+      0.033,
+      0.887,
+      0.258
+     ],
+     "label": "hat",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.356,
+      0.098,
+      0.395,
+      0.214
+     ],
+     "label": "sunglasses",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.725,
+      0.572,
+      0.903,
+      0.834
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.309,
+      0.139,
+      0.808,
+      0.8
+     ],
+     "label": "shirt",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.058,
+      0.469,
+      0.377,
+      0.893
+     ],
+     "label": "shorts",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.09,
+      0.045,
+      0.316,
+      0.513
+     ],
+     "label": "shirt",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.719,
+      0.033,
+      0.887,
+      0.258
+     ],
+     "label": "hat",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.356,
+      0.098,
+      0.395,
+      0.214
+     ],
+     "label": "sunglasses",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.725,
+      0.572,
+      0.903,
+      0.834
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    }
+   ]
+  },
+  {
+   "id": "images_bayra5",
+   "status": "ok",
+   "elapsed_seconds": 3.666,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.161,
+      0.137,
+      0.458,
+      0.703
+     ],
+     "label": "shirt",
+     "confidence": 0.99
+    },
+    {
+     "box": [
+      0.555,
+      0.249,
+      0.764,
+      0.907
+     ],
+     "label": "jeans",
+     "confidence": 0.99
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.161,
+      0.137,
+      0.458,
+      0.703
+     ],
+     "label": "shirt",
+     "confidence": 0.99
+    },
+    {
+     "box": [
+      0.555,
+      0.249,
+      0.764,
+      0.907
+     ],
+     "label": "jeans",
+     "confidence": 0.99
+    }
+   ]
+  },
+  {
+   "id": "images_nguyenbo1",
+   "status": "ok",
+   "elapsed_seconds": 5.413,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.311,
+      0.119,
+      0.735,
+      0.442
+     ],
+     "label": "outerwear",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.51,
+      0.432,
+      0.712,
+      0.96
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.552,
+      0.118,
+      0.637,
+      0.24
+     ],
+     "label": "shirt",
+     "confidence": 0.92
+    },
+    {
+     "box": [
+      0.584,
+      0.172,
+      0.616,
+      0.267
+     ],
+     "label": "tie",
+     "confidence": 0.91
+    },
+    {
+     "box": [
+      0.524,
+      0.925,
+      0.698,
+      0.998
+     ],
+     "label": "shoes",
+     "confidence": 0.96
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.311,
+      0.119,
+      0.735,
+      0.442
+     ],
+     "label": "outerwear",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.51,
+      0.432,
+      0.712,
+      0.96
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.552,
+      0.118,
+      0.637,
+      0.24
+     ],
+     "label": "shirt",
+     "confidence": 0.92
+    },
+    {
+     "box": [
+      0.584,
+      0.172,
+      0.616,
+      0.267
+     ],
+     "label": "tie",
+     "confidence": 0.91
+    },
+    {
+     "box": [
+      0.524,
+      0.925,
+      0.698,
+      0.998
+     ],
+     "label": "shoes",
+     "confidence": 0.96
+    }
+   ]
+  },
+  {
+   "id": "images_nguyenbo2",
+   "status": "ok",
+   "elapsed_seconds": 5.277,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.383,
+      0.138,
+      0.664,
+      0.506
+     ],
+     "label": "jacket",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.49,
+      0.138,
+      0.567,
+      0.401
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.521,
+      0.181,
+      0.549,
+      0.255
+     ],
+     "label": "tie",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.502,
+      0.392,
+      0.56,
+      0.42
+     ],
+     "label": "belt",
+     "confidence": 0.85
+    },
+    {
+     "box": [
+      0.437,
+      0.407,
+      0.613,
+      0.888
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.485,
+      0.824,
+      0.584,
+      0.953
+     ],
+     "label": "shoes",
+     "confidence": 0.92
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.383,
+      0.138,
+      0.664,
+      0.506
+     ],
+     "label": "jacket",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.49,
+      0.138,
+      0.567,
+      0.401
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.521,
+      0.181,
+      0.549,
+      0.255
+     ],
+     "label": "tie",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.502,
+      0.392,
+      0.56,
+      0.42
+     ],
+     "label": "belt",
+     "confidence": 0.85
+    },
+    {
+     "box": [
+      0.437,
+      0.407,
+      0.613,
+      0.888
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.485,
+      0.824,
+      0.584,
+      0.953
+     ],
+     "label": "shoes",
+     "confidence": 0.92
+    }
+   ]
+  },
+  {
+   "id": "images_nguyenbo3",
+   "status": "ok",
+   "elapsed_seconds": 4.42,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.363,
+      0.16,
+      0.656,
+      0.46
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.41,
+      0.179,
+      0.609,
+      0.375
+     ],
+     "label": "sweater",
+     "confidence": 0.89
+    },
+    {
+     "box": [
+      0.408,
+      0.405,
+      0.617,
+      0.951
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.418,
+      0.936,
+      0.595,
+      0.981
+     ],
+     "label": "shoes",
+     "confidence": 0.94
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.363,
+      0.16,
+      0.656,
+      0.46
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.41,
+      0.179,
+      0.609,
+      0.375
+     ],
+     "label": "sweater",
+     "confidence": 0.89
+    },
+    {
+     "box": [
+      0.408,
+      0.405,
+      0.617,
+      0.951
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.418,
+      0.936,
+      0.595,
+      0.981
+     ],
+     "label": "shoes",
+     "confidence": 0.94
+    }
+   ]
+  },
+  {
+   "id": "images_nguyenbo4",
+   "status": "ok",
+   "elapsed_seconds": 6.854,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.33,
+      0.169,
+      0.587,
+      0.502
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.372,
+      0.472,
+      0.616,
+      0.946
+     ],
+     "label": "trousers",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.32,
+      0.194,
+      0.467,
+      0.495
+     ],
+     "label": "bag",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.366,
+      0.873,
+      0.674,
+      0.981
+     ],
+     "label": "shoes",
+     "confidence": 0.92
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.33,
+      0.169,
+      0.587,
+      0.502
+     ],
+     "label": "shirt",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.372,
+      0.472,
+      0.616,
+      0.946
+     ],
+     "label": "trousers",
+     "confidence": 0.97
+    },
+    {
+     "box": [
+      0.32,
+      0.194,
+      0.467,
+      0.495
+     ],
+     "label": "bag",
+     "confidence": 0.94
+    },
+    {
+     "box": [
+      0.366,
+      0.873,
+      0.674,
+      0.981
+     ],
+     "label": "shoes",
+     "confidence": 0.92
+    }
+   ]
+  },
+  {
+   "id": "images_nguyenbo5",
+   "status": "ok",
+   "elapsed_seconds": 6.28,
+   "input_kind": "worn_outfit",
+   "raw_boxes": [
+    {
+     "box": [
+      0.347,
+      0.013,
+      0.674,
+      0.307
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.401,
+      0.296,
+      0.663,
+      0.942
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.273,
+      0.283,
+      0.439,
+      0.574
+     ],
+     "label": "jacket",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.396,
+      0.855,
+      0.666,
+      0.977
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.545,
+      0.126,
+      0.584,
+      0.155
+     ],
+     "label": "watch",
+     "confidence": 0.9
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.347,
+      0.013,
+      0.674,
+      0.307
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.401,
+      0.296,
+      0.663,
+      0.942
+     ],
+     "label": "pants",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.273,
+      0.283,
+      0.439,
+      0.574
+     ],
+     "label": "jacket",
+     "confidence": 0.96
+    },
+    {
+     "box": [
+      0.396,
+      0.855,
+      0.666,
+      0.977
+     ],
+     "label": "shoes",
+     "confidence": 0.95
+    },
+    {
+     "box": [
+      0.545,
+      0.126,
+      0.584,
+      0.155
+     ],
+     "label": "watch",
+     "confidence": 0.9
+    }
+   ]
+  },
+  {
+   "id": "images_treo_moc1",
+   "status": "ok",
+   "elapsed_seconds": 3.869,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.122,
+      0.297,
+      0.843,
+      0.824
+     ],
+     "label": "top",
+     "confidence": 0.98
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.122,
+      0.297,
+      0.843,
+      0.824
+     ],
+     "label": "top",
+     "confidence": 0.98
+    }
+   ]
+  },
+  {
+   "id": "images_treo_moc2",
+   "status": "ok",
+   "elapsed_seconds": 3.484,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.269,
+      0.207,
+      0.75,
+      0.888
+     ],
+     "label": "coat",
+     "confidence": 0.98
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.269,
+      0.207,
+      0.75,
+      0.888
+     ],
+     "label": "coat",
+     "confidence": 0.98
+    }
+   ]
+  },
+  {
+   "id": "images_treo_moc3",
+   "status": "ok",
+   "elapsed_seconds": 3.552,
+   "input_kind": "single_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.248,
+      0.165,
+      0.751,
+      0.905
+     ],
+     "label": "blazer",
+     "confidence": 0.99
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.248,
+      0.165,
+      0.751,
+      0.905
+     ],
+     "label": "blazer",
+     "confidence": 0.99
+    }
+   ]
+  },
+  {
+   "id": "images_treo_moc4",
+   "status": "ok",
+   "elapsed_seconds": 3.201,
+   "input_kind": "multi_item",
+   "raw_boxes": [
+    {
+     "box": [
+      0.18,
+      0.311,
+      0.464,
+      0.836
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.442,
+      0.311,
+      0.706,
+      0.871
+     ],
+     "label": "top",
+     "confidence": 0.98
+    }
+   ],
+   "boxes": [
+    {
+     "box": [
+      0.18,
+      0.311,
+      0.464,
+      0.836
+     ],
+     "label": "top",
+     "confidence": 0.98
+    },
+    {
+     "box": [
+      0.442,
+      0.311,
+      0.706,
+      0.871
+     ],
+     "label": "top",
+     "confidence": 0.98
+    }
+   ]
+  }
+ ]
+}
