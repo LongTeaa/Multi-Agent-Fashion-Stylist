@@ -25,7 +25,7 @@ from app.agents.state import (
 from app.agents.fashion_agent import outfit_satisfies_explicit_constraints
 from app.agents.fashion_scoring import count_recently_worn_items
 from app.agents.personalization_agent import MAJOR_SLOT_ROLES
-from app.agents.wardrobe_agent import CATEGORY_TO_SLOT
+from app.agents.wardrobe_agent import CATEGORY_TO_SLOT, COLOR_VI_MAP
 from app.core.config import get_settings
 from app.core.database import get_engine
 from app.models.entities import (
@@ -580,32 +580,7 @@ def _prepare_grounded_explanation(
     active_relaxations: Sequence[RelaxationStep] | None = None,
 ) -> _PreparedGroundedExplanation:
     """Build deterministic template explanation and grounding constraints for one outfit."""
-    colors = {
-        "white": "trắng",
-        "black": "đen",
-        "grey": "xám",
-        "gray": "xám",
-        "navy": "xanh navy",
-        "navy blue": "xanh navy",
-        "blue": "xanh dương",
-        "brown": "nâu",
-        "beige": "be",
-        "green": "xanh lá",
-        "red": "đỏ",
-        "pink": "hồng",
-        "cream": "kem",
-        "olive": "ô-liu",
-        "light_blue": "xanh nhạt",
-        "denim_blue": "xanh denim",
-        "burgundy": "đỏ đô",
-        "yellow": "vàng",
-        "orange": "cam",
-        "charcoal": "xám than",
-        "tan": "nâu sáng",
-        "purple": "tím",
-        "maroon": "đỏ đô",
-        "khaki": "khaki",
-    }
+    colors = COLOR_VI_MAP
     from app.services.garment_taxonomy import classify, normalize
 
     parts: list[str] = []

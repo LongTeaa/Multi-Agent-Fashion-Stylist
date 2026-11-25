@@ -554,7 +554,9 @@ def test_extract_context_with_providers_sanitizes_llm_formality_and_nullable_cla
         )
         assert warnings == []
         assert ctx.occasion == "date"
-        assert ctx.target_formality_range  # valid list[int] without fallback
+        # End to end, rule reconciliation may narrow the LLM range; the sanitizer value is
+        # checked exactly in test_llm_formality_floats_are_levels_unless_the_pair_is_fractional.
+        assert ctx.target_formality_range
 
     clar_ctx, clar_warnings = extract_context_with_providers(
         "Mặc gì?",
@@ -576,3 +578,31 @@ def test_extract_context_with_providers_sanitizes_llm_formality_and_nullable_cla
     assert clar_ctx.needs_clarification is True
     assert isinstance(clar_ctx.occasion, str) and clar_ctx.occasion
     assert isinstance(clar_ctx.time_of_day, str) and clar_ctx.time_of_day
+
+
+@pytest.mark.parametrize(
+    ("drift_tfr", "expected_range"),
+    [
+        ([1.0, 2.0], [1, 2]),  # integral floats are levels, not a 0..1 scale
+        (["1.0", "2.0"], [1, 2]),
+        ([1, 2], [1, 2]),
+        ([3.0, 4.0], [3, 4]),
+        ([0.0, 1.0], [1, 1]),  # no fractional value: read as levels, clamped to 1
+        ([0.25, 0.5], [2, 3]),  # fractional 0..1 pair: unit scale
+        ([1.0, 0.5], [3, 5]),  # mixed pair inside [0, 1] with a fraction: unit scale
+        ({"min": 4, "max": 5}, [4, 5]),
+        (["formal", "very_formal"], [4, 5]),
+        (["smart_casual", "semi_formal"], [3, 4]),
+        ([0.2, 0.4], [2, 3]),
+    ],
+)
+def test_llm_formality_floats_are_levels_unless_the_pair_is_fractional(
+    drift_tfr: list[Any], expected_range: list[int]
+) -> None:
+    from app.agents.context_agent import _sanitize_llm_context_payload, extract_context
+
+    fallback = extract_context("Đi cafe cuối tuần")
+    sanitized = _sanitize_llm_context_payload(
+        {"target_formality_range": drift_tfr}, fallback=fallback, query="Đi cafe cuối tuần"
+    )
+    assert sanitized["target_formality_range"] == expected_range

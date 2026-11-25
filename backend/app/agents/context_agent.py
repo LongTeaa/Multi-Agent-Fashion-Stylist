@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta, timezone
 import re
 from typing import Any
@@ -753,34 +754,45 @@ _FORMALITY_LABEL_MAP: dict[str, int] = {
 }
 
 
-def _coerce_formality_value(val: Any) -> int | None:
+def _formality_number(val: Any) -> float | None:
+    """Return a numeric formality value from an int, float or numeric string, else None."""
     if isinstance(val, bool) or val is None:
         return None
-    if isinstance(val, int):
-        return max(1, min(5, val))
-    if isinstance(val, float):
-        if 0.0 <= val <= 1.0:
-            return max(1, min(5, round(val * 4) + 1))
-        return max(1, min(5, round(val)))
+    if isinstance(val, (int, float)):
+        return float(val)
     if isinstance(val, str):
-        raw = val.strip()
-        if not raw:
-            return None
         try:
-            return max(1, min(5, int(raw)))
+            return float(val.strip())
         except ValueError:
-            pass
-        key = raw.lower().replace("-", "_").replace(" ", "_")
+            return None
+    return None
+
+
+def _is_unit_scale_pair(pair: Sequence[Any]) -> bool:
+    """True only for a pair on a 0..1 scale, such as [0.2, 0.4].
+
+    Integral values such as 1.0 or "2.0" are formality levels written as floats, so a
+    pair qualifies only when every value is numeric within [0, 1] and one is fractional.
+    """
+    numbers = [_formality_number(v) for v in pair]
+    if any(n is None for n in numbers):
+        return False
+    values = [n for n in numbers if n is not None]
+    return all(0.0 <= n <= 1.0 for n in values) and any(not n.is_integer() for n in values)
+
+
+def _coerce_formality_value(val: Any, *, unit_scale: bool = False) -> int | None:
+    if isinstance(val, bool) or val is None:
+        return None
+    if isinstance(val, str):
+        key = val.strip().lower().replace("-", "_").replace(" ", "_")
         if key in _FORMALITY_LABEL_MAP:
             return _FORMALITY_LABEL_MAP[key]
-        try:
-            f_val = float(raw)
-        except ValueError:
-            return None
-        if 0.0 <= f_val <= 1.0:
-            return max(1, min(5, round(f_val * 4) + 1))
-        return max(1, min(5, round(f_val)))
-    return None
+    number = _formality_number(val)
+    if number is None:
+        return None
+    level = number * 4 + 1 if unit_scale else number
+    return max(1, min(5, round(level)))
 
 
 def _sanitize_llm_context_payload(
@@ -813,7 +825,8 @@ def _sanitize_llm_context_payload(
         pair = None
 
     if pair is not None:
-        coerced = [_coerce_formality_value(v) for v in pair]
+        unit_scale = _is_unit_scale_pair(pair)
+        coerced = [_coerce_formality_value(v, unit_scale=unit_scale) for v in pair]
         if len(coerced) == 2 and coerced[0] is not None and coerced[1] is not None:
             lo, hi = sorted((coerced[0], coerced[1]))
             if hi - lo > 2:

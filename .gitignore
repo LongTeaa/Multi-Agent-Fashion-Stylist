@@ -33,6 +33,7 @@ data/private-tryon-spike/
 data/demo-wardrobe/
 data/eval_cache/
 data/private-judge-calibration-review/
+data/private-weight-comparison/
 backend/data
 
 # Logs and operating-system files
