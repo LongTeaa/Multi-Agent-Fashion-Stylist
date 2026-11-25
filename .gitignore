@@ -35,6 +35,7 @@ data/eval_cache/
 data/private-judge-calibration-review/
 data/private-weight-comparison/
 data/private-rating-simulation/
+data/private-chat-latency/
 backend/data
 
 # Logs and operating-system files
