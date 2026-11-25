@@ -34,6 +34,7 @@ data/demo-wardrobe/
 data/eval_cache/
 data/private-judge-calibration-review/
 data/private-weight-comparison/
+data/private-rating-simulation/
 backend/data
 
 # Logs and operating-system files

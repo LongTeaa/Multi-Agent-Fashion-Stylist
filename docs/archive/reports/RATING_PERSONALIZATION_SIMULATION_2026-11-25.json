@@ -1,0 +1,840 @@
+{
+  "method": {
+    "personas": {
+      "dark_minimal": {
+        "color": {
+          "black": 1,
+          "navy": 1,
+          "grey": 1,
+          "charcoal": 1,
+          "white": -1,
+          "cream": -1,
+          "beige": -1,
+          "khaki": -1,
+          "pink": -1,
+          "yellow": -1,
+          "light_blue": -1
+        },
+        "style": {
+          "minimalist": 1,
+          "formal": 0.5,
+          "streetwear": -1,
+          "vintage": -1
+        }
+      },
+      "light_casual": {
+        "color": {
+          "white": 1,
+          "cream": 1,
+          "beige": 1,
+          "khaki": 1,
+          "light_blue": 1,
+          "pink": 1,
+          "yellow": 1,
+          "black": -1,
+          "navy": -1,
+          "grey": -1,
+          "charcoal": -1
+        },
+        "style": {
+          "casual": 1,
+          "streetwear": 1,
+          "formal": -1
+        }
+      },
+      "earthy": {
+        "color": {
+          "brown": 1,
+          "beige": 1,
+          "olive": 1,
+          "khaki": 1,
+          "camel": 1,
+          "burgundy": 1,
+          "black": -1,
+          "white": -1,
+          "grey": -1
+        },
+        "style": {
+          "vintage": 1,
+          "casual": 0.5,
+          "smart_casual": 0.5,
+          "streetwear": -1
+        }
+      }
+    },
+    "wardrobes": [
+      "female_realistic_30",
+      "male_realistic_27"
+    ],
+    "checkpoints_ratings": [
+      0,
+      5,
+      10,
+      15,
+      20
+    ],
+    "rated_outfit": "rank 1 of each training request",
+    "providers": "deterministic, offline",
+    "stars": "clamp(round(3 + 2 * mean item score), 1, 5) over major items"
+  },
+  "pooled": {
+    "rated": {
+      "0": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      },
+      "5": {
+        "queries": 63,
+        "top1_mean_stars": 3.2539,
+        "hit_at_1": 0.4127,
+        "mrr_at_3": 0.4815,
+        "ndcg_at_3": 0.9661,
+        "top3_liked_share": 0.3492
+      },
+      "10": {
+        "queries": 63,
+        "top1_mean_stars": 3.2539,
+        "hit_at_1": 0.4127,
+        "mrr_at_3": 0.4815,
+        "ndcg_at_3": 0.9661,
+        "top3_liked_share": 0.3439
+      },
+      "15": {
+        "queries": 63,
+        "top1_mean_stars": 3.2539,
+        "hit_at_1": 0.4127,
+        "mrr_at_3": 0.4815,
+        "ndcg_at_3": 0.9661,
+        "top3_liked_share": 0.3386
+      },
+      "20": {
+        "queries": 63,
+        "top1_mean_stars": 3.2381,
+        "hit_at_1": 0.3968,
+        "mrr_at_3": 0.4762,
+        "ndcg_at_3": 0.9644,
+        "top3_liked_share": 0.3386
+      }
+    },
+    "control": {
+      "0": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      },
+      "5": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      },
+      "10": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      },
+      "15": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      },
+      "20": {
+        "queries": 63,
+        "top1_mean_stars": 3.1746,
+        "hit_at_1": 0.3651,
+        "mrr_at_3": 0.4576,
+        "ndcg_at_3": 0.9585,
+        "top3_liked_share": 0.328
+      }
+    }
+  },
+  "final_paired_top1_rated_minus_control": {
+    "better": 4,
+    "worse": 0,
+    "equal": 59,
+    "p_two_sided": 0.125
+  },
+  "per_user": {
+    "female_realistic_30/dark_minimal": {
+      "train_queries": 13,
+      "eval_queries": 12,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2333,
+            "ndcg_at_3": 0.9146,
+            "top3_liked_share": 0.2333
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2333,
+            "ndcg_at_3": 0.9146,
+            "top3_liked_share": 0.2333
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2333,
+            "ndcg_at_3": 0.9146,
+            "top3_liked_share": 0.2333
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2333,
+            "ndcg_at_3": 0.9146,
+            "top3_liked_share": 0.2333
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 2.6,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.2,
+            "ndcg_at_3": 0.9241,
+            "top3_liked_share": 0.2
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": 0.1662,
+        "color:cream": -0.2672,
+        "formality:high": 0.5,
+        "pattern:solid": -0.3116,
+        "style:formal": 0.5,
+        "color:white": -0.2948,
+        "formality:low": -0.3209,
+        "formality:medium": -0.4014,
+        "style:minimalist": -0.2391,
+        "style:smart_casual": -0.4014,
+        "color:beige": -0.2978,
+        "color:denim_blue": 0.0,
+        "pattern:unknown": -0.2235,
+        "style:casual": -0.261,
+        "color:brown": -0.395,
+        "color:khaki": -0.5,
+        "color:pink": -0.5,
+        "color:navy": 0.0
+      }
+    },
+    "female_realistic_30/light_casual": {
+      "train_queries": 13,
+      "eval_queries": 12,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9898,
+            "top3_liked_share": 0.5
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9898,
+            "top3_liked_share": 0.5
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9898,
+            "top3_liked_share": 0.4333
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9898,
+            "top3_liked_share": 0.4333
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 3.7,
+            "hit_at_1": 0.8,
+            "mrr_at_3": 0.8,
+            "ndcg_at_3": 0.9978,
+            "top3_liked_share": 0.4
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": 0.1677,
+        "color:cream": 0.3493,
+        "formality:high": -0.5,
+        "pattern:solid": 0.6029,
+        "style:formal": -0.5,
+        "color:white": 0.5,
+        "formality:low": 0.6586,
+        "formality:medium": 0.4748,
+        "style:minimalist": 0.5,
+        "style:smart_casual": 0.4748,
+        "color:beige": 0.6238,
+        "color:denim_blue": 0.5,
+        "pattern:unknown": 0.7235,
+        "style:casual": 0.6752,
+        "color:brown": 0.395,
+        "color:khaki": 1.0,
+        "color:pink": 1.0,
+        "color:navy": 0.0
+      }
+    },
+    "female_realistic_30/earthy": {
+      "train_queries": 13,
+      "eval_queries": 12,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9343,
+            "top3_liked_share": 0.4333
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9343,
+            "top3_liked_share": 0.4333
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9343,
+            "top3_liked_share": 0.4333
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9343,
+            "top3_liked_share": 0.4333
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          },
+          "5": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          },
+          "10": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          },
+          "15": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          },
+          "20": {
+            "queries": 10,
+            "top1_mean_stars": 3.0,
+            "hit_at_1": 0.2,
+            "mrr_at_3": 0.45,
+            "ndcg_at_3": 0.9225,
+            "top3_liked_share": 0.4333
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": -0.1662,
+        "color:cream": 0.042,
+        "formality:high": -0.5,
+        "pattern:solid": 0.2253,
+        "style:formal": -0.5,
+        "color:white": 0.1352,
+        "formality:low": 0.2131,
+        "formality:medium": 0.2184,
+        "style:minimalist": 0.0795,
+        "style:smart_casual": 0.2184,
+        "color:beige": 0.3493,
+        "color:denim_blue": 0.0,
+        "pattern:unknown": 0.2235,
+        "style:casual": 0.261,
+        "color:brown": 0.5,
+        "color:khaki": 0.5,
+        "color:pink": 0.5,
+        "color:navy": 0.5
+      }
+    },
+    "male_realistic_27/dark_minimal": {
+      "train_queries": 14,
+      "eval_queries": 13,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.3636,
+            "mrr_at_3": 0.4697,
+            "ndcg_at_3": 0.9743,
+            "top3_liked_share": 0.3333
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.3636,
+            "mrr_at_3": 0.4697,
+            "ndcg_at_3": 0.9743,
+            "top3_liked_share": 0.303
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.3636,
+            "mrr_at_3": 0.4697,
+            "ndcg_at_3": 0.9743,
+            "top3_liked_share": 0.3333
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 3.2727,
+            "hit_at_1": 0.2727,
+            "mrr_at_3": 0.4394,
+            "ndcg_at_3": 0.9648,
+            "top3_liked_share": 0.3333
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 2.9091,
+            "hit_at_1": 0.0909,
+            "mrr_at_3": 0.3636,
+            "ndcg_at_3": 0.9234,
+            "top3_liked_share": 0.3636
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": 0.2235,
+        "color:brown": 0.0978,
+        "color:light_blue": -0.0123,
+        "formality:high": 0.1792,
+        "pattern:solid": 0.1251,
+        "style:formal": 0.2733,
+        "style:smart_casual": 0.0711,
+        "color:navy": 0.0735,
+        "formality:medium": 0.07,
+        "color:khaki": -0.5,
+        "color:white": 0.0938,
+        "color:grey": 0.3285,
+        "color:olive": 0.0,
+        "formality:low": 0.0,
+        "pattern:unknown": 0.0,
+        "style:casual": 0.0,
+        "style:minimalist": 0.0,
+        "color:beige": 0.0
+      }
+    },
+    "male_realistic_27/light_casual": {
+      "train_queries": 14,
+      "eval_queries": 13,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 3.3636,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4545,
+            "ndcg_at_3": 0.9939,
+            "top3_liked_share": 0.2121
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": -0.2235,
+        "color:brown": 0.243,
+        "color:light_blue": 0.3462,
+        "formality:high": 0.1053,
+        "pattern:solid": 0.2315,
+        "style:formal": -0.186,
+        "style:smart_casual": 0.3263,
+        "color:navy": 0.105,
+        "formality:medium": 0.3414,
+        "color:khaki": 0.4205,
+        "color:white": 0.1116,
+        "color:grey": -0.2235,
+        "color:olive": 0.5,
+        "formality:low": 0.5,
+        "pattern:unknown": 0.5,
+        "style:casual": 0.5,
+        "style:minimalist": 0.5,
+        "color:beige": 0.5
+      }
+    },
+    "male_realistic_27/earthy": {
+      "train_queries": 14,
+      "eval_queries": 13,
+      "curve": {
+        "rated": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9842,
+            "top3_liked_share": 0.3939
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9842,
+            "top3_liked_share": 0.3939
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9842,
+            "top3_liked_share": 0.3939
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9842,
+            "top3_liked_share": 0.3939
+          }
+        },
+        "control": {
+          "0": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          },
+          "5": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          },
+          "10": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          },
+          "15": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          },
+          "20": {
+            "queries": 11,
+            "top1_mean_stars": 3.4545,
+            "hit_at_1": 0.4545,
+            "mrr_at_3": 0.4848,
+            "ndcg_at_3": 0.9862,
+            "top3_liked_share": 0.3636
+          }
+        }
+      },
+      "ratings_count": 20,
+      "learned_weights": {
+        "color:black": -0.2235,
+        "color:brown": 0.3589,
+        "color:light_blue": 0.4284,
+        "formality:high": 0.185,
+        "pattern:solid": 0.2829,
+        "style:formal": -0.0948,
+        "style:smart_casual": 0.4051,
+        "color:navy": 0.2765,
+        "formality:medium": 0.4236,
+        "color:khaki": 0.5,
+        "color:white": 0.2063,
+        "color:grey": -0.2235,
+        "color:olive": 0.5,
+        "formality:low": 0.4265,
+        "pattern:unknown": 0.5,
+        "style:casual": 0.4265,
+        "style:minimalist": 0.4265,
+        "color:beige": 0.15
+      }
+    }
+  }
+}
