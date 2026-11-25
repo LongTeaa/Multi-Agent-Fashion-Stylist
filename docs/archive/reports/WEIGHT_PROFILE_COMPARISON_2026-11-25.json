@@ -1,0 +1,190 @@
+{
+  "profiles": {
+    "current": {
+      "comfort": {
+        "weather_comfort": 0.45,
+        "aesthetic": 0.15,
+        "functional": 0.15,
+        "personal": 0.15,
+        "formality": 0.1
+      },
+      "active": {
+        "functional": 0.3,
+        "weather_comfort": 0.35,
+        "personal": 0.1,
+        "aesthetic": 0.15,
+        "formality": 0.1
+      }
+    },
+    "pre_pr21": {
+      "comfort": {
+        "weather_comfort": 0.55,
+        "aesthetic": 0.15,
+        "functional": 0.2,
+        "personal": 0.0,
+        "formality": 0.1
+      },
+      "active": {
+        "functional": 0.3,
+        "weather_comfort": 0.45,
+        "personal": 0.0,
+        "aesthetic": 0.15,
+        "formality": 0.1
+      }
+    }
+  },
+  "current": {
+    "dataset_version": "multi-agent-bench-v3",
+    "systems": {
+      "B0": {
+        "layer_a": "49/56",
+        "functional_pass": "34/56",
+        "dev_pass": "21/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": null,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.9045,
+        "stress_pass": "0/12"
+      },
+      "B1": {
+        "layer_a": "56/56",
+        "functional_pass": "43/56",
+        "dev_pass": "30/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7459,
+        "stress_pass": "4/12"
+      },
+      "M-Full": {
+        "layer_a": "56/56",
+        "functional_pass": "48/56",
+        "dev_pass": "33/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7356,
+        "stress_pass": "12/12"
+      },
+      "M-NoLoop1": {
+        "layer_a": "56/56",
+        "functional_pass": "43/56",
+        "dev_pass": "30/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7459,
+        "stress_pass": "8/12"
+      },
+      "M-NoLoop2": {
+        "layer_a": "56/56",
+        "functional_pass": "48/56",
+        "dev_pass": "33/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7356,
+        "stress_pass": "8/12"
+      },
+      "M-NoPersonalization": {
+        "layer_a": "55/56",
+        "functional_pass": "47/56",
+        "dev_pass": "32/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "0/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7516,
+        "stress_pass": "8/12"
+      }
+    }
+  },
+  "pre_pr21": {
+    "dataset_version": "multi-agent-bench-v3",
+    "systems": {
+      "B0": {
+        "layer_a": "49/56",
+        "functional_pass": "34/56",
+        "dev_pass": "21/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": null,
+        "profile_differentiation": "5/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.9045,
+        "stress_pass": "0/12"
+      },
+      "B1": {
+        "layer_a": "56/56",
+        "functional_pass": "43/56",
+        "dev_pass": "30/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "2/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7392,
+        "stress_pass": "4/12"
+      },
+      "M-Full": {
+        "layer_a": "56/56",
+        "functional_pass": "48/56",
+        "dev_pass": "33/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "2/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7319,
+        "stress_pass": "12/12"
+      },
+      "M-NoLoop1": {
+        "layer_a": "56/56",
+        "functional_pass": "43/56",
+        "dev_pass": "30/38",
+        "holdout_pass": "13/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "2/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7392,
+        "stress_pass": "8/12"
+      },
+      "M-NoLoop2": {
+        "layer_a": "56/56",
+        "functional_pass": "48/56",
+        "dev_pass": "33/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "2/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7319,
+        "stress_pass": "8/12"
+      },
+      "M-NoPersonalization": {
+        "layer_a": "55/56",
+        "functional_pass": "47/56",
+        "dev_pass": "32/38",
+        "holdout_pass": "15/18",
+        "context_micro_accuracy": 0.876,
+        "profile_differentiation": "0/5",
+        "contrastive_pair_diff": "3/3",
+        "recent_wear_avoid": "4/4",
+        "top3_core_diversity": 0.7383,
+        "stress_pass": "8/12"
+      }
+    }
+  }
+}

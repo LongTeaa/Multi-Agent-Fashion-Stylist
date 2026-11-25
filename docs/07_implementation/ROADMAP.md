@@ -265,6 +265,7 @@ python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ing
 - [x] Blind human calibration with three anonymized raters (`../archive/reports/HUMAN_VS_JUDGE_CALIBRATION_2026-11-25.md`).
 - [x] Fix the formality coercion that read `1.0` as level 5 (F-1) and the retries and sleeps of the application context provider inside chat requests (F-2); tests in `backend/tests/unit/test_context_agent.py` and `backend/tests/unit/test_context_provider_chat_policy.py`.
 - [x] Record the review findings and reporting caveats (`../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md`).
+- [x] Compare the pre-PR #21 and current comfort/active profiles offline (`backend/scripts/compare_weight_profiles_offline.py`): profile differentiation 2/5 → 5/5 for M-Full, every constraint, structure, functional and stress metric unchanged (review report section 2.1).
 - [ ] Owner and advisor confirm or revert the comfort and active weight changes; a revert requires a new live run.
 
 **Acceptance criteria:**
@@ -276,6 +277,7 @@ python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ing
 
 ```powershell
 cd backend; python -m pytest tests/evaluation/test_multi_agent_benchmark.py tests/unit/test_context_agent.py tests/unit/test_context_provider_chat_policy.py -q; cd ..
+python backend/scripts/compare_weight_profiles_offline.py --out data/private-weight-comparison/summary.json
 ./scripts/verify_documentation.ps1
 ```
 

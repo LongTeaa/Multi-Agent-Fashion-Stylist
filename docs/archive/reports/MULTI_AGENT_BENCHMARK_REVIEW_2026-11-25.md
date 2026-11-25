@@ -37,9 +37,37 @@ Also done: the coordinator's copy of the Vietnamese color map now uses
   `context_scoring.py`). The profiles came from the advisor's feedback, so the change needs
   the advisor's agreement. Every live benchmark number was measured with the new weights;
   reverting them requires a new live run.
+  An offline comparison on 2026-11-25 measured what the change buys (section 2.1).
 - **Gemini key rotation.** The benchmark used a pool of seven Gemini keys. Rotating several
   free-tier keys to exceed one project's quota may conflict with the provider's terms. The
   deployed application should use one paid key.
+
+### 2.1 Offline comparison of the weight profiles
+
+`backend/scripts/compare_weight_profiles_offline.py` runs the offline benchmark
+(`multi-agent-bench-v3`, 56 representative and 12 stress cases; no live LLM, weather or
+judge) once with the current profiles and once with the pre-PR #21 comfort and active
+profiles, which mirror the advisor's travel example (comfort + weather 55%, function 20%,
+aesthetic 15%, formality 10%, personal 0%). Summary:
+`WEIGHT_PROFILE_COMPARISON_2026-11-25.json`.
+
+| System | Profile differentiation (pre-PR #21 → current) | Top-3 core diversity | Every other metric |
+| :--- | :--- | :--- | :--- |
+| B1 | 2/5 → 5/5 | 0.739 → 0.746 | unchanged |
+| M-Full | 2/5 → 5/5 | 0.732 → 0.736 | unchanged |
+| M-NoLoop1 | 2/5 → 5/5 | 0.739 → 0.746 | unchanged |
+| M-NoLoop2 | 2/5 → 5/5 | 0.732 → 0.736 | unchanged |
+| M-NoPersonalization | 0/5 → 0/5 | 0.738 → 0.752 | unchanged |
+| B0 | — | — | unchanged |
+
+"Every other metric" is Layer A, functional pass (dev and holdout), context accuracy,
+contrastive pairs, recent-wear avoidance and stress pass; for M-Full they stay at 56/56,
+48/56, 3/3, 4/4 and 12/12. With personal weight 0, two different preference profiles
+received different recommendations in only 2 of the 5 profile-differentiation cases; with
+the current weights in all 5, while no constraint, structure or functional check got worse.
+M-NoPersonalization stays at 0/5 under both profiles, which confirms that the gain comes
+from the personalization weight. The comparison is offline only: the judged quality of the
+live run (nDCG@3, pairwise wins) was not measured under the old weights.
 
 ## 3. Caveats for reporting the judge calibration
 
