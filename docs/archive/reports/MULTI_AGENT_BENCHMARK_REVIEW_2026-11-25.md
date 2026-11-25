@@ -17,11 +17,14 @@ reports themselves (`LIVE_MULTI_AGENT_BENCHMARK_2026-11-23.md`, `..._HOLDOUT_...
 | F-1 | `_coerce_formality_value` read every float in `[0, 1]` as a 0–1 scale, so `1.0` or `"1.0"` became formality 5 | An LLM range `[1.0, 2.0]` (casual) became `[2, 4]` | A pair uses the 0–1 scale only when both values lie in `[0, 1]` and one is fractional; integral floats are levels. Tests in `test_context_agent.py` fail on the previous code (3 of 11 cases) |
 | F-2 | The application context provider retried up to `max(2, keys)` times with exponential backoff and slept up to 30 s on HTTP 429 | A chat request could wait about 48 s with one key before the rule fallback | `get_context_llm_provider` makes one attempt (`max_retries=0`); the benchmark runner keeps its own retrying provider. `test_context_provider_chat_policy.py` fails on the previous code (4 of 4) |
 
-Whether F-1 affected the 2026-11-23 live run cannot be checked from the repository: the
-reports do not store raw LLM context payloads and the response cache
-(`data/eval_cache/`) is git-ignored on the author's machine. The prompt asks for integers,
-so the effect is expected to be small, but it is unverified. F-2 does not affect benchmark
-numbers, because the runner builds its own provider.
+F-1 did not affect the 2026-11-23 live run. The reports do not store raw LLM context
+payloads, so the author checked the git-ignored response cache
+(`data/eval_cache/llm_cache.jsonl`, 51 unique context records for 56 cases) on 2026-11-25:
+32 cases returned integer lists, 3 integer `min`/`max` objects, 15 label strings, 1 null,
+and 1 (`r25`, dev) the fraction pair `[0.2, 0.4]`. No case returned an integral float such
+as `1.0`. The fixed code maps every one of these forms to the same range as before
+(`[0.2, 0.4]` still becomes `[2, 3]`), so the benchmark numbers stand. F-2 does not affect
+benchmark numbers either, because the runner builds its own provider.
 
 Also done: the coordinator's copy of the Vietnamese color map now uses
 `wardrobe_agent.COLOR_VI_MAP` (the two copies were identical).
