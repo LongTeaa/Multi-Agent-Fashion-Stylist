@@ -13,8 +13,12 @@ Provider keys come from the environment or `.env` and are never written to the o
 The source database is copied and never modified.
 
 Usage (from the repository root):
-    python backend/scripts/measure_live_chat_latency.py --user-id <uuid> [--user-id <uuid>] \\
+    python backend/scripts/measure_live_chat_latency.py \\
+        --wardrobe-user female_realistic_30=<uuid> --wardrobe-user male_realistic_27=<uuid> \\
         --queries 30 --repeats 2 --explanations both --out <latency.json>
+
+Each benchmark query is sent to the user mapped to its benchmark wardrobe, so a request
+for garments that only one wardrobe holds is not answered from the other.
 """
 
 from __future__ import annotations
@@ -56,8 +60,15 @@ class _Timed:
             try:
                 result = attr(*args, **kwargs)
             except BaseException as exc:
-                self._log.append({"call": name, "ms": round((perf_counter() - started) * 1000, 1),
-                                  "error": type(exc).__name__})
+                entry: dict[str, Any] = {"call": name, "ms": round((perf_counter() - started) * 1000, 1),
+                                         "error": type(exc).__name__}
+                cause = exc.__cause__
+                if cause is not None:
+                    entry["cause"] = type(cause).__name__
+                    response = getattr(cause, "response", None)
+                    if response is not None and hasattr(response, "status_code"):
+                        entry["http_status"] = response.status_code
+                self._log.append(entry)
                 raise
             self._log.append({"call": name, "ms": round((perf_counter() - started) * 1000, 1)})
             return result
@@ -108,14 +119,19 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--user-id", action="append", required=True,
-                        help="Existing user in the source database; repeat to alternate users")
+    parser.add_argument("--wardrobe-user", action="append", required=True, metavar="WARDROBE=UUID",
+                        help="Map a benchmark wardrobe id to an existing user in the source database")
     parser.add_argument("--database", type=Path, default=REPOSITORY_ROOT / "data" / "fashion_stylist.db")
     parser.add_argument("--queries", type=int, default=30)
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--explanations", choices=("off", "on", "both"), default="both")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    try:
+        wardrobe_users = dict(item.split("=", 1) for item in args.wardrobe_user)
+    except ValueError:
+        parser.error("--wardrobe-user values must look like WARDROBE=UUID")
+    user_labels = {uid: f"user{i + 1}" for i, uid in enumerate(wardrobe_users.values())}
 
     tmp = Path(tempfile.mkdtemp(prefix="chat-latency-"))
     db_copy = tmp / "chat.db"
@@ -132,7 +148,8 @@ def main(argv: list[str] | None = None) -> int:
 
     bench = json.loads((REPOSITORY_ROOT / "data" / "fixtures" / "multi_agent_benchmark_v1.json")
                        .read_text(encoding="utf-8"))
-    cases = sorted((c for c in bench["representative_cases"] if c.get("expected_status") == "ok"),
+    cases = sorted((c for c in bench["representative_cases"]
+                    if c.get("expected_status") == "ok" and c.get("wardrobe_id") in wardrobe_users),
                    key=lambda c: c["id"])[: args.queries]
     configs = {"off": [False], "on": [True], "both": [False, True]}[args.explanations]
 
@@ -159,11 +176,11 @@ def main(argv: list[str] | None = None) -> int:
             client = TestClient(app)
             # One unrecorded warm-up request per configuration, so imports, the first
             # database connection and HTTP connection setup are not charged to case 1.
-            client.post("/api/v1/stylist/chat", headers={"X-User-Id": args.user_id[0]},
+            client.post("/api/v1/stylist/chat", headers={"X-User-Id": wardrobe_users[cases[0]["wardrobe_id"]]},
                         json={"query": cases[0]["query"], "location": cases[0].get("location")})
             for repeat in range(args.repeats):
-                for index, case in enumerate(cases):
-                    user_id = args.user_id[index % len(args.user_id)]
+                for case in cases:
+                    user_id = wardrobe_users[case["wardrobe_id"]]
                     log.clear()
                     started = perf_counter()
                     res = client.post("/api/v1/stylist/chat", headers={"X-User-Id": user_id},
@@ -172,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
                     data = (res.json().get("data") or {}) if res.status_code == 200 else {}
                     llm_calls = [c for c in log if c["call"] != "get_weather"]
                     rows.append({
-                        "case_id": case["id"], "repeat": repeat, "user": f"user{args.user_id.index(user_id) + 1}",
+                        "case_id": case["id"], "repeat": repeat, "user": user_labels[user_id], "wardrobe_id": case["wardrobe_id"],
                         "status_code": res.status_code, "total_ms": total_ms,
                         "llm_ms": round(sum(c["ms"] for c in llm_calls), 1),
                         "weather_ms": round(sum(c["ms"] for c in log if c["call"] == "get_weather"), 1),
@@ -197,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
             "endpoint": "POST /api/v1/stylist/chat (in-process TestClient)",
             "context_model": get_settings().llm_model, "weather_provider": get_settings().weather_provider,
             "context_timeout_seconds": get_settings().context_timeout_seconds,
-            "queries": len(cases), "repeats": args.repeats, "users": len(args.user_id),
+            "queries": len(cases), "repeats": args.repeats, "users": len(wardrobe_users),
             "database": "temporary copy of the source database", "cache": "none",
         },
         "runs": results,

@@ -1,0 +1,3160 @@
+{
+  "main_run": {
+    "note": "2026-11-25 before the wall-clock deadline fix; queries alternated between the two demo users, so 6 requests per configuration returned the correct 422 NO_COMPLETE_OUTFIT and are excluded from latency figures; error causes were not recorded",
+    "method": {
+      "endpoint": "POST /api/v1/stylist/chat (in-process TestClient)",
+      "context_model": "gemini-3.6-flash",
+      "weather_provider": "openmeteo",
+      "context_timeout_seconds": 15,
+      "queries": 30,
+      "repeats": 2,
+      "users": 2,
+      "database": "temporary copy of the source database",
+      "cache": "none"
+    },
+    "runs": {
+      "llm_explanations_off": {
+        "summary": {
+          "requests": 60,
+          "total_ms": {
+            "p50": 2128.9,
+            "p95": 4398.3,
+            "mean": 2575.9,
+            "max": 7341.0
+          },
+          "llm_ms": {
+            "p50": 1986.7,
+            "p95": 2906.7
+          },
+          "weather_ms": {
+            "p50": 0.0,
+            "p95": 2337.0
+          },
+          "local_ms": {
+            "p50": 58.2,
+            "p95": 83.5
+          },
+          "llm_share_of_total": 0.766,
+          "llm_calls": 60,
+          "llm_errors": 5,
+          "context_fallbacks": 4,
+          "clarifications": 0,
+          "http_errors": 6
+        },
+        "requests": [
+          {
+            "case_id": "r01",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2257.7,
+            "llm_ms": 2189.4,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2189.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r02",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2018.5,
+            "llm_ms": 1929.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1929.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r03",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2390.2,
+            "llm_ms": 2336.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2336.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r04",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 594.7,
+            "llm_ms": 534.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 534.8,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r05",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1983.4,
+            "llm_ms": 1926.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1926.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r06",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1958.7,
+            "llm_ms": 1899.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1899.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r07",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2083.3,
+            "llm_ms": 2025.5,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2025.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r08",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2068.5,
+            "llm_ms": 2015.4,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2015.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r09",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2207.6,
+            "llm_ms": 2146.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2146.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r10",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1835.8,
+            "llm_ms": 1781.9,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1781.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r11",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2324.5,
+            "llm_ms": 2262.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2262.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r12",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1953.4,
+            "llm_ms": 1907.2,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1907.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r13",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4896.1,
+            "llm_ms": 2037.2,
+            "weather_ms": 2786.9,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2037.2
+              },
+              {
+                "call": "get_weather",
+                "ms": 2786.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r14",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 422,
+            "total_ms": 4117.7,
+            "llm_ms": 2295.3,
+            "weather_ms": 1797.4,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2295.3
+              },
+              {
+                "call": "get_weather",
+                "ms": 1797.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r15",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 7341.0,
+            "llm_ms": 2097.0,
+            "weather_ms": 5211.9,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2097.0
+              },
+              {
+                "call": "get_weather",
+                "ms": 5211.9,
+                "error": "TimeoutError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r16",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4141.1,
+            "llm_ms": 2244.0,
+            "weather_ms": 1833.8,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2244.0
+              },
+              {
+                "call": "get_weather",
+                "ms": 1833.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r17",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 4083.9,
+            "llm_ms": 2145.8,
+            "weather_ms": 1906.9,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2145.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 1906.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r18",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4155.9,
+            "llm_ms": 2220.0,
+            "weather_ms": 1868.5,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2220.0
+              },
+              {
+                "call": "get_weather",
+                "ms": 1868.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r19",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2251.9,
+            "llm_ms": 2212.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2212.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 1
+          },
+          {
+            "case_id": "r20",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 3908.1,
+            "llm_ms": 2061.9,
+            "weather_ms": 1765.7,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2061.9
+              },
+              {
+                "call": "get_weather",
+                "ms": 1765.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r21",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1940.2,
+            "llm_ms": 1862.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1862.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r22",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1795.1,
+            "llm_ms": 1749.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1749.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r23",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2977.8,
+            "llm_ms": 2904.3,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2904.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r24",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2056.5,
+            "llm_ms": 1997.5,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1997.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r25",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1724.9,
+            "llm_ms": 1655.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1655.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r26",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1715.7,
+            "llm_ms": 1657.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1657.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r27",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1981.7,
+            "llm_ms": 1909.0,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1909.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r28",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1808.5,
+            "llm_ms": 1756.5,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1756.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r29",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1946.0,
+            "llm_ms": 1901.2,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1901.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r30",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1852.7,
+            "llm_ms": 1795.9,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1795.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r01",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 436.8,
+            "llm_ms": 381.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 381.8,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r02",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2147.5,
+            "llm_ms": 2071.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2071.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r03",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2291.2,
+            "llm_ms": 2243.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2243.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r04",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2472.7,
+            "llm_ms": 2415.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2415.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r05",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1966.0,
+            "llm_ms": 1909.4,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1909.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r06",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1986.4,
+            "llm_ms": 1919.3,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1919.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r07",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2553.2,
+            "llm_ms": 2501.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2501.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r08",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1950.6,
+            "llm_ms": 1896.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1896.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r09",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 1976.1,
+            "llm_ms": 1910.3,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1910.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r10",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2013.9,
+            "llm_ms": 1955.5,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1955.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r11",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2036.0,
+            "llm_ms": 1975.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1975.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r12",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 1706.8,
+            "llm_ms": 1648.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1648.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r13",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3662.8,
+            "llm_ms": 1780.9,
+            "weather_ms": 1817.6,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1780.9
+              },
+              {
+                "call": "get_weather",
+                "ms": 1817.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r14",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 422,
+            "total_ms": 2715.0,
+            "llm_ms": 375.4,
+            "weather_ms": 2313.3,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 375.4,
+                "error": "RuntimeError"
+              },
+              {
+                "call": "get_weather",
+                "ms": 2313.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r15",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 3640.5,
+            "llm_ms": 1800.8,
+            "weather_ms": 1754.2,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1800.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 1754.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r16",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 3947.0,
+            "llm_ms": 1969.4,
+            "weather_ms": 1920.1,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1969.4
+              },
+              {
+                "call": "get_weather",
+                "ms": 1920.1
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r17",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 3881.8,
+            "llm_ms": 1948.4,
+            "weather_ms": 1900.2,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1948.4
+              },
+              {
+                "call": "get_weather",
+                "ms": 1900.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r18",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4372.1,
+            "llm_ms": 2224.8,
+            "weather_ms": 2093.8,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2224.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 2093.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r19",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2590.9,
+            "llm_ms": 2538.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2538.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 1
+          },
+          {
+            "case_id": "r20",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5959.4,
+            "llm_ms": 2155.1,
+            "weather_ms": 3718.7,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2155.1
+              },
+              {
+                "call": "get_weather",
+                "ms": 3718.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r21",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2110.4,
+            "llm_ms": 2027.0,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2027.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r22",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2384.8,
+            "llm_ms": 2321.9,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2321.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r23",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2039.7,
+            "llm_ms": 1972.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1972.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r24",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 757.4,
+            "llm_ms": 708.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 708.6,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r25",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3022.4,
+            "llm_ms": 2951.4,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2951.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r26",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 3268.0,
+            "llm_ms": 3201.6,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3201.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r27",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3198.7,
+            "llm_ms": 3115.3,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3115.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r28",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2536.1,
+            "llm_ms": 2479.8,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2479.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r29",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 463.4,
+            "llm_ms": 403.1,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 403.1,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r30",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2093.7,
+            "llm_ms": 2047.2,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2047.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          }
+        ]
+      },
+      "llm_explanations_on": {
+        "summary": {
+          "requests": 60,
+          "total_ms": {
+            "p50": 4869.5,
+            "p95": 8003.7,
+            "mean": 8241.9,
+            "max": 203784.4
+          },
+          "llm_ms": {
+            "p50": 4491.1,
+            "p95": 6412.2
+          },
+          "weather_ms": {
+            "p50": 0.0,
+            "p95": 3601.1
+          },
+          "local_ms": {
+            "p50": 68.9,
+            "p95": 94.0
+          },
+          "llm_share_of_total": 0.901,
+          "llm_calls": 110,
+          "llm_errors": 10,
+          "context_fallbacks": 4,
+          "clarifications": 0,
+          "http_errors": 6
+        },
+        "requests": [
+          {
+            "case_id": "r01",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5184.4,
+            "llm_ms": 5107.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2049.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3057.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r02",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4406.0,
+            "llm_ms": 4312.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1886.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2425.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r03",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2663.2,
+            "llm_ms": 2599.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2169.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 430.1,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r04",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4462.9,
+            "llm_ms": 4415.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2205.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2209.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r05",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5071.7,
+            "llm_ms": 4995.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2477.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2517.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r06",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4893.9,
+            "llm_ms": 4822.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2046.8
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2775.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r07",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2400.6,
+            "llm_ms": 2337.8,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1957.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 380.2,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r08",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4343.8,
+            "llm_ms": 4272.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1970.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2301.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r09",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4290.4,
+            "llm_ms": 4214.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1907.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2307.1
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r10",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5795.6,
+            "llm_ms": 5686.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3163.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2522.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r11",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5632.7,
+            "llm_ms": 5567.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3104.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2462.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r12",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2910.1,
+            "llm_ms": 2846.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2155.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 691.2,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r13",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 7896.1,
+            "llm_ms": 4666.9,
+            "weather_ms": 3123.4,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1956.6
+              },
+              {
+                "call": "get_weather",
+                "ms": 3123.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2710.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r14",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 422,
+            "total_ms": 4065.8,
+            "llm_ms": 2247.2,
+            "weather_ms": 1796.4,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2247.2
+              },
+              {
+                "call": "get_weather",
+                "ms": 1796.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r15",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 3861.4,
+            "llm_ms": 1856.8,
+            "weather_ms": 1972.5,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1856.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 1972.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r16",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 3250.7,
+            "llm_ms": 399.3,
+            "weather_ms": 2798.4,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 399.3,
+                "error": "RuntimeError"
+              },
+              {
+                "call": "get_weather",
+                "ms": 2798.4,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r17",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 3637.3,
+            "llm_ms": 2104.3,
+            "weather_ms": 1505.2,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2104.3
+              },
+              {
+                "call": "get_weather",
+                "ms": 1505.2,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r18",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 10049.1,
+            "llm_ms": 4708.2,
+            "weather_ms": 5271.0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2016.1
+              },
+              {
+                "call": "get_weather",
+                "ms": 5271.0,
+                "error": "TimeoutError"
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2692.1
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r19",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 430.2,
+            "llm_ms": 375.4,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 375.4,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 1
+          },
+          {
+            "case_id": "r20",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 6674.7,
+            "llm_ms": 4893.6,
+            "weather_ms": 1695.7,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2591.2
+              },
+              {
+                "call": "get_weather",
+                "ms": 1695.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2302.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r21",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5410.5,
+            "llm_ms": 5334.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1928.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3405.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r22",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4170.2,
+            "llm_ms": 4097.5,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1539.1
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2558.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r23",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 6227.4,
+            "llm_ms": 6160.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1779.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 4380.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r24",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4434.9,
+            "llm_ms": 4377.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2098.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2278.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r25",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 6064.4,
+            "llm_ms": 5984.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3401.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2582.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r26",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4034.5,
+            "llm_ms": 3966.9,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2019.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1947.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r27",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 2976.3,
+            "llm_ms": 2907.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2294.1
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 613.3,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r28",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4174.9,
+            "llm_ms": 4098.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2029.0
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2069.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r29",
+            "repeat": 0,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 6574.5,
+            "llm_ms": 6495.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2073.9
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 4421.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r30",
+            "repeat": 0,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5866.3,
+            "llm_ms": 5812.5,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2149.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3663.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r01",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5070.3,
+            "llm_ms": 4993.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2431.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2561.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r02",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 6497.6,
+            "llm_ms": 6407.8,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3017.8
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3390.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r03",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4185.0,
+            "llm_ms": 4119.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1924.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2194.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r04",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5423.3,
+            "llm_ms": 5352.9,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3145.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2207.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r05",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 6014.6,
+            "llm_ms": 5939.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2168.8
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3770.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r06",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5650.9,
+            "llm_ms": 5582.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2029.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3552.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r07",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4925.0,
+            "llm_ms": 4852.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1660.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3191.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r08",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4404.5,
+            "llm_ms": 4345.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2043.1
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2302.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r09",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3824.7,
+            "llm_ms": 3757.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1694.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2062.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r10",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 6865.1,
+            "llm_ms": 6802.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3266.0
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3536.6
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r11",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 774.8,
+            "llm_ms": 707.5,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 707.5,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r12",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4396.2,
+            "llm_ms": 4334.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2247.9
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2086.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r13",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 14636.8,
+            "llm_ms": 5542.6,
+            "weather_ms": 9030.3,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 3044.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 9030.3,
+                "error": "TimeoutError"
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2497.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r14",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 422,
+            "total_ms": 5587.9,
+            "llm_ms": 2048.4,
+            "weather_ms": 3515.2,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2048.4
+              },
+              {
+                "call": "get_weather",
+                "ms": 3515.2,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r15",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 4845.2,
+            "llm_ms": 2237.8,
+            "weather_ms": 2574.3,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2237.8
+              },
+              {
+                "call": "get_weather",
+                "ms": 2574.3,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r16",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 203784.4,
+            "llm_ms": 201457.0,
+            "weather_ms": 2187.4,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 198911.3
+              },
+              {
+                "call": "get_weather",
+                "ms": 2187.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2545.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r17",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 422,
+            "total_ms": 7291.4,
+            "llm_ms": 2017.9,
+            "weather_ms": 5234.2,
+            "llm_calls": 1,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2017.9
+              },
+              {
+                "call": "get_weather",
+                "ms": 5234.2,
+                "error": "TimeoutError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 0
+          },
+          {
+            "case_id": "r18",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 6444.0,
+            "llm_ms": 4521.9,
+            "weather_ms": 1850.1,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1999.6
+              },
+              {
+                "call": "get_weather",
+                "ms": 1850.1
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2522.3
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r19",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3690.1,
+            "llm_ms": 3630.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2039.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1590.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 1
+          },
+          {
+            "case_id": "r20",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2925.5,
+            "llm_ms": 403.3,
+            "weather_ms": 2432.3,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 403.3,
+                "error": "RuntimeError"
+              },
+              {
+                "call": "get_weather",
+                "ms": 2432.3
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r21",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4541.6,
+            "llm_ms": 4460.4,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2181.0
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2279.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r22",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5421.5,
+            "llm_ms": 5341.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2048.9
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 3292.1
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r23",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4897.8,
+            "llm_ms": 4804.8,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2012.0
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2792.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r24",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 4623.3,
+            "llm_ms": 4554.5,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1786.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2768.1
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r25",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 3020.2,
+            "llm_ms": 2954.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2469.9
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 484.4,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r26",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5133.5,
+            "llm_ms": 5052.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2246.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2805.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r27",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 5276.8,
+            "llm_ms": 5201.1,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2399.2
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2801.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r28",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 2589.4,
+            "llm_ms": 2527.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2155.2
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 372.1,
+                "error": "RuntimeError"
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r29",
+            "repeat": 1,
+            "user": "user1",
+            "status_code": 200,
+            "total_ms": 4770.9,
+            "llm_ms": 4700.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2274.4
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2426.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r30",
+            "repeat": 1,
+            "user": "user2",
+            "status_code": 200,
+            "total_ms": 5149.5,
+            "llm_ms": 5095.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 2157.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2937.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          }
+        ]
+      }
+    }
+  },
+  "confirmation_run": {
+    "note": "2026-11-25 after the wall-clock deadline fix; each query sent to the user of its benchmark wardrobe; error causes recorded",
+    "method": {
+      "endpoint": "POST /api/v1/stylist/chat (in-process TestClient)",
+      "context_model": "gemini-3.6-flash",
+      "weather_provider": "openmeteo",
+      "context_timeout_seconds": 15,
+      "queries": 12,
+      "repeats": 1,
+      "users": 2,
+      "database": "temporary copy of the source database",
+      "cache": "none"
+    },
+    "runs": {
+      "llm_explanations_on": {
+        "summary": {
+          "requests": 12,
+          "total_ms": {
+            "p50": 3631.8,
+            "p95": 4067.1,
+            "mean": 3464.3,
+            "max": 4068.1
+          },
+          "llm_ms": {
+            "p50": 3562.2,
+            "p95": 3988.7
+          },
+          "weather_ms": {
+            "p50": 0.0,
+            "p95": 0.0
+          },
+          "local_ms": {
+            "p50": 67.8,
+            "p95": 90.9
+          },
+          "llm_share_of_total": 0.98,
+          "llm_calls": 23,
+          "llm_errors": 1,
+          "context_fallbacks": 1,
+          "clarifications": 0,
+          "http_errors": 0
+        },
+        "requests": [
+          {
+            "case_id": "r01",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 3977.8,
+            "llm_ms": 3910.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1592.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2318.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r02",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 3584.5,
+            "llm_ms": 3480.2,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1574.2
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1906.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r03",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 457.2,
+            "llm_ms": 397.7,
+            "weather_ms": 0,
+            "llm_calls": 1,
+            "llm_errors": 1,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 397.7,
+                "error": "RuntimeError",
+                "cause": "ConnectError"
+              }
+            ],
+            "context_fallback": true,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r04",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 3566.6,
+            "llm_ms": 3504.9,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1569.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1935.4
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r05",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 3555.3,
+            "llm_ms": 3487.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1547.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1939.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r06",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 4066.2,
+            "llm_ms": 3986.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1665.3
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2321.0
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r07",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 3786.1,
+            "llm_ms": 3722.8,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1795.9
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1926.9
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r08",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 3691.7,
+            "llm_ms": 3620.5,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1924.8
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1695.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r09",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 3679.1,
+            "llm_ms": 3618.0,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1556.5
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2061.5
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r10",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 4068.1,
+            "llm_ms": 3991.6,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1927.8
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 2063.8
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r11",
+            "repeat": 0,
+            "user": "user1",
+            "wardrobe_id": "female_realistic_30",
+            "status_code": 200,
+            "total_ms": 3575.8,
+            "llm_ms": 3501.9,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1801.7
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1700.2
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          },
+          {
+            "case_id": "r12",
+            "repeat": 0,
+            "user": "user2",
+            "wardrobe_id": "male_realistic_27",
+            "status_code": 200,
+            "total_ms": 3563.6,
+            "llm_ms": 3506.3,
+            "weather_ms": 0,
+            "llm_calls": 2,
+            "llm_errors": 0,
+            "calls": [
+              {
+                "call": "extract_context",
+                "ms": 1570.6
+              },
+              {
+                "call": "generate_outfit_explanations",
+                "ms": 1935.7
+              }
+            ],
+            "context_fallback": false,
+            "clarification": false,
+            "recommendations": 3
+          }
+        ]
+      }
+    }
+  }
+}
