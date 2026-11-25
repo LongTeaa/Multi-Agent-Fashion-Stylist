@@ -143,7 +143,8 @@ All other fields have p >= 0.25. Y-19 and Y-25 assign the same formality level t
 2. Attribute extraction from a single garment is strong for every configuration tested
    (category >= 96%, formality within one level >= 98%). Differences between models are
    smaller than the variation of one model between days, so a cheaper or faster model
-   such as `gemini-3.5-flash-lite` is a defensible choice for this step.
+   such as `gemini-3.5-flash-lite` looked defensible for this step; the same-day paired
+   run in section 7 shows it rates formality less accurately (p = 0.021).
 3. Even with the better detector, about half of the garments in multi-item photos need a
    manual crop correction, so the review step before saving stays necessary.
 
@@ -186,4 +187,47 @@ python backend/scripts/evaluate_live_ingestion.py --live --detector gemini --ski
 python backend/scripts/evaluate_live_ingestion.py --live --detector yolo_world --out data/fixtures/live_ingestion_attributes_v1_yolo_world_20261125.json
 # baseline: VISION_MODEL=gemini-3.5-flash-lite and VISION_FALLBACK_MODEL=gemini-3.5-flash-lite in the environment
 python backend/scripts/evaluate_live_ingestion.py --live --detector yolo_world --out data/fixtures/live_ingestion_attributes_v1_yolo_world_flash_lite_20261125.json
+```
+
+## 7. Addendum: vision model for the Gemini detector (roadmap Phase 5)
+
+Phase 5 proposed the Gemini detector with `gemini-3.5-flash-lite` for attributes, to keep
+the per-photo latency near the YOLO-World pipeline. One confirmation run was made on the
+same day as G-25, changing only the vision model.
+
+| Item | Value |
+| :--- | :--- |
+| Run | GL-25: Gemini detector `gemini-3.6-flash` (set explicitly with `DETECTOR_MODEL`) + vision `gemini-3.5-flash-lite`, fallback `gemini-3.6-flash`; set A; start 2026-11-25 04:09 UTC |
+| Raw file | `data/fixtures/live_ingestion_attributes_v1_gemini_flash_lite_20261125.json` |
+| Scores | `data/fixtures/live_ingestion_attributes_v1_scores_phase5_20261125.json` (G-25 and GL-25) |
+| Provider calls | 118 (58 detector + 60 vision), 0 failures, 0 model-fallback events |
+
+| Field | G-25 (`3.6-flash`) | GL-25 (`flash-lite`) | Discordant (3.6 only / lite only) | Exact McNemar p |
+| :--- | :--- | :--- | :--- | :--- |
+| Category | 57/58 | 57/58 | 0 / 0 | 1.0 |
+| Garment group | 57/58 | 57/58 | 1 / 1 | 1.0 |
+| Garment type | 52/58 | 53/58 | 1 / 2 | 1.0 |
+| Primary color | 54/58 | 51/58 | 3 / 0 | 0.25 |
+| Pattern | 56/58 | 56/58 | 0 / 0 | 1.0 |
+| Material, plausibility | 54/58 | 55/58 | 0 / 1 | 1.0 |
+| **Formality exact** | **44/58 = 75.9%** | **36/58 = 62.1%** | **9 / 1** | **0.021** |
+| Formality within one level | 58/58 | 58/58 | — | — |
+| Formality MAE | 0.24 | 0.38 | — | — |
+| Median end-to-end latency | 11.6 s | 5.3 s | — | — |
+
+`gemini-3.5-flash-lite` rates formality exactly less often than `gemini-3.6-flash` in this
+paired same-day comparison (p = 0.021). The earlier YOLO-World comparison pointed the same
+way without reaching significance (8 / 3, p = 0.227), and over all runs `3.6-flash` scored
+33–44/58 against 34–36/58 for `flash-lite`. Formality feeds `FormalityFit` in outfit
+ranking (`../../03_domain/FASHION_KNOWLEDGE_BASE.md`), so the owner chose on 2026-11-25 to
+keep `gemini-3.6-flash` for attributes and accept about 11–12 s per photo, a one-time
+cost when a garment is added. `gemini-3.5-flash-lite` remains the vision fallback model.
+Section 3's statement that `flash-lite` matches `3.6-flash` within run variation holds for
+every field except formality.
+
+Reproduce the comparison offline:
+
+```powershell
+cd backend
+python scripts/evaluate_live_ingestion.py --score ../data/fixtures/live_ingestion_attributes_v1_gemini_20261125.json ../data/fixtures/live_ingestion_attributes_v1_gemini_flash_lite_20261125.json
 ```

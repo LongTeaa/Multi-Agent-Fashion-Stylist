@@ -40,7 +40,24 @@ The system MUST NOT persist a wardrobe item solely from AI output without explic
 `DETECTOR_BACKEND=auto` follows `VISION_PROVIDER` for backward-compatible default
 selection. Explicit `fake`, `gemini`, and `yolo_world` selections take precedence
 independently of the attribute extractor; local detection MAY be combined with
-the fake attribute provider for offline demonstrations. Detectors MUST return
+the fake attribute provider for offline demonstrations.
+
+`DETECTOR_FALLBACK_BACKEND=yolo_world` makes YOLO-World a fallback for the Gemini
+detector; the default `none` keeps a single detector. The fallback applies only when
+the effective detector is Gemini, and only when the Gemini call raises (provider error,
+quota, timeout or invalid response). A Gemini result with no garment boxes is a valid
+answer and MUST NOT trigger it. YOLO-World is loaded on the first Gemini failure, not at
+startup; when its model file is missing, the fallback is disabled with a warning. When
+both detectors fail, the full-frame manual-review fallback below applies. Fallback logs
+record exception types only, never provider response bodies or keys. The measured
+configuration (Gemini `gemini-3.6-flash` for both detection and attributes, YOLO-World
+detector fallback, `gemini-3.5-flash-lite` as the attribute fallback model) and its
+evidence are in
+`../archive/reports/LIVE_INGESTION_EVALUATION_2026-11-25.md`. `DETECTOR_MODEL` MUST be
+set explicitly when `VISION_MODEL` changes, because it otherwise defaults to
+`VISION_MODEL`.
+
+Detectors MUST return
 unexpanded source rectangles. Effective crop margins are applied centrally by the
 policy below, after retaining the raw detector rectangle. YOLO detection does not
 apply an additional blanket padding setting. Duplicate suppression MUST preserve

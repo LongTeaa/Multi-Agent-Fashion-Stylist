@@ -22,7 +22,9 @@ def offline_context_weather(request: pytest.FixtureRequest, monkeypatch: pytest.
         monkeypatch.setenv("CONTEXT_PROVIDER", "fallback")
         monkeypatch.setenv("WEATHER_PROVIDER", "disabled")
         monkeypatch.setenv("DETECTOR_BACKEND", "auto")
-        monkeypatch.delenv("DETECTOR_MODEL", raising=False)
+        monkeypatch.setenv("DETECTOR_FALLBACK_BACKEND", "none")
+        # An empty value overrides a local .env entry; blank falls back to VISION_MODEL.
+        monkeypatch.setenv("DETECTOR_MODEL", "")
         monkeypatch.delenv("GEMINI_API_KEYS", raising=False)
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     get_settings.cache_clear()
