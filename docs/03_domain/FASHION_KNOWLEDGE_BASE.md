@@ -154,7 +154,7 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 | **Active Profile** | Chơi thể thao, đi xe máy, di chuyển ngoài trời | 0.10 | **0.35** | **0.30** | 0.15 | 0.10 |
 | **Balanced Profile** | Yêu cầu chung chung không nêu rõ ưu tiên | 0.20 | 0.20 | 0.20 | 0.20 | 0.20 |
 
-`WeatherComfortFit` is one combined score, so the comfort and weather shares from the advisor examples are aggregated into a single normalized weight. Every profile MUST sum to `1.00`.
+`WeatherComfortFit` is one combined score, so the comfort and weather shares from the advisor examples are aggregated into a single normalized weight. Every profile MUST sum to `1.00`. The formal profile follows the advisor's conference example. The comfort profile started from the advisor's travel example (comfort + weather 0.55, function 0.20, personal 0.00) and moves 0.10 from comfort/weather and 0.05 from function to personal preference, so that the Personalization Agent affects comfort requests; the advisor was informed on 2026-11-25. Offline evidence: preference profiles produce different recommendations in 5/5 instead of 2/5 benchmark cases, with no change in constraint, structure, functional or stress results (`../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md`, section 2.1). The active profile is project-defined.
 
 ---
 

@@ -38,6 +38,10 @@ Also done: the coordinator's copy of the Vietnamese color map now uses
   the advisor's agreement. Every live benchmark number was measured with the new weights;
   reverting them requires a new live run.
   An offline comparison on 2026-11-25 measured what the change buys (section 2.1).
+  **Update 2026-11-25:** the owner kept the new weights and informed the advisor, with
+  the offline comparison as justification. No objection has been recorded; if the
+  advisor asks for the original travel-example weights, they must be restored and the
+  live benchmark rerun.
 - **Gemini key rotation.** The benchmark used a pool of seven Gemini keys. Rotating several
   free-tier keys to exceed one project's quota may conflict with the provider's terms. The
   deployed application should use one paid key.
@@ -90,10 +94,14 @@ live run (nDCG@3, pairwise wins) was not measured under the old weights.
    quality tier agrees only weakly with the raters. The thesis SHOULD report the
    within-tier figure next to the overall one. On the "unacceptable" threshold
    (score <= 2), humans flagged 6 samples, the judge 5, and both agreed on 4.
-3. **Rater description.** The report states three anonymous blind raters (R1–R3) but not
-   their background or independence from the project. The rating tool hides tier labels
-   and shuffles samples (`backend/scripts/judge_calibration_human_review.py`), so the
-   procedure is blind. The thesis needs one sentence on who the raters are.
+3. **Rater description.** The rating tool hides tier labels and shuffles samples
+   (`backend/scripts/judge_calibration_human_review.py`), so the procedure is blind.
+   According to the owner (2026-11-25), R1–R3 are friends of the team who are not
+   fashion students but have practical fashion knowledge. They are therefore lay raters,
+   not domain experts, and not fully independent of the team. The thesis MUST describe
+   them this way and MUST NOT call them expert raters; the inter-rater agreement measures
+   consistency among informed non-experts. The try-on spike raters
+   (`TRYON_PROVIDER_SPIKE_2026-11-22.md`) have the same profile.
 4. **Dataset history.** `data/fixtures/multi_agent_benchmark_v1.json` now holds
    `multi-agent-bench-v3` (56 cases); the file name no longer identifies the version.
    The v3 cases were committed on 2026-11-22 (`bf0330b`), before the application fixes of

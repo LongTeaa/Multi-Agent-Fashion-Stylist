@@ -7,8 +7,8 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). Phase 6 — Live Multi-Agent Benchmark (recorded after the fact; one owner decision open). |
-| Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). |
+| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). |
+| Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). Phase 6 — Live Multi-Agent Benchmark (recorded after the fact, complete 2026-11-25, PR #21 and #22). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -249,7 +249,7 @@ python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ing
 
 ## Phase 6 — Live Multi-Agent Benchmark (recorded after the fact)
 
-**Status:** Carried out on branch `feat/live-multi-agent-evaluation` between 2026-11-19 and 2026-11-25 without a phase entry, and merged by the owner on 2026-11-25 (PR #21) with two known defects. This entry records its scope and the follow-up fixes; it does not approve further work. Open owner decisions are listed in `../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` section 2.
+**Status:** Carried out on branch `feat/live-multi-agent-evaluation` between 2026-11-19 and 2026-11-25 without a phase entry, and merged by the owner on 2026-11-25 (PR #21) with two known defects. This entry records its scope and the follow-up fixes; it does not approve further work. Owner decisions are recorded in `../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` section 2; complete 2026-11-25.
 
 **Goal:** Measure the advisory quality of the five-node multi-agent stylist against simpler baselines and ablations with live Gemini context and explanations and a cross-family LLM judge calibrated against blind human raters. Serves thesis objective 1.2 "Tư vấn phối đồ thông minh" and chapter 7.
 
@@ -266,7 +266,7 @@ python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ing
 - [x] Fix the formality coercion that read `1.0` as level 5 (F-1) and the retries and sleeps of the application context provider inside chat requests (F-2); tests in `backend/tests/unit/test_context_agent.py` and `backend/tests/unit/test_context_provider_chat_policy.py`.
 - [x] Record the review findings and reporting caveats (`../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md`).
 - [x] Compare the pre-PR #21 and current comfort/active profiles offline (`backend/scripts/compare_weight_profiles_offline.py`): profile differentiation 2/5 → 5/5 for M-Full, every constraint, structure, functional and stress metric unchanged (review report section 2.1).
-- [ ] Owner and advisor confirm or revert the comfort and active weight changes; a revert requires a new live run.
+- [x] Owner and advisor confirm or revert the comfort and active weight changes; a revert requires a new live run. On 2026-11-25 the owner kept the new weights and informed the advisor with the offline comparison; no objection recorded. Raters R1–R3 are recorded as informed non-experts (review report section 3).
 
 **Acceptance criteria:**
 
