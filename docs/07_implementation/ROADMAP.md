@@ -7,7 +7,7 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | Field | Value |
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
-| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). |
+| Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). Phase 6 — Live Multi-Agent Benchmark (recorded after the fact; one owner decision open). |
 | Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
@@ -244,6 +244,38 @@ cd frontend; npx vitest run src/__tests__/TryOnModal.test.tsx src/components/Try
 ```powershell
 cd backend; python -m pytest tests/unit/test_fallback_detector.py tests/unit/test_config.py tests/integration/test_detector_fallback_ingestion.py -q; python -m pytest -q; cd ..
 python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ingestion_attributes_v1_gemini_20261125.json data/fixtures/live_ingestion_attributes_v1_gemini_flash_lite_20261125.json
+./scripts/verify_documentation.ps1
+```
+
+## Phase 6 — Live Multi-Agent Benchmark (recorded after the fact)
+
+**Status:** Carried out on branch `feat/live-multi-agent-evaluation` between 2026-11-19 and 2026-11-25 without a phase entry, and merged by the owner on 2026-11-25 (PR #21) with two known defects. This entry records its scope and the follow-up fixes; it does not approve further work. Open owner decisions are listed in `../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` section 2.
+
+**Goal:** Measure the advisory quality of the five-node multi-agent stylist against simpler baselines and ablations with live Gemini context and explanations and a cross-family LLM judge calibrated against blind human raters. Serves thesis objective 1.2 "Tư vấn phối đồ thông minh" and chapter 7.
+
+**Specification files:**
+
+- `TEST_STRATEGY.md` (Multi-Agent Advisory Benchmark, two-layer framework).
+- `../02_architecture/MULTI_AGENT_SPEC.md` section 3 (context provider policy); updated by the follow-up.
+- `../03_domain/FASHION_KNOWLEDGE_BASE.md` (comfort and active weight profiles changed by PR #21; owner and advisor decision pending).
+
+**Checklist:**
+
+- [x] Benchmark v3 (56 cases, 38 dev / 18 holdout), judge calibration v2 (20 pointwise, 12 pairwise samples), live run and reports (`../archive/reports/LIVE_MULTI_AGENT_BENCHMARK_2026-11-23.md`, `..._HOLDOUT_2026-11-23.md`, `LIVE_DEV_CHATBOT_ONLY_2026-11-23.md`, `MULTI_AGENT_OFFLINE_BENCHMARK_2026-11-22_v3.md`).
+- [x] Blind human calibration with three anonymized raters (`../archive/reports/HUMAN_VS_JUDGE_CALIBRATION_2026-11-25.md`).
+- [x] Fix the formality coercion that read `1.0` as level 5 (F-1) and the retries and sleeps of the application context provider inside chat requests (F-2); tests in `backend/tests/unit/test_context_agent.py` and `backend/tests/unit/test_context_provider_chat_policy.py`.
+- [x] Record the review findings and reporting caveats (`../archive/reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md`).
+- [ ] Owner and advisor confirm or revert the comfort and active weight changes; a revert requires a new live run.
+
+**Acceptance criteria:**
+
+- Every reported metric states its denominator, model identifiers, run date and provider failures; judge figures are reported with their in-sample calibration and within-tier human agreement.
+- Default verification runs the offline benchmark without network access or credentials.
+
+**Executable Commands:**
+
+```powershell
+cd backend; python -m pytest tests/evaluation/test_multi_agent_benchmark.py tests/unit/test_context_agent.py tests/unit/test_context_provider_chat_policy.py -q; cd ..
 ./scripts/verify_documentation.ps1
 ```
 
