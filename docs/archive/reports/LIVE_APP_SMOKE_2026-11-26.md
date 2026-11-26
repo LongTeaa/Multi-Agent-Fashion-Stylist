@@ -69,7 +69,17 @@ Sửa cùng ngày, kiểm tra lại trên ứng dụng đang chạy (vision, det
 | Người mẫu nam cho bộ váy liền | Nhớ người mẫu đã chọn; bộ có váy liền mở với người mẫu nữ | Yêu cầu try-on gửi `preset-female` |
 | Lời mời chấm sao che bộ cuối | Thêm khoảng đệm cuối trang khi lời mời hiện | Hàng sao của bộ cuối không bị che ở 1280 px và 375 px |
 
-Chưa sửa: dữ liệu trang trọng của tủ đồ demo (mục 3.3), lỗi DNS (mục 3.1), crop dính mặt và crop quá nhỏ (mục 3.4).
+Dữ liệu tủ đồ demo nam (mục 3.3) được sửa cùng ngày: 21 món được chỉnh qua `PATCH /wardrobe/items` sau khi rà ảnh theo `FASHION_KNOWLEDGE_BASE.md` §2.1 (áo thun, quần short, sneaker từ mức 1 lên 2; polo lên 3; sơ mi dài tay và quần tây len lên 4; quần thể thao đổi thành `joggers`, giày da đục lỗ thành `loafers`, món `top/unknown` thành sơ mi xanh nhạt mức 4). Chạy lại cùng các câu hỏi với luật dự phòng trên một bản sao:
+
+| Câu hỏi | Hạng 1 trước khi sửa | Hạng 1 sau khi sửa |
+| :--- | :--- | :--- |
+| Phỏng vấn ở công ty (mức 4–5) | Sơ mi, quần jeans, boots (0,750) | Sơ mi, quần tây, giày lười, blazer (0,804) |
+| Ăn tối với đối tác (mức 3–4) | Sơ mi, quần tây, boots, jacket (0,774) | Sơ mi, quần tây, boots, jacket (0,824) |
+| Đi cafe (mức 1–2) | Áo len, "Quần tây" (thực ra là quần thể thao), sneaker | Áo len, quần jogger, sneaker |
+
+Tủ đồ nam vẫn không có giày tây (oxford, derby), nên bộ trang trọng nhất dừng ở giày lười hoặc boots mức 3.
+
+Chưa sửa: lỗi DNS (mục 3.1), crop dính mặt và crop quá nhỏ (mục 3.4).
 
 ## 5. Chưa kiểm tra
 
