@@ -42,6 +42,7 @@ New dated reviews, audits, spike reports, and live-test reports SHOULD be added 
 | `reports/LIVE_APP_SMOKE_2026-11-26.md` | 2026-11-26 | The running app driven through the browser with live providers: every main flow passes except try-on, which falls back because the local DNS cannot resolve the fal.ai CDN; data-driven ranking issues and UI copy issues (Vietnamese) |
 | `reports/DOCUMENTATION_AUDIT_2026-11-26.md` | 2026-11-26 | Normative documents checked against the code before the thesis report: what matches, ten divergences fixed in the same change, and notes for citing figures (Vietnamese) |
 | `reports/PROJECT_REVIEW_2026-11-26.md` | 2026-11-26 | Whole-project review before the thesis report and public deployment: deployment blockers, hardening items, evidence map against the 8-chapter report template (Vietnamese) |
+| `reports/UI_REVIEW_2026-11-26.md` | 2026-11-26 | Every main screen at 1280 px and 390 px with automated accessibility checks: no overflow or script errors; unlabeled review fields, small tap targets, AI wording and text-symbol icons, try-on dialog layout on phones (Vietnamese) |
 | `reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` | 2026-11-22 | FASHN Try-On v1.6 vs FLUX VTO on ten demo outfits: latency, cost, blind ratings; decision to switch to FLUX VTO |
 | `reports/TRYON_EXTRAS_CHECK_2026-11-22.md` | 2026-11-22 | FLUX VTO with footwear, headwear and layered tops on six demo outfits; decision to render them for whole-outfit providers |
 

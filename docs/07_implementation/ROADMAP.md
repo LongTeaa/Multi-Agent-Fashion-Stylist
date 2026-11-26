@@ -8,7 +8,7 @@ This is the active roadmap. The completed MVP roadmap (Phases 1–7) is archived
 | :--- | :--- |
 | Baseline | MVP Phases 1–7 and advisor stages 1–6 complete; `main` at the merge of PR #11 |
 | Active phases | Phase 2 — Public Deployment (approved 2026-11-20; not started). |
-| Completed phases | Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). Phase 6 — Live Multi-Agent Benchmark (recorded after the fact, complete 2026-11-25, PR #21 and #22). |
+| Completed phases | Phase 7 — Interface Polish Before Deployment (approved and complete 2026-11-26). Phase 1 — Live-Provider Ingestion Evaluation (approved 2026-11-19; complete 2026-11-25). Phase 3 — Try-On Provider Spike (approved 2026-11-20; complete 2026-11-22). Phase 4 — Switch Try-On to FLUX VTO (approved 2026-11-22; complete 2026-11-22, merged in PR #17). Phase 5 — Gemini Detector with YOLO-World Fallback (approved and complete 2026-11-25). Phase 6 — Live Multi-Agent Benchmark (recorded after the fact, complete 2026-11-25, PR #21 and #22). |
 | Open alignment items | `ALIGNMENT_BACKLOG.md` |
 
 Until a phase is approved, agents MUST NOT start feature work. Documentation alignment from `ALIGNMENT_BACKLOG.md` MAY proceed.
@@ -280,6 +280,50 @@ python backend/scripts/evaluate_live_ingestion.py --score data/fixtures/live_ing
 ```powershell
 cd backend; python -m pytest tests/evaluation/test_multi_agent_benchmark.py tests/unit/test_context_agent.py tests/unit/test_context_provider_chat_policy.py -q; cd ..
 python backend/scripts/compare_weight_profiles_offline.py --out data/private-weight-comparison/summary.json
+./scripts/verify_documentation.ps1
+```
+
+## Phase 7 — Interface Polish Before Deployment
+
+**Status:** Approved by the owner on 2026-11-26 and completed the same day, with the full scope of `../archive/reports/UI_REVIEW_2026-11-26.md` (U-1 to U-13). The inter-agent trace panel stays on the chat page, collapsed by default, under a plain-language title. Recommendation, scoring, and ingestion behavior MUST NOT change in this phase.
+
+**Goal:** Fix the accessibility, copy, and phone-layout issues found by driving the running app, so that pilot users of the public deployment meet a consistent Vietnamese interface. Serves thesis chapter 6.1 "Trải nghiệm người dùng" and the "Hiện thực và Triển khai" chapter.
+
+**Specification files:**
+
+- `../archive/reports/UI_REVIEW_2026-11-26.md` (issue list and locations).
+- `../../AGENTS.md` section 3 (UI copy rules: clear Vietnamese, no decorative emoji, accessible labels for functional icons).
+- `../05_api/API_CONTRACT.md` section 10 (`PROVIDER_ERROR` copy); updated by this phase.
+- `../06_features/VIRTUAL_TRYON_SPEC.md` section 6 (try-on dialog contract).
+- `../02_architecture/MULTI_AGENT_SPEC.md` section 7 (explanation format, kept unchanged in the API).
+
+**Checklist:**
+
+- [x] U-1: associate every review-screen label with its control.
+- [x] U-2: tap targets of at least 24 px on phones for rating stars, notice close buttons, the remove-photo button, and subtype chips.
+- [x] U-3: one `h1` in each step of the add-item flow.
+- [x] U-4: remove "AI" from user-facing backend messages (context fallback warning, `PROVIDER_ERROR`, ingestion timeout warnings) and update `API_CONTRACT.md`.
+- [x] U-5: replace the text symbols used as icons with icon components.
+- [x] U-6: show bracketed garment names in explanations as names, without the brackets; the API text keeps them.
+- [x] U-7, U-8: Vietnamese labels for the jacket subtype and the color magenta.
+- [x] U-9: collapse the inter-agent trace panel by default and give it a plain-language title.
+- [x] U-10: try-on dialog on phones shows the result first; hide the timing and the before/after switch for moodboard results.
+- [x] U-11: keep the review-screen save action reachable without scrolling to the end on phones.
+- [x] U-12: home query placeholder fits a 390 px screen.
+- [x] U-13: distinct labels for the comfort style and the comfort priority.
+- [x] Check every item again in the running app at 1280 px and 390 px and record the result in the UI review report.
+
+**Acceptance criteria:**
+
+- The automated checks of the UI review report pass on every main screen at 390 px: no unlabeled fields, no tap target under 24 px, one `h1`, no horizontal overflow.
+- No user-facing string outside the spec-mandated try-on labels contains "AI".
+- The existing backend and frontend suites pass; recommendation output for the golden scenario is unchanged.
+
+**Executable Commands:**
+
+```powershell
+cd backend; python -m pytest -q; cd ..
+cd frontend; npx vitest run; npx tsc --noEmit; cd ..
 ./scripts/verify_documentation.ps1
 ```
 
