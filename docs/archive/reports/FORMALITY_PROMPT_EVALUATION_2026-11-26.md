@@ -47,7 +47,8 @@ Chấm theo gold v1, prompt mới chỉ đạt 39/58, thấp hơn prompt cũ (44
 - Prompt mới và gold v2 cùng lấy mốc từ §2.1. Phép đo này cho biết hệ thống số hóa **tuân theo thang của tài liệu tri thức** đến đâu, không phải độ chính xác so với một chuẩn thời trang độc lập.
 - 11 nhãn của gold v2 do coding agent đề xuất và chưa được người xác nhận; báo cáo MUST NOT gọi chúng là nhãn của chuyên gia.
 - Mỗi prompt chỉ chạy một lần. Kết quả ổn định của prompt mới chưa được đo bằng lần lặp cùng ngày.
-- Tủ đồ demo nam đã được sửa tay ngày 2026-11-26 (21 món); tủ đồ demo nữ vẫn mang mức trang trọng của prompt cũ.
+- Tủ đồ demo nam đã được sửa tay ngày 2026-11-26 (21 món, theo ảnh và §2.1). Tủ đồ demo nữ được đưa về đúng nhãn gold v2 cùng ngày: mỗi món được ghép với ảnh gold qua SHA-256 của ảnh gốc (31/31 khớp); 16 món tăng một bậc trang trọng, 6 món đổi sang loại món có trong taxonomy và trong danh sách chấp nhận của gold (`mini_skirt`, `sweater`, `formal_dress`, `dress`, `casual_dress`, `joggers`).
+- Sau khi sửa, câu "phỏng vấn ở công ty" vẫn xếp đầm dạ hội đính kim sa của tủ đồ nữ ở hạng 1, vì đầm này đúng mức 4 và mô hình chỉ phân biệt dịp bằng mức trang trọng, không tách tiệc tối khỏi công sở. Đây là giới hạn của mô hình chấm điểm, không phải của dữ liệu.
 
 ## 5. Tái lập
 
