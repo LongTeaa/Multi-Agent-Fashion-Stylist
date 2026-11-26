@@ -21,6 +21,8 @@ Mỗi món đồ trong tủ đồ số hóa (`WardrobeItem`) được chuẩn h�
 * **Mức 4 (Business Casual / Semi-formal):** Áo sơ mi dài tay cài nút, quần tây âu, áo blazer mỏng, giày tây/oxford hoặc cao gót cổ điển.
 * **Mức 5 (Formal / Black Tie):** Bộ Comple/Suit cao cấp, tuxedo, đầm dạ hội dài, cà vạt, nơ cổ.
 
+The vision prompt MUST restate these five anchors (`FORMALITY_SCALE_PROMPT` in `backend/app/services/gemini_provider.py`), so that digitized items and the scoring agents use the same scale. A scale given only by its end points made the provider rate everyday wear one level low (`../archive/reports/FORMALITY_PROMPT_EVALUATION_2026-11-26.md`).
+
 ### 2.2 Mức độ Thoải mái & Mềm mát (`comfort_level`: 1 .. 5)
 * **Mức 1 (Very Restrictive):** Đồ bó sát định hình, chất vải dày cứng không co giãn, giữ nhiệt cao (heavy wool, da cứng, áo nịt corset).
 * **Mức 2 (Structured / Low Comfort):** Đồ may đo đứng form công sở, ít co giãn (áo vest dựng form, quần tây phẳng nếp, giày da đế cứng).

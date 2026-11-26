@@ -21,6 +21,7 @@ from app.services.vision_evaluation import (
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "backend" / "scripts" / "evaluate_live_ingestion.py"
 GOLD = ROOT / "data" / "fixtures" / "vision_attribute_gold_v1.json"
+GOLD_V2 = ROOT / "data" / "fixtures" / "vision_attribute_gold_v2.json"
 
 
 def _load_runner() -> ModuleType:
@@ -120,8 +121,9 @@ def test_latency_summary() -> None:
     assert (summary["median"], summary["p90"], summary["max"]) == (5.5, 9.0, 10.0)
 
 
-def test_gold_file_is_valid_and_independent_of_app_confirmations() -> None:
-    data = json.loads(GOLD.read_text(encoding="utf-8"))
+@pytest.mark.parametrize("gold_path", [GOLD, GOLD_V2], ids=["v1", "v2"])
+def test_gold_file_is_valid_and_independent_of_app_confirmations(gold_path: Path) -> None:
+    data = json.loads(gold_path.read_text(encoding="utf-8"))
     items = [AttributeGoldItem.model_validate(item) for item in data["items"]]
     manifest = json.loads((ROOT / "data/fixtures/demo_wardrobe_v1.json").read_text(encoding="utf-8"))
     assert len(items) == len(manifest["items"]) == 58
@@ -132,6 +134,23 @@ def test_gold_file_is_valid_and_independent_of_app_confirmations() -> None:
             assert item.category.accepted[0] == source["expected_category"]
     assert all(i.owner_reviewed for i in items)
     assert {i.primary_color.provenance for i in items} <= {"owner_reviewed", "owner_labelled"}
+
+
+def test_gold_v2_changes_only_formality_and_marks_every_change() -> None:
+    v1 = {i["id"]: i for i in json.loads(GOLD.read_text(encoding="utf-8"))["items"]}
+    v2 = {i["id"]: i for i in json.loads(GOLD_V2.read_text(encoding="utf-8"))["items"]}
+    assert v1.keys() == v2.keys()
+    unchanged_fields = lambda item: {k: v for k, v in item.items() if k not in ("formality_level", "note")}  # noqa: E731
+    changed = []
+    for item_id, old in v1.items():
+        new = v2[item_id]
+        assert unchanged_fields(old) == unchanged_fields(new)
+        if old["formality_level"] != new["formality_level"]:
+            assert new["formality_level"]["provenance"] == "kb_scale_proposed"
+            changed.append(item_id)
+        else:
+            assert new["formality_level"]["provenance"] != "kb_scale_proposed"
+    assert len(changed) == 11
 
 
 class _BrokenVision:

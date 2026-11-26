@@ -34,6 +34,7 @@ New dated reviews, audits, spike reports, and live-test reports SHOULD be added 
 | `reports/KE_HOACH_CHAY_LIVE_BENCHMARK_MULTI_AGENT_2026-11-22.md` | 2026-11-22 | Plan for the live multi-agent benchmark run (Vietnamese) |
 | `reports/LIVE_MULTI_AGENT_BENCHMARK_2026-11-23.md` | 2026-11-23 | Live multi-agent benchmark, 56 cases, cross-family judge; holdout and dev-only variants alongside (Vietnamese) |
 | `reports/LIVE_DEV_CHATBOT_ONLY_2026-11-23.md` | 2026-11-23 | Chatbot-only live run on the development split of the multi-agent benchmark |
+| `reports/FORMALITY_PROMPT_EVALUATION_2026-11-26.md` | 2026-11-26 | Five-level formality scale in the vision prompt, scored against gold v2: exact formality 60.3% -> 86.2%, signed error -0.40 -> -0.02, McNemar p = 0.0026 (Vietnamese) |
 | `reports/HUMAN_VS_JUDGE_CALIBRATION_2026-11-25.md` | 2026-11-25 | Three blind human raters against the LLM judge on 20 calibration samples (Vietnamese) |
 | `reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` | 2026-11-25 | Review of PR #21: two defects fixed afterwards, open decisions, offline weight-profile comparison (`WEIGHT_PROFILE_COMPARISON_2026-11-25.json`), and caveats for reporting the judge figures |
 | `reports/LIVE_CHAT_LATENCY_2026-11-25.md` | 2026-11-25 | Live chat latency with Gemini and Open-Meteo, no cache: p95 4.2 s (explanations off) and 8.7 s (on); found the per-phase timeout defect fixed the same day |

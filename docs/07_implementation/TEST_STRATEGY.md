@@ -79,6 +79,14 @@ colors, nine pattern classes and eight fiber families before comparison. Materia
 reported as visual plausibility only. Formality is scored exact, within one level,
 and as mean absolute error.
 
+`data/fixtures/vision_attribute_gold_v2.json` is the formality reference from
+2026-11-26. It is identical to v1 except for 11 formality labels relabelled from 1 to 2
+against the scale of `../03_domain/FASHION_KNOWLEDGE_BASE.md` section 2.1 (v1 followed
+the vision prompt's end-point scale, which rated everyday wear as at-home wear). Those
+labels carry provenance `kb_scale_proposed` until the owner confirms them. v1 stays
+frozen because archived reports pin its digest, and it remains the script default so
+their commands still reproduce; new attribute runs pass `--gold` with v2.
+
 `--live --detector yolo_world|gemini --out <raw.json>` runs every gold photo
 through the real ingestion service in an isolated temporary database and store,
 wrapping the providers to record each call's output, latency and exception, plus

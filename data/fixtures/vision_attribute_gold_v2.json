@@ -1,0 +1,2978 @@
+{
+ "dataset_version": "vision-attribute-gold-v2",
+ "image_manifest": "data/fixtures/demo_wardrobe_v1.json",
+ "image_dir": "data/demo-wardrobe",
+ "review_status": "owner_reviewed for every field of v1; the 11 formality changes were proposed by the coding agent on 2026-11-26 from the photos and FASHION_KNOWLEDGE_BASE.md 2.1 and await owner confirmation",
+ "label_policy": {
+  "category": "Source dataset human label (demo_wardrobe_v1 expected_category). An extra accepted value marks a defensible alternative; strict accuracy uses only the first value.",
+  "accepted_lists": "A prediction is correct when its normalized value is in the accepted list. The first value is the preferred label.",
+  "colors": "Canonical names from garment_taxonomy.COLORS. Patterned items list every dominant color.",
+  "patterns": "solid, striped, plaid, floral, animal, graphic, print, lace, embellished. Surface texture (quilted, ribbed, knit, perforated) counts as solid.",
+  "materials": "Fiber families: cotton, denim, linen, wool, silk, synthetic, leather, knit. Visual material judgement is uncertain and is reported as plausibility, not ground truth.",
+  "formality_level": "1-5 scale of docs/03_domain/FASHION_KNOWLEDGE_BASE.md 2.1, the scale the scoring agents use (v1 used the vision prompt's end-point scale). Scored exact and within one level.",
+  "independence": "Labels confirmed in the app are not used: they equal the provider proposal on 59 of 60 demo items."
+ },
+ "items": [
+  {
+   "id": "demo-01",
+   "file": "b16414e1-9cd7-4173-81d2-4be5bb75553d.jpg",
+   "sha256": "0f6e7a096b965e08a7c3f1baa686a9244265bbe4d55ad3308c7faafbf1f35b26",
+   "persona": "female",
+   "source_label": "T-Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "t-shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-02",
+   "file": "ddbfd678-7089-4d80-9aea-76a85d3fdd9f.jpg",
+   "sha256": "150e6c98640f1eabe83f16b4082a54d3a16ae1f2c4de67a96364eed6172360ab",
+   "persona": "female",
+   "source_label": "T-Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "t-shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "print",
+     "graphic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "star print",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-03",
+   "file": "098d55e4-996c-460c-811a-862d68ca9245.jpg",
+   "sha256": "b3092d720ee78ac0b4a26f8998d26a9cecbbe52d90299f13c71a55bec37fce00",
+   "persona": "female",
+   "source_label": "Longsleeve",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sweater"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "red",
+     "orange"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "turtleneck knit",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-04",
+   "file": "5e2e84d2-2031-4039-ad99-943480201f71.jpg",
+   "sha256": "2e14e105173496dbcf236ec151e9831ff08f2506e0835e682be1e438db3ba174",
+   "persona": "female",
+   "source_label": "Longsleeve",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blouse",
+     "shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey",
+     "green"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "silk"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "olive-grey henley blouse",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-05",
+   "file": "eff90bf7-9cfc-48f2-ad96-d4638e336da1.jpg",
+   "sha256": "99eb3fa9019a49a2d31cc68c4215cc7651d47d280a2b059b44123502cfa593c5",
+   "persona": "female",
+   "source_label": "Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shirt",
+     "blouse"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black",
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "print",
+     "animal"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "silk"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "black/white abstract print",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-06",
+   "file": "4998118e-5c47-42ba-8b8f-42c18aa42230.jpg",
+   "sha256": "c83ac6987f6cf55deab3c1e2e39340b61cf6f61ce17171c76258c687a69594f3",
+   "persona": "female",
+   "source_label": "Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shirt",
+     "blouse"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "grey"
+    ],
+    "provenance": "owner_labelled"
+   },
+   "pattern": {
+    "accepted": [
+     "lace"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "short-sleeve lace shirt",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-07",
+   "file": "c5b80186-15fa-4b9a-9ca4-88005b0db7bf.jpg",
+   "sha256": "a62ae36f5e7f996091a1d2b9333d8cf5bce730b37c0c71b41ce1cf7772b66ca7",
+   "persona": "female",
+   "source_label": "Blouse",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blouse"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "silk"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "light blue asymmetric blouse",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-08",
+   "file": "0ef80b69-2c18-435d-b091-91f401e01ed4.jpg",
+   "sha256": "8b6ebca64d41d2249efbd655b5e6e1eb80e12c4e7b760ad96f70cfb644ea1519",
+   "persona": "female",
+   "source_label": "Blouse",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blouse"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "red",
+     "purple"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "floral"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "silk"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "burgundy floral",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-09",
+   "file": "6ba8aeb1-a812-4bd7-a0b3-d898aebe3400.jpg",
+   "sha256": "61b260323733670a16be61df435dcb9fdd482c7a53cb53a39cbd46ab6c7c176a",
+   "persona": "female",
+   "source_label": "Top",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "tanktop",
+     "blouse"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue",
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "ruffle camisole",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-10",
+   "file": "001068a8-86c3-4029-a9d9-1e27015e7e64.jpg",
+   "sha256": "6e974deca0367b2d873df28e2aafb260bd680e149da2cfd2a2aa05571dc47aa8",
+   "persona": "female",
+   "source_label": "Polo",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "polo"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "striped"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "white with navy stripes",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-11",
+   "file": "f92d0fa3-45bd-423e-87e5-6d32650787c4.jpg",
+   "sha256": "d991b5d73e855e1d638acebd261ba523d1e7bf56c0658423e5a323b3a978218a",
+   "persona": "female",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "trousers"
+    ],
+    "provenance": "owner_labelled"
+   },
+   "primary_color": {
+    "accepted": [
+     "green",
+     "brown"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "corduroy culottes",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-12",
+   "file": "e617f72e-6c09-48fa-a575-13997387945b.jpg",
+   "sha256": "ff8c164e9c92bb2ca1dc43412916bde8923b0d5e44683964725f9245928b662f",
+   "persona": "female",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jeans"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-13",
+   "file": "6675593a-8fd6-428e-87f7-dd6125f88264.jpg",
+   "sha256": "f2adeab616eb7495d48defdeccf2eebbe29e1622c54130b101c8852904e93c25",
+   "persona": "female",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "trousers",
+     "joggers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "animal"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 1,
+    "provenance": "owner_reviewed"
+   },
+   "note": "leopard print",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-14",
+   "file": "25a32575-d8ba-4f54-8c92-013f13a3d7df.jpg",
+   "sha256": "39ccd1410b72413c95f555b8dbce274fb94a9d35518c4a28c7af7fe0220a8fc7",
+   "persona": "female",
+   "source_label": "Shorts",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shorts"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "distressed denim shorts Formality 1 -> 2: distressed denim street shorts (KB 2.1: street shorts, distressed jeans = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-15",
+   "file": "f4b934fc-e326-4f72-b535-53288b8b82d3.jpg",
+   "sha256": "dcb33fafb934f4b65d1b9693ebce1b57a6c3aff221209b240dc28fdeff4b3a43",
+   "persona": "female",
+   "source_label": "Skirt",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "skirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "skirt",
+     "pencil_skirt",
+     "a_line_skirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "green"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "linen",
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "turquoise textured wrap skirt",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-16",
+   "file": "389bb7fe-02a7-4db4-9daa-1604b5ca8cb1.jpg",
+   "sha256": "4316b38aafcae06ba8acfba67ce003b004dad10226376859f1fb55edef0aaa37",
+   "persona": "female",
+   "source_label": "Skirt",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "skirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "skirt",
+     "mini_skirt",
+     "a_line_skirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "green",
+     "yellow",
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "floral",
+     "print"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "tropical print",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-17",
+   "file": "b3f43dc1-ea70-4bb0-b17c-39877c99b18f.jpg",
+   "sha256": "588a513d57d44d8f489cce76bd5a7e461da9b36e69ef88bf35309bd5d18622b3",
+   "persona": "female",
+   "source_label": "Dress",
+   "category": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "dress",
+     "formal_dress",
+     "midi_dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black",
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "embellished"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "sequins and fringe",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-18",
+   "file": "a2e6fd5e-001b-4cbc-86a0-7f015a1beda6.jpg",
+   "sha256": "6a3a251d3c60845e26bbfa4a7c84a1abc935e8bc15c5a92da76975413c343c39",
+   "persona": "female",
+   "source_label": "Dress",
+   "category": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "dress",
+     "casual_dress",
+     "midi_dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "purple"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "floral"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-19",
+   "file": "19e4de0d-fb90-47c2-83b4-37e3652c5a16.jpg",
+   "sha256": "ad12c968d78857ceb68de251de0660f99792de15b6c4ca615382f00a07b46269",
+   "persona": "female",
+   "source_label": "Dress",
+   "category": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "dress",
+     "casual_dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "purple",
+     "pink"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "wool"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "magenta sheath",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-20",
+   "file": "1da10477-cb53-4506-b54c-1ad949002e35.jpg",
+   "sha256": "89d494b0e35f731f7bc98d989923a78abadc3cb083d058ab6959477286e86294",
+   "persona": "female",
+   "source_label": "Dress",
+   "category": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "dress",
+     "casual_dress",
+     "midi_dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "green"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "linen",
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "olive",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-21",
+   "file": "4142d3bc-05b8-42f4-bd16-7bcd565cfd99.jpg",
+   "sha256": "ee2f7431204a07cfae3e7f9be3b89e6cb492c98ae3131dec9d553428a5d42079",
+   "persona": "female",
+   "source_label": "Dress",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_labelled"
+   },
+   "item_group": {
+    "accepted": [
+     "dress",
+     "top"
+    ],
+    "provenance": "owner_labelled"
+   },
+   "garment_type": {
+    "accepted": [
+     "dress",
+     "casual_dress"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_labelled"
+   },
+   "note": "cream shift dress",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-22",
+   "file": "7c771a4b-57b5-4eeb-905c-4665d7c8c082.jpg",
+   "sha256": "4cc3ce53a18c74111b7fcd4dcd82e3ef07cc0eeb0447da2bde0301c7a106bb7d",
+   "persona": "female",
+   "source_label": "Outwear",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jacket"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "pink"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "silk"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_labelled"
+   },
+   "note": "satin bomber",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-23",
+   "file": "e804cef6-5d03-443a-92ee-986586210252.jpg",
+   "sha256": "e2c2a32e6bcadb0fc7f91d5a7ead1ad988713f26a4e7e90d846cf5da1eaba955",
+   "persona": "female",
+   "source_label": "Outwear",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jacket"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "green",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "teal quilted hooded jacket",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-24",
+   "file": "4307c9e2-0edb-4b7b-a098-b959c7a0ef1e.jpg",
+   "sha256": "43a3ac323a2e8fe98fce317293509f6ef6f7194d9db8faa5cb235c4578a79a05",
+   "persona": "female",
+   "source_label": "Outwear",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "coat",
+     "jacket"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "trench coat",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-25",
+   "file": "a6148a14-17de-4692-849c-c514540a7cef.jpg",
+   "sha256": "8345d43cd04562c2d32851cf002f99705b71309be709a56cf197b2117f92f8c2",
+   "persona": "female",
+   "source_label": "Blazer",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blazer",
+     "jacket"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "linen"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "cream cropped blazer",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-26",
+   "file": "99df5351-ca44-4291-9fc6-844993b24280.jpg",
+   "sha256": "c25e45a76f05d6879dfac5a1232d5fb22bbca08e6e8120a84dfd6580e27a51c4",
+   "persona": "female",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "heels"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "leather"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "patent pumps",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-27",
+   "file": "927451d0-6fc4-4d19-b09f-2a30fe0e3628.jpg",
+   "sha256": "0a769f7c25fef748336de4ea2d4e923c4f73e940f7ee3dfad7e0ac1fe5071d67",
+   "persona": "female",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "sandals"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "slides",
+     "sandals"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black",
+     "brown"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid",
+     "animal"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "leather",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 1,
+    "provenance": "owner_reviewed"
+   },
+   "note": "snakeskin strap",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-28",
+   "file": "4cb4760c-7685-4aa7-9338-6ffbc011f353.jpg",
+   "sha256": "50551e8dda686889add3bacdb1584d8234c31aee44320f3a3d42c15883c52a7e",
+   "persona": "female",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sneakers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "red",
+     "blue",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "print",
+     "striped"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "space-dye knit Formality 1 -> 2: knit sneakers (KB 2.1: sneakers = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-29",
+   "file": "7f3e1f42-5068-4fde-9355-f27c25423bb8.jpg",
+   "sha256": "e8f04c238e5b686293aae7fd94ee1e62694d1ffcd8255040c63424ee3f217cfa",
+   "persona": "female",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "flats"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige",
+     "pink"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "leather"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "ballet flats",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-30",
+   "file": "be7311c6-84f7-4e59-b0f4-3a94f6ced3f3.jpg",
+   "sha256": "df0527cba66ff5a1b678b64609ad304939defa5ef57589e6713f8f2f2623e130",
+   "persona": "female",
+   "source_label": "Hat",
+   "category": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "hat"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "pink"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid",
+     "lace"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "wool",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "crochet hat Formality 1 -> 2: crochet hat for going out, not at-home wear.",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-31",
+   "file": "047ea75e-1f1d-46a0-bcbc-5210dc465eb3.jpg",
+   "sha256": "a0170d0d357b498360c5f131ceb9ae6b17e3e635db732473e026c4e2cce3e6b9",
+   "persona": "female",
+   "source_label": "Hat",
+   "category": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "hat"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige",
+     "brown",
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "knit beret",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-32",
+   "file": "2fff27df-def9-4410-962e-cbba35a6b29f.jpg",
+   "sha256": "54ed0a90e76925044013f59a19012d4ece2d160842a69cbff1f883e6217bcf52",
+   "persona": "male",
+   "source_label": "T-Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "t-shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey",
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "graphic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "text graphic Formality 1 -> 2: graphic crew-neck t-shirt (KB 2.1: crew-neck t-shirt = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-33",
+   "file": "12ecd9a3-2f2c-4303-bf95-d04cf04c6925.jpg",
+   "sha256": "0dbb8bcfc8bd201fb973532a7e86975e90712ec387e288e9177ec0f606ff5aa3",
+   "persona": "male",
+   "source_label": "T-Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "t-shirt",
+     "polo"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "white"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "striped"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "striped henley",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-34",
+   "file": "0af4203f-8998-4719-92fe-65c14a6b6093.jpg",
+   "sha256": "928b4a8ef2da086bb766d602289155359666eae427f6f4273401c4fa00fe69b8",
+   "persona": "male",
+   "source_label": "T-Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "t-shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "green",
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-35",
+   "file": "b61b9f26-f5fd-4b47-9edc-f27bd6d1176a.jpg",
+   "sha256": "a722db5dd350f9dfd745653ffef89840b1c7817fa751c1290d071b3326aaa5d2",
+   "persona": "male",
+   "source_label": "Polo",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "polo"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "grey",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-36",
+   "file": "45bb709b-54ae-4bae-a73a-745ca7bff53d.jpg",
+   "sha256": "c91548e9bc39d6ba97f60592d89a03f06b48d2decfa15201ab556d1978345ed7",
+   "persona": "male",
+   "source_label": "Polo",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "polo"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-37",
+   "file": "91aa6fa5-6692-4b66-ac41-168278f19607.jpg",
+   "sha256": "d3485b07ce128c9f9db500e266f626d984b455647d981ed479861f42a44d0339",
+   "persona": "male",
+   "source_label": "Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "dress shirt",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-38",
+   "file": "efccde38-dc9d-4765-98d8-8cdf7bd4fc72.jpg",
+   "sha256": "346e8005ef5654f4dcbbcff3012eb333660b2fea2d17c77bdec419d229131b08",
+   "persona": "male",
+   "source_label": "Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige",
+     "white",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "plaid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "flannel",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-39",
+   "file": "36ad54ae-3450-4264-9655-4de51e6a1a32.jpg",
+   "sha256": "5d4ef9fbcb979910871111c58188aec291463b6d738b3ad45438adfa50a8b528",
+   "persona": "male",
+   "source_label": "Shirt",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shirt"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid",
+     "print"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "micro pattern",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-40",
+   "file": "a19f7f8a-81a9-4028-ba4f-a286ee16a751.jpg",
+   "sha256": "df49bc0d87cae7a7377dc661580a450e46d9e065ea9b65f9f30e791b51479cac",
+   "persona": "male",
+   "source_label": "Longsleeve",
+   "category": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sweater"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey",
+     "green"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool",
+     "knit",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-41",
+   "file": "7b61cc39-72e3-4e09-9288-edfffb0785e2.jpg",
+   "sha256": "0b7e655626c9655508497822a99cffdcb72773359165cf653984a34d17e73f49",
+   "persona": "male",
+   "source_label": "Hoodie",
+   "category": {
+    "accepted": [
+     "top",
+     "outerwear"
+    ],
+    "provenance": "source_dataset+ai_draft"
+   },
+   "item_group": {
+    "accepted": [
+     "top"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sweater",
+     "hoodie"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey",
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "half-zip fleece; source label Hoodie Formality 1 -> 2: athletic half-zip top worn as street casual, not at-home wear.",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-42",
+   "file": "9f0338d5-37b9-4837-964d-d68fa08cec3b.jpg",
+   "sha256": "9c6a9919a9075040c2f3c6156e328d8a50f6e2091ba852b356e1e5d25bd85208",
+   "persona": "male",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "joggers",
+     "trousers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue",
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 1,
+    "provenance": "owner_reviewed"
+   },
+   "note": "track pants",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-43",
+   "file": "271405dc-caae-4414-9e88-56463a546e61.jpg",
+   "sha256": "6d1ba65279e7369c71e7838c583b6d9f8352f29b130871421d00f982d23b3267",
+   "persona": "male",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jeans"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-44",
+   "file": "af130668-3a3c-4dbb-b7f3-8456ec286a68.jpg",
+   "sha256": "05fc53353f77b18f325f4a8efd83f971644742af262938862a936ebf14259db0",
+   "persona": "male",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jeans"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue",
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-45",
+   "file": "41cfafee-f6cd-4061-852c-9cb236ea9d26.jpg",
+   "sha256": "55ad6ea673ea785cd198a55a4e97d5760111b41443cf554f78474350f4ef5efe",
+   "persona": "male",
+   "source_label": "Pants",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jeans",
+     "chinos",
+     "trousers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "green"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-46",
+   "file": "dec02b3b-638d-496d-b25d-92bce28c6f7b.jpg",
+   "sha256": "d49c73809abf084d46a78ee620a69d4de669c834e7dff929f47d7c6a350b3444",
+   "persona": "male",
+   "source_label": "Shorts",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shorts"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "denim"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "Formality 1 -> 2: denim street shorts (KB 2.1: street shorts = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-47",
+   "file": "c0ac2e3e-ef64-4b3b-a103-ec4d12a4409c.jpg",
+   "sha256": "bd3f860a1665701eab330f3fdc37cef5a8589f601f64cd77c3bb7c05691a80ac",
+   "persona": "male",
+   "source_label": "Shorts",
+   "category": {
+    "accepted": [
+     "bottom"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "pants"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "shorts"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "white",
+     "red",
+     "pink"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "plaid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "plaid cargo shorts Formality 1 -> 2: plaid cargo street shorts (KB 2.1: street shorts = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-48",
+   "file": "31590ed6-be10-4904-9c7d-087116cc29b6.jpg",
+   "sha256": "9693a8013d8c0d4b3b9719565c90224e4bffb5710310e605fd936cb0fff091e1",
+   "persona": "male",
+   "source_label": "Outwear",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "vest",
+     "jacket"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "puffer vest",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-49",
+   "file": "d4e9cf66-6805-4a90-a34e-ffc7cf95b064.jpg",
+   "sha256": "f8830502f4c7153c79cb32870163a7ef2f6db0fc36c7d0bf635567a3680e5eb4",
+   "persona": "male",
+   "source_label": "Outwear",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jacket",
+     "coat"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue",
+     "blue",
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "owner_reviewed"
+   },
+   "note": "hooded parka",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-50",
+   "file": "29864eb0-52f8-4fcd-ae49-378cee812d79.jpg",
+   "sha256": "c6de89ca39f6d00ef2df947e44f6d8b71f826e2fceddf1f6ea7d4dcb74e9f2e0",
+   "persona": "male",
+   "source_label": "Blazer",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blazer"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "striped",
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "pinstripe",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-51",
+   "file": "b5d1e4db-4455-412d-903b-108fb83723a8.jpg",
+   "sha256": "c3469206cd9b344e619f563d69c6867a32e8d027e9ca8782483bd6800a3f45ae",
+   "persona": "male",
+   "source_label": "Blazer",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "blazer"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 4,
+    "provenance": "owner_reviewed"
+   },
+   "note": "",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-52",
+   "file": "3e3c9f0a-cc69-4618-9724-7dc02545082e.jpg",
+   "sha256": "7f1e5b33fec6e697a6dc059d75a7daa45854df9743f35a0a847be7477f5d0be6",
+   "persona": "male",
+   "source_label": "Blazer",
+   "category": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "outerwear"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "jacket"
+    ],
+    "provenance": "owner_labelled"
+   },
+   "primary_color": {
+    "accepted": [
+     "beige"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "zip Harrington jacket; source label Blazer",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-53",
+   "file": "10ca393d-6342-462d-9536-58873a767049.jpg",
+   "sha256": "bdda7b86d1826955996857a3bbc50a7a746906d1e13783ae2a18e109cc1e6f80",
+   "persona": "male",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sneakers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "mesh slip-on Formality 1 -> 2: mesh slip-on sneakers (KB 2.1: sneakers = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-54",
+   "file": "6b1c9f42-c52e-4690-836d-d62e66d48ccb.jpg",
+   "sha256": "24d983575537f38e9f3ee9b7f37b444c5b1d2d5901d060940483332d87fbdb90",
+   "persona": "male",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "sandals"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "slides",
+     "sandals"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black",
+     "brown"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "leather",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 1,
+    "provenance": "owner_reviewed"
+   },
+   "note": "buckle slides",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-55",
+   "file": "b94ae406-239e-45d2-a40b-1ec2fb0a8d17.jpg",
+   "sha256": "54e6d5e1b34f4ff6352022cf68c318b4000d360352f2a1a68f6fa3eefff6721a",
+   "persona": "male",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "loafers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black",
+     "navy blue",
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "leather"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 3,
+    "provenance": "owner_reviewed"
+   },
+   "note": "perforated loafers",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-56",
+   "file": "ade4c3c3-86ce-4187-b601-989279c0592d.jpg",
+   "sha256": "deaef1548de5adda380d784dbf130fc76ff2ef51fbfaa00f9c04d478f579dcaa",
+   "persona": "male",
+   "source_label": "Shoes",
+   "category": {
+    "accepted": [
+     "footwear"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "shoes"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "sneakers"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "black"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "synthetic",
+     "knit"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "knit sneakers Formality 1 -> 2: knit sneakers (KB 2.1: sneakers = 2).",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-57",
+   "file": "a762dfc0-8da7-46d4-9ef1-3c7a085142da.jpg",
+   "sha256": "daabd41ad187605b7879c07d9897277440fadf666aa12c0b280a394b9400a6b2",
+   "persona": "male",
+   "source_label": "Hat",
+   "category": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "hat"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "navy blue",
+     "grey"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "graphic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "cotton"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "baseball cap Formality 1 -> 2: baseball cap for going out, not at-home wear.",
+   "owner_reviewed": true
+  },
+  {
+   "id": "demo-58",
+   "file": "a2b1af1e-dc4a-4e74-b7ae-3290dbe564d9.jpg",
+   "sha256": "206195a7a706a5cea5e1173253863e059ae867519bdd5e6463e07d57d1c39b9f",
+   "persona": "male",
+   "source_label": "Hat",
+   "category": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "source_dataset"
+   },
+   "item_group": {
+    "accepted": [
+     "accessory"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "garment_type": {
+    "accepted": [
+     "hat"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "primary_color": {
+    "accepted": [
+     "grey",
+     "blue"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "pattern": {
+    "accepted": [
+     "solid"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "material": {
+    "accepted": [
+     "wool",
+     "knit",
+     "synthetic"
+    ],
+    "provenance": "owner_reviewed"
+   },
+   "formality_level": {
+    "value": 2,
+    "provenance": "kb_scale_proposed"
+   },
+   "note": "ribbed beanie Formality 1 -> 2: beanie for going out, not at-home wear.",
+   "owner_reviewed": true
+  }
+ ],
+ "derived_from": {
+  "file": "data/fixtures/vision_attribute_gold_v1.json",
+  "dataset_version": "vision-attribute-gold-v1",
+  "change": "formality_level only, on the items listed with provenance kb_scale_proposed"
+ }
+}
