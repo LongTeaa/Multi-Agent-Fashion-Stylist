@@ -218,7 +218,7 @@ export function WardrobeInventory({
           <CheckIcon size={16} className="shrink-0" />
           <span className="flex-1 font-semibold">{notice}</span>
           {onDismissNotice && (
-            <button type="button" onClick={onDismissNotice} aria-label="Đóng thông báo" className="shrink-0">
+            <button type="button" onClick={onDismissNotice} aria-label="Đóng thông báo" className="-m-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
               <CloseIcon size={14} />
             </button>
           )}

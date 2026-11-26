@@ -70,7 +70,8 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 ## 6. UI Contract
 
 - The responsive modal MUST contain the main image, item list, and render-kind label.
-- Available actions: switch avatar (preset model vs personal avatar), regenerate / try-on, before/after comparison slider, mark outfit as worn (`recordOutfitWorn`), and close.
+- Available actions: switch avatar (preset model vs personal avatar), regenerate / try-on, before/after comparison for `virtual_tryon` renders only, mark outfit as worn (`recordOutfitWorn`), and close. Processing time is not shown.
+- On phones the result comes first and the model picker below it; from the `md` breakpoint the picker sits above the result.
 - The first render uses the preset the viewer chose last in this browser; without one, an outfit with a `dress` item starts on the female preset and any other outfit on the male preset. The choice depends on the garments only, never on inferred user traits. Uploaded avatars are not remembered.
 - The modal MUST list the items worn in the render (from `rendered_item_ids`) separately from the items shown beside it. Without `rendered_item_ids` (moodboard, lookbook), body garments are listed as worn and footwear and accessories beside it.
 - The first request MUST send every outfit item. When an outfit contains both `top` and `outerwear` and the render did not wear both, the UI SHOULD provide a toggle to preview either the outer layer or the inner top.

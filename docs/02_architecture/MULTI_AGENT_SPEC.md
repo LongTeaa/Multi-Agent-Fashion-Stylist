@@ -121,7 +121,7 @@ The Coordinator MUST execute these steps in order:
 
 If grounding fails, no recommendation MAY be persisted.
 
-Explanations MUST describe the selected canonical garments and recorded colors, compare recorded formality levels with the requested range, and include only allowlisted applied preferences. They MUST NOT infer breathability, softness, protection, or suitability from a context weight profile alone. Rank changes alone MUST NOT produce invented differences. Scores below 0.65 receive a concise limitation note. The chat UI omits the extracted context panel; API context remains available for orchestration and persisted snapshots.
+Explanations MUST describe the selected canonical garments and recorded colors, compare recorded formality levels with the requested range, and include only allowlisted applied preferences. They MUST NOT infer breathability, softness, protection, or suitability from a context weight profile alone. Rank changes alone MUST NOT produce invented differences. Scores below 0.65 receive a concise limitation note. The chat UI omits the extracted context panel; API context remains available for orchestration and persisted snapshots. The API keeps each garment name in `[brackets]` (checked by the benchmark); the UI shows the names in bold without the brackets. The inter-agent trace is shown after the outfits as a collapsed panel titled `Cách hệ thống chọn bộ phối`.
 
 ## 8. Try-On Agent
 

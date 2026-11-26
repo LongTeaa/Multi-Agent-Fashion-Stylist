@@ -142,7 +142,7 @@ export default function Home() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     maxLength={1000}
-                    placeholder="Ví dụ: tối nay đi ăn với bạn, trời hơi lạnh"
+                    placeholder="Ví dụ: đi ăn tối, trời se lạnh"
                     className="min-w-0 flex-1 bg-transparent py-2 text-[0.9375rem] outline-none placeholder:text-muted"
                   />
                   <button type="submit" className="btn btn-primary" disabled={!query.trim()}>

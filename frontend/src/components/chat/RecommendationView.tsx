@@ -5,11 +5,11 @@ import type { StylistChatResponseData } from '@/types/chat';
 import { OutfitCard, normalizeStylistItems } from '@/components/outfits/OutfitCard';
 
 const AGENT_LABELS: Record<string, string> = {
-  context: 'Phân tích ngữ cảnh',
-  wardrobe: 'Truy vấn tủ đồ',
-  fashion: 'Phối đồ & chấm điểm',
-  personalization: 'Cá nhân hóa',
-  coordinator: 'Kiểm duyệt & tổng hợp',
+  context: 'Hiểu yêu cầu',
+  wardrobe: 'Tìm trong tủ đồ',
+  fashion: 'Phối và chấm điểm',
+  personalization: 'Theo gu của bạn',
+  coordinator: 'Kiểm tra và tổng hợp',
   end: 'Hoàn tất',
 };
 
@@ -35,16 +35,34 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, ra
         {count > 1 && <span className="text-sm text-muted">Xếp theo độ phù hợp</span>}
       </div>
 
+      <div className="space-y-5">
+        {data.recommendations.map((rec) => (
+          <OutfitCard
+            key={rec.outfit_id}
+            outfitId={rec.outfit_id}
+            testId="outfit-recommendation-card"
+            rank={rec.rank}
+            compositeScore={rec.composite_score}
+            explanationVi={rec.explanation_vi}
+            appliedPreferences={rec.applied_preferences}
+            items={normalizeStylistItems(rec.items)}
+            initialIsBookmarked={false}
+            initialTimesWorn={0}
+            initialRating={ratingsMap?.[rec.outfit_id] ?? null}
+            onRatingChange={onRatingChange}
+          />
+        ))}
+      </div>
+
       {trace.length > 0 && (
         <details
           data-testid="agent-trace-panel"
-          open={hasFeedbackLoop}
           className="card px-4 py-3 text-sm sm:px-5"
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-ink">
             <span>
-              Nhật ký phối hợp Multi-Agent ({trace.length} bước
-              {hasFeedbackLoop ? ' · có kích hoạt vòng phản hồi' : ''})
+              Cách hệ thống chọn bộ phối ({trace.length} bước
+              {hasFeedbackLoop ? ' · có bước tìm lại' : ''})
             </span>
             <span className="text-xs text-muted">Chi tiết</span>
           </summary>
@@ -75,25 +93,6 @@ export const RecommendationView: React.FC<RecommendationViewProps> = ({ data, ra
           </ol>
         </details>
       )}
-
-      <div className="space-y-5">
-        {data.recommendations.map((rec) => (
-          <OutfitCard
-            key={rec.outfit_id}
-            outfitId={rec.outfit_id}
-            testId="outfit-recommendation-card"
-            rank={rec.rank}
-            compositeScore={rec.composite_score}
-            explanationVi={rec.explanation_vi}
-            appliedPreferences={rec.applied_preferences}
-            items={normalizeStylistItems(rec.items)}
-            initialIsBookmarked={false}
-            initialTimesWorn={0}
-            initialRating={ratingsMap?.[rec.outfit_id] ?? null}
-            onRatingChange={onRatingChange}
-          />
-        ))}
-      </div>
     </section>
   );
 };

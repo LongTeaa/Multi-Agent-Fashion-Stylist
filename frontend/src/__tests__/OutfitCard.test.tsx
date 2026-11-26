@@ -352,7 +352,7 @@ describe('OutfitCard Component', () => {
     fireEvent.click(wearBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/✕ Lỗi mạng tạm thời/i)).toBeDefined();
+      expect(screen.getByText(/Lỗi mạng tạm thời/i)).toBeDefined();
     });
 
     const firstKey = vi.mocked(api.recordOutfitWorn).mock.calls[0][1].idempotency_key;
@@ -451,7 +451,7 @@ describe('OutfitCard Component', () => {
     for (let s = 1; s <= 5; s++) {
       expect(screen.getByRole('button', { name: `Đánh giá ${s} sao` })).toBeDefined();
     }
-    expect(screen.getByText('3/5★')).toBeDefined();
+    expect(screen.getByText('3/5 sao')).toBeDefined();
 
     // INVARIANT: Strictly no Like or Dislike buttons
     expect(screen.queryByRole('button', { name: /thích/i })).toBeNull();
@@ -492,8 +492,8 @@ describe('OutfitCard Component', () => {
       });
     });
 
-    expect(screen.getByText('4/5★')).toBeDefined();
-    expect(screen.getByText('✓ Đã đánh giá 4★')).toBeDefined();
+    expect(screen.getByText('4/5 sao')).toBeDefined();
+    expect(screen.getByText('Đã đánh giá 4 sao')).toBeDefined();
     expect(onRatingChange).toHaveBeenCalledWith('outfit-rate-action', 4);
   });
 
@@ -517,11 +517,11 @@ describe('OutfitCard Component', () => {
     fireEvent.click(star2Btn);
 
     await waitFor(() => {
-      expect(screen.getByText('✕ Không thể lưu đánh giá.')).toBeDefined();
+      expect(screen.getByText('Không thể lưu đánh giá.')).toBeDefined();
     });
 
     expect(onRatingChange).not.toHaveBeenCalled();
-    expect(screen.queryByText('2/5★')).toBeNull();
+    expect(screen.queryByText('2/5 sao')).toBeNull();
   });
 
   it('synchronizes internal rating state when initialRating prop changes', () => {
@@ -534,7 +534,7 @@ describe('OutfitCard Component', () => {
       />
     );
 
-    expect(screen.queryByText(/\/5★/)).toBeNull();
+    expect(screen.queryByText(/\/5 sao/)).toBeNull();
 
     // Rerender with initialRating = 5
     rerender(
@@ -546,6 +546,6 @@ describe('OutfitCard Component', () => {
       />
     );
 
-    expect(screen.getByText('5/5★')).toBeDefined();
+    expect(screen.getByText('5/5 sao')).toBeDefined();
   });
 });

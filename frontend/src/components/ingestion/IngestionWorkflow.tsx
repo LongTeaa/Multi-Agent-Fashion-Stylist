@@ -388,7 +388,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
         <div role="alert" className="notice notice-danger mb-6">
           <AlertIcon size={18} className="mt-0.5 shrink-0" />
           <p className="flex-1">{errorMessage}</p>
-          <button type="button" onClick={() => setErrorMessage(null)} aria-label="Đóng thông báo lỗi" className="shrink-0">
+          <button type="button" onClick={() => setErrorMessage(null)} aria-label="Đóng thông báo lỗi" className="-m-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
             <CloseIcon size={14} />
           </button>
         </div>
@@ -401,7 +401,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
       {step === 'processing' && (
         <div role="status" className="card mx-auto max-w-md px-8 py-12 text-center">
           <Spinner size={36} className="mx-auto text-accent" />
-          <h2 className="display mt-6 text-2xl">Đang nhận diện món đồ</h2>
+          <h1 className="display mt-6 text-2xl">Đang nhận diện món đồ</h1>
           <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-2">
             Tách từng món trong ảnh và đoán loại, màu, chất liệu. Thường mất vài giây.
           </p>
@@ -421,7 +421,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
         <div className="mx-auto max-w-4xl space-y-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="display text-[1.75rem]">Kiểm tra trước khi lưu</h2>
+              <h1 className="display text-[1.75rem]">Kiểm tra trước khi lưu</h1>
               <p className="mt-1 text-sm text-ink-2">
                 Tìm thấy {batchReview.detections.length} món
                 {needsReviewCount > 0 ? (
@@ -434,10 +434,22 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
                 )}
               </p>
             </div>
-            <button type="button" onClick={handleCancelBatch} disabled={busy} className="btn btn-ghost btn-sm">
-              <TrashIcon size={15} />
-              {isCancelling ? 'Đang hủy…' : 'Hủy lượt này'}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={handleCancelBatch} disabled={busy} className="btn btn-ghost btn-sm">
+                <TrashIcon size={15} />
+                {isCancelling ? 'Đang hủy…' : 'Hủy lượt này'}
+              </button>
+              {/* Phones: a shortcut so a long list can be saved without scrolling to the end. */}
+              <button
+                type="button"
+                onClick={handleConfirmBatch}
+                disabled={busy || acceptedCount === 0}
+                className="btn btn-primary btn-sm md:hidden"
+              >
+                <CheckIcon size={15} />
+                {isConfirming ? 'Đang lưu…' : `Lưu ${acceptedCount} món`}
+              </button>
+            </div>
           </div>
 
           {batchReview.show_review_hint && (
@@ -567,7 +579,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success-soft text-success">
             <CheckIcon size={24} />
           </span>
-          <h2 className="display mt-5 text-2xl">Đã thêm vào tủ đồ</h2>
+          <h1 className="display mt-5 text-2xl">Đã thêm vào tủ đồ</h1>
           <p className="mt-2 text-[0.9375rem] text-ink-2">
             {confirmedItemIds.length} món mới đã sẵn sàng để phối.
           </p>
@@ -588,7 +600,7 @@ export function IngestionWorkflow({ onFinish }: IngestionWorkflowProps) {
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
             <AlertIcon size={24} />
           </span>
-          <h2 className="display mt-5 text-2xl">Chưa thể hoàn tất</h2>
+          <h1 className="display mt-5 text-2xl">Chưa thể hoàn tất</h1>
           <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-2">
             {errorMessage || 'Có lỗi xảy ra trong quá trình nhận diện.'}
           </p>

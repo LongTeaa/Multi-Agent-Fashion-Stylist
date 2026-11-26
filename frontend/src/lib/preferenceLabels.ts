@@ -1,6 +1,6 @@
 /** Vietnamese display labels for preference option values returned by the API. */
 export const PREFERENCE_LABELS: Record<string, string> = {
-  casual: 'Thoải mái',
+  casual: 'Thường ngày',
   minimalist: 'Tối giản',
   smart_casual: 'Thanh lịch thường ngày',
   streetwear: 'Đường phố',
@@ -51,6 +51,7 @@ const EXTRA_COLOR_LABELS: Record<string, string> = {
   light_grey: 'Xám nhạt',
   silver: 'Bạc',
   teal: 'Xanh mòng két',
+  magenta: 'Hồng tím',
   olive: 'Ô-liu',
   burgundy: 'Đỏ đô',
   maroon: 'Đỏ đô',

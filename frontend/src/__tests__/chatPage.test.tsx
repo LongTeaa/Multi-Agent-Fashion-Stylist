@@ -332,11 +332,11 @@ describe('Chat Page & Components Integration', () => {
       expect(within(prompt).getByText('Cảm ơn bạn đã phản hồi!')).toBeDefined();
     });
 
-    // After auto-dismiss timer (1500ms), prompt closes and OutfitCard reflects 5/5★
+    // After auto-dismiss timer (1500ms), prompt closes and OutfitCard reflects 5/5 sao
     await waitFor(
       () => {
         expect(screen.queryByRole('region', { name: /Khảo sát đánh giá gợi ý phối đồ/i })).toBeNull();
-        expect(screen.getByText('5/5★')).toBeDefined();
+        expect(screen.getByText('5/5 sao')).toBeDefined();
       },
       { timeout: 3000 }
     );
@@ -417,8 +417,9 @@ describe('Chat Page & Components Integration', () => {
       expect(screen.getByTestId('agent-trace-panel')).toBeDefined();
     });
 
-    expect(screen.getByText(/Nhật ký phối hợp Multi-Agent/i)).toBeDefined();
-    expect(screen.getByText(/Phối đồ & chấm điểm → Truy vấn tủ đồ/i)).toBeDefined();
+    expect(screen.getByText(/Cách hệ thống chọn bộ phối/i)).toBeDefined();
+    expect(screen.getByTestId('agent-trace-panel').hasAttribute('open')).toBe(false);
+    expect(screen.getByText(/Phối và chấm điểm → Tìm trong tủ đồ/i)).toBeDefined();
     expect(screen.getByText(/Đề xuất mở rộng kiểu dáng tương đương/i)).toBeDefined();
     expect(screen.getByText('Vòng 1')).toBeDefined();
   });

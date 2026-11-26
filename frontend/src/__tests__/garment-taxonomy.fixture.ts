@@ -306,7 +306,7 @@ const taxonomy: GarmentTaxonomy = {
       "types": [
         {
           "value": "jacket",
-          "label": "Áo khoác jacket",
+          "label": "Áo khoác",
           "aliases": []
         },
         {

@@ -96,7 +96,7 @@ def get_taxonomy() -> GarmentTaxonomy:
             _type("flip_flops", "Dép xỏ ngón", "flip flop"))),
         GarmentGroup(value=ItemGroup.OUTERWEAR, label="Áo khoác", category=WardrobeCategory.OUTERWEAR,
                      aliases=("outerwear",), types=(
-            _type("jacket", "Áo khoác jacket"), _type("coat", "Áo măng tô"),
+            _type("jacket", "Áo khoác"), _type("coat", "Áo măng tô"),
             _type("blazer", "Áo Blazer"), _type("cardigan", "Áo cardigan"),
             _type("hoodie", "Áo Hoodie"), _type("vest", "Áo gile"))),
         GarmentGroup(value=ItemGroup.ACCESSORY, label="Phụ kiện", category=WardrobeCategory.ACCESSORY,

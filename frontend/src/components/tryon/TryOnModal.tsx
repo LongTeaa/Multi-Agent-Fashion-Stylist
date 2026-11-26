@@ -15,6 +15,7 @@ import {
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnAvatar, TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
 import { generateUUIDv4 } from '@/lib/uuid';
+import { CheckIcon, CloseIcon } from '@/components/ui/icons';
 import { initialPresetId, rememberPresetId } from '@/lib/tryonAvatar';
 
 type LayerChoice = 'auto' | 'outerwear' | 'top';
@@ -399,7 +400,7 @@ export function TryOnModal({
         aria-label="Xem trước bộ trang phục"
         className="max-h-[94dvh] w-full max-w-5xl overflow-y-auto rounded-t-[2rem] bg-[#E8E5DE] p-1.5 shadow-[0_24px_80px_rgba(42,34,29,0.28)] sm:rounded-[2rem]"
       >
-        <div className="rounded-t-[calc(2rem-0.375rem)] bg-[#FBFBF9] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:rounded-[calc(2rem-0.375rem)] sm:p-6">
+        <div className="flex flex-col rounded-t-[calc(2rem-0.375rem)] bg-[#FBFBF9] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:rounded-[calc(2rem-0.375rem)] sm:p-6">
           {/* Header */}
           <header className="flex items-start justify-between gap-5 pb-4">
             <div className="max-w-xl">
@@ -420,16 +421,16 @@ export function TryOnModal({
             </button>
           </header>
 
-          {/* Avatar Selector Strip */}
-          <div className="mb-4 rounded-2xl bg-[#F6F4EE] p-3 border border-[#E8E4DA]">
+          {/* Avatar Selector Strip: below the result on phones, above it from md up */}
+          <div className="order-2 mt-4 rounded-2xl bg-[#F6F4EE] p-3 border border-[#E8E4DA] md:order-none md:mt-0 md:mb-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-sm font-semibold text-ink">Người mẫu</span>
               <button
                 type="button"
                 onClick={() => setIsUploadOpen(!isUploadOpen)}
-                className="text-xs font-medium text-[#9C5234] hover:underline"
+                className="-my-1.5 inline-flex min-h-8 items-center text-xs font-medium text-[#9C5234] hover:underline"
               >
-                {isUploadOpen ? '✕ Đóng tải ảnh' : '+ Tải ảnh toàn thân của bạn'}
+                {isUploadOpen ? 'Đóng tải ảnh' : '+ Tải ảnh toàn thân của bạn'}
               </button>
             </div>
 
@@ -520,9 +521,9 @@ export function TryOnModal({
                         title="Xóa ảnh này"
                         aria-label={`Xóa ảnh ${avatar.name}`}
                         onClick={(e) => handleDeleteAvatar(avatar.id, e)}
-                        className="ml-1 text-xs opacity-60 hover:opacity-100 hover:text-rose-400"
+                        className="ml-1 inline-flex opacity-60 hover:opacity-100 hover:text-rose-400"
                       >
-                        ✕
+                        <CloseIcon size={12} />
                       </span>
                     )}
                   </button>
@@ -532,12 +533,12 @@ export function TryOnModal({
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
+          <div className="order-1 grid grid-cols-1 gap-5 md:order-none md:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
             {/* Left: Try-On Image Canvas */}
             <div className="min-h-[26rem] overflow-hidden rounded-[1.5rem] bg-[#EEEAE2] p-1.5 flex flex-col">
               {/* Compare toggle bar */}
-              {result && !isGenerating && currentAvatar && (
-                <div className="mb-1.5 flex items-center justify-between px-2 pt-1">
+              {result && !isGenerating && currentAvatar && result.render_kind === 'virtual_tryon' && (
+                <div className="mb-1.5 flex items-center px-2 pt-1">
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
@@ -562,9 +563,6 @@ export function TryOnModal({
                       Trước khi mặc
                     </button>
                   </div>
-                  <span className="text-xs text-[#736E65] font-mono">
-                    {(result.duration_ms / 1000).toFixed(1)}s
-                  </span>
                 </div>
               )}
 
@@ -783,7 +781,7 @@ export function TryOnModal({
                     aria-pressed={saved}
                     className="rounded-full bg-[#EEEAE2] px-3 py-2 text-xs font-semibold text-[#1A1918] transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#E2DDD3] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9C5234]"
                   >
-                    {isSaving ? '...' : saved ? '✓ Đã lưu' : 'Lưu bộ đồ'}
+                    {isSaving ? '...' : saved ? <span className="inline-flex items-center gap-1"><CheckIcon size={13} /> Đã lưu</span> : 'Lưu bộ đồ'}
                   </button>
 
                   <button
@@ -796,7 +794,7 @@ export function TryOnModal({
                         : 'bg-[#EEEAE2] text-[#1A1918] hover:bg-[#E2DDD3]'
                     }`}
                   >
-                    {isRecordingWorn ? '...' : worn ? '✓ Mặc hôm nay' : 'Mặc hôm nay'}
+                    {isRecordingWorn ? '...' : worn ? <span className="inline-flex items-center gap-1"><CheckIcon size={13} /> Mặc hôm nay</span> : 'Mặc hôm nay'}
                   </button>
                 </div>
               </div>

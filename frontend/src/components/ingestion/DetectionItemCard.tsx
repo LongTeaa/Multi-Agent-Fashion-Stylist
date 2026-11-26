@@ -126,6 +126,7 @@ export function DetectionItemCard({
     ...group.types.flatMap((type) => [type.value, type.label, ...type.aliases])]
     .some((alias) => fold(alias) === fold(attributes.sub_category || '')))
     || categoryGroups[0];
+  const fieldId = (field: string) => `detection-${detection.detection_id}-${field}`;
   const suggestions = selectedGroup?.types || [];
   // Canonical values stay stored; known types and colours are shown and typed in Vietnamese.
   const selectedType = suggestions.find((type) => [type.value, type.label, ...type.aliases]
@@ -217,12 +218,12 @@ export function DetectionItemCard({
             {/* Category */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="field-label mb-0">
+                <label htmlFor={fieldId('category')} className="field-label mb-0">
                   Danh mục chính <span className="text-danger">*</span>
                 </label>
                 {renderConfidenceBadge('category')}
               </div>
-              <select
+              <select id={fieldId('category')}
                 value={selectedGroup?.value || ''}
                 disabled={!accepted}
                 onChange={(e) => {
@@ -251,10 +252,10 @@ export function DetectionItemCard({
             {/* Sub-category */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="field-label mb-0">Loại món</label>
+                <label htmlFor={fieldId('sub_category')} className="field-label mb-0">Loại món</label>
                 {renderConfidenceBadge('sub_category')}
               </div>
-              <input
+              <input id={fieldId('sub_category')}
                 type="text"
                 list={`sub-suggestions-${index}`}
                 value={subCategoryDisplay}
@@ -277,7 +278,7 @@ export function DetectionItemCard({
                       disabled={!accepted}
                       aria-pressed={attributes.sub_category?.toLowerCase() === s.value.toLowerCase()}
                       onClick={() => onUpdateAttribute('sub_category', s.value)}
-                      className="chip min-h-7 px-2.5 text-xs"
+                      className="chip min-h-8 px-2.5 text-xs"
                     >
                       {s.label}
                     </button>
@@ -289,10 +290,10 @@ export function DetectionItemCard({
             {/* Primary color */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="field-label mb-0">Màu sắc chủ đạo</label>
+                <label htmlFor={fieldId('primary_color')} className="field-label mb-0">Màu sắc chủ đạo</label>
                 {renderConfidenceBadge('primary_color')}
               </div>
-              <input
+              <input id={fieldId('primary_color')}
                 type="text"
                 value={colorInputValue(attributes.primary_color)}
                 disabled={!accepted}
@@ -314,10 +315,10 @@ export function DetectionItemCard({
               {/* Pattern */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">Họa tiết</label>
+                  <label htmlFor={fieldId('pattern')} className="field-label mb-0">Họa tiết</label>
                   {renderConfidenceBadge('pattern')}
                 </div>
-                <select
+                <select id={fieldId('pattern')}
                   value={attributes.pattern || ''}
                   disabled={!accepted}
                   onChange={(e) => onUpdateAttribute('pattern', e.target.value)}
@@ -337,10 +338,10 @@ export function DetectionItemCard({
               {/* Material */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">Chất liệu</label>
+                  <label htmlFor={fieldId('material')} className="field-label mb-0">Chất liệu</label>
                   {renderConfidenceBadge('material')}
                 </div>
-                <select
+                <select id={fieldId('material')}
                   value={attributes.material || ''}
                   disabled={!accepted}
                   onChange={(e) => onUpdateAttribute('material', e.target.value)}
@@ -360,10 +361,10 @@ export function DetectionItemCard({
               {/* Style */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">Phong cách</label>
+                  <label htmlFor={fieldId('style')} className="field-label mb-0">Phong cách</label>
                   {renderConfidenceBadge('style')}
                 </div>
-                <select
+                <select id={fieldId('style')}
                   value={attributes.style || ''}
                   disabled={!accepted}
                   onChange={(e) => onUpdateAttribute('style', e.target.value)}
@@ -383,10 +384,10 @@ export function DetectionItemCard({
               {/* Fit */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">Phom dáng</label>
+                  <label htmlFor={fieldId('fit')} className="field-label mb-0">Phom dáng</label>
                   {renderConfidenceBadge('fit')}
                 </div>
-                <select
+                <select id={fieldId('fit')}
                   value={attributes.fit || ''}
                   disabled={!accepted}
                   onChange={(e) => onUpdateAttribute('fit', e.target.value)}
@@ -406,7 +407,7 @@ export function DetectionItemCard({
               {/* Formality */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">
+                  <label htmlFor={fieldId('formality_level')} className="field-label mb-0">
                     Mức độ trang trọng:{' '}
                     <span className="text-accent">
                       {attributes.formality_level ? `${attributes.formality_level}/5` : 'Chưa xác định'}
@@ -414,7 +415,7 @@ export function DetectionItemCard({
                   </label>
                   {renderConfidenceBadge('formality_level')}
                 </div>
-                <input
+                <input id={fieldId('formality_level')}
                   type="range"
                   min={1}
                   max={5}
@@ -435,12 +436,12 @@ export function DetectionItemCard({
               {/* Comfort */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">
+                  <span className="field-label mb-0">
                     Độ thoải mái:{' '}
                     <span className="text-accent">
                       {attributes.comfort_level ? `${attributes.comfort_level}/5` : 'Chưa xác định'}
                     </span>
-                  </label>
+                  </span>
                   {renderConfidenceBadge('comfort_level')}
                 </div>
                 <SegmentedScale
@@ -457,10 +458,10 @@ export function DetectionItemCard({
               {/* Silhouette */}
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="field-label mb-0">Dáng tổng thể</label>
+                  <label htmlFor={fieldId('silhouette_level')} className="field-label mb-0">Dáng tổng thể</label>
                   {renderConfidenceBadge('silhouette_level')}
                 </div>
-                <select
+                <select id={fieldId('silhouette_level')}
                   value={attributes.silhouette_level || 3}
                   disabled={!accepted}
                   onChange={(e) => onUpdateAttribute('silhouette_level', parseInt(e.target.value, 10))}
@@ -478,10 +479,10 @@ export function DetectionItemCard({
               {hasGarmentLength(attributes.category) && (
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="field-label mb-0">Độ dài</label>
+                    <label htmlFor={fieldId('length')} className="field-label mb-0">Độ dài</label>
                     {renderConfidenceBadge('length')}
                   </div>
-                  <select
+                  <select id={fieldId('length')}
                     value={attributes.length || 'hip'}
                     disabled={!accepted}
                     onChange={(e) => onUpdateAttribute('length', e.target.value)}

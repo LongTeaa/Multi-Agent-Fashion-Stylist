@@ -294,7 +294,7 @@ describe('SavedOutfitsPage Integration', () => {
 
     await waitFor(() => {
       // outfit-1 has user_rating: 4
-      expect(screen.getByText('4/5★')).toBeDefined();
+      expect(screen.getByText('4/5 sao')).toBeDefined();
     });
 
     // Find outfit-2 card
@@ -314,9 +314,9 @@ describe('SavedOutfitsPage Integration', () => {
       });
     });
 
-    // outfit-2 should now display 5/5★
+    // outfit-2 should now display 5/5 sao
     await waitFor(() => {
-      expect(screen.getByText('5/5★')).toBeDefined();
+      expect(screen.getByText('5/5 sao')).toBeDefined();
     });
   });
 });

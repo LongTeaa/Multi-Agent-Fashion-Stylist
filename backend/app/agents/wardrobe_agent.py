@@ -241,6 +241,7 @@ COLOR_VI_MAP: dict[str, str] = {
     "light grey": "xám nhạt",
     "silver": "bạc",
     "teal": "xanh mòng két",
+    "magenta": "hồng tím",
     "multicolor": "nhiều màu",
     "brown": "nâu",
     "tan": "nâu sáng",

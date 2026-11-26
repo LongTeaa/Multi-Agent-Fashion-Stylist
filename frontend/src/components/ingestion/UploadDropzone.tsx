@@ -85,7 +85,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 text-center">
-        <h2 className="display text-[2rem] sm:text-[2.5rem]">Thêm món đồ</h2>
+        <h1 className="display text-[2rem] sm:text-[2.5rem]">Thêm món đồ</h1>
         <p className="mx-auto mt-2 max-w-lg text-[0.9375rem] leading-relaxed text-ink-2">
           Chụp từng món, nhiều món xếp chung hoặc cả bộ bạn đang mặc. Mỗi món sẽ được tách riêng để bạn kiểm tra trước
           khi lưu.
@@ -182,7 +182,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
                     e.stopPropagation();
                     handleRemoveFile(idx);
                   }}
-                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-paper hover:bg-danger"
+                  className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-ink/80 text-paper hover:bg-danger"
                   aria-label={`Bỏ ảnh ${file.name}`}
                 >
                   <CloseIcon size={14} />

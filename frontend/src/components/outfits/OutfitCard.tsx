@@ -7,6 +7,7 @@ import type { StylistRecommendationItem } from '@/types/chat';
 import type { OutfitItemDetailResponse } from '@/types/outfits';
 import { TryOnModal } from '@/components/tryon/TryOnModal';
 import { BookmarkIcon, CheckIcon, CloseIcon, Spinner, StarIcon } from '@/components/ui/icons';
+import { splitExplanation } from '@/lib/explanation';
 import { formatLookNumber } from '@/lib/looks';
 import { attributeLabel } from '@/lib/preferenceLabels';
 import { generateUUIDv4 } from '@/lib/uuid';
@@ -246,7 +247,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
     try {
       const res = await rateOutfit(outfitId, { stars, source: 'manual' });
       setUserRating(res.stars);
-      setRatingSuccessMsg(`Đã đánh giá ${res.stars}★`);
+      setRatingSuccessMsg(`Đã đánh giá ${res.stars} sao`);
       onRatingChange?.(outfitId, res.stars);
 
       if (ratingTimerRef.current) {
@@ -317,7 +318,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
               type="button"
               onClick={() => setBookmarkError(null)}
               aria-label="Đóng thông báo lỗi"
-              className="shrink-0 opacity-70 hover:opacity-100"
+              className="-m-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-70 hover:opacity-100"
             >
               <CloseIcon size={14} />
             </button>
@@ -365,7 +366,15 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
         {/* Why it works */}
         <div className="mx-5 mt-5 rounded-xl bg-paper px-4 py-3.5 sm:mx-6">
           <p className="text-xs font-semibold text-accent">Vì sao hợp</p>
-          <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-2">{explanationVi}</p>
+          <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-2">
+            {splitExplanation(explanationVi).map((part, index) =>
+              part.isItem ? (
+                <strong key={index} className="font-semibold text-ink">{part.text}</strong>
+              ) : (
+                <React.Fragment key={index}>{part.text}</React.Fragment>
+              ),
+            )}
+          </p>
           {appliedPreferences.length > 0 && (
             <p className="mt-2 text-xs text-muted">
               Theo gu của bạn: <span className="text-ink-2">{appliedPreferences.join(' · ')}</span>
@@ -395,13 +404,13 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
               <span>{isWearPending ? 'Đang ghi nhận…' : 'Đã mặc hôm nay'}</span>
             </button>
             {wearSuccessMsg && (
-              <span className="animate-rise text-xs font-semibold text-success">
-                ✓ {wearSuccessMsg}
+              <span className="animate-rise inline-flex items-center gap-1 text-xs font-semibold text-success">
+                <CheckIcon size={13} /> {wearSuccessMsg}
               </span>
             )}
             {wearError && (
-              <span className="animate-rise text-xs font-semibold text-danger">
-                ✕ {wearError}
+              <span role="alert" className="animate-rise inline-flex items-center gap-1 text-xs font-semibold text-danger">
+                <CloseIcon size={12} /> {wearError}
               </span>
             )}
           </div>
@@ -421,7 +430,7 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                     onBlur={() => setHoverRating(null)}
                     disabled={isRatingPending}
                     aria-label={`Đánh giá ${star} sao`}
-                    className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`rounded p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       isFilled ? 'text-accent' : 'text-line-strong hover:text-accent'
                     }`}
                   >
@@ -430,11 +439,11 @@ export const OutfitCard: React.FC<OutfitCardProps> = ({
                 );
               })}
             </div>
-            {userRating && <span className="text-xs font-semibold tabular-nums text-ink-2">{userRating}/5★</span>}
+            {userRating && <span className="text-xs font-semibold tabular-nums text-ink-2">{userRating}/5 sao</span>}
             {ratingSuccessMsg && (
-              <span className="animate-rise text-xs font-semibold text-success">✓ {ratingSuccessMsg}</span>
+              <span className="animate-rise inline-flex items-center gap-1 text-xs font-semibold text-success"><CheckIcon size={13} /> {ratingSuccessMsg}</span>
             )}
-            {ratingError && <span className="animate-rise text-xs font-semibold text-danger">✕ {ratingError}</span>}
+            {ratingError && <span role="alert" className="animate-rise inline-flex items-center gap-1 text-xs font-semibold text-danger"><CloseIcon size={12} /> {ratingError}</span>}
           </div>
         </footer>
       </article>
