@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import logging
 import pytest
 from pydantic import ValidationError
 
@@ -106,6 +107,25 @@ def test_context_provider_failure_uses_rule_based_fallback(scenario: str):
     assert ctx.weather_condition == "cool"
     assert ctx.weather_source == "user"
     assert warnings
+
+
+def test_context_provider_failure_logs_exception_type_without_query(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+):
+    # Alembic's fileConfig in migration tests disables loggers that already exist.
+    monkeypatch.setattr(logging.getLogger("app.agents.context_agent"), "disabled", False)
+    query = "Tối nay đi cafe, trời mát"
+    with caplog.at_level("WARNING", logger="app.agents.context_agent"):
+        extract_context_with_providers(
+            query,
+            current_date=date(2026, 9, 12),
+            llm_provider=FakeLLMProvider("provider_error"),
+        )
+
+    records = [r for r in caplog.records if r.name == "app.agents.context_agent"]
+    assert len(records) == 1
+    assert "rule fallback" in records[0].getMessage()
+    assert query not in records[0].getMessage()
 
 
 @pytest.mark.parametrize("scenario", ["timeout", "unknown_location", "provider_error"])

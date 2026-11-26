@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta, timezone
+import logging
 import re
 from typing import Any
 import unicodedata
@@ -9,6 +10,8 @@ import unicodedata
 from app.agents.state import GarmentConstraint, StylistContext, StylistGraphState
 from app.models.entities import WardrobeCategory
 from app.services.providers import ContextLLMProviderProtocol, WeatherProviderProtocol
+
+logger = logging.getLogger(__name__)
 
 # Vietnam local timezone UTC+7
 VIETNAM_TZ = timezone(timedelta(hours=7))
@@ -923,7 +926,9 @@ def extract_context_with_providers(
                 else:
                     norm_time = extract_time_of_day(context.time_of_day, context.occasion or fallback.occasion)
                 context = context.model_copy(update={"time_of_day": norm_time})
-        except Exception:
+        except Exception as exc:
+            # Exception type only: provider messages may echo the query or response body.
+            logger.warning("Context provider failed; using the rule fallback: %s", type(exc).__name__)
             context = fallback
             warnings.append(CONTEXT_FALLBACK_WARNING)
 
