@@ -212,9 +212,13 @@ query scores `1.0` in the sparse-wardrobe metric only when retrieval also return
 candidate.
 
 The versioned `retrieval-v1` evaluation contains 30 Vietnamese queries across five
-synthetic wardrobes. The recorded `metadata-v1` result is Recall@10 `1.000` and
-Sparse-wardrobe Precision@5 `0.845` for metadata-only retrieval, and Recall@10 `1.000`
-and sparse-wardrobe Precision@5 `0.8783` with optional full-text ranking. The respective
+synthetic wardrobes. The recorded `metadata-v1` result
+(`data/fixtures/retrieval_evaluation_v1_report.json`, recomputed and checked by
+`backend/tests/evaluation/test_retrieval_metrics.py`) is Recall@10 `1.000` and
+Sparse-wardrobe Precision@5 `0.79` for metadata-only retrieval, and Recall@10 `1.000`
+and sparse-wardrobe Precision@5 `0.8233` with optional full-text ranking. These values
+fell from `0.845` and `0.8783` on 2026-11-18, when sparse categories started adding items
+one formality level outside the requested range (section 6). The respective
 fixed-denominator diagnostic values are `0.6000` and `0.6345`. Search p95 with 500 items
 is `100.838 ms` in the local SQLite evaluation. Because both non-semantic configurations
 meet the normative sparse-wardrobe targets, semantic indexing is not justified for the

@@ -125,10 +125,12 @@ Explanations MUST describe the selected canonical garments and recorded colors, 
 
 ## 8. Try-On Agent
 
+The Try-On Agent is implemented as a service (`backend/app/services/tryon_service.py`) behind `POST /tryons`, not as a node of the recommendation graph.
+
 - It MUST accept only a persisted `outfit_id` owned by the requesting user.
 - It MUST obtain item reference images through `ObjectStorage`.
-- It SHOULD use an image provider that supports reference-image inputs.
-- It MUST apply an 8-second provider timeout and then attempt a moodboard fallback.
+- It SHOULD use a provider that supports reference-image inputs.
+- The lookbook image provider MUST be bounded by an 8-second timeout (`IMAGE_TIMEOUT_SECONDS`); each 2D try-on provider call MUST be bounded by `TRYON_TIMEOUT_SECONDS` (default 90 seconds). On failure or timeout it MUST attempt a moodboard fallback.
 - It MUST NOT claim body-fit accuracy.
 
 ## 9. Empty and Error Behavior

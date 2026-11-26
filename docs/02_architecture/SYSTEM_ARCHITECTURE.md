@@ -31,10 +31,10 @@ ChromaDB MUST NOT be a default MVP dependency. A semantic index MAY be introduce
 | Workflow | LangGraph five-node state graph with bounded feedback loops (`MULTI_AGENT_SPEC.md`) |
 | Relational database | SQLite for development/MVP; migration path to PostgreSQL |
 | Object storage | MinIO; local-filesystem adapter for tests/offline demonstrations |
-| Item detection | `DETECTOR_BACKEND`: `auto` (follows `VISION_PROVIDER`), `fake`, `gemini`, or `yolo_world` (local ONNX model) |
+| Item detection | `DETECTOR_BACKEND`: `auto` (follows `VISION_PROVIDER`), `fake`, `gemini`, or `yolo_world` (local ONNX model); `DETECTOR_FALLBACK_BACKEND=yolo_world` adds YOLO-World as a fallback when the Gemini detector fails |
 | Vision and LLM | Provider abstraction (`fake` or `gemini`; context also `fallback` rules); model identifiers and an optional Vision fallback model from environment settings; multiple Gemini keys MAY be rotated |
 | Image generation | Provider abstraction (`disabled`, `fake`, `gemini`) with a dedicated image model from environment settings |
-| 2D virtual try-on | Provider abstraction (`disabled`, `fake`, `fashn`); FASHN VTON through a configurable Hugging Face Space |
+| 2D virtual try-on | Provider abstraction (`disabled`, `fake`, `fashn`, `flux`); FLUX VTO on fal.ai is the selected provider (`../06_features/VIRTUAL_TRYON_SPEC.md`), FASHN VTON through a configurable Hugging Face Space remains available |
 | Weather | Open-Meteo or OpenWeather, or `disabled`, with a deterministic fallback |
 
 Preview model identifiers MUST NOT be hardcoded in business logic. Model identifiers MUST be configurable to avoid coupling implementation to a short-lived provider version.
@@ -56,7 +56,7 @@ Try-on is a separate on-demand API operation that accepts a persisted `outfit_id
 ## 5. Data Boundaries
 
 - SQLite MUST store entities, relationships, ratings, and wear history.
-- MinIO MUST store original uploads, item crops, thumbnails, generated lookbooks, and moodboards.
+- Object storage (MinIO, or the local-filesystem adapter) MUST store original uploads, item crops, thumbnails, avatars, try-on renders, generated lookbooks, and moodboards.
 - The API MUST NOT expose raw object keys. It MUST return a short-lived signed URL or an authenticated media-proxy URL.
 - LLM calls SHOULD receive only the minimum data required for the active operation.
 - Every database and object-storage operation MUST be scoped to `user_id`.
@@ -85,7 +85,7 @@ docs/
 thesis/
 ```
 
-`services` integrate external providers. `repositories` own database and storage access. Agents MUST receive dependencies explicitly and MUST NOT create arbitrary database or provider clients.
+`services` integrate external providers and hold the database queries of the API operations; there is no separate database repository layer. `repositories` contains the `ObjectStorage` adapters only. Agents MUST receive dependencies, including the request's database `Session`, explicitly and MUST NOT create arbitrary database or provider clients. Wardrobe, Personalization, and Coordinator read through that `Session` with ownership-scoped queries; only the Coordinator writes, through `services/outfit_persistence.py`.
 
 ## 7. Environment Contract
 
@@ -94,10 +94,10 @@ The complete, placeholder-only variable list is `.env.example` at the repository
 | Group | Examples |
 | :--- | :--- |
 | Application | `DATABASE_URL`, `FRONTEND_URL` |
-| Provider selection | `VISION_PROVIDER`, `DETECTOR_BACKEND`, `CONTEXT_PROVIDER`, `ENABLE_LLM_EXPLANATIONS`, `WEATHER_PROVIDER`, `IMAGE_PROVIDER`, `TRYON_PROVIDER` |
-| Model identifiers | `LLM_MODEL`, `VISION_MODEL`, `VISION_FALLBACK_MODEL`, `DETECTOR_MODEL`, `IMAGE_MODEL`, `YOLO_WORLD_MODEL_PATH`, `FASHN_TRYON_SPACE` |
-| Timeouts and limits | `*_TIMEOUT_SECONDS`, `INGESTION_MAX_CONCURRENCY` |
-| Credentials | `GEMINI_API_KEY`, `GEMINI_API_KEYS`, `WEATHER_API_KEY`, `HF_TOKEN` |
+| Provider selection | `VISION_PROVIDER`, `DETECTOR_BACKEND`, `DETECTOR_FALLBACK_BACKEND`, `CONTEXT_PROVIDER`, `ENABLE_LLM_EXPLANATIONS`, `WEATHER_PROVIDER`, `IMAGE_PROVIDER`, `TRYON_PROVIDER` |
+| Model identifiers | `LLM_MODEL`, `VISION_MODEL`, `VISION_FALLBACK_MODEL`, `DETECTOR_MODEL`, `IMAGE_MODEL`, `YOLO_WORLD_MODEL_PATH`, `FASHN_TRYON_SPACE`, `FLUX_VTO_MODEL` |
+| Timeouts and limits | `*_TIMEOUT_SECONDS`, `INGESTION_MAX_CONCURRENCY`, `GEMINI_KEY_COOLDOWN_SECONDS` |
+| Credentials | `GEMINI_API_KEY`, `GEMINI_API_KEYS`, `WEATHER_API_KEY`, `HF_TOKEN`, `FAL_KEY` |
 | Object storage | `OBJECT_STORAGE_BACKEND`, `MINIO_*`, `SIGNED_URL_TTL_SECONDS` |
 
 Defaults MUST keep every external provider fake or disabled, so that a fresh checkout runs without credentials.
@@ -119,6 +119,6 @@ The complete object-storage contract is defined in `../04_data/OBJECT_STORAGE_SP
 ## 9. Architecture Invariants
 
 - **INVARIANT:** Provider-specific SDK objects do not cross service boundaries.
-- **INVARIANT:** Agents do not bypass repositories to access persistence.
+- **INVARIANT:** Agents access the database only through the `Session` passed into the graph, and only the Coordinator persists data.
 - **INVARIANT:** Heavy try-on work is isolated from the recommendation request.
 - **INVARIANT:** Storage and database ownership checks use the same authenticated user identity.

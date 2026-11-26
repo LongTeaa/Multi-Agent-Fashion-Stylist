@@ -434,7 +434,7 @@ Request:
 
 `force_refresh` (optional, default `false`) bypasses the render cache for the same outfit, avatar and item selection and produces a new render.
 
-The operation MUST return HTTP `200` on a cache hit or when synchronous lookbook/moodboard completes:
+The operation is synchronous. It MUST return HTTP `200` on a cache hit or when the try-on, lookbook, or moodboard fallback completes:
 
 ```json
 {
@@ -451,33 +451,11 @@ The operation MUST return HTTP `200` on a cache hit or when synchronous lookbook
 
 `rendered_item_ids` lists the wardrobe items actually worn in a `virtual_tryon` render, including footwear and headwear when the provider renders them; outfit items not listed are shown beside the image. It is empty for `generated_lookbook` and `moodboard`. When `item_ids` names both a top and an outerwear item, a provider that renders layers wears both, and a provider that renders one upper garment wears the outerwear; a client offers the inner-top choice only when the response does not list both.
 
-For asynchronous virtual try-on pipelines, the operation returns HTTP `202 Accepted`:
-
-```json
-{
-  "tryon_id": "uuid",
-  "outfit_id": "uuid",
-  "status": "processing"
-}
-```
-
 `render_kind` MUST be `virtual_tryon`, `generated_lookbook`, or `moodboard`. The API MUST return `504 TRYON_FAILED` only when both the external provider and the fallback fail.
 
 ### 8.2 `GET /tryons/{tryon_id}`
 
-Retrieves the current execution status of a try-on render:
-
-```json
-{
-  "tryon_id": "uuid",
-  "status": "processing",
-  "image_url": null,
-  "render_kind": null,
-  "fallback_used": false
-}
-```
-
-When completed (`status: "ready"`), `image_url` points to the rendered media asset and `rendered_item_ids` is set as in section 8.1.
+Retrieves a stored try-on render owned by the caller. The response has the fields of section 8.1 plus a nullable `error_code`. Stored renders have `status: "ready"`; `image_url` points to the rendered media asset and `rendered_item_ids` is set as in section 8.1. A render that is missing or owned by another user returns `404`.
 
 ### 8.3 `GET /tryons/avatars`
 
@@ -487,11 +465,12 @@ Lists available try-on avatars for the authenticated user, including built-in pr
 [
   {
     "id": "preset-male",
-    "name": "Người mẫu nam chuẩn",
+    "name": "Nam mẫu (Chuẩn)",
     "is_preset": true,
-    "gender": "male",
-    "image_url": "/api/v1/tryons/presets/male.webp",
-    "is_default": true
+    "preset_gender": "male",
+    "is_default": false,
+    "image_url": "/api/v1/tryons/presets/male",
+    "created_at": "2026-01-01T00:00:00Z"
   }
 ]
 ```
@@ -523,6 +502,16 @@ When streaming through this endpoint, browser clients MUST fetch the bytes with
 `X-User-Id` and use a local blob URL for an image element; the image element's
 ordinary URL request cannot attach this header.
 
+### 9.2 Public and operational endpoints
+
+These operations do not read `X-User-Id`:
+
+| Method | Path | Purpose |
+| :--- | :--- | :--- |
+| GET | `/tryons/presets/{preset_gender}` | WebP image of a built-in preset model; `preset_gender` is `male` or `female`, anything else returns `422` |
+| GET | `/system/cleanup-metrics` | Counters of the transient-media cleanup job, wrapped in the success envelope |
+| GET | `/health` (outside `/api/v1`) | Liveness check returning `{"status": "ok"}` without an envelope |
+
 ## 10. Error Codes
 
 All `message` values below are normative user-facing Vietnamese copy.
@@ -541,6 +530,20 @@ All `message` values below are normative user-facing Vietnamese copy.
 | `NOT_IMPLEMENTED` | 501 | `Chức năng đang được phát triển trong task tiếp theo.` |
 | `PROVIDER_ERROR` | 502 | `Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.` |
 | `TRYON_FAILED` | 504 | `Không thể tạo ảnh minh họa lúc này. Vui lòng thử lại sau.` |
+| `MEDIA_NOT_FOUND` | 404 | `Không tìm thấy tệp phương tiện này.` |
+| `BATCH_ALREADY_CONFIRMED` | 400 | `Không thể hủy lượt tải lên đã được xác nhận vào tủ đồ.` |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | `Mã yêu cầu đã dùng cho nội dung khác. Vui lòng gửi yêu cầu mới.` |
+| `INGESTION_UPLOAD_FAILED` | 500 | `Không thể xử lý yêu cầu tải ảnh lên. Vui lòng thử lại sau.` |
+
+Application-wide exception handlers (`backend/app/main.py`) map infrastructure failures to these codes:
+
+| Code | HTTP | Cause |
+| :--- | :---: | :--- |
+| `OBJECT_NOT_FOUND` | 404 | A storage object referenced by the database is missing |
+| `STORAGE_ERROR` | 503 | Object storage is unavailable |
+| `DATA_CONFLICT` | 409 | A database integrity constraint was violated |
+| `DATABASE_ERROR` | 500 | Any other database error |
+| `INTERNAL_SERVER_ERROR` | 500 | An unhandled exception; `details.request_id` identifies the log entry |
 
 ## 11. API Invariants
 

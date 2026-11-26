@@ -38,7 +38,7 @@ An object key MUST NOT contain an email address, real name, or original client f
 5. After user confirmation, it MUST link each confirmed crop to a `wardrobe_item`.
 6. A cleanup job MUST remove unconfirmed or temporary assets after 24 hours.
 
-Deleting a wardrobe item is a metadata soft delete. Physical objects SHOULD be retained for 30 days unless the user explicitly requests data erasure.
+Deleting a wardrobe item is a metadata soft delete. Physical objects SHOULD be retained for 30 days unless the user explicitly requests data erasure. No purge job exists yet: objects of soft-deleted wardrobe items currently stay in storage until removed manually. Avatar deletion is different and removes its objects immediately (`DATA_SCHEMA.md`, section 3.17).
 
 ## 4. Media Access
 

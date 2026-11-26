@@ -37,19 +37,17 @@ The FASHN Try-On adapter (`TRYON_PROVIDER=fashn`) calls the Hugging Face Space e
 authorize outfit and items
   -> check try-on cache by (user_id, avatar_id, provider model, sorted_item_ids)
   -> on cache hit: return cached render (HTTP 200)
-  -> on cache miss:
-     -> if async mode: create pending tryon_render, dispatch background task, return HTTP 202
-     -> background task execution:
-        -> resolve person image (preset or avatar source stream)
-        -> load primary garment crops
-        -> determine execution sequence:
-           - provider supports whole-outfit rendering (FLUX VTO): 1 call with every chosen garment
-           - otherwise, single item or one-piece: 1 pass
-           - otherwise, top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
-        -> on provider error, quota exhaustion, or timeout:
-           - generate deterministic moodboard from item crops with fallback_used=true
-        -> persist final media asset to tryon-private bucket
-        -> update tryon_render status to 'ready' (or 'failed' if fallback also fails)
+  -> on cache miss, within the same request:
+     -> resolve person image (preset or avatar source stream)
+     -> load primary garment crops
+     -> determine execution sequence:
+        - provider supports whole-outfit rendering (FLUX VTO): 1 call with every chosen garment
+        - otherwise, single item or one-piece: 1 pass
+        - otherwise, top + bottom: 2-pass sequence (Pass 1: tops -> in-memory intermediate WebP -> Pass 2: bottoms)
+     -> on provider error, quota exhaustion, or timeout:
+        - generate deterministic moodboard from item crops with fallback_used=true
+     -> persist final media asset to tryon-private bucket and a tryon_render with status 'ready'
+     -> return HTTP 200; if the fallback also fails, return 504 TRYON_FAILED
 ```
 
 ## 4. Prompt and Resolution Requirements
@@ -80,8 +78,8 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 
 ## 7. Reliability and Privacy
 
-- Synchronous provider timeout MUST be 8 seconds (`IMAGE_TIMEOUT_SECONDS`).
-- Asynchronous multi-pass VTON pipeline timeout SHOULD be configurable via `TRYON_TIMEOUT_SECONDS` (default 90 seconds).
+- The lookbook (image provider) timeout MUST be 8 seconds (`IMAGE_TIMEOUT_SECONDS`).
+- Each 2D try-on provider call is bounded by `TRYON_TIMEOUT_SECONDS` (default 90 seconds). The request is synchronous; there is no background try-on job or HTTP 202 path. A reverse proxy in front of the API MUST allow at least this long for `POST /tryons`.
 - When fallback succeeds, the API MUST return HTTP 200 with `fallback_used=true`.
 - Media MUST be stored in a private bucket (`tryon-private`) and guarded by ownership checks.
 - User personal avatar images MUST NOT be shared with other users or exposed publicly.

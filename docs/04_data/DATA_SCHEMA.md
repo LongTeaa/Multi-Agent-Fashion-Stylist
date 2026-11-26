@@ -193,7 +193,7 @@ One record represents a user-confirmed wear action: `id`, `user_id`, `outfit_id`
 
 ### 3.15 `tryon_renders`
 
-Fields: `id`, `user_id`, `outfit_id` (nullable), `media_asset_id` (nullable while processing), `provider`, `model`, `fallback_used`, `duration_ms`, `status` (`ready`, `processing`, `failed`), `avatar_id` (nullable UUID string), `selected_item_ids` (JSON array of item IDs), `cache_key` (nullable string index for try-on caching), `render_mode` (`lookbook`, `vton_personal`, `vton_preset`, `moodboard`), `error_code` (nullable string), and `created_at`.
+Fields: `id`, `user_id`, `outfit_id` (nullable), `media_asset_id` (nullable), `provider`, `model`, `fallback_used`, `duration_ms`, `status` (`ready` or `failed`; the column also accepts `processing`, which the synchronous API never writes), `avatar_id` (nullable UUID string), `selected_item_ids` (JSON array of item IDs), `cache_key` (nullable string index for try-on caching), `render_mode` (`virtual_tryon`, `lookbook`, or `moodboard`; whether a preset or a personal avatar was used is recorded by `avatar_id`), `error_code` (nullable string), and `created_at`.
 
 ### 3.16 `orphan_media_cleanups`
 
@@ -207,7 +207,8 @@ in-flight upload and MUST keep retrying failed deletions until they succeed.
 ### 3.17 `tryon_avatars`
 
 Stores user full-body avatar images and preset model configurations. Fields are `id`,
-`user_id`, `media_asset_id` (nullable for built-in preset models), `is_preset` (boolean),
+`user_id`, `name` (display name), `preset_gender` (nullable `male` or `female` for preset
+models), `media_asset_id` (nullable for built-in preset models), `is_preset` (boolean),
 `is_default` (boolean), `consent_at` (nullable datetime recording user consent),
 `created_at`, and `deleted_at` (nullable datetime for soft deletion).
 

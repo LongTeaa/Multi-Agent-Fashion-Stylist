@@ -106,7 +106,9 @@ $$\text{AestheticScore} = 0.40 \cdot \text{ColorHarmony} + 0.35 \cdot \text{Prop
    * Phối đơn sắc (Monochromatic): `0.90`.
    * Phối màu tương đồng (Analogous): `0.85`.
    * Phối màu tương phản bổ sung có neo trung tính: `0.80`.
-   * Quá 3 họ màu bão hòa không có neo trung tính: Phạt điểm nặng (`0.20`).
+   * Từ 3 họ màu bão hòa trở lên mà không có neo trung tính: Phạt điểm nặng (`0.20`).
+   * Không khớp quy tắc nào ở trên: `0.55`.
+   * Quy tắc ba màu: trừ thêm `0.20` cho mỗi màu riêng biệt vượt quá 3 màu, sau đó kẹp về đoạn $[0, 1]$.
 2. **Cân bằng Tỷ lệ Phom dáng (`ProportionBalance` - 35%):** điểm phân cấp, không phải đạt/không đạt, để các tỷ lệ kinh điển thực sự xếp trên các bộ chỉ "không lỗi".
    * *Ma trận phom áo × phom quần (điểm nền):*
 
@@ -182,4 +184,4 @@ $$\text{FinalScore} = w_{\text{formality}} \cdot \text{FormalityFit} + w_{\text{
 1. **INVARIANT 1 (Mathematical Boundedness):** Mọi điểm thành phần và điểm tổng hợp luôn thuộc đoạn chuẩn hóa $[0.0, 1.0]$.
 2. **INVARIANT 2 (Aesthetic Independence):** Điểm thẩm mỹ Tầng 2 không bao giờ bị biến động chỉ vì thông tin thời tiết ngoài trời thay đổi.
 3. **INVARIANT 3 (Zero LLM Hallucination in Invariants):** LLM chỉ trích xuất từ khóa ngữ cảnh và sinh lời văn giải thích; toàn bộ logic lọc đồ, tính điểm, xếp hạng và ghép tổ hợp được thực hiện 100% bằng thuật toán toán học tất định (Deterministic Algorithm).
-4. **INVARIANT 4 (Resilience & Offline Determinism):** Khi các dịch vụ bên thứ ba (Gemini API, Weather API) gặp sự cố (429 Rate Limit, Timeout), hệ thống lập tức kích hoạt Circuit Breaker chuyển sang chế độ dự phòng an toàn (Fallback Provider) mà không gây sập ứng dụng.
+4. **INVARIANT 4 (Resilience & Offline Determinism):** Khi các dịch vụ bên thứ ba (Gemini API, Weather API) gặp sự cố (429 Rate Limit, Timeout), yêu cầu chat chỉ gọi provider một lần trong giới hạn thời gian, rồi chuyển sang bộ phân tích luật hoặc giá trị mặc định có cảnh báo mà không gây sập ứng dụng. Khóa Gemini gặp lỗi 429 bị tạm ngưng trong `GEMINI_KEY_COOLDOWN_SECONDS`; hệ thống không có circuit breaker riêng.
