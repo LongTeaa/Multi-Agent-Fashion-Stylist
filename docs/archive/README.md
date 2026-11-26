@@ -28,14 +28,17 @@ New dated reviews, audits, spike reports, and live-test reports SHOULD be added 
 | `reports/FASHN_VTON_SPIKE_REPORT.md` | 2026-11-06 | FASHN VTON v1.5 feasibility spike (Vietnamese) |
 | `reports/PROJECT_REVIEW_2026-11-18.md` | 2026-11-18 | Whole-project review: multi-agent depth, data, ingestion, try-on options, benchmark plan (Vietnamese) |
 | `reports/LIVE_INGESTION_EVALUATION_2026-11-19.md` | 2026-11-19 | YOLO-World + Gemini Vision on 58 gold photos and 21 annotated real photos; Gemini-detector run failed on free-tier quota |
+| `reports/CHUONG_7_DANH_GIA_SO_HOA_TU_DO_NHAP_2026-11-19.md` | 2026-11-19 | Vietnamese draft of a thesis evaluation section for wardrobe digitization, based on the 2026-11-19 live ingestion run |
 | `reports/LIVE_INGESTION_EVALUATION_2026-11-25.md` | 2026-11-25 | Gemini detector vs YOLO-World with a paid key, same-day repeat for run variation, and a `gemini-3.5-flash-lite` vision baseline |
 | `reports/MULTI_AGENT_OFFLINE_BENCHMARK_2026-11-22_v3.md` | 2026-11-22 | Offline two-layer multi-agent benchmark, dataset v3 |
 | `reports/KE_HOACH_CHAY_LIVE_BENCHMARK_MULTI_AGENT_2026-11-22.md` | 2026-11-22 | Plan for the live multi-agent benchmark run (Vietnamese) |
 | `reports/LIVE_MULTI_AGENT_BENCHMARK_2026-11-23.md` | 2026-11-23 | Live multi-agent benchmark, 56 cases, cross-family judge; holdout and dev-only variants alongside (Vietnamese) |
+| `reports/LIVE_DEV_CHATBOT_ONLY_2026-11-23.md` | 2026-11-23 | Chatbot-only live run on the development split of the multi-agent benchmark |
 | `reports/HUMAN_VS_JUDGE_CALIBRATION_2026-11-25.md` | 2026-11-25 | Three blind human raters against the LLM judge on 20 calibration samples (Vietnamese) |
 | `reports/MULTI_AGENT_BENCHMARK_REVIEW_2026-11-25.md` | 2026-11-25 | Review of PR #21: two defects fixed afterwards, open decisions, offline weight-profile comparison (`WEIGHT_PROFILE_COMPARISON_2026-11-25.json`), and caveats for reporting the judge figures |
 | `reports/LIVE_CHAT_LATENCY_2026-11-25.md` | 2026-11-25 | Live chat latency with Gemini and Open-Meteo, no cache: p95 4.2 s (explanations off) and 8.7 s (on); found the per-phase timeout defect fixed the same day |
 | `reports/RATING_PERSONALIZATION_SIMULATION_2026-11-25.md` | 2026-11-25 | Offline simulation of learning from 1–5 star ratings through the real API: weights learn the taste, rank-1 quality 3.17 → 3.24 stars (not significant), bounded by design to ±0.02 of the composite; sensitivity over learned shares 0.20–1.00 |
+| `reports/PROJECT_REVIEW_2026-11-26.md` | 2026-11-26 | Whole-project review before the thesis report and public deployment: deployment blockers, hardening items, evidence map against the 8-chapter report template (Vietnamese) |
 | `reports/TRYON_PROVIDER_SPIKE_2026-11-22.md` | 2026-11-22 | FASHN Try-On v1.6 vs FLUX VTO on ten demo outfits: latency, cost, blind ratings; decision to switch to FLUX VTO |
 | `reports/TRYON_EXTRAS_CHECK_2026-11-22.md` | 2026-11-22 | FLUX VTO with footwear, headwear and layered tops on six demo outfits; decision to render them for whole-outfit providers |
 
