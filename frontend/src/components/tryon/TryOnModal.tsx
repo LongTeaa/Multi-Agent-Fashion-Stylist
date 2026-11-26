@@ -16,6 +16,7 @@ import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnAvatar, TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
 import { generateUUIDv4 } from '@/lib/uuid';
 import { CheckIcon, CloseIcon } from '@/components/ui/icons';
+import { attributeLabel } from '@/lib/preferenceLabels';
 import { initialPresetId, rememberPresetId } from '@/lib/tryonAvatar';
 
 type LayerChoice = 'auto' | 'outerwear' | 'top';
@@ -707,7 +708,7 @@ export function TryOnModal({
                         </div>
                         <p className="mt-0.5 text-[11px] text-[#736E65]">
                           {SLOT_NAMES[item.slot] ?? item.slot}
-                          {item.primaryColor ? `, ${item.primaryColor}` : ''}
+                          {attributeLabel(item.primaryColor) ? `, ${attributeLabel(item.primaryColor).toLowerCase()}` : ''}
                         </p>
                       </div>
                     </div>
@@ -745,7 +746,7 @@ export function TryOnModal({
                           <p className="truncate text-xs font-medium text-[#1A1918]">{item.name}</p>
                           <p className="mt-0.5 text-[11px] text-[#736E65]">
                             {SLOT_NAMES[item.slot] ?? item.slot}
-                            {item.primaryColor ? `, ${item.primaryColor}` : ''}
+                            {attributeLabel(item.primaryColor) ? `, ${attributeLabel(item.primaryColor).toLowerCase()}` : ''}
                           </p>
                         </div>
                       </div>

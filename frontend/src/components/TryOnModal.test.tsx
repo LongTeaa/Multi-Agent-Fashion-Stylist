@@ -75,6 +75,39 @@ describe('TryOnModal', () => {
     expect(screen.queryByRole('radio')).toBeNull();
   });
 
+  it('shows stored color values in Vietnamese in the item list', async () => {
+    vi.mocked(api.createTryOn).mockResolvedValue({
+      tryon_id: 'tryon-colors',
+      outfit_id: 'outfit-1',
+      image_url: '/api/v1/media/render-colors',
+      render_kind: 'moodboard',
+      fallback_used: true,
+      duration_ms: 50,
+      status: 'ready',
+    });
+
+    // Saved outfits pass the stored canonical color, not a display label.
+    render(
+      <TryOnModal
+        isOpen
+        outfitId="outfit-1"
+        items={[
+          { id: 'top-1', slot: 'top', name: 'Áo len xám', primaryColor: 'grey' },
+          { id: 'bottom-1', slot: 'bottom', name: 'Quần jeans xanh dương', primaryColor: 'blue' },
+        ]}
+        isBookmarked={false}
+        onBookmarkChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText('Moodboard dự phòng', { selector: 'span' })).toBeDefined());
+    const dialog = screen.getByRole('dialog', { name: 'Xem trước bộ trang phục' });
+    expect(dialog.textContent).toContain(', xám');
+    expect(dialog.textContent).toContain(', xanh dương');
+    expect(dialog.textContent).not.toMatch(/, (grey|blue)\b/);
+  });
+
   it('labels moodboard fallback, regenerates, bookmarks, and closes with Escape', async () => {
     vi.mocked(api.createTryOn).mockResolvedValue({
       tryon_id: 'tryon-fallback',
