@@ -528,7 +528,7 @@ All `message` values below are normative user-facing Vietnamese copy.
 | `ITEM_NOT_FOUND` | 404 | `Không tìm thấy món đồ này.` |
 | `OUTFIT_NOT_FOUND` | 404 | `Không tìm thấy bộ trang phục này.` |
 | `NOT_IMPLEMENTED` | 501 | `Chức năng đang được phát triển trong task tiếp theo.` |
-| `PROVIDER_ERROR` | 502 | `Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.` |
+| `PROVIDER_ERROR` | 502 | `Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.` |
 | `TRYON_FAILED` | 504 | `Không thể tạo ảnh minh họa lúc này. Vui lòng thử lại sau.` |
 | `MEDIA_NOT_FOUND` | 404 | `Không tìm thấy tệp phương tiện này.` |
 | `BATCH_ALREADY_CONFIRMED` | 400 | `Không thể hủy lượt tải lên đã được xác nhận vào tủ đồ.` |

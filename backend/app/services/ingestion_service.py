@@ -342,7 +342,7 @@ def _extract_single_crop_safe(
                 "silhouette_level": 0.5,
                 "length": 0.5,
             },
-            quality_warnings=["AI nhận diện thuộc tính quá thời gian (timeout). Vui lòng kiểm tra thủ công."],
+            quality_warnings=["Nhận diện thuộc tính quá thời gian. Vui lòng kiểm tra thủ công."],
         )
     except (ProviderError, Exception) as p_err:
         logger.warning("Vision provider error for batch %s crop: %s", batch_id, p_err)
@@ -362,7 +362,7 @@ def _extract_single_crop_safe(
                 "silhouette_level": 0.5,
                 "length": 0.5,
             },
-            quality_warnings=["AI trích xuất thuộc tính tạm thời gián đoạn. Vui lòng bổ sung thủ công."],
+            quality_warnings=["Chưa trích xuất được thuộc tính. Vui lòng bổ sung thủ công."],
         )
 
 
@@ -458,13 +458,13 @@ def process_ingestion_batch(
                 logger.warning("Detector timed out for batch %s", batch_id)
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
-                add_warning("AI nhận diện quá thời gian (timeout). Vui lòng kiểm tra thủ công.")
+                add_warning("Nhận diện món đồ quá thời gian. Vui lòng kiểm tra thủ công.")
                 detected_boxes = []
             except (ProviderError, Exception) as det_err:
                 logger.warning("Detector error for batch %s: %s", batch_id, det_err)
                 if check_cancelled_and_abort():
                     return session.get(IngestionBatch, batch_id) or batch
-                add_warning("AI không thể tự động phát hiện vật phẩm. Vui lòng kiểm tra thủ công.")
+                add_warning("Chưa tự động phát hiện được món đồ. Vui lòng kiểm tra thủ công.")
                 detected_boxes = []
 
             if not detected_boxes:

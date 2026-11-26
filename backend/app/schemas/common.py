@@ -73,7 +73,7 @@ class ItemNotFoundError(AppException):
 class ProviderError(AppException):
     status_code: int = 502
     code: str = "PROVIDER_ERROR"
-    message: str = "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+    message: str = "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
 
 
 class TryOnFailedError(AppException):

@@ -25,7 +25,7 @@ class FakeDetector:
             raise TimeoutError("AI detector request timed out.")
 
         if self.mode == "provider_error":
-            raise ProviderError("Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.")
+            raise ProviderError("Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.")
 
         if self.mode == "single_item":
             return DetectionResult(
@@ -125,7 +125,7 @@ class FakeVisionProvider:
             raise TimeoutError("AI vision provider timed out.")
 
         if self.scenario == "provider_error":
-            raise ProviderError("Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.")
+            raise ProviderError("Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.")
 
         if self.scenario == "low_confidence":
             attributes = {

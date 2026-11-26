@@ -37,7 +37,7 @@ class FakeImageProvider:
         if self.scenario == "timeout":
             raise TimeoutError("Image provider timed out.")
         if self.scenario == "provider_error":
-            raise ProviderError("Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.")
+            raise ProviderError("Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.")
 
         buffer = BytesIO()
         Image.new("RGB", (768, 1024), "#eeeae2").save(buffer, format="WEBP")

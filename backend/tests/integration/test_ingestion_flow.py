@@ -782,7 +782,7 @@ class TestIngestionFlowIntegration:
             # Batch status is preserved in needs_review rather than failed
             assert review_data["status"] == "needs_review"
             warnings = review_data["quality_warnings"]
-            assert any("trích xuất thuộc tính tạm thời gián đoạn" in w for w in warnings)
+            assert any("Chưa trích xuất được thuộc tính" in w for w in warnings)
 
             # Crop and detection candidate are preserved
             detections = review_data["detections"]

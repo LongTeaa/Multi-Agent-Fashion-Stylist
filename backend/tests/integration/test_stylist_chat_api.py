@@ -485,7 +485,7 @@ def test_stylist_chat_internal_error_safety(
         body = res.json()
         assert body["success"] is False
         assert body["error"]["code"] == "PROVIDER_ERROR"
-        assert body["error"]["message"] == "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+        assert body["error"]["message"] == "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
 
         # Never leak internal crash message or stack trace to client
         raw_text = res.text
@@ -641,7 +641,7 @@ def test_stylist_chat_output_tamper_mismatch_safety(
         body = res.json()
         assert body["success"] is False
         assert body["error"]["code"] == "PROVIDER_ERROR"
-        assert body["error"]["message"] == "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+        assert body["error"]["message"] == "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
 
     finally:
         app.dependency_overrides.clear()
@@ -716,7 +716,7 @@ def test_stylist_chat_output_rank_sequence_safety(
         body = res.json()
         assert body["success"] is False
         assert body["error"]["code"] == "PROVIDER_ERROR"
-        assert body["error"]["message"] == "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+        assert body["error"]["message"] == "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
 
     finally:
         app.dependency_overrides.clear()
@@ -779,7 +779,7 @@ def test_stylist_chat_output_composite_score_safety(
         body = res.json()
         assert body["success"] is False
         assert body["error"]["code"] == "PROVIDER_ERROR"
-        assert body["error"]["message"] == "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau."
+        assert body["error"]["message"] == "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
 
     finally:
         app.dependency_overrides.clear()

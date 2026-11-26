@@ -737,7 +737,7 @@ def extract_context(
     )
 
 
-CONTEXT_FALLBACK_WARNING = "Không thể phân tích đầy đủ yêu cầu bằng dịch vụ AI; đã dùng quy tắc dự phòng."
+CONTEXT_FALLBACK_WARNING = "Chưa hiểu hết yêu cầu, nên bộ phối được chọn theo các quy tắc cơ bản."
 WEATHER_FALLBACK_WARNING = "Không thể lấy dữ liệu thời tiết; đã dùng thông tin trong yêu cầu hoặc giá trị mặc định."
 
 _FORMALITY_LABEL_MAP: dict[str, int] = {

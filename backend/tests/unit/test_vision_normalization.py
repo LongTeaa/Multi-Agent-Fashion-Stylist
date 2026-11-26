@@ -113,7 +113,7 @@ class TestProviderProtocolsAndFakes:
         with pytest.raises(ProviderError) as exc_info:
             detector_error.detect(b"bytes")
         assert exc_info.value.code == "PROVIDER_ERROR"
-        assert "Dịch vụ AI tạm thời không khả dụng" in exc_info.value.message
+        assert "Dịch vụ tạm thời không khả dụng" in exc_info.value.message
 
         vision_timeout = FakeVisionProvider(scenario="timeout")
         with pytest.raises(TimeoutError):
