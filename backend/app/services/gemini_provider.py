@@ -334,6 +334,24 @@ class GeminiDetector:
         raise ProviderError("Dịch vụ AI phát hiện trang phục không phản hồi sau các lần thử lại.")
 
 
+# Five-level formality scale given to the vision model. The anchors restate
+# docs/03_domain/FASHION_KNOWLEDGE_BASE.md section 2.1, which the scoring agents use;
+# a scale defined by its end points only made the model rate everyday wear one level low.
+FORMALITY_SCALE_PROMPT = (
+    "- formality_level: integer from 1 to 5 on this fixed scale (rate the garment itself):\n"
+    "  * 1: At-home or sleepwear: pajamas, loungewear, undershirt-style tank tops, house slippers, flip-flops\n"
+    "  * 2: Casual everyday: crew-neck t-shirts, sweatshirts, hoodies, jeans (including distressed), "
+    "street shorts, casual mini skirts and day dresses, sneakers (canvas, knit or leather), caps and beanies\n"
+    "  * 3: Smart casual: polo shirts, short-sleeve button shirts, blouses, chinos/khakis, midi skirts, "
+    "fine-knit sweaters, loafers, ballet flats, tidy jackets and trench coats\n"
+    "  * 4: Business casual / semi-formal: long-sleeve button-up dress shirts, tailored dress trousers, "
+    "blazers, sheath and cocktail dresses, oxford/derby shoes, classic heels\n"
+    "  * 5: Formal / black tie: full suits, tuxedos, evening gowns, ties and bow ties\n"
+    "  A casual fabric or cut (flannel, athletic knit, heavy distressing) lowers the level by one; "
+    "a sharply tailored cut can raise it by one.\n"
+)
+
+
 class GeminiVisionProvider:
     """Production adapter invoking Google Gemini multimodal API for attribute extraction."""
 
@@ -475,7 +493,7 @@ class GeminiVisionProvider:
             "- material: fabric composition (e.g., cotton, linen, wool, denim, silk, polyester, leather)\n"
             "- style: aesthetic style (e.g., casual, smart_casual, formal, streetwear, athletic, minimalist)\n"
             "- fit: silhouette fit descriptor (e.g., tight, slim, regular, relaxed, oversized)\n"
-            "- formality_level: integer from 1 to 5 (1=very casual/loungewear, 3=smart casual, 5=strictly formal/black tie)\n"
+            f"{FORMALITY_SCALE_PROMPT}"
             "- comfort_level: integer from 1 to 5 evaluating fabric texture, breathability, softness, stretch and movement freedom:\n"
             "  * 1-2: Stiff, rigid, heavy, unbreathable, restrictive or tight (e.g., rigid raw denim, patent leather, stiff formal corsetry)\n"
             "  * 3: Moderate comfort, standard everyday weave (e.g., classic chino, standard poplin shirt)\n"
