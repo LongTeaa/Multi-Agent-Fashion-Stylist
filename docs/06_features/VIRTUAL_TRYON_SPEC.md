@@ -64,13 +64,14 @@ For pixel-space diffusion providers (FASHN VTON), output resolution is determine
 
 - The fallback MUST use stored item crops and MUST NOT require the original upload to contain transparency.
 - If a crop contains a mask or alpha channel, the renderer MAY use it; otherwise it MUST place the image on a neutral card.
-- The output MUST show items by slot with name/color and the Vietnamese watermark `Moodboard dự phòng`.
+- The output MUST show items by slot with name/color and the Vietnamese watermark `Moodboard dự phòng`. Slot, garment type, and color MUST be Vietnamese labels (for example `QUẦN / CHÂN VÁY`, `Quần tây`, `Xám than`), never stored enum values; an unknown subtype is shown with its group label (`Áo turtleneck`).
 - The fallback MUST NOT composite garments onto a person's body.
 
 ## 6. UI Contract
 
 - The responsive modal MUST contain the main image, item list, and render-kind label.
 - Available actions: switch avatar (preset model vs personal avatar), regenerate / try-on, before/after comparison slider, mark outfit as worn (`recordOutfitWorn`), and close.
+- The first render uses the preset the viewer chose last in this browser; without one, an outfit with a `dress` item starts on the female preset and any other outfit on the male preset. The choice depends on the garments only, never on inferred user traits. Uploaded avatars are not remembered.
 - The modal MUST list the items worn in the render (from `rendered_item_ids`) separately from the items shown beside it. Without `rendered_item_ids` (moodboard, lookbook), body garments are listed as worn and footwear and accessories beside it.
 - The first request MUST send every outfit item. When an outfit contains both `top` and `outerwear` and the render did not wear both, the UI SHOULD provide a toggle to preview either the outer layer or the inner top.
 - Rating MUST NOT be forced inside the modal. It MAY appear when cadence allows or when the user opens it manually.

@@ -5,7 +5,8 @@ import type { DetectionReviewItem, FashionAttributes } from '@/types/ingestion';
 import type { GarmentTaxonomy } from '@/types/wardrobe';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { SegmentedScale } from '@/components/ui/SegmentedScale';
-import { FUNCTIONAL_FLAG_VALUES, type FunctionalFlag } from '@/lib/garmentAttributes';
+import { FUNCTIONAL_FLAG_VALUES, hasGarmentLength, type FunctionalFlag } from '@/lib/garmentAttributes';
+import { colorFromInput, colorInputValue } from '@/lib/preferenceLabels';
 
 interface DetectionItemCardProps {
   cropEditor?: React.ReactNode;
@@ -126,11 +127,17 @@ export function DetectionItemCard({
     .some((alias) => fold(alias) === fold(attributes.sub_category || '')))
     || categoryGroups[0];
   const suggestions = selectedGroup?.types || [];
+  // Canonical values stay stored; known types and colours are shown and typed in Vietnamese.
+  const selectedType = suggestions.find((type) => [type.value, type.label, ...type.aliases]
+    .some((alias) => fold(alias) === fold(attributes.sub_category || '')));
+  const subCategoryDisplay = selectedType ? selectedType.label : attributes.sub_category || '';
+  const subCategoryFromInput = (text: string) =>
+    suggestions.find((type) => fold(type.label) === fold(text))?.value ?? text;
   const confidences = detection.field_confidence || {};
   const cropUrl = detection.crop_url;
 
   const isLowConfidence = (field: string) => {
-    if (field === 'length' && ['footwear', 'accessory'].includes(attributes.category)) return false;
+    if (field === 'length' && !hasGarmentLength(attributes.category)) return false;
     const conf = confidences[field];
     return typeof conf === 'number' && conf < 0.70 && attributes[field] === detection.attributes[field];
   };
@@ -175,7 +182,7 @@ export function DetectionItemCard({
         <div className="flex min-w-0 items-center gap-3">
           <span className="hang-tag">{String(index + 1).padStart(2, '0')}</span>
           <h4 className="truncate text-[1rem] font-semibold capitalize text-ink">
-            {selectedGroup?.label || 'Món đồ'} · {attributes.sub_category || 'Chưa phân loại'}
+            {selectedType ? selectedType.label : `${selectedGroup?.label || 'Món đồ'} · ${attributes.sub_category || 'Chưa phân loại'}`}
           </h4>
         </div>
 
@@ -250,17 +257,15 @@ export function DetectionItemCard({
               <input
                 type="text"
                 list={`sub-suggestions-${index}`}
-                value={attributes.sub_category || ''}
+                value={subCategoryDisplay}
                 disabled={!accepted}
-                placeholder="VD: sneakers, loafers, polo, chinos…"
-                onChange={(e) => onUpdateAttribute('sub_category', e.target.value)}
+                placeholder="VD: Áo thun, Quần jeans, Giày sneaker…"
+                onChange={(e) => onUpdateAttribute('sub_category', subCategoryFromInput(e.target.value))}
                 className={fieldClass('sub_category')}
               />
               <datalist id={`sub-suggestions-${index}`}>
                 {suggestions.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
+                  <option key={s.value} value={s.label} />
                 ))}
               </datalist>
               {suggestions.length > 0 && (
@@ -289,10 +294,10 @@ export function DetectionItemCard({
               </div>
               <input
                 type="text"
-                value={attributes.primary_color || ''}
+                value={colorInputValue(attributes.primary_color)}
                 disabled={!accepted}
-                placeholder="VD: trắng, đen, navy, be…"
-                onChange={(e) => onUpdateAttribute('primary_color', e.target.value)}
+                placeholder="VD: Trắng, Đen, Xanh navy, Be…"
+                onChange={(e) => onUpdateAttribute('primary_color', colorFromInput(e.target.value))}
                 className={fieldClass('primary_color')}
               />
             </div>
@@ -470,7 +475,7 @@ export function DetectionItemCard({
               </div>
 
               {/* Length applies to garments, not shoes or accessories. */}
-              {!['footwear', 'accessory'].includes(attributes.category) && (
+              {hasGarmentLength(attributes.category) && (
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
                     <label className="field-label mb-0">Độ dài</label>

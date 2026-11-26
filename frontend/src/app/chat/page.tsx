@@ -117,6 +117,9 @@ export default function ChatPage() {
         )}
       </div>
 
+      {/* Room to scroll the last outfit above the docked prompt, which is fixed to the viewport. */}
+      {shouldShowRatingPrompt && targetOutfit && <div aria-hidden="true" className="h-72 md:h-56" />}
+
       {/* Cadence-driven rating prompt (non-blocking docked card) */}
       {shouldShowRatingPrompt && targetOutfit && (
         <RatingPrompt

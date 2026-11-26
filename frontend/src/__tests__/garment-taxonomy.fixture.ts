@@ -371,6 +371,20 @@ const taxonomy: GarmentTaxonomy = {
           "value": "glasses",
           "label": "Kính mắt",
           "aliases": []
+        },
+        {
+          "value": "tie",
+          "label": "Cà vạt",
+          "aliases": [
+            "necktie"
+          ]
+        },
+        {
+          "value": "scarf",
+          "label": "Khăn quàng",
+          "aliases": [
+            "khăn choàng"
+          ]
         }
       ]
     }

@@ -7,7 +7,7 @@ import { useGarmentTaxonomy } from '@/lib/useGarmentTaxonomy';
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import { PageHeader } from '@/components/layout/AppShell';
 import { attributeLabel } from '@/lib/preferenceLabels';
-import { FUNCTIONAL_FLAG_VALUES, FUNCTION_TAG_NAMES } from '@/lib/garmentAttributes';
+import { FUNCTIONAL_FLAG_VALUES, FUNCTION_TAG_NAMES, hasGarmentLength } from '@/lib/garmentAttributes';
 import { SegmentedScale } from '@/components/ui/SegmentedScale';
 import {
   ArrowLeftIcon,
@@ -322,7 +322,7 @@ export function WardrobeInventory({
           {items.map((item) => {
             const name = item.display_name_vi || item.sub_category;
             const silhouette = item.silhouette_level ? SILHOUETTE_NAMES[item.silhouette_level] || `Dáng ${item.silhouette_level}` : '';
-            const length = item.length ? LENGTH_NAMES[item.length] || item.length : '';
+            const length = item.length && hasGarmentLength(item.category) ? LENGTH_NAMES[item.length] || item.length : '';
             return (
               <li key={item.id} data-testid={`wardrobe-item-card-${item.id}`} className="group relative min-w-0">
                 <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl bg-sunken">
@@ -553,6 +553,7 @@ export function WardrobeInventory({
                       <option value={5}>Oversized</option>
                     </select>
                   </div>
+                  {hasGarmentLength(editingItem.category) && (
                   <div>
                     <label htmlFor="edit-length" className="field-label">
                       Độ dài
@@ -570,6 +571,7 @@ export function WardrobeInventory({
                       <option value="long">Dáng dài</option>
                     </select>
                   </div>
+                  )}
                 </div>
               </section>
 

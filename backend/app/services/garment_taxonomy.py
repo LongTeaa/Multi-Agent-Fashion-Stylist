@@ -103,7 +103,8 @@ def get_taxonomy() -> GarmentTaxonomy:
                      aliases=("accessory", "accessories"), types=(
             _type("belt", "Thắt lưng"), _type("watch", "Đồng hồ"),
             _type("bag", "Túi xách"), _type("hat", "Mũ", "nón", "cap", "baseball cap", "beanie", "beret"),
-            _type("glasses", "Kính mắt"))),
+            _type("glasses", "Kính mắt"), _type("tie", "Cà vạt", "necktie"),
+            _type("scarf", "Khăn quàng", "khăn choàng"))),
     ))
 
 

@@ -206,3 +206,22 @@ def test_moodboard_renders_complex_vietnamese_diacritics() -> None:
         assert img.size == (768, 1024)
         assert img.mode == "RGB"
 
+
+
+def test_moodboard_labels_use_vietnamese_type_and_color() -> None:
+    from app.models.entities import WardrobeCategory, WardrobeItem
+    from app.services.moodboard import _SLOT_LABELS
+    from app.services.tryon_service import _moodboard_item_color, _moodboard_item_name
+
+    def garment(category: str, subtype: str, color: str) -> WardrobeItem:
+        return WardrobeItem(user_id="test", category=WardrobeCategory(category), sub_category=subtype,
+                            primary_color=color, pattern="solid", material="cotton", style="casual",
+                            fit="regular", formality_level=2)
+
+    assert _moodboard_item_name(garment("footwear", "flats", "beige")) == "Giày bệt"
+    assert _moodboard_item_name(garment("top", "turtleneck", "red")) == "Áo turtleneck"
+    assert _moodboard_item_color(garment("outerwear", "jacket", "teal")) == "Xanh mòng két"
+    assert _moodboard_item_color(garment("bottom", "trousers", "charcoal")) == "Xám than"
+    assert _moodboard_item_color(garment("bottom", "trousers", "dusty_rose")) == "Dusty rose"
+    assert set(_SLOT_LABELS) == set(OutfitSlotRole)
+    assert all(label == label.upper() and label.isascii() is False for label in _SLOT_LABELS.values())

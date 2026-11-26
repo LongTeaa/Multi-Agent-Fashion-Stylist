@@ -74,3 +74,10 @@ def test_culottes_count_as_pants_not_skirts_in_search() -> None:
     culottes = item("bottom", "culottes")
     assert matches_search(culottes, parse_search("quần"))
     assert not matches_search(culottes, parse_search("chân váy"))
+
+
+@pytest.mark.parametrize("subtype,label", [("tie", "Cà vạt"), ("necktie", "Cà vạt"), ("scarf", "Khăn quàng")])
+def test_neckwear_accessories_have_vietnamese_labels(subtype: str, label: str) -> None:
+    group, item_type = classify(WardrobeCategory.ACCESSORY, subtype)
+    assert group is not None and group.label == "Phụ kiện"
+    assert item_type is not None and item_type.label == label

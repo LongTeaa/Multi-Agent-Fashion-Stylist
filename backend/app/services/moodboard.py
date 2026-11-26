@@ -22,6 +22,16 @@ _BUNDLED_REGULAR_FONT = _ASSETS_FONT_DIR / "DejaVuSans.ttf"
 _BUNDLED_BOLD_FONT = _ASSETS_FONT_DIR / "DejaVuSans-Bold.ttf"
 
 
+_SLOT_LABELS: dict[OutfitSlotRole, str] = {
+    OutfitSlotRole.TOP: "ÁO",
+    OutfitSlotRole.BOTTOM: "QUẦN / CHÂN VÁY",
+    OutfitSlotRole.DRESS: "VÁY LIỀN",
+    OutfitSlotRole.FOOTWEAR: "GIÀY DÉP",
+    OutfitSlotRole.OUTERWEAR: "ÁO KHOÁC",
+    OutfitSlotRole.ACCESSORY: "PHỤ KIỆN",
+}
+
+
 @dataclass(frozen=True)
 class MoodboardItem:
     asset_id: str
@@ -87,7 +97,7 @@ def _draw_card(
     neutral_card.alpha_composite(crop, (position[0] - image_box[0], position[1] - image_box[1]))
     canvas.paste(neutral_card.convert("RGB"), image_box[:2])
 
-    slot_name = item.slot.value.upper()
+    slot_name = _SLOT_LABELS.get(item.slot, item.slot.value.upper())
     safe_name = item.name.strip() or "Trang phục"
     safe_color = item.color.strip() or "Không xác định"
     draw.text((left + 24, bottom - 68), slot_name, font=_font(14, bold=True), fill=_ACCENT)

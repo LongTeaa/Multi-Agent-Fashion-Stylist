@@ -26,3 +26,8 @@ export const FUNCTION_TAG_NAMES: Record<string, string> = {
   light: 'Thoáng nhẹ',
   heavy: 'Dày ấm',
 };
+
+/** Length is a proportion attribute of body garments only (FASHION_KNOWLEDGE_BASE.md §2.4). */
+export function hasGarmentLength(category: string | null | undefined): boolean {
+  return category !== 'footwear' && category !== 'accessory';
+}

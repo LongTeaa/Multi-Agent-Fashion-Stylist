@@ -15,6 +15,7 @@ import {
 import { PrivateMediaImage } from '@/components/media/PrivateMediaImage';
 import type { TryOnAvatar, TryOnDisplayItem, TryOnResponseData } from '@/types/tryons';
 import { generateUUIDv4 } from '@/lib/uuid';
+import { initialPresetId, rememberPresetId } from '@/lib/tryonAvatar';
 
 type LayerChoice = 'auto' | 'outerwear' | 'top';
 
@@ -61,7 +62,7 @@ export function TryOnModal({
 
   // Avatar state
   const [avatars, setAvatars] = useState<TryOnAvatar[]>([]);
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string>('preset-male');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string>(() => initialPresetId(items));
   const [showOriginalAvatar, setShowOriginalAvatar] = useState<boolean>(false);
 
   // Outerwear vs inner top. 'auto' sends every item: a provider that renders layers wears
@@ -298,6 +299,7 @@ export function TryOnModal({
 
   const handleSelectAvatar = (avatarId: string) => {
     setSelectedAvatarId(avatarId);
+    rememberPresetId(avatarId);
     void generate(avatarId);
   };
 
@@ -307,8 +309,9 @@ export function TryOnModal({
       await deleteTryOnAvatar(avatarId);
       setAvatars((prev) => prev.filter((a) => a.id !== avatarId));
       if (selectedAvatarId === avatarId) {
-        setSelectedAvatarId('preset-male');
-        void generate('preset-male');
+        const fallbackPreset = initialPresetId(items);
+        setSelectedAvatarId(fallbackPreset);
+        void generate(fallbackPreset);
       }
     } catch (delError) {
       setError(delError instanceof ApiError ? delError.message : 'Không thể xóa ảnh đại diện.');

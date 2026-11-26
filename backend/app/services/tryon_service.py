@@ -355,6 +355,33 @@ def delete_user_avatar(
         session.commit()
 
 
+def _moodboard_item_name(item: WardrobeItem) -> str:
+    """Vietnamese garment type label for the moodboard card, e.g. ``Quần tây``."""
+    from app.services.garment_taxonomy import classify
+
+    from app.agents.wardrobe_agent import SUB_CATEGORY_VI_MAP
+
+    group, garment_type = classify(item.category, item.sub_category)
+    if garment_type is not None:
+        return garment_type.label
+    subtype = item.sub_category.replace("_", " ").strip().lower()
+    known = SUB_CATEGORY_VI_MAP.get(subtype)
+    if known:
+        return known
+    if group is not None and not subtype.startswith(group.label.lower()):
+        return f"{group.label} {subtype}"
+    return subtype.capitalize()
+
+
+def _moodboard_item_color(item: WardrobeItem) -> str:
+    """Vietnamese color label for the moodboard card, e.g. ``Xám than``."""
+    from app.agents.wardrobe_agent import COLOR_VI_MAP
+
+    raw = item.primary_color.strip()
+    label = COLOR_VI_MAP.get(raw.lower(), raw.replace("_", " "))
+    return label[:1].upper() + label[1:]
+
+
 def get_tryon_render_by_id(
     session: Session,
     user_id: str,
@@ -501,8 +528,8 @@ def _load_outfit_assets(
             MoodboardItem(
                 asset_id=media_asset.id,
                 slot=outfit_item.slot_role,
-                name=wardrobe_item.sub_category,
-                color=wardrobe_item.primary_color,
+                name=_moodboard_item_name(wardrobe_item),
+                color=_moodboard_item_color(wardrobe_item),
                 image_bytes=crop_bytes,
             )
         )
